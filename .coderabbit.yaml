@@ -1,0 +1,203 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit config for someshks.com: a design-engineering portfolio built with
+# Next.js App Router, Bun, TypeScript, Tailwind v4, Oxlint/Oxfmt, Playwright + axe.
+# CI owns deterministic gates (types, lint, format, tests, build, a11y, secrets).
+# CodeRabbit's job is the judgement layer: craft, accessibility, motion, RSC
+# boundaries, performance, and keeping private/NDA material out of a public repo.
+
+language: en-US
+tone_instructions: >-
+  Direct, specific, no filler or praise. Lead with the problem and the fix. Explain the
+  mechanism (why it breaks) in one line. Skip nitpicks the linter or formatter already enforces.
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  poem: false
+  in_progress_fortune: false
+  suggested_labels: false
+  suggested_reviewers: false
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    ignore_title_keywords: ["wip", "[skip review]"]
+
+  path_filters:
+    - "!bun.lock"
+    - "!bun.lockb"
+    - "!**/*.snap"
+    - "!**/__snapshots__/**"
+    - "!.next/**"
+    - "!out/**"
+    - "!coverage/**"
+    - "!playwright-report/**"
+    - "!test-results/**"
+    - "!next-env.d.ts"
+    - "!**/*.min.*"
+    - "!public/**/*.{png,jpg,jpeg,webp,avif,gif,ico,woff,woff2,mp4,webm}"
+    # Vendored agent skills are copied from an upstream source, not authored here.
+    - "!.agents/skills/**"
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        This repository is PUBLIC. Flag, as a blocking issue, anything that looks like
+        confidential or NDA client material: non-public client names, internal screenshots,
+        unreleased product details, case-study copy that should live behind the locked-work
+        route, real emails/phone numbers, API keys, tokens, or .env values. Private content
+        must be loaded at runtime from outside git, never committed.
+
+    - path: "app/**/*.{ts,tsx}"
+      instructions: |
+        Next.js App Router review:
+        - Server Components by default. Flag "use client" on files that do not need state,
+          effects, refs, or browser APIs, and client boundaries placed higher in the tree than
+          necessary (push them to the leaf). Never import server-only modules into client files.
+        - Data fetching and caching: check fetch cache/revalidate intent, `generateStaticParams`
+          for static routes, and that dynamic APIs (cookies, headers, searchParams) are not
+          accidentally forcing a route dynamic.
+        - Every route needs correct `metadata`/`generateMetadata` (title, description,
+          canonical, Open Graph). Flag missing `alt`, missing `lang`, or duplicate h1s.
+        - Use next/image with explicit sizes and next/font; flag raw <img> and CSS font imports.
+        - loading.tsx / error.tsx / not-found.tsx should exist where a segment can suspend or fail.
+
+    - path: "**/*.tsx"
+      instructions: |
+        Design-engineering and accessibility review (WCAG 2.2 AA):
+        - Semantic HTML first: buttons for actions, links for navigation, landmarks, one h1,
+          logical heading order. Flag div/span click handlers.
+        - Every interactive element is keyboard reachable with a visible :focus-visible state,
+          and has an accessible name. Hit targets at least 24x24 CSS px.
+        - Color contrast must hold in BOTH light and dark themes; flag hard-coded colors that
+          bypass theme tokens.
+        - Motion: animate transform and opacity, not layout properties (width, height, top,
+          left, margin). Every non-essential animation must respect prefers-reduced-motion.
+          Flag animations on mount that delay content, and easing/durations that are not from
+          the shared motion tokens.
+        - Interactive recreations and demos: they must not trap focus, must pause off-screen
+          (IntersectionObserver or equivalent), and must clean up listeners, timers, rAF loops,
+          and observers on unmount.
+        - Avoid layout shift: reserve space for media and async content.
+        - React: stable keys, no derived state in useState, no effects that only sync props to
+          state, memoization only where a measured cost justifies it.
+
+    - path: "**/*.css"
+      instructions: |
+        Tailwind v4 (CSS-first config). Design tokens live in @theme; flag magic values that
+        duplicate an existing token, arbitrary values where a token exists, and dark-mode
+        colors that are not defined as token overrides. Prefer logical properties, fluid type
+        via clamp(), and container queries over viewport breakpoints for components.
+
+    - path: "{middleware,proxy}.ts"
+      instructions: |
+        Security-critical. Review matcher scope, redirects (no open redirects), and that the
+        locked-work gate cannot be bypassed via path variations, prefetch, or RSC payload routes.
+
+    - path: "**/{auth,lock,locked,session}*/**"
+      instructions: |
+        Security-critical code for the password-gated work route. Require: scrypt (or stronger)
+        with a per-secret salt, constant-time comparison (crypto.timingSafeEqual), httpOnly +
+        Secure + SameSite cookies, signed/expiring session tokens, rate limiting on attempts,
+        and no secret or protected content in client bundles, logs, or error messages.
+        Protected pages must not be statically generated into public output.
+
+    - path: "**/*.test.{ts,tsx}"
+      instructions: |
+        bun test. Tests should assert behavior, not implementation details. Flag snapshot tests
+        of large trees, tests with no assertions, and timing-dependent tests without fake timers.
+
+    - path: "{e2e,tests}/**"
+      instructions: |
+        Playwright + @axe-core/playwright. Prefer role/label locators over CSS selectors, web-first
+        assertions over manual waits, and run axe on each page in both color schemes. Flag
+        waitForTimeout, disabled axe rules without a justification comment, and tests that
+        depend on network content.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Least-privilege `permissions`, pinned action SHAs, no untrusted input (PR titles, branch
+        names, issue bodies) interpolated directly into `run:`. Keep the jobs tolerant of a
+        missing scaffold only where documented. The `CI passed` job is the required check.
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "Imperative mood, under 72 characters, describes the user-visible change."
+    description:
+      mode: warning
+    custom_checks:
+      - name: "No private or NDA content"
+        mode: error
+        instructions: |
+          Fail if the diff adds files or text that appear to be confidential client material
+          (NDA case-study copy, internal screenshots, non-public client data), credentials,
+          tokens, private keys, or .env files with values. Pass otherwise.
+      - name: "Reduced motion respected"
+        mode: warning
+        instructions: |
+          If the diff adds or changes CSS animations/transitions, Motion/Framer animations, or
+          requestAnimationFrame loops, pass only when the change respects prefers-reduced-motion
+          (media query, useReducedMotion, or a shared motion utility that does). Pass if the diff
+          adds no animation.
+
+  tools:
+    # CI runs Oxlint and Oxfmt with the repo config; CodeRabbit runs Oxlint too so findings
+    # land inline. ESLint and Biome stay off to avoid contradicting the Oxc toolchain.
+    oxc:
+      enabled: true
+    eslint:
+      enabled: false
+    biome:
+      enabled: false
+    reactDoctor:
+      enabled: true
+    stylelint:
+      enabled: false
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    languagetool:
+      enabled: true
+    github-checks:
+      enabled: true
+    # Not relevant to this stack.
+    ruff:
+      enabled: false
+    hadolint:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: local
+  code_guidelines:
+    enabled: true
+    # Defaults (CLAUDE.md, AGENTS.md, .cursor/rules, ...) still apply.
+    filePatterns:
+      - "docs/guidelines/**/*.md"
