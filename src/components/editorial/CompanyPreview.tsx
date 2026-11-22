@@ -18,9 +18,17 @@ export function CompanyPreview({
 }: {
   company: Company;
   thumbnail: boolean;
+  /** Draws the mark from the page's LogoSprite. */
   logo: boolean;
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
+  // The card's image only mounts when the popover opens. Start the fetch on
+  // hover or focus so the open delay covers it.
+  const warm = thumbnail
+    ? () => {
+        new window.Image().src = `/previews/${company.id}.webp`;
+      }
+    : undefined;
   return (
     <Popover.Root>
       <Popover.Trigger
@@ -28,15 +36,18 @@ export function CompanyPreview({
         delay={180}
         closeDelay={120}
         className="company-pill pressable"
+        onPointerEnter={warm}
+        onFocus={warm}
       >
         {logo ? (
-          <Image
-            src={`/logos/${company.id}.webp`}
-            alt=""
-            width={32}
-            height={32}
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            fill="currentColor"
             className="company-pill__logo"
-          />
+          >
+            <use href={`#logo-${company.id}`} />
+          </svg>
         ) : null}
         {company.name}
       </Popover.Trigger>
@@ -50,6 +61,7 @@ export function CompanyPreview({
                 width={560}
                 height={350}
                 sizes="240px"
+                unoptimized
                 className="company-card__thumb"
               />
             ) : null}

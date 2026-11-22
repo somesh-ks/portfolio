@@ -47,6 +47,7 @@ export function ListRow({
           width={320}
           height={200}
           sizes="160px"
+          unoptimized
           className="list-row__thumb"
         />
       ) : null}

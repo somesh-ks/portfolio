@@ -106,16 +106,13 @@ main:focus {
     text-decoration-color: var(--text-primary);
   }
 }
-/* Inline-block so the underline skips the logo; 1em tracks the text size. */
+/* Inline SVG icon from LogoSprite. Inline-block so the underline skips it; 1em tracks the text size. */
 .company-pill__logo {
   display: inline-block;
   width: 1em;
   height: 1em;
   margin-right: 0.3em;
   vertical-align: -0.125em;
-  border-radius: var(--radius-xs);
-  outline: none;
-  box-shadow: 0 0 0 1px var(--border-image);
 }
 
 .company-card {

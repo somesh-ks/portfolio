@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { BIO, COMPANIES, type CompanyId } from "@content/profile";
+import { hasLogo, LogoSprite } from "./LogoSprite";
 import { CompanyPreview } from "./CompanyPreview";
 
 const TOKEN = /\{company:([a-z]+)\}/g;
@@ -13,6 +14,7 @@ function hasFile(...segments: string[]): boolean {
 export function Bio() {
   return (
     <div className="bio">
+      <LogoSprite />
       {BIO.map((paragraph) => {
         const parts = paragraph.split(TOKEN);
         return (
@@ -30,7 +32,7 @@ export function Bio() {
                   <CompanyPreview
                     company={company}
                     thumbnail={hasFile("previews", `${part}.webp`)}
-                    logo={hasFile("logos", `${part}.webp`)}
+                    logo={hasLogo(part as CompanyId)}
                   />
                   {glued}
                 </span>
