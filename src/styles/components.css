@@ -743,6 +743,133 @@ claude-mascot:defined > * {
   border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
+.site-footer__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Cmd+K quick-jump. Touch has no shortcut, so the trigger is fine-pointer only. */
+.palette-trigger {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .palette-trigger {
+    display: inline-grid;
+    place-items: center;
+    height: 2.25rem;
+    padding-inline: var(--space-2);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs-min);
+  }
+  .palette-trigger:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+  }
+}
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--shadow-strong);
+  transition: opacity var(--duration-modal) var(--ease-out);
+}
+.palette {
+  position: fixed;
+  z-index: 201;
+  inset: 0 0 auto;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 40rem;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-default);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm-min);
+  transition:
+    opacity var(--duration-modal) var(--ease-out),
+    transform var(--duration-modal) var(--ease-out);
+}
+@media (min-width: 40rem) {
+  .palette {
+    top: 15vh;
+    border: 1px solid var(--border-default);
+  }
+}
+.palette-backdrop[data-starting-style],
+.palette-backdrop[data-ending-style],
+.palette[data-starting-style],
+.palette[data-ending-style] {
+  opacity: 0;
+}
+.palette[data-starting-style],
+.palette[data-ending-style] {
+  transform: translateY(-0.5rem);
+}
+.palette__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.palette__input {
+  flex: 1;
+  appearance: none;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: max(16px, 1em);
+}
+.palette__list {
+  max-height: min(60vh, 24rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block: var(--space-1);
+}
+.palette__item {
+  display: flex;
+  width: 100%;
+  text-align: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.palette__input::-webkit-search-cancel-button {
+  appearance: none;
+}
+/* Focused row, or the first match that Enter in the input will open. */
+.palette__item:focus-visible,
+.palette__field:focus-within + .palette__list li:first-child .palette__item {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+@media (hover: hover) and (pointer: fine) {
+  .palette__item:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+  }
+}
+.palette__group,
+.palette__empty {
+  color: var(--text-secondary);
+}
+.palette__empty {
+  padding: var(--space-3) var(--space-4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette[data-starting-style],
+  .palette[data-ending-style] {
+    transform: none;
+  }
+}
+
 .contact-links {
   display: flex;
   flex-wrap: wrap;

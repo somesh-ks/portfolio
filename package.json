@@ -13,6 +13,7 @@
     "format:check": "oxfmt --check",
     "tokens": "bun scripts/tokens.ts",
     "tokens:check": "bun scripts/check-tokens.ts",
+    "perf": "bun scripts/perf.ts",
     "knip": "knip",
     "check": "bun scripts/check.ts",
     "test": "bun test tests/unit",
