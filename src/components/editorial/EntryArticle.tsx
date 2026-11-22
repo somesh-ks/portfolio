@@ -4,6 +4,7 @@ import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { Entry } from "@/lib/content";
 import { entryGraph, serializeJsonLd } from "@/lib/schema-org";
+import { ArticleOutline } from "./ArticleOutline";
 import { BackLink } from "./BackLink";
 import { FactsList } from "./FactsList";
 import { MetricsStrip } from "./MetricsStrip";
@@ -13,6 +14,12 @@ interface EntryArticleProps {
   next?: Entry;
   children: ReactNode;
 }
+
+const KIND_LABEL = {
+  "case-study": "Case study",
+  project: "Project",
+  experiment: "Experiment",
+} as const;
 
 export function EntryArticle({ entry, next, children }: EntryArticleProps) {
   const { meta } = entry;
@@ -24,6 +31,10 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
       />
       <BackLink />
       <header className="entry__header">
+        <p className="entry__meta">
+          {KIND_LABEL[meta.kind]} ·{" "}
+          <time dateTime={meta.publishedAt}>{meta.publishedAt.slice(0, 4)}</time>
+        </p>
         <h1 className="entry__title">{meta.title}</h1>
         <p className="entry__summary">{meta.summary}</p>
         {meta.liveUrl || meta.repoUrl ? (
@@ -43,7 +54,10 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
       </header>
       <MetricsStrip metrics={meta.metrics} />
       <FactsList meta={meta} />
-      <div className="prose">{children}</div>
+      <div className="entry__body">
+        <ArticleOutline />
+        <div className="prose">{children}</div>
+      </div>
       {next ? (
         <nav aria-label="Next" className="entry__next">
           <Link href={next.href as Route} className="next-link pressable">
