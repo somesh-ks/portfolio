@@ -57,7 +57,7 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
           setOpen(true);
         }}
       >
-        <span aria-hidden="true">&gt;</span> jump<span className="sr-only"> to a page</span>
+        jump<span className="sr-only"> to a page</span>
         {mod ? (
           <span className="palette-trigger__keys" aria-hidden="true">
             <Kbd>{mod === "⌘" ? "⌘K" : "Ctrl K"}</Kbd>
