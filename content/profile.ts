@@ -66,7 +66,7 @@ export type CompanyId = keyof typeof COMPANIES;
  */
 export const BIO = [
   "I'm a senior product designer at {company:netlight}. I've shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo} and {company:oyo}, used by 3M+ people in 22 countries.",
-  "At {company:anthropic} I'm Claude Ambassador, Sweden, and I host Claude for Designers meetups. I also co-founded Into Design Systems in Stockholm. Now I'm working out what a design system needs so coding agents can build with it well.",
+  "I'm a Claude Ambassador at {company:anthropic}, running the AI for Designers community, and a Stripe Ambassador, building the startup community. Now I'm working out what a design system needs so coding agents can build with it well.",
 ] as const;
 
 export const PROFILE = {
@@ -76,7 +76,7 @@ export const PROFILE = {
   headline: "Design engineer in Stockholm",
   location: { city: "Stockholm", country: "Sweden" },
   worksFor: "Netlight Consulting",
-  affiliations: ["Claude Ambassador, Sweden", "Into Design Systems, Stockholm"],
+  affiliations: ["Claude Ambassador, Sweden", "Stripe Ambassador"],
   alumniOf: ["KTH Royal Institute of Technology", "EIT Digital", "VIT University"],
   knowsAbout: [
     "Design Engineering",
