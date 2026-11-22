@@ -780,8 +780,9 @@ claude-mascot:defined > * {
   display: inline-block;
   min-width: 2.5ch;
   padding: 0.1em 0.5ch 0;
-  border: 1px solid var(--border-default);
-  border-bottom: 2px solid var(--border-strong);
+  /* Strong edges: --border-default vanishes on light 1x screens. */
+  border: 1px solid var(--border-strong);
+  border-bottom: 2px solid var(--text-secondary);
   border-radius: var(--radius-xs);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs-min);
