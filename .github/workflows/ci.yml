@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           has() { jq -e --arg s "$1" '.scripts[$s] // empty' package.json > /dev/null; }
-          for script in typecheck lint format:check knip test build size; do
+          for script in typecheck lint format:check tokens:check knip test build size; do
             if has "$script"; then
               echo "::group::bun run $script"
               bun run "$script"

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
 import { SiteFooter } from "@/components/editorial/SiteFooter";
+import { SiteHeader } from "@/components/editorial/SiteHeader";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { personGraph, serializeJsonLd } from "@/lib/schema-org";
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               Skip to content
             </a>
             <div className="page">
+              <SiteHeader />
               <main id="main" tabIndex={-1}>
                 {children}
               </main>
