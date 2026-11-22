@@ -1673,7 +1673,8 @@ claude-mascot:defined > * {
   display: grid;
   gap: var(--space-2);
 }
-.skill-install__line {
+/* ---------- Code: command line, code block, terminal ---------- */
+.command {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -1684,7 +1685,7 @@ claude-mascot:defined > * {
   background: var(--surface-raised);
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
-.skill-install__command {
+.command__text {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -1694,21 +1695,104 @@ claude-mascot:defined > * {
   font-size: var(--step-xs);
   white-space: pre;
 }
-.skill-install__copy {
+/* The prompt is drawn, never selected or copied. */
+.command__text::before,
+.code-block .line--prompt::before {
+  content: "$ ";
+  color: var(--text-secondary);
+  user-select: none;
+}
+.command__text::before {
+  content: attr(data-prompt) " ";
+}
+.copy-button {
   flex: none;
 }
-.skill-install__icons {
+.copy-button__icons {
   display: grid;
 }
-.skill-install__icons > * {
+.copy-button__icons > * {
   grid-area: 1 / 1;
   transition:
     opacity var(--duration-press) var(--ease-out),
     transform var(--duration-press) var(--ease-out);
 }
-.skill-install__icons > [data-visible="false"] {
+.copy-button__icons > [data-visible="false"] {
   opacity: 0;
   transform: scale(0.6);
+}
+
+.code-block {
+  margin-block: 1.5em;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.code-block__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding-inline: var(--space-4) var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+}
+.code-block__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-block__dots {
+  display: flex;
+  gap: 6px;
+}
+.code-block__dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+/* Terminal title sits centred between the dots and the copy button. */
+.code-block[data-terminal] .code-block__title {
+  text-align: center;
+}
+.code-block pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  line-height: 1.6;
+}
+.code-block pre:focus-visible {
+  outline-offset: -2px;
+}
+/* Terminals are two-tone: commands in full ink, output quieter. Shiki writes
+   colours inline as var() calls, so retarget the variables, not the colour. */
+.code-block[data-terminal] .line {
+  --shiki-foreground: var(--text-secondary);
+  --shiki-token-keyword: var(--text-secondary);
+  --shiki-token-function: var(--text-secondary);
+  --shiki-token-constant: var(--text-secondary);
+  --shiki-token-parameter: var(--text-secondary);
+  --shiki-token-string: var(--text-secondary);
+  --shiki-token-string-expression: var(--text-secondary);
+  --shiki-token-punctuation: var(--text-secondary);
+}
+.code-block[data-terminal] .line--prompt {
+  --shiki-foreground: var(--text-primary);
+  --shiki-token-keyword: var(--text-primary);
+  --shiki-token-function: var(--text-primary);
+  --shiki-token-constant: var(--text-primary);
+  --shiki-token-parameter: var(--text-primary);
+  --shiki-token-string: var(--text-primary);
+  --shiki-token-string-expression: var(--text-primary);
+  --shiki-token-punctuation: var(--text-primary);
 }
 
 .skill-demo__stage {
@@ -1876,7 +1960,7 @@ claude-mascot:defined > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skill-install__icons > [data-visible="false"] {
+  .copy-button__icons > [data-visible="false"] {
     transform: none;
   }
   .smear-card--typical,

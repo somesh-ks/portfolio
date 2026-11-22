@@ -5,6 +5,9 @@ import type { ComponentProps } from "react";
 import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
 import { Figure, Video } from "@/components/case-studies/Figure";
+import { CodeBlock } from "@/components/code/CodeBlock";
+import { Command } from "@/components/code/Command";
+import { codeMeta, codeTheme } from "@/lib/shiki";
 import * as toys from "./toys";
 
 /** Components MDX may use. Media paths in locked bodies resolve to the gated API. */
@@ -13,6 +16,8 @@ function componentsFor(mediaBase?: string): MDXComponents {
     src && mediaBase && !src.startsWith("/") ? `${mediaBase}/${src}` : src;
   return {
     ...toys,
+    pre: CodeBlock,
+    Command,
     BeforeAfterScrubber: (props: ComponentProps<typeof toys.BeforeAfterScrubber>) => (
       <toys.BeforeAfterScrubber
         {...props}
@@ -37,21 +42,15 @@ export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: s
       [
         rehypeShiki,
         {
-          themes: { light: "github-light", dark: "github-dark" },
-          defaultColor: false,
+          theme: codeTheme,
           // Load grammars on demand. Bundling every language cost ~6s on each
           // cold start, so clicks into a dynamic page looked dead.
           langs: [],
           lazy: true,
           // Unknown fence languages render plain instead of failing the page.
           fallbackLanguage: "text",
-          // Code blocks scroll sideways on phones, so keyboard users must reach them.
-          transformers: [
-            {
-              pre: (node: { properties: Record<string, unknown> }) =>
-                void (node.properties.tabindex = 0),
-            },
-          ],
+          // Adds titles, terminal prompts, copy text and tabindex (blocks scroll sideways on phones).
+          transformers: [codeMeta()],
         },
       ],
     ],
