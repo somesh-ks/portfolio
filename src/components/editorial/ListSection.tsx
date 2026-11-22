@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { HoverList } from "./HoverList";
 
 export function ListSection({
   id,
@@ -14,7 +15,7 @@ export function ListSection({
       <h2 id={`${id}-heading`} className="section-title">
         {title}
       </h2>
-      <ul className="list">{children}</ul>
+      <HoverList>{children}</HoverList>
     </section>
   );
 }
