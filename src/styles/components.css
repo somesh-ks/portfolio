@@ -252,7 +252,7 @@ claude-mascot:defined > * {
   min-height: 2.25rem;
 }
 .runner__foot {
-  /* The buttons' own padding spaces them, so the row fits a 320px phone. */
+  /* The buttons' own padding spaces them; phones wrap the row (below). */
   gap: 0;
 }
 /* Footer buttons keep their hit area but line their text up with the column. */
@@ -287,8 +287,9 @@ claude-mascot:defined > * {
 }
 .runner__screen {
   position: relative;
-  /* Multiples of 64px keep the 64-cell world on whole pixels. */
-  height: 12rem;
+  /* A multiple of 64px keeps the 64-cell world on whole pixels. On phones
+     the width sets the scale, and the spare height above holds the text. */
+  height: 16rem;
   overflow: hidden;
   cursor: pointer;
   touch-action: manipulation;
@@ -354,6 +355,16 @@ claude-mascot:defined > * {
 .runner__pose {
   display: none;
 }
+/* Clouds drift one 200-cell strip (CLOUD_STRIP; copies make it seamless)
+   at 3 cells a second, the engine's resting pace. */
+.runner__clouds {
+  animation: runner-clouds var(--clouds) linear infinite;
+}
+@keyframes runner-clouds {
+  to {
+    transform: translateX(-200px);
+  }
+}
 @keyframes runner-walk {
   0% {
     opacity: 1;
@@ -364,6 +375,9 @@ claude-mascot:defined > * {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .runner__clouds {
+    animation: none;
+  }
   .runner__step {
     display: none;
   }
@@ -458,21 +472,27 @@ claude-mascot:defined > * {
 .runner__spacer {
   flex: 1;
 }
-/* Key hints with a keyboard, "TAP" on touch. */
+/* Key hints with a keyboard, "TAP" on touch. Touch screens start with tap
+   wording; after that the last input used decides (data-input on .runner). */
 .runner__key[data-input="touch"] {
   display: none;
 }
 @media (pointer: coarse) {
-  .runner__key[data-input="touch"] {
+  .runner:not([data-input="keys"]) .runner__key[data-input="touch"] {
     display: inline;
   }
-  .runner__key[data-input="keys"] {
+  .runner:not([data-input="keys"]) .runner__key[data-input="keys"],
+  .runner:not([data-input="keys"]) .runner__foot .runner__key {
     display: none;
   }
-  /* Footer keys are keyboard shortcuts; on touch the label alone is the button. */
-  .runner__foot .runner__key {
-    display: none;
-  }
+}
+.runner[data-input="touch"] .runner__key[data-input="touch"] {
+  display: inline;
+}
+/* Footer keys are keyboard shortcuts; on touch the label alone is the button. */
+.runner[data-input="touch"] .runner__key[data-input="keys"],
+.runner[data-input="touch"] .runner__foot .runner__key {
+  display: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .runner__action {
@@ -521,11 +541,6 @@ claude-mascot:defined > * {
   .runner__board li:nth-child(n + 4),
   .runner__over:has(.runner__form) .runner__board {
     display: none;
-  }
-}
-@media (min-width: 640px) {
-  .runner__screen {
-    height: 16rem;
   }
 }
 

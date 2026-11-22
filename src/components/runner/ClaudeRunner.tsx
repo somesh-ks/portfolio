@@ -21,6 +21,7 @@ import {
   type FormEvent,
 } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
+import { Kbd } from "@/components/ui/Kbd";
 import {
   COSTUME_NAMES,
   COSTUMES,
@@ -29,6 +30,7 @@ import {
   type RawSprite,
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
+import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
 import type { Engine } from "./engine";
 
 type Phase = "idle" | "loading" | "running" | "over";
@@ -80,12 +82,36 @@ function StaticFrame() {
   return (
     <svg
       className="runner__static"
-      viewBox={`0 0 400 ${WORLD.height}`}
-      preserveAspectRatio="xMinYMax slice"
+      // The canvas's mapping: cells sized by height, capped so at least
+      // WORLD.minWidth fit across, bottom-aligned; the rest overflows right.
+      viewBox={`0 0 ${WORLD.minWidth} ${WORLD.height}`}
+      preserveAspectRatio="xMinYMax meet"
+      overflow="visible"
       shapeRendering="crispEdges"
       aria-hidden="true"
-      style={{ "--walk": `${WALK.frames.length / WALK.fps}s` } as CSSProperties}
+      // A stroll: the same pace as the engine's between-run walk.
+      style={
+        {
+          "--walk": `${WALK.frames.length / (WALK.fps * 0.6)}s`,
+          "--clouds": `${CLOUD_STRIP / CLOUD_IDLE_SPEED}s`,
+        } as CSSProperties
+      }
     >
+      <g className="runner__clouds" fill="var(--border-default)">
+        {[0, CLOUD_STRIP, 2 * CLOUD_STRIP].map((offset) =>
+          CLOUD_SPOTS.map(([x, y]) =>
+            CLOUD.map(([cx, cy, w]) => (
+              <rect
+                key={`${offset}-${x}-${cy}`}
+                x={offset + x + cx}
+                y={y + cy}
+                width={w}
+                height={1}
+              />
+            )),
+          ),
+        )}
+      </g>
       <rect x={0} y={WORLD.ground} width={400} height={1} fill="var(--border-strong)" />
       <g className="runner__pose">{pose(WALK.idle)}</g>
       {WALK.frames.map((rects, index) => (
@@ -98,12 +124,12 @@ function StaticFrame() {
   );
 }
 
-/** "[SPACE]" with a keyboard, "TAP" on touch; CSS picks one. */
+/** The shared keycap with a keyboard, "TAP" on touch; CSS picks one. */
 function Key({ keyName, touch }: { keyName: string; touch?: string }) {
   return (
     <>
       <span className="runner__key" data-input="keys">
-        [{keyName}]
+        <Kbd>{keyName}</Kbd>
       </span>
       {touch ? (
         <span className="runner__key" data-input="touch">
@@ -147,6 +173,8 @@ export function ClaudeRunner() {
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
   const [jumped, setJumped] = useState(false);
+  /** The last input used, so hints say TAP or [SPACE] to match. */
+  const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const nameId = useId();
@@ -205,9 +233,29 @@ export function ClaudeRunner() {
       });
       setEngineReady(true);
       return engine.current;
-    })();
+    })().catch(() => {
+      // A stale chunk or no canvas: forget the attempt so the next press retries.
+      loading.current = null;
+      return null;
+    });
     return loading.current;
   }, [loadBoard]);
+
+  // A different Claude on each visit. The classic one is in the server frame;
+  // any other loads the engine once the page is idle, not on the critical path.
+  useEffect(() => {
+    const pick = COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
+    if (pick === "walk") return;
+    costumeRef.current = pick;
+    const load = () => void ensureEngine();
+    // Safari has no requestIdleCallback; a short timeout stands in.
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(load, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(load, 1500);
+    return () => clearTimeout(timer);
+  }, [ensureEngine]);
 
   const starting = useRef(false);
   const startRun = useCallback(async () => {
@@ -228,6 +276,7 @@ export function ClaudeRunner() {
     const loaded = await ensureEngine();
     if (!loaded) {
       starting.current = false;
+      setPhase("idle");
       return;
     }
 
@@ -307,6 +356,7 @@ export function ClaudeRunner() {
       if (!inView || !idle || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key !== " " && event.key !== "ArrowUp") return;
       event.preventDefault();
+      setInput("keys");
       screen.current?.focus({ preventScroll: true });
       if (!event.repeat) pressRef.current();
     };
@@ -382,6 +432,14 @@ export function ClaudeRunner() {
       className="runner"
       data-expanded={expanded || undefined}
       data-immersive={immersive || undefined}
+      data-input={input}
+      // On pointer up, not down: swapping hints mid-press would move the
+      // button under the pointer and cancel the click.
+      onPointerUpCapture={(event) => setInput(event.pointerType === "touch" ? "touch" : "keys")}
+      onKeyDownCapture={(event) => {
+        // Typing a leaderboard name on a phone's keyboard is still touch.
+        if (!(event.target instanceof HTMLInputElement)) setInput("keys");
+      }}
       aria-label="Claude runner game"
     >
       <div className="runner__bar">

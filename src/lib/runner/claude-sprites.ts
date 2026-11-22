@@ -49,7 +49,8 @@ const LOOPS: Record<Costume, readonly [number, number]> = {
   skate: [31, 33],
   scooter: [26, 28],
   bike: [12, 20],
-  kite: [33, 35],
+  // The kite's full flutter; the legs come from the walk (see walkingLegs).
+  kite: [52, 83],
   car: [13, 29],
 };
 
@@ -74,9 +75,16 @@ interface Bounds {
   left: number;
   right: number;
   bottom: number;
+  /** Right edge of what touches the ground: a kite overhead doesn't collide. */
+  footRight: number;
 }
 
-function bounds(raw: RawSprite, frames: Uint8Array[]): Bounds {
+/** Rows above the lowest pixel that count as "at ground level" for collisions. */
+const FOOT_ROWS = 7;
+
+/** `frames` set the drawing box; `riding` (the loop) sets the collision front,
+ * so a kite lying on the ground in the standing frame doesn't count. */
+function bounds(raw: RawSprite, frames: Uint8Array[], riding: Uint8Array[]): Bounds {
   let left = raw.w;
   let right = -1;
   let bottom = -1;
@@ -89,7 +97,13 @@ function bounds(raw: RawSprite, frames: Uint8Array[]): Bounds {
       right = Math.max(right, x);
       bottom = Math.max(bottom, y);
     });
-  return { left, right, bottom };
+  let footRight = left;
+  for (const pixels of riding)
+    pixels.forEach((value, index) => {
+      if (value !== 255 && Math.floor(index / raw.w) > bottom - FOOT_ROWS)
+        footRight = Math.max(footRight, index % raw.w);
+    });
+  return { left, right, bottom, footRight };
 }
 
 /** Rows of same-colour runs, shifted so the sprite's left edge is x = 0 and
@@ -113,19 +127,53 @@ function toRects(raw: RawSprite, pixels: Uint8Array, box: Bounds): SpriteRect[] 
   return out;
 }
 
+/** The kite sprite flies its kite standing still. Give it the walk cycle's
+ * legs: its bottom five rows line up with the walk's leg rows, same columns. */
+const KITE_LEG_TOP = 28;
+const WALK_LEG_TOP = 13;
+const LEG_ROWS = 5;
+
+function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
+  const legsRaw = walk as RawSprite;
+  const walkFrames = decodePixels(legsRaw);
+  const [start, end] = LOOPS.walk;
+  const steps = walkFrames.slice(start, end);
+  // Walk palette index -> kite palette index, matched by colour.
+  // A colour the kite lacks draws nothing rather than a wrong colour.
+  const kite = raw.palette.map((hex) => hex.toLowerCase());
+  const colour = legsRaw.palette.map((hex) => kite.indexOf(hex.toLowerCase()));
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+  const length = (frames.length * steps.length) / gcd(frames.length, steps.length);
+  return Array.from({ length }, (_, i) => {
+    const pixels = (frames[i % frames.length] ?? new Uint8Array()).slice();
+    const legs = steps[i % steps.length] ?? new Uint8Array();
+    for (let row = 0; row < LEG_ROWS; row += 1)
+      for (let x = 0; x < legsRaw.w; x += 1) {
+        const value = legs[(WALK_LEG_TOP + row) * legsRaw.w + x] ?? 255;
+        pixels[(KITE_LEG_TOP + row) * raw.w + x] =
+          value === 255 || (colour[value] ?? -1) < 0 ? 255 : colour[value]!;
+      }
+    return pixels;
+  });
+}
+
 export function buildSprite(raw: RawSprite, costume: Costume): Sprite {
   const all = decodePixels(raw);
   const [start, end] = LOOPS[costume];
-  const loop = all.slice(start, end);
-  const box = bounds(raw, [...loop, all[0] ?? new Uint8Array()]);
+  const flown = all.slice(start, end);
+  const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
+  const box = bounds(raw, [...loop, all[0] ?? new Uint8Array()], loop);
   const width = box.right - box.left + 1;
-  const hit = Math.min(width, MAX_HIT_WIDTH);
+  // The kite flies ahead of Claude; only its feet can hit. Other rides hit
+  // with their full front, body included, since tall obstacles reach it.
+  const front = (costume === "kite" ? box.footRight : box.right) - box.left + 1;
+  const hit = Math.min(front, MAX_HIT_WIDTH);
   return {
     fps: raw.fps,
     frames: loop.map((pixels) => toRects(raw, pixels, box)),
     idle: toRects(raw, all[0] ?? new Uint8Array(), box),
     width,
-    hitbox: { x: width - hit + 2, w: hit - 4 },
+    hitbox: { x: front - hit + 2, w: hit - 4 },
   };
 }
 

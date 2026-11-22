@@ -160,3 +160,22 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
     ),
   },
 };
+
+/** A grey pixel cloud, as row runs: [x, y, w] within a 14x4 box. */
+export const CLOUD: readonly (readonly [number, number, number])[] = [
+  [4, 0, 5],
+  [2, 1, 9],
+  [0, 2, 14],
+  [1, 3, 12],
+];
+/** Clouds along a repeating 200-cell strip of sky: [x, y]. A phone shows
+ * about 100 cells, so two or three are always in view. */
+/** Clouds drift this many cells a second at rest. */
+export const CLOUD_IDLE_SPEED = 3;
+export const CLOUD_STRIP = 200;
+export const CLOUD_SPOTS: readonly (readonly [number, number])[] = [
+  [24, 12],
+  [78, 4],
+  [128, 18],
+  [170, 8],
+];

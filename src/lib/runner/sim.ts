@@ -12,6 +12,8 @@ export const WORLD = {
   ground: 56,
   /** Where the mascot's left edge sits. */
   mascotX: 8,
+  /** Narrowest view, in cells: about a second of warning at top speed. */
+  minWidth: 100,
 } as const;
 
 export const PHYSICS = {
