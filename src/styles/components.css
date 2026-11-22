@@ -749,19 +749,28 @@ claude-mascot:defined > * {
   gap: var(--space-1);
 }
 
-/* Cmd+K quick-jump. Touch has no shortcut, so the trigger is fine-pointer only. */
+/* Cmd+K quick-jump. The footer trigger works for touch too; ⌘K shows on fine pointers. */
 .palette-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+}
+.palette-trigger kbd {
   display: none;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs-min);
 }
 @media (hover: hover) and (pointer: fine) {
   .palette-trigger {
-    display: inline-grid;
-    place-items: center;
     height: 2.25rem;
-    padding-inline: var(--space-2);
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    font-size: var(--font-size-xs-min);
+  }
+  .palette-trigger kbd {
+    display: inline;
   }
   .palette-trigger:hover {
     color: var(--text-primary);
@@ -790,10 +799,17 @@ claude-mascot:defined > * {
     opacity var(--duration-modal) var(--ease-out),
     transform var(--duration-modal) var(--ease-out);
 }
+/* Centred on wider screens. Phones keep it at the top, above the on-screen keyboard. */
 @media (min-width: 40rem) {
   .palette {
-    top: 15vh;
+    inset: 0;
+    height: fit-content;
+    margin: auto;
     border: 1px solid var(--border-default);
+  }
+  /* Fixed list height, so the box doesn't jump around the centre while typing. */
+  .palette__list {
+    height: min(60vh, 24rem);
   }
 }
 .palette-backdrop[data-starting-style],
@@ -859,6 +875,15 @@ claude-mascot:defined > * {
 .palette__group,
 .palette__empty {
   color: var(--text-secondary);
+}
+.palette__item {
+  min-height: 2.75rem;
+  align-items: center;
+}
+@media (hover: hover) and (pointer: fine) {
+  .palette__item {
+    min-height: 0;
+  }
 }
 .palette__empty {
   padding: var(--space-3) var(--space-4);

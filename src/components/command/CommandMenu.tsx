@@ -1,10 +1,20 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { type ComponentType, lazy, Suspense, useEffect, useState } from "react";
 import type { CommandLink } from "./items";
 
 // The palette loads on first open, so it costs nothing on page load.
-const CommandPalette = lazy(() => import("./CommandPalette"));
+// A failed chunk load (offline, or a stale tab after a deploy) renders nothing
+// instead of throwing past the root layout.
+type PaletteProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  links: CommandLink[];
+};
+const CommandPalette = lazy<ComponentType<PaletteProps>>(() =>
+  import("./CommandPalette").catch(() => ({ default: () => null })),
+);
 
 function isEditable(target: EventTarget | null): boolean {
   return (
@@ -20,7 +30,8 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      const k = event.code === "KeyK" || event.key.toLowerCase() === "k";
+      if (!k || !(event.metaKey || event.ctrlKey)) return;
       if (event.repeat || event.isComposing || event.altKey || event.shiftKey) return;
       // Skip inside text fields, and while the game is fullscreen (the dialog would sit behind it).
       if (!open && (isEditable(event.target) || document.fullscreenElement)) return;
@@ -44,8 +55,9 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
           setOpen(true);
         }}
       >
-        <kbd>⌘K</kbd>
+        <Search aria-hidden="true" size={16} strokeWidth={1.75} />
         <span className="sr-only">Jump to a page</span>
+        <kbd aria-hidden="true">⌘K</kbd>
       </button>
       {used ? (
         <Suspense fallback={null}>

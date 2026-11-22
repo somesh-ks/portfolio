@@ -9,6 +9,8 @@ import { useSound } from "@/components/providers/SoundProvider";
 import type { Route } from "next";
 import type { CommandLink } from "./items";
 
+const openMail = () => window.location.assign(`mailto:${PROFILE.email}`);
+
 interface Row {
   label: string;
   group: string;
@@ -40,7 +42,11 @@ export default function CommandPalette({
     {
       label: "Copy email",
       group: "Actions",
-      run: () => void navigator.clipboard?.writeText(PROFILE.email).catch(() => {}),
+      // No clipboard (blocked or insecure origin): open the mail app instead.
+      run: () => {
+        if (navigator.clipboard) void navigator.clipboard.writeText(PROFILE.email).catch(openMail);
+        else openMail();
+      },
     },
   ];
 
@@ -92,6 +98,7 @@ export default function CommandPalette({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing) return;
                 if (event.key === "Enter") {
                   event.preventDefault();
                   choose(shown[0]);
@@ -114,7 +121,14 @@ export default function CommandPalette({
               </li>
             ))}
           </ul>
-          {shown.length === 0 ? <p className="palette__empty">no match</p> : null}
+          {shown.length === 0 ? (
+            <p className="palette__empty" aria-hidden="true">
+              no match
+            </p>
+          ) : null}
+          <output className="sr-only">
+            {shown[0] ? `${shown.length} results. Enter opens ${shown[0].label}.` : "No match."}
+          </output>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

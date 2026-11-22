@@ -156,3 +156,9 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("the footer button opens the palette on touch and desktop", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Jump to a page" }).click();
+  await expect(page.getByRole("searchbox", { name: "Jump to" })).toBeFocused();
+});
