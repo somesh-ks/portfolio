@@ -1135,6 +1135,35 @@ claude-mascot:defined > * {
   }
 }
 
+/* Tooltip (ui/Tooltip.tsx): one line of mono text above its trigger. */
+.tooltip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  white-space: nowrap;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--duration-tooltip) var(--ease-out),
+    transform var(--duration-tooltip) var(--ease-out);
+}
+.tooltip[data-starting-style],
+.tooltip[data-ending-style] {
+  opacity: 0;
+  transform: translateY(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tooltip[data-starting-style],
+  .tooltip[data-ending-style] {
+    transform: none;
+  }
+}
+
 /* ---------- Mono chrome ----------
    Labels, wayfinding and metadata speak in mono caps; reading text stays sans. */
 .section-title,
