@@ -4,7 +4,8 @@ import { createCssVariablesTheme } from "shiki/core";
 /** Token colours come from CSS variables set in globals.css, so code follows the site theme. */
 export const codeTheme = createCssVariablesTheme({ name: "site", variablePrefix: "--shiki-" });
 
-const PROMPT = /^\$ ?/;
+// "$ cmd" or a lone "$"; output such as "$HOME is set" stays output.
+const PROMPT = /^\$( |$)/;
 const isTerminal = (meta = "") => /(^|\s)terminal(\s|$)/.test(meta);
 
 /**

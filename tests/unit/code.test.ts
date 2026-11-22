@@ -29,6 +29,11 @@ describe("code blocks", () => {
     expect(node.properties?.["data-code"]).toBe("bun install\nbun test");
   });
 
+  test("output lines that start with $ but no space stay output", async () => {
+    const node = await pre("$ echo $HOME\n$HOME is /root", "sh", "terminal");
+    expect(node.properties?.["data-code"]).toBe("echo $HOME");
+  });
+
   test("colours come from CSS variables, so code follows the site theme", async () => {
     const node = await pre("const a = 1;", "ts");
     expect(JSON.stringify(node)).toContain("var(--shiki-token-keyword)");
