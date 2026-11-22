@@ -25,7 +25,7 @@ Somesh made these calls. They win over the general guidance further down this fi
 
 ## Case study format
 
-Every case study, public or protected, reads as one continuous story with the highest possible brevity. Somesh's standing rule: cut every sentence a skimmer wouldn't miss. Stay under about 400 words, use one or two sentences per section, and let visuals carry the rest. Skimming the headings alone should give the arc.
+Every case study, public or protected, reads as one continuous story with the highest possible brevity. Somesh's standing rule: cut every sentence a skimmer wouldn't miss. Budget: 500 words at most, about a two-minute read, since recruiters give a portfolio two to three minutes. Use one or two sentences per section and let visuals carry the rest. Skimming the headings alone should give the arc.
 
 1. **Header** (rendered by `EntryArticle` from frontmatter): a mono meta line ("Case study · 2026"), the title, a one-line `summary`, the `metrics` row and the facts list (`role`, `timeline`, `team`, `problem`, `stack`). Don't repeat in the body a number the header already shows.
 2. **Opening:** one or two sentences of context, then a hero `Video` or `Figure` with no caption.
