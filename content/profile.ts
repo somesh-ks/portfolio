@@ -89,7 +89,7 @@ export const PROFILE = {
   /** Headline facts that answer engines can cite. Kept to what is public. */
   facts: [
     "4+ years shipping B2B and B2C products across 10+ domains; products used by 3M+ people in 22 countries.",
-    "ROYC: 100% demo conversion after the rebrand, 20 clients signed in a year, EUR 200K+ saved with a white-label design system.",
+    "ROYC: 100% demo conversion after the rebrand, growth from 5 to 20 clients, and EUR 200K+ saved with a white-label design system.",
     "Luminovo: +42% sourcing completion and a 57% faster quote cycle across the top 50 clients.",
   ],
   email: "k.s.somesh11@gmail.com",
