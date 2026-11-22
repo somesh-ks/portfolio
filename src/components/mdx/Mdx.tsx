@@ -4,7 +4,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
-import { Figure } from "@/components/case-studies/Figure";
+import { Figure, Video } from "@/components/case-studies/Figure";
 import * as toys from "./toys";
 
 /** Components MDX may use. Media paths in locked bodies resolve to the gated API. */
@@ -22,6 +22,9 @@ function componentsFor(mediaBase?: string): MDXComponents {
     ),
     Figure: (props: ComponentProps<typeof Figure>) => (
       <Figure {...props} src={media(props.src) ?? ""} />
+    ),
+    Video: (props: ComponentProps<typeof Video>) => (
+      <Video {...props} src={media(props.src) ?? ""} poster={media(props.poster)} />
     ),
   };
 }

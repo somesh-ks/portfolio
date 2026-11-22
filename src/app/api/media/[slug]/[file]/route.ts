@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { hasAccess, SESSION_COOKIE } from "@/lib/auth";
+import { MAX_CHUNK, parseRange } from "@/lib/byte-range";
 import { isMediaFileName, loadProtectedMedia } from "@/lib/protected-source";
 import { isLockedSlug } from "@/lib/site";
 
@@ -25,12 +26,34 @@ export async function GET(
   }
   const media = await loadProtectedMedia(slug, file);
   if (!media) return new Response("Not found", { status: 404, headers: PRIVATE });
+  const size = media.body.length;
+  const base = {
+    ...PRIVATE,
+    "Content-Type": media.type,
+    "X-Content-Type-Options": "nosniff",
+    "Accept-Ranges": "bytes",
+  };
+  const range = parseRange(request.headers.get("range"), size);
+  if (range === "unsatisfiable") {
+    return new Response(null, {
+      status: 416,
+      headers: { ...base, "Content-Range": `bytes */${size}` },
+    });
+  }
+  // Large files always go out in slices so the response fits the function limit.
+  const slice = range ?? (size > MAX_CHUNK ? { start: 0, end: MAX_CHUNK - 1 } : null);
+  if (slice) {
+    const body = media.body.subarray(slice.start, slice.end + 1);
+    return new Response(new Uint8Array(body), {
+      status: 206,
+      headers: {
+        ...base,
+        "Content-Range": `bytes ${slice.start}-${slice.end}/${size}`,
+        "Content-Length": String(body.length),
+      },
+    });
+  }
   return new Response(new Uint8Array(media.body), {
-    headers: {
-      ...PRIVATE,
-      "Content-Type": media.type,
-      "Content-Length": String(media.body.length),
-      "X-Content-Type-Options": "nosniff",
-    },
+    headers: { ...base, "Content-Length": String(size) },
   });
 }
