@@ -13,10 +13,10 @@ const format = (ms: number) => {
 /** A stopwatch. Before: proportional digits, so the time wobbles. After: tabular-nums holds it still.
  * It runs while on screen; the button pauses it. */
 export function TabularNumbersDemo() {
-  const { ref, playing } = useAutoplay();
+  const { ref, visible, playing } = useAutoplay();
   const [pressed, setPressed] = useState<boolean | null>(null);
   // It runs on its own while on screen, until the visitor presses play or pause.
-  const running = pressed ?? playing;
+  const running = visible && (pressed ?? playing);
   const [elapsed, setElapsed] = useState(11_480);
   useEffect(() => {
     if (!running) return;
@@ -38,7 +38,7 @@ export function TabularNumbersDemo() {
         type="button"
         className="icon-button"
         aria-label={running ? "Pause the stopwatch" : "Start the stopwatch"}
-        onClick={() => setPressed(!running)}
+        onClick={() => setPressed(!(pressed ?? playing))}
       >
         {running ? <Pause aria-hidden="true" size={16} /> : <Play aria-hidden="true" size={16} />}
       </button>

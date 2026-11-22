@@ -1,6 +1,7 @@
 "use client";
 
 import { BeforeAfter } from "./BeforeAfter";
+import { useAutoplay } from "./useAutoplay";
 
 /** The loader arc with a dot on its true centre. The dot only stays put when the spin pivots there. */
 function Arc() {
@@ -34,8 +35,12 @@ const spinner = (centred: boolean) => (
 );
 
 export function SpinnerDemo() {
+  // Spins only while on screen; reduced motion slows it in CSS instead of stopping it.
+  const { ref, visible } = useAutoplay();
   return (
     <BeforeAfter
+      ref={ref}
+      data-paused={!visible}
       title="Spinners that spin true"
       line="Watch the centre dot: a typical spinner circles a point below its middle."
       before={spinner(false)}

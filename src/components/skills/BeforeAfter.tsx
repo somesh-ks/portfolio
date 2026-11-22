@@ -7,19 +7,21 @@ import type { ReactNode, Ref } from "react";
  */
 export function BeforeAfter({
   ref,
+  "data-paused": paused,
   title,
   line,
   before,
   after,
 }: {
   ref?: Ref<HTMLElement>;
+  "data-paused"?: boolean;
   title: string;
   line: ReactNode;
   before: ReactNode;
   after: ReactNode;
 }) {
   return (
-    <section ref={ref} className="before-after">
+    <section ref={ref} className="before-after" data-paused={paused}>
       <h2>{title}</h2>
       <p className="before-after__line">{line}</p>
       <div className="before-after__pair">

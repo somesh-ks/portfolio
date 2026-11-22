@@ -2624,16 +2624,18 @@ claude-mascot:defined > * {
   position: absolute;
   top: 55%;
   left: 0;
+  width: 100%;
   color: var(--illustration-live);
   pointer-events: none;
   animation: hit-sweep 3.2s var(--ease-in-out) infinite alternate;
 }
+/* The layer spans the bar, so its own 100% is the bar's width. */
 @keyframes hit-sweep {
   from {
-    left: 4%;
+    transform: translateX(4%);
   }
   to {
-    left: calc(100% - 1.25rem);
+    transform: translateX(calc(100% - 1.25rem));
   }
 }
 .hit-demo__readout {
@@ -2649,7 +2651,7 @@ claude-mascot:defined > * {
 .hit-tabs {
   display: flex;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: clip;
 }
 .hit-tabs--typical {
   gap: var(--space-3);
@@ -2790,6 +2792,9 @@ claude-mascot:defined > * {
 /* Icons are inline by default outside a CSS reset; this site's reset makes them block. */
 .spinner-demo__wrap svg {
   display: inline;
+}
+.before-after[data-paused="true"] .spinner-demo__wrap {
+  animation-play-state: paused;
 }
 .spinner-demo__track {
   stroke: var(--border-default);
