@@ -48,7 +48,12 @@ async function fetchRemote(url: URL, env: Record<string, string | undefined>) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: "no-store",
   });
-  if (!response.ok) return null;
+  if (!response.ok) {
+    // Status and path only, never the token: tells a paused store (429/403)
+    // apart from a missing file (404) in the Vercel logs.
+    console.error(`protected source: ${response.status} for ${url.pathname}`);
+    return null;
+  }
   const body = Buffer.from(await response.arrayBuffer());
   cache.set(key, { at: Date.now(), body });
   return body;
@@ -65,7 +70,8 @@ async function read(
     }
     // Never trace the protected source into the server bundle.
     return await readFile(path.join(/*turbopackIgnore: true*/ base, relativePath));
-  } catch {
+  } catch (error) {
+    console.error(`protected source: could not read ${relativePath}`, error);
     return null;
   }
 }
