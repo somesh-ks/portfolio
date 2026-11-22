@@ -1,6 +1,7 @@
 /**
- * Official company marks, inlined as a sprite so they paint with the bio text: no requests,
- * no lazy loading, and `currentColor` follows light and dark mode.
+ * Official company icons in brand colours, inlined as a sprite so they paint with
+ * the bio text: no requests, no lazy loading. Colours come from each company's own
+ * favicon; marks without a brand colour (Rolls-Royce, Mercedes) use `currentColor`.
  * Paths were run through svgo. Sources per entry. ROYC and Luminovo have none (NDA).
  */
 import type { CompanyId } from "@content/profile";
@@ -8,6 +9,12 @@ import type { CompanyId } from "@content/profile";
 interface Mark {
   viewBox: string;
   paths: { d: string; evenodd?: boolean }[];
+  /** Mark colour; defaults to currentColor. */
+  fill?: string;
+  /** Brand tile behind the mark, as on the company's favicon. */
+  tile?: string;
+  /** Gap between tile edge and mark, in 24ths of the icon. */
+  inset?: number;
 }
 
 const MARKS: Partial<Record<CompanyId, Mark>> = {
@@ -19,6 +26,7 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
         d: "m11.57 8.57-8 3.1-.28-5.13zM.7 18.01l-.7-4.6 2.55-.94 3.7 1.77zm2.25-5.73L13.08 8.3l2.32 9.58zm10.7-3.1-.22-1.03 3.9-1.54z",
       },
     ],
+    fill: "#A29AFF",
   },
   // simple-icons 16.38.1
   anthropic: {
@@ -28,15 +36,17 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
         d: "M17.3 3.54h-3.67l6.7 16.92H24Zm-10.6 0L0 20.46h3.74l1.37-3.55h7l1.38 3.55h3.74l-6.7-16.92Zm-.38 10.22 2.3-5.94 2.29 5.94Z",
       },
     ],
+    fill: "#191919",
+    tile: "#FAFAF7",
+    inset: 4,
   },
-  // simple-icons 16.38.1
+  // stripe.com favicon.svg (2025 mark)
   stripe: {
-    viewBox: "0 0 24 24",
-    paths: [
-      {
-        d: "M13.98 9.15c-2.18-.8-3.36-1.43-3.36-2.4 0-.84.68-1.31 1.9-1.31 2.23 0 4.52.85 6.1 1.63l.88-5.5C18.25.97 15.7 0 12.16 0 9.66 0 7.6.65 6.1 1.87a6.7 6.7 0 0 0-2.34 5.35c0 4.04 2.46 5.76 6.47 7.22 2.59.92 3.45 1.57 3.45 2.58 0 .98-.84 1.55-2.36 1.55-1.87 0-4.96-.93-6.99-2.11L3.43 22c1.74 1 4.97 2 8.28 2 2.64 0 4.85-.62 6.33-1.81 1.67-1.3 2.53-3.24 2.53-5.73 0-4.13-2.53-5.86-6.6-7.31",
-      },
-    ],
+    viewBox: "0 0 512 512",
+    paths: [{ d: "M120 392 392 334.317V120L120 178.357z" }],
+    fill: "#fff",
+    tile: "#533AFD",
+    inset: 0,
   },
   // simple-icons 16.38.1
   rollsroyce: {
@@ -67,6 +77,9 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
         evenodd: true,
       },
     ],
+    fill: "#fff",
+    tile: "#007DBC",
+    inset: 3,
   },
   // simple-icons 16.38.1
   oyo: {
@@ -76,6 +89,9 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
         d: "M19.84 16.18a4.18 4.18 0 0 0 0-8.36 4.18 4.18 0 0 0 0 8.37m0-5.67a1.49 1.49 0 0 1 0 2.98 1.5 1.5 0 0 1-1.48-1.5c0-.82.67-1.5 1.48-1.5zM4.16 16.18a4.18 4.18 0 0 0 0-8.36 4.18 4.18 0 0 0 0 8.36m0-5.67a1.49 1.49 0 0 1 0 2.98A1.5 1.5 0 0 1 2.68 12c0-.82.66-1.5 1.48-1.5m7.84-.1-1.28-2.54H7.73l2.8 5.56v2.62h2.94v-2.62l2.8-5.56h-3z",
       },
     ],
+    fill: "#fff",
+    tile: "#EB1C24",
+    inset: 3,
   },
 };
 
@@ -88,17 +104,30 @@ export function hasLogo(id: CompanyId): boolean {
 export function LogoSprite() {
   return (
     <svg aria-hidden="true" focusable="false" width="0" height="0" className="sr-only">
-      {Object.entries(MARKS).map(([id, mark]) => (
-        <symbol key={id} id={`logo-${id}`} viewBox={mark.viewBox}>
-          {mark.paths.map((path) => (
-            <path
-              key={path.d.slice(0, 16)}
-              d={path.d}
-              fillRule={path.evenodd ? "evenodd" : undefined}
-            />
-          ))}
-        </symbol>
-      ))}
+      {Object.entries(MARKS).map(([id, mark]) => {
+        const inset = mark.tile ? (mark.inset ?? 4) : 0;
+        return (
+          <symbol key={id} id={`logo-${id}`} viewBox="0 0 24 24">
+            {mark.tile ? <rect width="24" height="24" fill={mark.tile} /> : null}
+            <svg
+              x={inset}
+              y={inset}
+              width={24 - 2 * inset}
+              height={24 - 2 * inset}
+              viewBox={mark.viewBox}
+              fill={mark.fill ?? "currentColor"}
+            >
+              {mark.paths.map((path) => (
+                <path
+                  key={path.d.slice(0, 16)}
+                  d={path.d}
+                  fillRule={path.evenodd ? "evenodd" : undefined}
+                />
+              ))}
+            </svg>
+          </symbol>
+        );
+      })}
     </svg>
   );
 }
