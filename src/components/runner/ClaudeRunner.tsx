@@ -20,6 +20,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
+import { Maximize2, Minimize2, Shuffle, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -549,7 +550,10 @@ export function ClaudeRunner() {
 
       <div className="runner__foot">
         <button type="button" className="runner__action" onClick={cycleCostume}>
-          <Key keyName="C" /> CHANGE CHARACTER
+          <Shuffle aria-hidden="true" size={18} className="runner__icon" />
+          <span className="runner__label">
+            <Key keyName="C" /> CHANGE CHARACTER
+          </span>
         </button>
         <span className="runner__spacer" />
         <button
@@ -558,7 +562,14 @@ export function ClaudeRunner() {
           aria-pressed={expanded}
           onClick={() => void toggleFullscreen()}
         >
-          <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
+          {expanded ? (
+            <Minimize2 aria-hidden="true" size={18} className="runner__icon" />
+          ) : (
+            <Maximize2 aria-hidden="true" size={18} className="runner__icon" />
+          )}
+          <span className="runner__label">
+            <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
+          </span>
         </button>
         <button
           type="button"
@@ -566,7 +577,14 @@ export function ClaudeRunner() {
           aria-pressed={soundOn}
           onClick={toggleSound}
         >
-          <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
+          {soundOn ? (
+            <Volume2 aria-hidden="true" size={18} className="runner__icon" />
+          ) : (
+            <VolumeX aria-hidden="true" size={18} className="runner__icon" />
+          )}
+          <span className="runner__label">
+            <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
+          </span>
         </button>
       </div>
       <p className="sr-only" aria-live="polite">
