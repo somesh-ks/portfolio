@@ -65,7 +65,6 @@ export type CompanyId = keyof typeof COMPANIES;
  * web and as plain text in Markdown exports.
  */
 export const BIO = [
-  "I design products from zero to one, and I build what I design.",
   "I'm a senior product designer at {company:netlight}. I've shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo} and {company:oyo}, used by 3M+ people in 22 countries.",
   "At {company:anthropic} I'm Claude Ambassador, Sweden, and I host Claude for Designers meetups. I also co-founded Into Design Systems in Stockholm. Now I'm working out what a design system needs so coding agents can build with it well.",
 ] as const;
