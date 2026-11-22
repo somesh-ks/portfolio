@@ -296,12 +296,6 @@ export function ClaudeRunner() {
       aria-label="Claude runner game"
     >
       <div className="runner__bar">
-        <span className="runner__dots" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="runner__title">claude-runner</span>
         <span className="runner__score" aria-hidden="true">
           {best > 0 ? <span className="runner__hi">HI {pad(best)}</span> : null}
           {pad(points)}

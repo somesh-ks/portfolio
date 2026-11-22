@@ -240,17 +240,25 @@ claude-mascot:defined > * {
 }
 
 /* ---------- Claude runner ----------
-   claude.dev chrome: square corners, 1px hairlines, mono uppercase labels,
-   bracketed key hints. Colour lives only in the pixel art. */
+   Terminal feel without a window: no frame, no panels. The ground line and
+   mono uppercase labels carry it. Colour lives only in the pixel art. */
 .runner {
   margin-block: var(--space-12);
-  border: 1px solid var(--border-default);
-  background: var(--surface-raised);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+@media (max-width: 39.999rem) {
+  /* Phones: the ground runs edge to edge; labels stay on the text column. */
+  .runner {
+    margin-inline: calc(-1 * var(--space-4));
+  }
+  .runner__bar,
+  .runner__foot {
+    padding-inline: var(--space-4);
+  }
 }
 .runner__bar,
 .runner__foot {
@@ -258,31 +266,13 @@ claude-mascot:defined > * {
   align-items: center;
   gap: var(--space-3);
   min-height: 2.25rem;
-  padding-inline: var(--space-3);
 }
-.runner__bar {
-  position: relative;
-  border-bottom: 1px solid var(--border-default);
+/* Footer buttons keep their hit area but line their text up with the column. */
+.runner__foot .runner__action:first-child {
+  padding-left: 0;
 }
-.runner__foot {
-  border-top: 1px solid var(--border-default);
-  padding-inline: var(--space-1);
-}
-.runner__dots {
-  display: flex;
-  gap: 6px;
-}
-.runner__dots i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--border-strong);
-}
-.runner__title {
-  position: absolute;
-  left: 50%;
-  translate: -50% 0;
-  text-transform: none;
+.runner__foot .runner__action:last-child {
+  padding-right: 0;
 }
 .runner__score {
   display: flex;
@@ -315,9 +305,6 @@ claude-mascot:defined > * {
   width: 100%;
   height: 100%;
 }
-.runner__static {
-  background: var(--surface-raised);
-}
 .runner__prompt {
   position: absolute;
   inset: 0;
@@ -341,7 +328,7 @@ claude-mascot:defined > * {
   gap: var(--space-2);
   padding: var(--space-3);
   overflow-y: auto;
-  background: color-mix(in oklch, var(--surface-raised) 80%, transparent);
+  background: color-mix(in oklch, var(--surface-canvas) 85%, transparent);
   cursor: default;
 }
 .runner__final {
@@ -380,9 +367,10 @@ claude-mascot:defined > * {
   width: 14ch;
   min-height: 2.25rem;
   padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
   border-radius: 0;
-  background: var(--surface-raised);
+  background: none;
   color: var(--text-primary);
   font: inherit;
   /* iOS zooms into inputs under 16px. */
@@ -454,7 +442,7 @@ claude-mascot:defined > * {
   display: flex;
   flex-direction: column;
   margin: 0;
-  border: 0;
+  background: var(--surface-canvas);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
 }
@@ -469,15 +457,13 @@ claude-mascot:defined > * {
   flex: 1;
   height: auto;
 }
+.runner:fullscreen :is(.runner__bar, .runner__foot),
+.runner[data-immersive] :is(.runner__bar, .runner__foot) {
+  padding-inline: var(--space-4);
+}
 :root.runner-lock,
 :root.runner-lock body {
   overflow: hidden;
-}
-@media (max-width: 519px) {
-  /* Phones: the score needs the bar more than the title does. */
-  .runner__title {
-    display: none;
-  }
 }
 @media (max-width: 639px) {
   /* The short phone screen fits a top 3, and the name field replaces it. */

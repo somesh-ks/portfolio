@@ -9,18 +9,18 @@ tags: [canvas, game, pixel art]
 stack: [Canvas 2D, Fixed-step simulation, Upstash Redis]
 ---
 
-Jump the desk. Space or a tap. It also lives on the homepage.
+Jump. Space or tap.
 
 <ClaudeRunner />
 
 ## How it works
 
-- **The sprites are claude.dev's.** Each one ships as a palette, a base frame and per-frame pixel deltas. They decode into rectangles once, and the game plays the steady part of each ride as a loop.
-- **The game is pure data.** A seeded simulation steps at a fixed 60 Hz with no DOM and no clock, so 60 Hz and 144 Hz screens play at the same speed, and the tests drive the same code.
-- **Every gap is jumpable.** Spacing comes from jump airtime at the current speed. A test plays 300 seeded courses for two minutes each, and checks that every ride can clear every obstacle.
-- **Pixels stay square.** The canvas draws whole device pixels per cell and reads its colours from the design tokens, so the theme can change mid-run.
-- **Nothing loads until you play.** The hero is a static SVG frame; the engine and the rides arrive on the first press.
+- **claude.dev sprites**, decoded from per-frame pixel deltas.
+- **Pure, seeded sim** at a fixed 60 Hz, so every screen plays at one speed.
+- **Every gap is jumpable.** A test plays 300 courses for two minutes each.
+- **Square pixels**, coloured from the theme tokens.
+- **Loads on play.** The hero is a static frame until the first press.
 
-## The leaderboard
+## Leaderboard
 
-A first name and a score. A run starts with a signed token, and a score only counts if it's reachable in the time since. One token is one entry. That stops casual tampering, not a determined bot, which is the right trade for a toy.
+A first name and a score. A signed token per run, and a score must be reachable in the time played. Enough for a toy.
