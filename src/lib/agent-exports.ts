@@ -79,7 +79,7 @@ function homeMarkdown(): string {
     entriesOf("experiment")
       .map((entry) => listLine(entry))
       .join("\n"),
-    "## Case studies",
+    "## Writing",
     caseStudies
       .map((entry) =>
         listLine(entry, entry.meta.protected ? " (summary only, full study under NDA)" : ""),

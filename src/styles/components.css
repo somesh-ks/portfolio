@@ -119,7 +119,7 @@ main:focus {
 }
 
 .company-card {
-  width: 17.5rem;
+  width: 15rem;
   max-width: calc(100vw - 2 * var(--space-4));
   padding: var(--space-1);
   border-radius: var(--radius-lg);
@@ -148,23 +148,10 @@ main:focus {
   /* concentric: card radius - card padding */
   border-radius: calc(var(--radius-lg) - var(--space-1));
 }
-.company-card__body {
-  padding: var(--space-3) var(--space-3) var(--space-2);
-}
 .company-card__name {
+  padding: var(--space-2) var(--space-2) var(--space-1);
   font-size: var(--step-sm);
-  font-weight: 600;
-}
-.company-card__about,
-.company-card__relation {
-  font-size: var(--step-sm);
-  line-height: 1.45;
-}
-.company-card__about {
-  color: var(--text-secondary);
-}
-.company-card__relation {
-  margin-top: var(--space-2);
+  font-weight: 500;
 }
 
 /* ---------- Mascot stage ---------- */
@@ -227,12 +214,18 @@ claude-mascot:defined > * {
    Terminal feel without a window: no frame, no panels. The ground line and
    mono uppercase labels carry it. Colour lives only in the pixel art. */
 .runner {
-  margin-block: var(--space-12);
+  /* Same rhythm as .list-section, so the game reads as its own section. */
+  margin-block: var(--space-16) var(--space-12);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+@media (min-width: 40rem) {
+  .runner {
+    margin-top: var(--space-20);
+  }
 }
 @media (max-width: 39.999rem) {
   /* Phones: the ground runs edge to edge; labels stay on the text column. */
@@ -731,6 +724,48 @@ claude-mascot:defined > * {
   color: var(--text-secondary);
   font-size: var(--step-sm);
   line-height: 1.5;
+}
+
+/* Hover thumbnail: wide screens with a mouse only, in the gutter right of the
+   40rem column. Out of flow, so row height and the hover highlight never move.
+   Shows after a short delay so sweeping the list doesn't flash every image. */
+.list-row__thumb {
+  display: none;
+}
+@media (min-width: 72rem) and (hover: hover) and (pointer: fine) {
+  .list-row {
+    position: relative;
+  }
+  .list-row__thumb {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: calc(100% + var(--space-6));
+    width: 10rem;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border: 1px solid var(--border-image);
+    background: var(--surface-raised);
+    opacity: 0;
+    transform: translateY(-50%) translateX(calc(-1 * var(--space-2)));
+    pointer-events: none;
+    transition:
+      opacity var(--duration-tooltip) var(--ease-out),
+      transform var(--duration-tooltip) var(--ease-out);
+  }
+  .list-row:hover .list-row__thumb,
+  .list-row:focus-visible .list-row__thumb {
+    opacity: 1;
+    transform: translateY(-50%);
+    transition-duration: var(--duration-popover);
+    transition-delay: var(--duration-tooltip);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-row__thumb {
+    transform: translateY(-50%);
+  }
 }
 
 .lock-badge {

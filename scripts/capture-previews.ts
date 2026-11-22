@@ -11,7 +11,9 @@ import sharp from "sharp";
 const TARGETS: Record<string, string> = {
   netlight: "https://www.netlight.com",
   anthropic: "https://www.anthropic.com",
-  bmw: "https://www.bmwgroup.com/en.html",
+  rollsroyce: "https://www.rolls-roycemotorcars.com",
+  mercedes: "https://group.mercedes-benz.com/en/",
+  royc: "https://www.roycgroup.com",
   wfp: "https://www.wfp.org/who-we-are",
   luminovo: "https://luminovo.com",
   oyo: "https://www.oyorooms.com",

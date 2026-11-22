@@ -1,9 +1,17 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { PROFILE } from "@content/profile";
 import { Bio } from "@/components/editorial/Bio";
 import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
 import { ClaudeRunner } from "@/components/runner/ClaudeRunner";
 import { entriesOf } from "@/lib/content";
+
+/** Row thumbnails come from scripts/capture-thumbs.ts; rows without one show none. */
+function thumbFor(slug: string): string | undefined {
+  const file = path.join(process.cwd(), "public", "thumbs", `${slug}.webp`);
+  return existsSync(file) ? `/thumbs/${slug}.webp` : undefined;
+}
 
 export default function HomePage() {
   return (
@@ -21,6 +29,7 @@ export default function HomePage() {
             href={entry.href}
             title={entry.meta.title}
             summary={entry.meta.summary}
+            thumb={thumbFor(entry.meta.slug)}
           />
         ))}
       </ListSection>
@@ -31,17 +40,18 @@ export default function HomePage() {
             href={entry.href}
             title={entry.meta.title}
             summary={entry.meta.summary}
+            thumb={thumbFor(entry.meta.slug)}
           />
         ))}
       </ListSection>
-      <ListSection id="case-study" title="Case studies">
+      <ListSection id="writing" title="Writing">
         {entriesOf("case-study").map((entry) => (
           <ListRow
             key={entry.href}
             href={entry.href}
             title={entry.meta.title}
             summary={entry.meta.summary}
-
+            thumb={thumbFor(entry.meta.slug)}
             locked={entry.meta.protected}
           />
         ))}
