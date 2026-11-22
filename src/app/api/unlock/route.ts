@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   const slug = String(form?.get("slug") ?? "");
   const password = String(form?.get("password") ?? "");
   if (!isLockedSlug(slug)) return respond(request, slug, "bad-request");
-  if (!isGateConfigured()) return respond(request, slug, "unavailable");
+  if (!isGateConfigured(slug)) return respond(request, slug, "unavailable");
 
   const scope = await scopeForPassword(password, slug);
   if (!scope.length) {
