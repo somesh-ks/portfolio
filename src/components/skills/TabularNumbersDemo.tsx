@@ -48,7 +48,7 @@ export function TabularNumbersDemo() {
     <BeforeAfter
       ref={ref}
       title="Numbers that hold still"
-      line="Before, the digits wobble as they tick."
+      line="Every digit has its own width, so a typical timer jitters inside its frame."
       before={watch(false)}
       after={watch(true)}
     />

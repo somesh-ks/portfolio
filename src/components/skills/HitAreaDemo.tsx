@@ -60,7 +60,7 @@ function Tabs({
           </span>
         ) : null}
       </div>
-      <p className="hit-demo__readout" aria-hidden="true">
+      <p className="hit-demo__readout" aria-hidden="true" data-empty={hovered === null}>
         Hovering: {hovered ?? "nothing"}
       </p>
     </div>
@@ -74,7 +74,7 @@ export function HitAreaDemo() {
     <BeforeAfter
       ref={ref}
       title="Hover with no dead zones"
-      line="Before, hover drops in the hatched gaps between tabs."
+      line="Follow the cursor: in the striped gaps between tabs, a typical bar hovers nothing."
       before={<Tabs flush={false} sweeping={playing} onReal={stop} />}
       after={<Tabs flush sweeping={playing} onReal={stop} />}
     />

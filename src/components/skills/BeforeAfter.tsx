@@ -23,13 +23,13 @@ export function BeforeAfter({
       <h2>{title}</h2>
       <p className="before-after__line">{line}</p>
       <div className="before-after__pair">
-        <figure className="before-after__panel">
+        <figure className="before-after__panel" data-side="before">
+          <figcaption>Typical agent</figcaption>
           <div className="before-after__stage">{before}</div>
-          <figcaption>Before</figcaption>
         </figure>
-        <figure className="before-after__panel">
+        <figure className="before-after__panel" data-side="after">
+          <figcaption>With the skill</figcaption>
           <div className="before-after__stage">{after}</div>
-          <figcaption>After</figcaption>
         </figure>
       </div>
     </section>

@@ -44,30 +44,37 @@ export function StableButtonDemo() {
   const run = () => setPhase((current) => (current === "idle" ? "saving" : current));
   useEvery(playing, 3600, run);
   const row = (stable: boolean) => (
-    <div className="stable-row">
-      <button type="button" className="button">
-        Cancel
-      </button>
-      <button type="button" className="button button--primary" onClick={run}>
-        {stable ? (
-          <span className="stable-button__stack">
-            {PHASES.map((state) => (
-              <span key={state} aria-hidden={state !== phase} data-active={state === phase}>
-                <Content phase={state} />
-              </span>
-            ))}
-          </span>
-        ) : (
-          <Content phase={phase} />
-        )}
-      </button>
+    <div className="stable-stage">
+      {/* Dashed frames mark where the buttons sat at rest, so any jump shows. */}
+      <div className="stable-row stable-row--ghost" aria-hidden="true">
+        <span className="button">Cancel</span>
+        <span className="button button--primary">{LABEL.idle}</span>
+      </div>
+      <div className="stable-row">
+        <button type="button" className="button">
+          Cancel
+        </button>
+        <button type="button" className="button button--primary" onClick={run}>
+          {stable ? (
+            <span className="stable-button__stack">
+              {PHASES.map((state) => (
+                <span key={state} aria-hidden={state !== phase} data-active={state === phase}>
+                  <Content phase={state} />
+                </span>
+              ))}
+            </span>
+          ) : (
+            <Content phase={phase} />
+          )}
+        </button>
+      </div>
     </div>
   );
   return (
     <BeforeAfter
       ref={ref}
       title="Buttons that keep their size"
-      line="Before, the button shrinks as it saves and Cancel jumps."
+      line="Watch the dashed frames: a typical button shrinks as it saves, and Cancel jumps out of place."
       before={row(false)}
       after={row(true)}
     />

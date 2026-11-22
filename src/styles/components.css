@@ -2566,7 +2566,7 @@ claude-mascot:defined > * {
     grid-template-columns: 1fr 1fr;
   }
   .before-after__stage {
-    min-height: 9rem;
+    min-height: 10rem;
   }
 }
 @media (min-width: 60rem) {
@@ -2575,21 +2575,40 @@ claude-mascot:defined > * {
   }
 }
 .before-after__panel {
-  display: grid;
-  gap: var(--space-2);
+  --side: var(--illustration-bad);
+  position: relative;
 }
+.before-after__panel[data-side="after"] {
+  --side: var(--illustration-good);
+}
+/* A dotted workbench: the demos read as specimens, not page chrome. */
 .before-after__stage {
   display: grid;
   place-items: center;
-  min-height: 7rem;
-  padding: var(--space-4) var(--space-3);
+  min-height: 8rem;
+  padding: var(--space-10) var(--space-3) var(--space-6);
   border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  background:
+    radial-gradient(circle at 1px 1px, var(--illustration-grid) 1px, transparent 0) 0 0 / 14px 14px,
+    var(--surface-raised);
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
 .before-after__panel figcaption {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--text-secondary);
-  font-size: var(--step-sm);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.before-after__panel figcaption::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--side);
 }
 
 .hit-demo {
@@ -2605,7 +2624,7 @@ claude-mascot:defined > * {
   position: absolute;
   top: 55%;
   left: 0;
-  color: var(--text-primary);
+  color: var(--illustration-live);
   pointer-events: none;
   animation: hit-sweep 3.2s var(--ease-in-out) infinite alternate;
 }
@@ -2621,6 +2640,9 @@ claude-mascot:defined > * {
   color: var(--text-secondary);
   font-size: var(--step-xs);
   font-family: var(--font-mono);
+}
+[data-side="before"] .hit-demo__readout[data-empty="true"] {
+  color: var(--side);
 }
 
 /* Hit areas: the typical bar leaves gaps; the fixed bar moves spacing inside each tab. */
@@ -2651,7 +2673,8 @@ claude-mascot:defined > * {
   color: var(--text-primary);
 }
 .hit-tabs__tab[data-hovered="true"] .hit-tabs__label {
-  background: var(--surface-hover);
+  background: color-mix(in oklch, var(--illustration-live) 16%, transparent);
+  color: var(--text-primary);
 }
 /* Hit areas are always drawn, so the point reads without a pointer. */
 .hit-tabs__tab {
@@ -2659,10 +2682,28 @@ claude-mascot:defined > * {
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 .hit-tabs--typical {
-  background: repeating-linear-gradient(45deg, var(--accent-tint) 0 4px, transparent 4px 8px);
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in oklch, var(--illustration-bad) 45%, transparent) 0 2px,
+    transparent 2px 6px
+  );
 }
 
 /* Stable button: the fixed version stacks every state in one grid cell. */
+.stable-stage {
+  display: grid;
+}
+.stable-stage > * {
+  grid-area: 1 / 1;
+  justify-self: center;
+}
+.stable-row--ghost .button {
+  background: none;
+  color: transparent;
+  box-shadow: none;
+  outline: 1px dashed var(--side);
+  outline-offset: 3px;
+}
 .stable-row {
   display: flex;
   gap: var(--space-2);
@@ -2697,16 +2738,28 @@ claude-mascot:defined > * {
   }
 }
 
-/* Icon swap: both icons share one cell and cross-fade with scale and blur. */
-.icon-swap {
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-md);
+/* Icon swap: a share field with a copy button; the icons share one cell and
+   cross-fade with scale and blur. */
+.share-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline-start: var(--space-3);
   background: var(--surface-canvas);
   box-shadow: 0 0 0 1px var(--border-default);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.icon-swap {
+  width: 2.75rem;
+  height: 2.75rem;
+  box-shadow: -1px 0 0 var(--border-default);
 }
 .icon-swap__cell {
   display: grid;
+}
+.icon-swap__check {
+  color: var(--illustration-good);
 }
 .icon-swap__cell > * {
   grid-area: 1 / 1;
@@ -2738,6 +2791,15 @@ claude-mascot:defined > * {
 .spinner-demo__wrap svg {
   display: inline;
 }
+.spinner-demo__track {
+  stroke: var(--border-default);
+}
+.spinner-demo__arc {
+  stroke: var(--illustration-live);
+}
+.spinner-demo__dot {
+  fill: var(--side);
+}
 .spinner-demo__wrap--inline {
   display: inline-block;
 }
@@ -2757,6 +2819,9 @@ claude-mascot:defined > * {
   gap: var(--space-3);
 }
 .stopwatch__time {
+  padding: 0 var(--space-2);
+  outline: 1px dashed var(--side);
+  outline-offset: 2px;
   font-size: var(--step-2xl);
   font-weight: 600;
   letter-spacing: -0.02em;
