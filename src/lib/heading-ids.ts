@@ -25,16 +25,16 @@ function textOf(node: Node): string {
 
 export function rehypeHeadingIds() {
   return (tree: Node) => {
-    const seen = new Map<string, number>();
+    const used = new Set<string>();
     let index = 0;
     const visit = (node: Node) => {
       if (node.type === "element" && node.tagName === "h2") {
         index += 1;
         const slug = slugify(textOf(node)) || `section-${index}`;
         const base = RESERVED.has(slug) ? `${slug}-section` : slug;
-        const count = (seen.get(base) ?? 0) + 1;
-        seen.set(base, count);
-        const id = count > 1 ? `${base}-${count}` : base;
+        let id = base;
+        for (let n = 2; used.has(id); n += 1) id = `${base}-${n}`;
+        used.add(id);
         node.properties = { ...node.properties, id };
         return;
       }

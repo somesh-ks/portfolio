@@ -18,11 +18,9 @@ export function ArticleOutline() {
   useEffect(() => {
     const prose = ref.current?.parentElement?.querySelector(".prose");
     if (!prose) return;
-    const headings = [...prose.querySelectorAll<HTMLHeadingElement>(":scope > h2[id]")];
-    if (headings.length < 2) return;
-    setSections(headings.map((h) => ({ id: h.id, text: h.textContent ?? "" })));
-
+    let headings: HTMLHeadingElement[] = [];
     let frame = 0;
+
     const update = () => {
       frame = 0;
       const atBottom =
@@ -37,10 +35,22 @@ export function ArticleOutline() {
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
-    update();
+    // Re-read when the body changes, e.g. a locked study swaps its teaser for
+    // the full text after unlocking without remounting this component.
+    const collect = () => {
+      const found = [...prose.querySelectorAll<HTMLHeadingElement>(":scope > h2[id]")];
+      headings = found.length >= 2 ? found : [];
+      setSections(headings.map((h) => ({ id: h.id, text: h.textContent ?? "" })));
+      update();
+    };
+
+    collect();
+    const observer = new MutationObserver(collect);
+    observer.observe(prose, { childList: true });
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);

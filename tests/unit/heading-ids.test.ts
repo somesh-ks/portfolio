@@ -40,6 +40,14 @@ describe("rehypeHeadingIds", () => {
     ]);
   });
 
+  test("a suffix never collides with a real heading", () => {
+    expect(idsOf([h2(text("Results")), h2(text("Results")), h2(text("Results 2"))])).toEqual([
+      "results",
+      "results-2",
+      "results-2-2",
+    ]);
+  });
+
   test("falls back when a heading has no letters", () => {
     expect(idsOf([h2(text("—"))])).toEqual(["section-1"]);
   });
