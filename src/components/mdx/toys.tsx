@@ -67,3 +67,35 @@ export const TabularNumbersDemo = dynamic(() =>
 export const ClaudeRunner = dynamic(() =>
   import("../runner/ClaudeRunner").then((m) => m.ClaudeRunner),
 );
+/** @public used by MDX through the namespace import */
+export const SpringColor = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringColor),
+);
+/** @public used by MDX through the namespace import */
+export const SpringType = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringType),
+);
+/** @public used by MDX through the namespace import */
+export const SpringShape = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringShape),
+);
+/** @public used by MDX through the namespace import */
+export const SpringMotion = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringMotion),
+);
+/** @public used by MDX through the namespace import */
+export const SpringStack = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringStack),
+);
+/** @public used by MDX through the namespace import */
+export const SpringPreview = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringPreview),
+);
+/** @public used by MDX through the namespace import */
+export const SpringExport = dynamic(() =>
+  import("../experiments/spring/Tools").then((m) => m.SpringExport),
+);
+/** @public used by MDX through the namespace import */
+export const SpringAudit = dynamic(() =>
+  import("../experiments/spring/Audit").then((m) => m.SpringAudit),
+);
