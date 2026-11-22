@@ -18,7 +18,7 @@ tags: [illustration, animation, tooling]
 
 A gift for the Claude community in Sweden that turned into a small production line. Each sticker had to look right in Slack, in Keynote, on the web and on a laptop lid.
 
-## The problem
+## Why pixel art breaks
 
 - A pixel off by one is invisible at 2x and obvious at 8x.
 - Every format has quirks. GIF has no partial transparency, Lottie wants vectors.
@@ -26,27 +26,23 @@ A gift for the Claude community in Sweden that turned into a small production li
 
 <BeforeAfterScrubber variant="stickers" />
 
-## Three bets
-
-### One model, many outputs
+## One drawing, every format
 
 Each sticker is rectangles on a grid, not an image. Exporters read the model and write SVG, Lottie, GIF or a `<claude-mascot>` element. One fix fixes every format.
 
-### QA at the cell level
+## Checking cells, not frames
 
 A checker flags cells that are half-filled, off-palette or out of bounds. Its first run caught more than a week of looking.
 
-### Let people play with it
+## The real set
 
-The sheet below is the real set, rendered live.
+Every sticker below is rendered live from the same model.
 
 <ClaudeStickerSheet />
 
-## Tradeoffs
+## Looking back
 
 - Rects make shading hard, so the style stays flat.
 - Exporters took longer than drawing. It paid off by the third format.
-
-## Other fun stuff
 
 The first print ended up on a water bottle.

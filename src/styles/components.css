@@ -886,11 +886,68 @@ claude-mascot:defined > * {
   display: flex;
   flex-shrink: 0;
 }
-/* Cmd+K quick-jump trigger, top-right on every page. ⌘K only shows on fine pointers. */
-.site-header {
+/* Top bar: SK mark (home) left, "> jump" right, always shown. Clear at the very top;
+   any scroll fades in the canvas fill and hairline (::before, opacity only). */
+.site-bar__sentinel {
   position: absolute;
-  top: calc(var(--space-4) + env(safe-area-inset-top));
-  right: calc(var(--space-2) * -1);
+  top: 0;
+  height: var(--space-2);
+  pointer-events: none;
+}
+.site-bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  padding-top: env(safe-area-inset-top);
+  /* The clear strip must not eat taps on the page under it. */
+  pointer-events: none;
+}
+.site-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-canvas);
+  opacity: 0;
+  transition: opacity var(--duration-dropdown) var(--ease-out);
+}
+.site-bar[data-filled] {
+  pointer-events: auto;
+}
+.site-bar[data-filled]::before {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-bar::before {
+    transition: none;
+  }
+}
+.site-bar__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100% - 2 * var(--space-4), 40rem);
+  height: var(--site-bar-height);
+  margin-inline: auto;
+}
+.site-bar__row > * {
+  pointer-events: auto;
+}
+.site-bar__row > .palette-trigger {
+  margin-right: calc(var(--space-2) * -1);
+}
+.site-bar__mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-left: calc(var(--space-2) * -1);
+  padding-inline: var(--space-2);
+  color: var(--text-primary);
+}
+.site-bar__mark svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 .palette-trigger {
   display: inline-flex;

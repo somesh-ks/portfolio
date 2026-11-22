@@ -21,7 +21,7 @@ repoUrl: https://github.com/somesh-ks/singularityfm-design-system
 
 The [live style guide](https://singularity-design.vercel.app) shows the components. This page is about what keeps an agent on the system.
 
-## The problem
+## Why agents drift
 
 - **Agents chase the screenshot.** If a raw `#3B82F6` looks closer than `--color-interactive`, they use the hex.
 - **Docs are advice.** A Storybook note carries as much weight as a random answer online.
@@ -29,17 +29,15 @@ The [live style guide](https://singularity-design.vercel.app) shows the componen
 
 <BeforeAfterScrubber variant="agentic-ds" />
 
-## Three bets
-
-### Contracts, not docs
+## Contracts, not docs
 
 Each package has an `AGENTS.md` that reads like a contract: what an agent may import, which token does which job, and what it must never do. Agents follow rules they can check. "Spacing comes from `--space-*`" is checkable. "Visual harmony" is not.
 
-### Tokens are the only values
+## Tokens are the only values
 
 Tokens come in three DTCG tiers: primitive (`sand.600`), semantic (`text.secondary`) and component (`button.bg`). Components never read primitives. So there is one right answer for "secondary text colour", and an agent can search for it.
 
-### One gate, run by everyone
+## One gate, run by everyone
 
 `pnpm run gate` runs types, lint, token lint and contrast checks. Every `AGENTS.md` ends with it, and CI runs the same command. The token lint fails on raw colours, off-scale spacing and primitives in components. The contrast check fails any pair that breaks WCAG 2.2 AA.
 
@@ -51,11 +49,9 @@ The same card, built from a screenshot and built through the gate:
 
 Review got faster. Wrong greys and wrong gaps stopped reaching me, so review became about the design itself. The system also got smaller: when every value must be a token, unused tokens stand out.
 
-## Tradeoffs
+## Looking back
 
 - A strict gate slows exploration. I turn it off for throwaway prototypes.
 - When a rule changes, `AGENTS.md` changes in the same commit.
-
-## Other fun stuff
 
 The top gate failure: `gap: 12px`. That's what `--space-3` is for.
