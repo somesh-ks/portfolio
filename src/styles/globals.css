@@ -288,6 +288,7 @@
   animation: none;
 }
 ::view-transition-new(root) {
-  animation-duration: var(--duration-modal);
-  animation-timing-function: ease;
+  animation-duration: var(--duration-popover);
+  /* Slow start: the new theme eases in, so a dark-to-light switch doesn't flare. */
+  animation-timing-function: ease-in-out;
 }
