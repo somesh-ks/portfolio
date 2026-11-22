@@ -67,6 +67,9 @@ main:focus {
   color: var(--text-secondary);
   line-height: 1.4;
 }
+.intro__role em {
+  white-space: nowrap;
+}
 .intro__role em,
 .serif-em {
   font-family: var(--font-serif);
@@ -77,37 +80,51 @@ main:focus {
 
 .bio {
   display: grid;
-  gap: 1.1em;
+  gap: var(--space-3);
 }
 .bio p {
   line-height: 1.7;
 }
+.nowrap {
+  white-space: nowrap;
+}
 
+/* Company names read as plain underlined links. The trigger is a button,
+   so it keeps cursor, focus ring and an open state. */
 .company-pill {
   display: inline;
-  /* Tight sides so trailing punctuation stays attached to the pill. */
-  padding: 0.05em 0.3em 0.1em;
-  border-radius: var(--radius-sm);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding: 0;
+  background: none;
   color: var(--text-primary);
   font: inherit;
-  font-weight: 500;
   line-height: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border-link);
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color var(--duration-press) ease;
   -webkit-user-select: text;
   user-select: text;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
   touch-action: manipulation;
 }
 .company-pill[data-popup-open] {
-  background: var(--surface-hover);
-  box-shadow: inset 0 0 0 1px var(--border-default);
+  text-decoration-color: var(--text-primary);
 }
 @media (hover: hover) and (pointer: fine) {
   .company-pill:hover {
-    background: var(--surface-hover);
+    text-decoration-color: var(--text-primary);
   }
+}
+/* Inline-block so the underline skips the logo; 1em tracks the text size. */
+.company-pill__logo {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.125em;
+  border-radius: var(--radius-xs);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--border-image);
 }
 
 .company-card {
@@ -344,6 +361,11 @@ claude-mascot:defined > * {
 .list-section {
   margin-top: var(--space-12);
 }
+@media (min-width: 40rem) {
+  .list-section {
+    margin-top: var(--space-20);
+  }
+}
 .section-title {
   margin-bottom: var(--space-2);
   color: var(--text-secondary);
@@ -355,8 +377,9 @@ claude-mascot:defined > * {
 }
 .list-row {
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-3);
+  gap: 0;
+  padding: var(--space-2) var(--space-3);
+  line-height: 1.45;
   border-radius: var(--radius-md);
   color: inherit;
   text-decoration: none;
@@ -1481,10 +1504,6 @@ claude-mascot:defined > * {
   font-size: var(--step-sm);
   font-weight: 500;
 }
-.stream__empty {
-  color: var(--text-secondary);
-  font-size: var(--step-sm);
-}
 .stream__spinner {
   display: flex;
   align-items: center;
@@ -1866,4 +1885,38 @@ claude-mascot:defined > * {
   .smear-card--fixed * {
     transition: none;
   }
+}
+
+/* ---------- ASCII empty states ---------- */
+.ascii-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+.ascii-empty__art {
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  line-height: 1.2;
+  white-space: pre;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ascii-empty[data-size="sm"] {
+  gap: var(--space-1);
+}
+.ascii-empty[data-size="sm"] .ascii-empty__art {
+  font-size: var(--step-xs);
+}
+.ascii-empty__text {
+  color: var(--text-secondary);
+}
+.ascii-empty[data-size="sm"] .ascii-empty__text {
+  font-size: var(--step-sm);
 }

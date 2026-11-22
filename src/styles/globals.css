@@ -144,7 +144,7 @@
   .link {
     color: var(--text-primary);
     text-decoration-line: underline;
-    text-decoration-color: var(--border-strong);
+    text-decoration-color: var(--border-link);
     transition: text-decoration-color var(--duration-press) ease;
   }
   @media (hover: hover) and (pointer: fine) {
@@ -157,20 +157,21 @@
   .prose {
     max-width: var(--measure-prose);
     color: var(--text-primary);
+    line-height: 1.7;
   }
   .prose > * + * {
     margin-top: 1.1em;
   }
   .prose h2 {
     margin-top: 2.75em;
-    font-size: var(--step-lg);
+    font-size: var(--step-xl);
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.3;
   }
   .prose h3 {
     margin-top: 2em;
-    font-size: var(--step-base);
+    font-size: var(--step-lg);
     font-weight: 600;
     line-height: 1.4;
   }
@@ -195,7 +196,12 @@
   .prose a {
     color: var(--text-primary);
     text-decoration-line: underline;
-    text-decoration-color: var(--border-strong);
+    text-decoration-color: var(--border-link);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .prose a:hover {
+      text-decoration-color: var(--text-primary);
+    }
   }
   .prose strong {
     font-weight: 600;

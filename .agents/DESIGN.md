@@ -55,7 +55,7 @@ For deep design engineering and animation work, invoke these skills:
 ### Typography
 
 - Use modern, high-quality typefaces (e.g. Inter, Outfit, Geist, Satoshi), never browser defaults.
-- Use fluid typography with `clamp()` for responsive scaling. Avoid fixed `px` for font sizes. Write the bounds in `rem` and keep the maximum at most 2.5 times the minimum, so text still reaches 200% under zoom (WCAG 1.4.4).
+- Body text is a flat 14px (`xs`/`sm`/`base` steps are fixed, measured against raphaelsalaja.com); only display steps (`lg` and up) use fluid `clamp()`. Avoid fixed `px` for font sizes. Write the bounds in `rem` and keep the maximum at most 2.5 times the minimum, so text still reaches 200% under zoom (WCAG 1.4.4).
 - Maintain a clear typographic hierarchy: one `<h1>` per page, logical heading order, consistent scale.
 - Apply `text-wrap: balance` on headings/titles for even line distribution; `text-wrap: pretty` on body paragraphs to prevent orphaned words. Often pair both.
 - Apply `-webkit-font-smoothing: antialiased` globally for crisper, lighter text rendering on macOS.

@@ -33,6 +33,26 @@ test("home to experiment to case study, with no console errors", async ({ page }
   expect(errors).toEqual([]);
 });
 
+// Client-side navigation reuses registered custom elements, which full page
+// loads never do. Click in from home and press back for every route.
+test("click into every entry and back, with no console errors", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  for (const route of [...publicRoutes().filter((r) => r !== "/" && r !== "/resume"), ...LOCKED]) {
+    const link = page.locator(`a[href="${route}"]`).first();
+    await expect(link, `home links ${route}`).toHaveCount(1);
+    await link.click();
+    await expect(page).toHaveURL(route);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("This page tripped")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL("/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("This page tripped")).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("locked case study: wrong password, right password, survives reload", async ({ page }) => {
   await page.goto("/work/royc");
   const body = page.locator("body");

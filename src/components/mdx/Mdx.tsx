@@ -4,7 +4,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
-import { Figure } from "@/components/case-studies/Figure";
+import { Figure, Video } from "@/components/case-studies/Figure";
 import * as toys from "./toys";
 
 /** Components MDX may use. Media paths in locked bodies resolve to the gated API. */
@@ -23,6 +23,9 @@ function componentsFor(mediaBase?: string): MDXComponents {
     Figure: (props: ComponentProps<typeof Figure>) => (
       <Figure {...props} src={media(props.src) ?? ""} />
     ),
+    Video: (props: ComponentProps<typeof Video>) => (
+      <Video {...props} src={media(props.src) ?? ""} poster={media(props.poster)} />
+    ),
   };
 }
 
@@ -40,6 +43,12 @@ function compile(source: string) {
         {
           themes: { light: "github-light", dark: "github-dark" },
           defaultColor: false,
+          // Load grammars on demand. Bundling every language cost ~6s on each
+          // cold start, so clicks into a dynamic page looked dead.
+          langs: [],
+          lazy: true,
+          // Unknown fence languages render plain instead of failing the page.
+          fallbackLanguage: "text",
           // Code blocks scroll sideways on phones, so keyboard users must reach them.
           transformers: [
             {
