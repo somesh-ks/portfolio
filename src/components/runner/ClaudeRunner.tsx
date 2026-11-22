@@ -209,7 +209,12 @@ export function ClaudeRunner() {
     return loading.current;
   }, [loadBoard]);
 
+  const starting = useRef(false);
   const startRun = useCallback(async () => {
+    // One start at a time: presses during the engine load or the token
+    // request must not start a second, overlapping run.
+    if (starting.current) return;
+    starting.current = true;
     // What you see is what you ride: the character on screen runs.
     const next = costumeRef.current;
     setPoints(0);
@@ -219,9 +224,12 @@ export function ClaudeRunner() {
     token.current = null;
     setHasToken(false);
 
-    if (!engine.current) setPhase("loading");
+    setPhase("loading");
     const loaded = await ensureEngine();
-    if (!loaded) return;
+    if (!loaded) {
+      starting.current = false;
+      return;
+    }
 
     // Get the run token before the clock starts, so the server's "reachable
     // in the time since" check never sees less time than the run took.
@@ -241,6 +249,7 @@ export function ClaudeRunner() {
       }
     }
 
+    starting.current = false;
     setPhase("running");
     screen.current?.focus({ preventScroll: true });
     loaded.start((Math.random() * 2 ** 31) | 0, next);
@@ -414,7 +423,7 @@ export function ClaudeRunner() {
         <canvas ref={canvas} className="runner__canvas" aria-hidden="true" />
         {engineReady ? null : <StaticFrame />}
 
-        {phase === "idle" || phase === "loading" ? (
+        {phase === "idle" || (phase === "loading" && !engineReady) ? (
           <button
             type="button"
             className="runner__prompt"
