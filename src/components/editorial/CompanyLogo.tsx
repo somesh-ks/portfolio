@@ -1,5 +1,5 @@
 /**
- * Official company icons in brand colours, inlined as a sprite so they paint with
+ * Official company icons in brand colours, inlined so they paint with
  * the bio text: no requests, no lazy loading. Colours come from each company's own
  * favicon; marks without a brand colour (Rolls-Royce, Mercedes) use `currentColor`.
  * Paths were run through svgo. Sources per entry. ROYC and Luminovo have none (NDA).
@@ -95,39 +95,32 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
   },
 };
 
-export function hasLogo(id: CompanyId): boolean {
-  return id in MARKS;
-}
-
-/** One hidden sprite per page. Each pill draws its mark with <use>, so the
- * paths ship once and never enter the client bundle. */
-export function LogoSprite() {
+/** The company's icon as a self-contained inline SVG. Rendered on the server
+ * and passed to CompanyPreview, so it paints in the same frame as the text,
+ * with no reference to resolve, on first load and on every client navigation. */
+export function CompanyLogo({ id }: { id: CompanyId }) {
+  const mark = MARKS[id];
+  if (!mark) return null;
+  const inset = mark.tile ? (mark.inset ?? 4) : 0;
   return (
-    <svg aria-hidden="true" focusable="false" width="0" height="0" className="sr-only">
-      {Object.entries(MARKS).map(([id, mark]) => {
-        const inset = mark.tile ? (mark.inset ?? 4) : 0;
-        return (
-          <symbol key={id} id={`logo-${id}`} viewBox="0 0 24 24">
-            {mark.tile ? <rect width="24" height="24" fill={mark.tile} /> : null}
-            <svg
-              x={inset}
-              y={inset}
-              width={24 - 2 * inset}
-              height={24 - 2 * inset}
-              viewBox={mark.viewBox}
-              fill={mark.fill ?? "currentColor"}
-            >
-              {mark.paths.map((path) => (
-                <path
-                  key={path.d.slice(0, 16)}
-                  d={path.d}
-                  fillRule={path.evenodd ? "evenodd" : undefined}
-                />
-              ))}
-            </svg>
-          </symbol>
-        );
-      })}
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="company-pill__logo">
+      {mark.tile ? <rect width="24" height="24" fill={mark.tile} /> : null}
+      <svg
+        x={inset}
+        y={inset}
+        width={24 - 2 * inset}
+        height={24 - 2 * inset}
+        viewBox={mark.viewBox}
+        fill={mark.fill ?? "currentColor"}
+      >
+        {mark.paths.map((path) => (
+          <path
+            key={path.d.slice(0, 16)}
+            d={path.d}
+            fillRule={path.evenodd ? "evenodd" : undefined}
+          />
+        ))}
+      </svg>
     </svg>
   );
 }
