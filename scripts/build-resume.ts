@@ -64,12 +64,17 @@ async function findTectonic(): Promise<string | undefined> {
   if (!process.env.VERCEL) return undefined;
   const bin = join(CACHE, `tectonic-${TECTONIC_VERSION}`);
   if (existsSync(bin)) return bin;
-  const response = await fetch(TECTONIC_URL);
-  if (!response.ok) return undefined;
-  const archive = join(CACHE, "tectonic.tar.gz");
-  writeFileSync(archive, new Uint8Array(await response.arrayBuffer()));
-  if (spawnSync("tar", ["-xzf", archive, "-C", CACHE]).status !== 0) return undefined;
-  copyFileSync(join(CACHE, "tectonic"), bin);
-  spawnSync("chmod", ["+x", bin]);
-  return bin;
+  try {
+    const response = await fetch(TECTONIC_URL);
+    if (!response.ok) return undefined;
+    const archive = join(CACHE, "tectonic.tar.gz");
+    writeFileSync(archive, new Uint8Array(await response.arrayBuffer()));
+    if (spawnSync("tar", ["-xzf", archive, "-C", CACHE]).status !== 0) return undefined;
+    copyFileSync(join(CACHE, "tectonic"), bin);
+    spawnSync("chmod", ["+x", bin]);
+    return bin;
+  } catch (error) {
+    console.error("resume: tectonic download failed", error);
+    return undefined;
+  }
 }
