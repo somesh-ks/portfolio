@@ -3,21 +3,21 @@ title: Agentic Tool-Call & Streaming UI
 slug: agentic-stream-states
 kind: experiment
 order: 3
-summary: The same agent task shown twice, once as a spinner and a wall of tokens, once as interruptible, staged progress with an approval gate.
+summary: Agent progress you can read, stop and approve.
 publishedAt: 2026-10-10
 tags: [ai interfaces, streaming, agents]
 stack: [React, Streaming, Motion]
 ---
 
-Most agent interfaces show two states: waiting and done. The waiting is a spinner, and the done is a wall of text that arrives all at once. Neither tells you what the agent is doing, whether it is going the wrong way, or how to stop it.
+Most agent interfaces have two states: a spinner, then a wall of text. Neither tells you what the agent is doing or how to stop it.
 
 <AgenticStreamDemo />
 
-The right-hand side breaks the same run into steps you can read: the plan, each tool call with its arguments, and the result. You can stop it at any point. Before the agent does anything that leaves the sandbox, it asks.
+The right side splits the same run into steps: the plan, each tool call and its result. You can stop it anytime, and it asks before anything leaves the sandbox.
 
 ## Principles
 
-- **Show the work, not the tokens.** A step label is easier to follow than a stream of words.
-- **Make stopping cheap.** The stop button is always in the same place and works instantly.
-- **Ask before acting.** An approval gate turns an irreversible action into a decision a person makes.
-- **Say how sure you are.** A low-confidence step looks different from a high-confidence one, in words as well as style.
+- **Show the work, not the tokens.** A step label beats a stream of words.
+- **Make stopping cheap.** One stop button, always in the same place.
+- **Ask before acting.** An approval gate turns an irreversible action into a decision.
+- **Say how sure you are.** Low confidence looks different, in words and in style.

@@ -18,8 +18,7 @@ export const COMPANIES = {
     id: "netlight",
     name: "Netlight",
     about: "IT and design consultancy founded in Stockholm.",
-    relation:
-      "Senior product designer since 2022. Clients include Canucci, ROYC, BMW Group and the World Food Programme.",
+    relation: "Senior product designer since 2022.",
   },
   anthropic: {
     id: "anthropic",
@@ -31,33 +30,31 @@ export const COMPANIES = {
     id: "bmw",
     name: "BMW / Rolls-Royce",
     about: "Automotive group behind BMW, MINI and Rolls-Royce Motor Cars.",
-    relation:
-      "Interaction design for the Climate and Settings HMI apps, and the first pilot of the Neue Klasse architecture for Rolls-Royce.",
+    relation: "Climate and Settings HMI apps, and the first Neue Klasse pilot for Rolls-Royce.",
   },
   wfp: {
     id: "wfp",
     name: "World Food Programme",
     about: "The United Nations agency for food assistance.",
-    relation:
-      "Designed SchoolOps, a mobile-first app that handles meal data for 3M students across 22 countries.",
+    relation: "SchoolOps, meal data for 3M students in 22 countries.",
   },
   royc: {
     id: "royc",
     name: "ROYC",
     about: "Private-markets infrastructure for family offices and wealth managers.",
-    relation: "Lead product designer. Rebrand, platform split and a white-label design system.",
+    relation: "Lead product designer. Rebrand and a white-label design system.",
   },
   luminovo: {
     id: "luminovo",
     name: "Luminovo",
     about: "Sourcing and quoting software for electronics manufacturers.",
-    relation: "Product designer. Redesigned sourcing and brought quoting into the platform.",
+    relation: "Product designer. Redesigned sourcing and quoting.",
   },
   oyo: {
     id: "oyo",
     name: "OYO",
     about: "Hospitality platform that started in India.",
-    relation: "Designed a unified CRM for 90K+ users that replaced seven legacy tools.",
+    relation: "One CRM for 90K+ users, replacing seven legacy tools.",
   },
 } as const satisfies Record<string, Company>;
 
@@ -68,9 +65,9 @@ export type CompanyId = keyof typeof COMPANIES;
  * web and as plain text in Markdown exports.
  */
 export const BIO = [
-  "I take products from zero to one, and I build what I design, because the details that make software feel right rarely survive a handoff.",
-  "I'm a senior product designer at {company:netlight}. Over the last few years I've shipped products for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo} and {company:oyo}, used by more than 3M people across 22 countries.",
-  "I'm the Claude Ambassador for Sweden at {company:anthropic}, where I host Claude for Designers meetups, and I co-founded Into Design Systems, a meetup series in Stockholm. These days I spend most of my time on one question: what does a design system need so that coding agents can build with it, and build with taste?",
+  "I design products from zero to one, and I build what I design.",
+  "I'm a senior product designer at {company:netlight}. I've shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo} and {company:oyo}, used by 3M+ people in 22 countries.",
+  "At {company:anthropic} I'm Claude Ambassador, Sweden, and I host Claude for Designers meetups. I also co-founded Into Design Systems in Stockholm. Now I'm working out what a design system needs so coding agents can build with it well.",
 ] as const;
 
 export const PROFILE = {

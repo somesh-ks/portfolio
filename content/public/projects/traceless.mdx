@@ -3,12 +3,12 @@ title: Traceless
 slug: traceless
 kind: project
 order: 4
-summary: A personal and family data-privacy tool for the Indian data ecosystem, running on Cloudflare Workers with human approval on every sensitive step.
+summary: Helps Indian families find their data and request removal.
 publishedAt: 2026-10-01
 tags: [privacy, security, cloudflare]
 stack: [Cloudflare Workers, Hono, D1, KV, R2]
 ---
 
-Personal data in India travels through a long chain of apps, brokers and agencies, and most families have no way to see where theirs ended up. Traceless helps one household find out and ask for it to be removed.
+Personal data in India passes through a long chain of apps, brokers and agencies. Traceless helps one household see where theirs went and ask for it back.
 
-It runs on Cloudflare Workers with Hono, stores state in D1, KV and R2, and fails closed: every request needs a valid Access JWT, and nothing that touches a third party leaves the system without a person approving it in a queue first. Automation drafts the request. A human sends it.
+It runs on Cloudflare Workers with Hono, D1, KV and R2, and fails closed. Every request needs a valid Access JWT. Automation drafts each removal request, and a person approves it before it leaves.
