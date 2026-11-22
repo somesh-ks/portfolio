@@ -3,6 +3,8 @@
  * cookie), so it never lands in the static build. The gated body is loaded
  * only after the HMAC session check passes.
  */
+import { PROFILE } from "@content/profile";
+import { Lock } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -49,7 +51,25 @@ export async function LockedCaseStudy({
         {body ? (
           <Mdx source={body} mediaBase={`/api/media/${slug}`} />
         ) : (
-          <p>The full case study is unavailable right now. Email me and I'll send it directly.</p>
+          <div className="gate">
+            <div className="gate__head">
+              <span className="gate__icon" aria-hidden="true">
+                <Lock size={16} strokeWidth={1.75} />
+              </span>
+              <div>
+                <h2 className="gate__title">The full case study is offline for a moment</h2>
+                <p className="gate__hint">
+                  You're unlocked, but the protected copy didn't load.{" "}
+                  <a
+                    href={`mailto:${PROFILE.email}?subject=${encodeURIComponent(entry.meta.title)}`}
+                  >
+                    Email me
+                  </a>{" "}
+                  and I'll send it directly.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </EntryArticle>
     );
