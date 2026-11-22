@@ -1889,11 +1889,11 @@ claude-mascot:defined > * {
 }
 .ascii-empty__art {
   max-width: 100%;
+  overflow: hidden;
   margin: 0;
   padding: 0;
   background: none;
   box-shadow: none;
-  overflow-x: auto;
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-sm);

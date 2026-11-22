@@ -25,7 +25,7 @@ export function Bio() {
                   key={part}
                   company={company}
                   thumbnail={hasFile("previews", `${part}.webp`)}
-                  logo={hasFile("logos", `${part}.png`)}
+                  logo={hasFile("logos", `${part}.webp`)}
                 />
               ) : (
                 part

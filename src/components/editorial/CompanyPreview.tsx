@@ -27,11 +27,11 @@ export function CompanyPreview({
         openOnHover={fineHover}
         delay={180}
         closeDelay={120}
-        className="company-pill"
+        className="company-pill pressable"
       >
         {logo ? (
           <Image
-            src={`/logos/${company.id}.png`}
+            src={`/logos/${company.id}.webp`}
             alt=""
             width={32}
             height={32}
