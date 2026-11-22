@@ -60,8 +60,7 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
         <span aria-hidden="true">&gt;</span> jump<span className="sr-only"> to a page</span>
         {mod ? (
           <span className="palette-trigger__keys" aria-hidden="true">
-            <Kbd>{mod}</Kbd>
-            <Kbd>K</Kbd>
+            <Kbd>{mod === "⌘" ? "⌘K" : "Ctrl K"}</Kbd>
           </span>
         ) : null}
       </button>
