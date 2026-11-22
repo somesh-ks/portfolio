@@ -21,10 +21,12 @@ export function CopyButton({ text, label = text }: { text: string; label?: strin
         className="icon-button copy-button"
         aria-label={copied ? "Copied" : `Copy: ${label}`}
         onClick={async (event) => {
+          // React clears currentTarget once the handler yields, so grab it before awaiting.
+          const button = event.currentTarget;
           try {
             await navigator.clipboard.writeText(text);
           } catch {
-            const pre = event.currentTarget.closest("[data-copy-root]")?.querySelector("pre");
+            const pre = button.closest("[data-copy-root]")?.querySelector("pre");
             if (pre) {
               const range = document.createRange();
               range.selectNodeContents(pre);
