@@ -43,6 +43,11 @@ const config: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/projects/design-engineering-skill.md",
+        destination: "/projects/interface-mechanics.md",
+        permanent: true,
+      },
+      {
         source: "/projects/design-engineering-skill",
         destination: "/projects/interface-mechanics",
         permanent: true,

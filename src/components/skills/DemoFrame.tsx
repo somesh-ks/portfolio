@@ -32,6 +32,7 @@ export function DemoFrame({
           options={DEMO_MODES}
           value={mode}
           onChange={(next) => {
+            if (next === mode) return;
             onMode(next);
             play("toggle");
           }}

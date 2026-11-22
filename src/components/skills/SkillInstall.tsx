@@ -30,7 +30,9 @@ const INSTALL: Record<Tab, { commands: string[]; note: string }> = {
 };
 
 function CopyLine({ command }: { command: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const copied = status === "copied";
+  const pre = useRef<HTMLPreElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { play } = useSound();
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -38,7 +40,7 @@ function CopyLine({ command }: { command: string }) {
     <div className="skill-install__line">
       {/* Long commands scroll sideways on phones, so the line must be keyboard reachable. */}
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-      <pre className="skill-install__command" tabIndex={0}>
+      <pre ref={pre} className="skill-install__command" tabIndex={0}>
         <code>{command}</code>
       </pre>
       <button
@@ -49,12 +51,18 @@ function CopyLine({ command }: { command: string }) {
           try {
             await navigator.clipboard.writeText(command);
           } catch {
+            // Clipboard blocked: select the command so the user can copy it by hand.
+            const range = document.createRange();
+            if (pre.current) range.selectNodeContents(pre.current);
+            getSelection()?.removeAllRanges();
+            getSelection()?.addRange(range);
+            setStatus("failed");
             return;
           }
-          setCopied(true);
+          setStatus("copied");
           play("tick");
           clearTimeout(timer.current);
-          timer.current = setTimeout(() => setCopied(false), 1500);
+          timer.current = setTimeout(() => setStatus("idle"), 1500);
         }}
       >
         {/* Both icons share one grid cell, so the button never changes size. */}
@@ -64,7 +72,11 @@ function CopyLine({ command }: { command: string }) {
         </span>
       </button>
       <span className="sr-only" aria-live="polite">
-        {copied ? "Copied" : ""}
+        {status === "copied"
+          ? "Copied"
+          : status === "failed"
+            ? "Copy failed. The command is selected."
+            : ""}
       </span>
     </div>
   );
