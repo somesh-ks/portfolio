@@ -1,5 +1,6 @@
 import { PROFILE } from "@content/profile";
 import { Bio } from "@/components/editorial/Bio";
+import { ContactLinks } from "@/components/editorial/ContactLinks";
 import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
 import { MascotStage } from "@/components/experiments/MascotStage";
@@ -11,6 +12,7 @@ export default function HomePage() {
       <header className="intro">
         <h1 className="intro__name">{PROFILE.name}</h1>
         <p className="intro__role">Design Engineer, Claude Ambassador — Stockholm</p>
+        <ContactLinks label="Contact" links={PROFILE.links.filter((link) => link.label !== "X")} />
       </header>
       <Bio />
       <MascotStage />
