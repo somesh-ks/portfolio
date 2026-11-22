@@ -487,6 +487,44 @@ claude-mascot:defined > * {
 .runner[data-input="touch"] .runner__foot .runner__key {
   display: none;
 }
+/* On touch the footer has no keycaps, so its actions need to look tappable:
+   three equal hairline buttons. Same touch test as the key hints above. */
+@media (pointer: coarse) {
+  .runner:not([data-input="keys"]) .runner__foot {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  .runner:not([data-input="keys"]) .runner__foot .runner__action {
+    justify-content: center;
+    padding: var(--space-2);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+    color: var(--text-primary);
+    text-align: center;
+    white-space: normal;
+  }
+  .runner:not([data-input="keys"]) .runner__foot .runner__spacer {
+    display: none;
+  }
+}
+.runner[data-input="touch"] .runner__foot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.runner[data-input="touch"] .runner__foot .runner__action {
+  justify-content: center;
+  padding: var(--space-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-primary);
+  text-align: center;
+  white-space: normal;
+}
+.runner[data-input="touch"] .runner__foot .runner__spacer {
+  display: none;
+}
 @media (hover: hover) and (pointer: fine) {
   .runner__action {
     min-height: 2.25rem;
