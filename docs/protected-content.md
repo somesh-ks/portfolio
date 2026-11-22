@@ -28,8 +28,19 @@ Media referenced with relative paths in the MDX (`<Figure src="hero.webp" />`) r
 ## Production setup on Vercel
 
 1. Set `PORTFOLIO_PASSWORD_HASH` and `PORTFOLIO_COOKIE_SECRET` in the Vercel project (Production and Preview).
-2. Upload the bodies and media to a private store (a private Vercel Blob store or a private bucket behind a token), then set `PROTECTED_CONTENT_SOURCE` to its base URL and `PROTECTED_CONTENT_TOKEN` if needed.
+2. Put the bodies and media in a private store and point `PROTECTED_CONTENT_SOURCE` at it. The free default is a private GitHub repo (below). A private Vercel Blob store or a bucket behind a token works the same way.
 3. Add a Vercel Firewall rate-limit rule on `POST /api/unlock` (for example 10 requests per minute per IP). In-memory rate limiting does not work on serverless, because each instance has its own memory and instances come and go. The route adds a fixed 750ms delay to every failure, which slows guessing but is not a limit.
+
+## Free store: a private GitHub repo
+
+1. Create a private repo, for example `somesh-ks/portfolio-protected`, holding `royc.mdx`, `luminovo.mdx` and `media/<slug>/<file>.webp` (the layout above).
+2. Create a fine-grained personal access token at github.com/settings/personal-access-tokens: repository access "Only select repositories" with that one repo, and permission "Contents: Read-only". Nothing else.
+3. In Vercel set:
+   - `PROTECTED_CONTENT_SOURCE=https://raw.githubusercontent.com/somesh-ks/portfolio-protected/main`
+   - `PROTECTED_CONTENT_TOKEN=<the token>`
+4. Check it before relying on it: `curl -sI -H "Authorization: Bearer <token>" https://raw.githubusercontent.com/somesh-ks/portfolio-protected/main/royc.mdx` should return 200.
+
+Fine-grained tokens expire (a year at most). When the token lapses, unlocked pages show "The full case study is unavailable right now", so set a reminder to renew it a month early.
 
 ## Magic links
 
