@@ -284,3 +284,16 @@
     transform: none;
   }
 }
+
+/* Theme switch: switchTheme() snapshots the page, lays the old snapshot on top
+   and switches it off square by square. The mask layers and the theme-pixels
+   keyframes come from switchTheme(); this sets how they play. */
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(root) {
+  z-index: 1;
+  animation: theme-pixels var(--duration-theme) step-end both;
+  mask-size: auto;
+  mask-repeat: no-repeat;
+}
