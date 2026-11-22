@@ -70,6 +70,21 @@ describe("runner sim", () => {
     }
   });
 
+  test("a shrinking view never spawns obstacles closer than a safe gap", () => {
+    const run = createRun(3);
+    let previous = run.obstacles.length;
+    for (let i = 0; i < 60 * 90 && !run.over; i += 1) {
+      step(run, false, i % 300 < 150 ? 400 : 110);
+      run.over = false;
+      if (run.obstacles.length > previous) {
+        const [a, b] = run.obstacles.slice(-2);
+        if (a && b)
+          expect(b.x - (a.x + OBSTACLE_SPRITES[a.kind].w)).toBeGreaterThan(run.speed * 0.9);
+      }
+      previous = run.obstacles.length;
+    }
+  });
+
   test("an obstacle under a standing mascot overlaps", () => {
     const state = createRun(0);
     expect(overlaps(state, { kind: "docs", x: WORLD.mascotX + 6 })).toBe(true);

@@ -97,7 +97,11 @@ function spawn(state: RunState, viewWidth: number) {
   // Taller obstacles appear only once the run has warmed up.
   const pool = state.speed < 90 ? OBSTACLES.filter((kind) => kind !== "rack") : OBSTACLES;
   const kind = pool[Math.floor(random(state) * pool.length)] ?? "docs";
-  state.obstacles.push({ kind, x: viewWidth + 4 });
+  // Never closer than a safe gap to the last obstacle, even if the view just
+  // shrank (leaving fullscreen) and the right edge moved in.
+  const last = state.obstacles.at(-1);
+  const after = last ? last.x + OBSTACLE_SPRITES[last.kind].w + minimumGap(state.speed) : 0;
+  state.obstacles.push({ kind, x: Math.max(viewWidth + 4, after) });
   state.untilNext =
     OBSTACLE_SPRITES[kind].w + minimumGap(state.speed) + random(state) * state.speed * 0.9;
 }

@@ -183,21 +183,27 @@ export function ClaudeRunner() {
       engine.current.setCostume(next);
     }
 
+    // Get the run token before the clock starts, so the server's "reachable
+    // in the time since" check never sees less time than the run really took.
+    if (leaderboardOn.current) {
+      try {
+        const response = await fetch("/api/runner", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start" }),
+          signal: AbortSignal.timeout(2500),
+        });
+        const body = response.ok ? ((await response.json()) as { token?: string }) : null;
+        token.current = body?.token ?? null;
+        setHasToken(Boolean(token.current));
+      } catch {
+        // No token: the run still plays, it just can't be saved.
+      }
+    }
+
     setPhase("running");
     screen.current?.focus({ preventScroll: true });
     engine.current.start((Math.random() * 2 ** 31) | 0);
-    if (!leaderboardOn.current) return;
-    void fetch("/api/runner", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start" }),
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { token?: string } | null) => {
-        token.current = body?.token ?? null;
-        setHasToken(Boolean(token.current));
-      })
-      .catch(() => {});
   }, [loadBoard]);
 
   const press = useCallback(() => {
