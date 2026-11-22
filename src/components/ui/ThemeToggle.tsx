@@ -23,7 +23,13 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={() => switchTheme(setTheme, next)}
+      onClick={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        switchTheme(setTheme, next, {
+          x: box.left + box.width / 2,
+          y: box.top + box.height / 2,
+        });
+      }}
       className="icon-button pressable"
       aria-label={`${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next].toLowerCase()}`}
     >
