@@ -10,9 +10,7 @@ export default function HomePage() {
     <>
       <header className="intro">
         <h1 className="intro__name">{PROFILE.name}</h1>
-        <p className="intro__role">
-          Design engineer in Stockholm. <em>Claude Ambassador, Sweden.</em>
-        </p>
+        <p className="intro__role">Design Engineer, Claude Ambassador — Stockholm</p>
       </header>
       <Bio />
       <MascotStage />

@@ -67,10 +67,6 @@ main:focus {
   color: var(--text-secondary);
   line-height: 1.4;
 }
-.intro__role em {
-  white-space: nowrap;
-}
-.intro__role em,
 .serif-em {
   font-family: var(--font-serif);
   font-style: italic;
