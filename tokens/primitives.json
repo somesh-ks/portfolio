@@ -258,37 +258,37 @@
     "$type": "dimension",
     "xs": {
       "$value": {
-        "value": 4,
+        "value": 0,
         "unit": "px"
       }
     },
     "sm": {
       "$value": {
-        "value": 6,
+        "value": 0,
         "unit": "px"
       }
     },
     "md": {
       "$value": {
-        "value": 10,
+        "value": 0,
         "unit": "px"
       }
     },
     "lg": {
       "$value": {
-        "value": 14,
+        "value": 0,
         "unit": "px"
       }
     },
     "xl": {
       "$value": {
-        "value": 20,
+        "value": 0,
         "unit": "px"
       }
     },
     "pill": {
       "$value": {
-        "value": 999,
+        "value": 0,
         "unit": "px"
       }
     }

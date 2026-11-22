@@ -474,6 +474,22 @@ claude-mascot:defined > * {
   color: var(--text-secondary);
 }
 
+/* ---------- Mono chrome ----------
+   Labels, wayfinding and metadata speak in mono caps; reading text stays sans. */
+.section-title,
+.back-link,
+.next-link__label,
+.facts dt,
+.site-footer__links .link,
+.site-footer__note,
+.code-block__bar {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 /* ---------- Entry pages ---------- */
 .back-link {
   display: inline-flex;
