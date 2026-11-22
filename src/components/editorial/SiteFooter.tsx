@@ -10,8 +10,8 @@ export function SiteFooter() {
     <footer className="site-footer">
       <ContactLinks label="Elsewhere" links={LINKS} />
       <div className="site-footer__toggles">
-        <SoundToggle />
         <ThemeToggle />
+        <SoundToggle />
       </div>
     </footer>
   );

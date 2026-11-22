@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * UI sound, off until the visitor turns it on. The choice is remembered in
- * this browser. The AudioContext starts inside a gesture (the toggle click, or
- * the first tap or key press of a later visit), so mobile Safari never blocks it.
+ * UI sound, on by default (Somesh's pick); a mute is remembered in this browser.
+ * Browsers allow audio only after a gesture, so the AudioContext starts on the
+ * first tap, click or key press anywhere, and nothing plays before it.
  *
  * While sound is on, one window listener gives every link, button and summary
  * a soft tap. A component that plays its own sound in that click wins, and
@@ -36,6 +36,8 @@ const SoundContext = createContext<SoundContextValue>({
 });
 
 const STORAGE_KEY = "sound";
+// Events that count as a user gesture, so the first one anywhere can start audio.
+const WAKE_EVENTS = ["pointerdown", "pointerup", "touchend", "keydown"] as const;
 const CLICKABLE = "a[href], button, summary, [data-sound]";
 
 // The choice lives in localStorage, with an in-memory copy for blocked storage.
@@ -45,9 +47,9 @@ const listeners = new Set<() => void>();
 function readStored(): boolean {
   if (stored === null) {
     try {
-      stored = localStorage.getItem(STORAGE_KEY) === "on";
+      stored = localStorage.getItem(STORAGE_KEY) !== "off";
     } catch {
-      stored = false;
+      stored = true;
     }
   }
   return stored;
@@ -56,8 +58,8 @@ function readStored(): boolean {
 function remember(on: boolean) {
   stored = on;
   try {
-    if (on) localStorage.setItem(STORAGE_KEY, "on");
-    else localStorage.removeItem(STORAGE_KEY);
+    if (on) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, "off");
   } catch {
     // Private mode or blocked storage: the choice lasts this visit only.
   }
@@ -98,12 +100,11 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     // Wake the context on the first gesture of a remembered visit.
     const wake = () => unlock();
     // Bubble phase on window: React's handlers (on the document) run first.
-    window.addEventListener("pointerdown", wake, { capture: true, passive: true });
-    window.addEventListener("keydown", wake, { capture: true, passive: true });
+    for (const type of WAKE_EVENTS)
+      window.addEventListener(type, wake, { capture: true, passive: true });
     window.addEventListener("click", onClick);
     return () => {
-      window.removeEventListener("pointerdown", wake, { capture: true });
-      window.removeEventListener("keydown", wake, { capture: true });
+      for (const type of WAKE_EVENTS) window.removeEventListener(type, wake, { capture: true });
       window.removeEventListener("click", onClick);
     };
   }, [enabled]);
