@@ -728,7 +728,8 @@ claude-mascot:defined > * {
 
 /* Hover thumbnail: wide screens with a mouse only, in the gutter right of the
    40rem column. Out of flow, so row height and the hover highlight never move.
-   Shows after a short delay so sweeping the list doesn't flash every image. */
+   Fade only (hover runs tens of times a day), after a short delay so sweeping
+   the list doesn't flash every image. */
 .list-row__thumb {
   display: none;
 }
@@ -745,26 +746,18 @@ claude-mascot:defined > * {
     height: auto;
     aspect-ratio: 16 / 10;
     object-fit: cover;
-    border: 1px solid var(--border-image);
+    outline: 1px solid var(--border-image);
+    outline-offset: -1px;
     background: var(--surface-raised);
     opacity: 0;
-    transform: translateY(-50%) translateX(calc(-1 * var(--space-2)));
+    transform: translateY(-50%);
     pointer-events: none;
-    transition:
-      opacity var(--duration-tooltip) var(--ease-out),
-      transform var(--duration-tooltip) var(--ease-out);
+    transition: opacity var(--duration-tooltip) ease;
   }
   .list-row:hover .list-row__thumb,
   .list-row:focus-visible .list-row__thumb {
     opacity: 1;
-    transform: translateY(-50%);
-    transition-duration: var(--duration-popover);
     transition-delay: var(--duration-tooltip);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .list-row__thumb {
-    transform: translateY(-50%);
   }
 }
 
