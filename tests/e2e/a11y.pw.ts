@@ -17,5 +17,16 @@ for (const scheme of ["light", "dark"] as const) {
         ).toEqual([]);
       });
     }
+    test("the Cmd+K palette has no WCAG 2.2 AA violations @a11y", async ({ page }) => {
+      await page.goto("/");
+      await page.keyboard.press("ControlOrMeta+k");
+      await expect(page.getByRole("searchbox", { name: "Jump to" })).toBeFocused();
+      await page.keyboard.press("ArrowDown");
+      const { violations } = await new AxeBuilder({ page })
+        .include(".palette")
+        .withTags(WCAG)
+        .analyze();
+      expect(violations.map((v) => v.id)).toEqual([]);
+    });
   });
 }

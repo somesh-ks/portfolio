@@ -133,3 +133,32 @@ test("favicon follows the browser scheme, then the site toggle", async ({ page }
   const svg = await page.request.get("/favicon-light.svg");
   expect(svg.ok()).toBe(true);
 });
+
+test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  await page.keyboard.press("ControlOrMeta+k");
+  const input = page.getByRole("searchbox", { name: "Jump to" });
+  await expect(input).toBeFocused();
+  await input.fill("resume");
+  await input.press("Enter");
+  await expect(page).toHaveURL(/\/resume$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await input.fill("theme");
+  const theme = await page.locator("html").getAttribute("data-theme");
+  await input.press("Enter");
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", theme ?? "");
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("the footer button opens the palette on touch and desktop", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Jump to a page" }).click();
+  await expect(page.getByRole("searchbox", { name: "Jump to" })).toBeFocused();
+});
