@@ -101,3 +101,31 @@ describe("zip", () => {
     expect(end.getUint16(10, true)).toBe(2);
   });
 });
+
+describe("audit parsing", () => {
+  test("follows chained DTCG aliases", () => {
+    const tokens = {
+      color: {
+        $type: "color",
+        role: { text: { $value: "{color.alias.ink}" } },
+        alias: { ink: { $value: "{color.base.gray}" } },
+        base: { gray: { $value: "#777777" } },
+      },
+    };
+    const text = audit(JSON.stringify(tokens)).parsed.colors.find(
+      (c) => c.name === "color-role-text",
+    );
+    expect(text?.hex).toBe("#777777");
+  });
+});
+
+describe("shadcn export", () => {
+  test("bg-accent is the hover fill that pairs with accent-foreground", () => {
+    const sys = buildSystem({
+      ...DEFAULT_INPUT,
+      stack: { ...DEFAULT_INPUT.stack, components: "shadcn" },
+    });
+    const css = exportAll(sys).find((f) => f.path.endsWith("theme.css"))!.content;
+    expect(css).toContain("--color-accent: var(--accent);");
+  });
+});

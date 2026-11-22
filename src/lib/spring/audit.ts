@@ -150,7 +150,12 @@ function parseDtcg(text: string): Parsed {
       all.set(path.join("."), o.$value);
       const name = path.join("-");
       let v = o.$value;
-      if (typeof v === "string" && /^\{.+\}$/.test(v)) v = all.get(v.slice(1, -1)) ?? v;
+      // Follow alias chains ({a} -> {b} -> value), not just one hop.
+      for (let hop = 0; hop < 10 && typeof v === "string" && /^\{.+\}$/.test(v); hop++) {
+        const next = all.get(v.slice(1, -1));
+        if (next === undefined) break;
+        v = next;
+      }
       const ext = (o.$extensions as Record<string, unknown> | undefined)?.mode as
         | Record<string, unknown>
         | undefined;

@@ -227,8 +227,9 @@ function toTailwind(sys: System): string {
         "destructive",
         "input",
       ]
-        .map((n) => `  --color-${n === "accent" ? "accent" : n}: var(--${n});`)
-        .filter((l) => !l.includes("--color-accent:")),
+        // bg-accent follows shadcn (a hover fill) so it pairs with text-accent-foreground;
+        // the brand color stays on bg-primary.
+        .map((n) => `  --color-${n}: var(--${n});`),
       "}",
     );
   }
