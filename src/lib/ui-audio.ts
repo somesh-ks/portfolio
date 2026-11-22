@@ -68,10 +68,17 @@ let lastAny = -Infinity;
 export function unlock(): void {
   if (typeof window === "undefined" || !("AudioContext" in window)) return;
   if (!context) {
-    context = new AudioContext({ latencyHint: "interactive" });
-    master = context.createGain();
-    master.gain.value = 0.9;
-    master.connect(context.destination);
+    try {
+      context = new AudioContext({ latencyHint: "interactive" });
+      master = context.createGain();
+      master.gain.value = 0.9;
+      master.connect(context.destination);
+    } catch {
+      // The browser refused a context (too many open): stay silent, never block the action.
+      context = null;
+      master = null;
+      return;
+    }
   }
   // "suspended" before a gesture, "interrupted" on iOS after a call or a lock.
   if (context.state !== "running") void context.resume().catch(() => {});
@@ -144,5 +151,9 @@ export function play(name: SoundName): void {
   unlock();
   if (!context || !master) return;
   const now = context.currentTime + 0.005;
-  for (const spec of SOUNDS[name]) voice(context, master, spec, now);
+  try {
+    for (const spec of SOUNDS[name]) voice(context, master, spec, now);
+  } catch {
+    // A closed or broken context: sound is optional, the click still works.
+  }
 }

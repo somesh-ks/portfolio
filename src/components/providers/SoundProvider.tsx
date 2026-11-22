@@ -85,23 +85,26 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   const enabled = useSyncExternalStore(subscribe, readStored, () => false);
   const enabledRef = useRef(false);
 
+  // Let the context sleep while the tab is hidden, muted or not.
+  useEffect(() => {
+    const onVisibility = () => (document.hidden ? sleep() : undefined);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   useEffect(() => {
     enabledRef.current = enabled;
     if (!enabled) return;
-    // Wake the context on the first gesture of a remembered visit, and let it
-    // sleep while the tab is hidden.
+    // Wake the context on the first gesture of a remembered visit.
     const wake = () => unlock();
-    const onVisibility = () => (document.hidden ? sleep() : undefined);
     // Bubble phase on window: React's handlers (on the document) run first.
     window.addEventListener("pointerdown", wake, { capture: true, passive: true });
     window.addEventListener("keydown", wake, { capture: true, passive: true });
     window.addEventListener("click", onClick);
-    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("pointerdown", wake, { capture: true });
       window.removeEventListener("keydown", wake, { capture: true });
       window.removeEventListener("click", onClick);
-      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [enabled]);
 
