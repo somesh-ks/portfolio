@@ -5,12 +5,13 @@
 export const RESUME_PDF_URL = "/resume.pdf";
 
 export const RESUME_SUMMARY =
-  "Product designer and 0 to 1 specialist with 4+ years shipping products across 10+ domains in high-growth B2B and B2C teams. I've driven $1.5M+ in cost savings, helped win 10+ clients and shipped work used by 3M+ people in 22 countries. I bring an AI-first approach to every product I build, and I'm the Claude Ambassador for Anthropic in Sweden.";
+  "Product designer and 0 to 1 specialist with 4+ years across 10+ domains in B2B and B2C. $1.5M+ saved, 10+ clients won, and work used by 3M+ people in 22 countries.";
 
 interface ResumeProject {
   name: string;
   context: string;
-  points: { label: string; text: string }[];
+  /** One or two short sentences, numbers first. */
+  outcome: string;
 }
 
 export interface ResumeRole {
@@ -29,74 +30,40 @@ export const EXPERIENCE: ResumeRole[] = [
     location: "Stockholm, Sweden",
     projects: [
       {
+        name: "Mercedes-Benz",
+        context: "EAA accessibility compliance, 9,000+ vehicle fleet",
+        outcome:
+          "Audited web and mobile against EN 301 549 and WCAG 2.1 AA: 70% non-compliant, 143 failure points. Ran workshops to rank fixes by legal and user impact, and delivered a phased roadmap to full EU compliance.",
+      },
+      {
         name: "Canucci",
         context: "Strategic decision-making platform",
-        points: [
-          {
-            label: "Impact",
-            text: "Led the 0 to 1 launch of an AI-driven B2B SaaS platform that turned a proprietary methodology into a shipped product, won 5 new clients and hit investor milestones 30% faster than estimated.",
-          },
-          {
-            label: "Execution",
-            text: "Defined product strategy, used AI tooling to shorten prototyping, and set up a tokenized design system that gave engineering a production-ready foundation.",
-          },
-        ],
+        outcome:
+          "Led the 0 to 1 launch of an AI-driven B2B SaaS product with a tokenized design system. Won 5 new clients and hit investor milestones 30% faster than estimated.",
       },
       {
         name: "ROYC",
         context: "Private-market investment platform",
-        points: [
-          {
-            label: "Impact",
-            text: "Helped grow from 5 to 20 clients with a platform redesign, and introduced a modular white-label design system that saved an estimated EUR 200,000 of design and development effort across four SaaS products.",
-          },
-          {
-            label: "Execution",
-            text: "Led end-to-end UX for complex financial journeys, bridging founder vision and engineering constraints.",
-          },
-        ],
+        outcome:
+          "Redesigned the platform and built a white-label design system across four SaaS products. Grew from 5 to 20 clients and saved an estimated €200K.",
       },
       {
         name: "World Food Programme",
         context: "SchoolOps mobile-web app",
-        points: [
-          {
-            label: "Scale",
-            text: "Designed a mobile-first app that handles meal data for 3M students across 22 countries, removing the need for dedicated tablets and their hardware cost.",
-          },
-          {
-            label: "Execution",
-            text: "Ran UX audits, flow analysis and stakeholder workshops across 22 countries, then designed and tested prototypes for field operators and country-specific edge cases.",
-          },
-        ],
+        outcome:
+          "After audits and workshops in 22 countries, designed a mobile-first app that tracks meals for 3M students and removes the need for dedicated tablets.",
       },
       {
         name: "BMW Group",
         context: "Climate and Settings HMI apps",
-        points: [
-          {
-            label: "Strategy",
-            text: "Led the first pilot adapting BMW's Neue Klasse digital architecture to Rolls-Royce, reusing patterns across brands through a unified design library.",
-          },
-          {
-            label: "Interaction design and AI",
-            text: "Supported interaction design for the Climate and Settings apps and contributed to the AI strategy for a 150-person UX organisation.",
-          },
-        ],
+        outcome:
+          "Led the first pilot bringing the Neue Klasse digital architecture to Rolls-Royce, and contributed to the AI strategy of a 150-person UX organisation.",
       },
       {
         name: "Netlight",
         context: "HR management platform",
-        points: [
-          {
-            label: "Efficiency",
-            text: "Cut consultant allocation time from 1–2 days to near real time with a live staffing dashboard.",
-          },
-          {
-            label: "Dual role",
-            text: "Acted as product manager and UX lead: set the vision and roadmap, built a reusable design system and iterated through user testing.",
-          },
-        ],
+        outcome:
+          "As product manager and UX lead, built a live staffing dashboard that cut consultant allocation from 1–2 days to near real time.",
       },
     ],
   },
@@ -109,34 +76,14 @@ export const EXPERIENCE: ResumeRole[] = [
       {
         name: "Luminovo",
         context: "Electronics supply-chain platform",
-        points: [
-          {
-            label: "Conversion",
-            text: "Raised sourcing flow completion by 42% by simplifying search and filtering.",
-          },
-          {
-            label: "Adoption",
-            text: "Launched an automated quoting product that made Luminovo an end-to-end supply-chain tool and cut customer effort.",
-          },
-          {
-            label: "Design library",
-            text: "Contributed to the shared design library and used Amplitude and LogRocket to prioritise UX work.",
-          },
-        ],
+        outcome:
+          "Simplified search and filtering to raise sourcing completion by 42%, and launched automated quoting. Used Amplitude and LogRocket to set UX priorities.",
       },
       {
         name: "OYO",
         context: "Global CRM platform",
-        points: [
-          {
-            label: "Platform",
-            text: "Designed a unified CRM for 90K+ users managing 850K+ partner properties, replacing seven legacy tools.",
-          },
-          {
-            label: "Efficiency",
-            text: "Halved agent workflow time through iterative user testing, saving $1.2M+ a year.",
-          },
-        ],
+        outcome:
+          "Replaced seven legacy tools with one CRM for 90K+ users and 850K+ properties. Halved agent workflow time, saving $1.2M+ a year.",
       },
     ],
   },
@@ -145,25 +92,25 @@ export const EXPERIENCE: ResumeRole[] = [
 export const EDUCATION = [
   {
     degree: "M.Sc. Human-Computer Interaction and Design",
-    school: "KTH Royal Institute of Technology, Sweden",
+    school: "KTH Royal Institute of Technology",
   },
+  { degree: "Diploma in Entrepreneurship and Innovation", school: "EIT" },
   {
-    degree: "Diploma in Entrepreneurship and Innovation",
-    school: "European Institute of Innovation and Technology (EIT)",
+    degree: "B.Tech. Electronics and Communication with IoT",
+    school: "VIT University",
   },
-  { degree: "B.Tech. Electronics and Communication with IoT", school: "VIT University, India" },
 ] as const;
 
 export const SKILLS = [
   {
-    area: "Design and craft",
+    area: "Design",
     items:
-      "AI-assisted design, human-AI interaction, AI product strategy, UX design, interface design (responsive, design systems, accessibility, typography, iconography), data visualisation, prototyping and motion, UX research",
+      "AI-assisted design, human-AI interaction, AI product strategy, UX and interface design, design systems, accessibility, typography, data visualisation, prototyping, motion, UX research",
   },
   {
     area: "Leadership",
     items:
-      "Product thinking, data- and human-driven design, cross-functional influence, stakeholder management, workshop facilitation, mentorship",
+      "Product thinking, stakeholder management, cross-functional influence, workshop facilitation, mentorship",
   },
   {
     area: "Tools",
@@ -172,10 +119,9 @@ export const SKILLS = [
   },
 ] as const;
 
-export const BEYOND_WORK = [
-  {
-    label: "Community",
-    text: "Claude Ambassador for Anthropic in Sweden, hosting Claude for Designers meetups. Organiser of the Into Design Systems meetup series in Stockholm.",
-  },
-  { label: "Mentorship", text: "Mentor to 10+ junior designers." },
+export const COMMUNITY = [
+  "Claude Ambassador for Anthropic in Sweden, hosting Claude for Designers meetups",
+  "Stripe Ambassador",
+  "Organiser of the Into Design Systems meetups in Stockholm",
+  "Mentor to 10+ junior designers",
 ] as const;
