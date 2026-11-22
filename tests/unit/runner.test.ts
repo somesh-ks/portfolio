@@ -99,6 +99,10 @@ describe("runner sim", () => {
     expect(maxScoreFor(60)).toBeLessThan(score(state) * 1.1);
   });
 
+  test("the CSS walk cycle matches the five-frame walk loop", () => {
+    expect(sprite("walk").frames).toHaveLength(5);
+  });
+
   test("every costume decodes, loops and can clear every obstacle", () => {
     for (const costume of COSTUMES) {
       const built = sprite(costume);

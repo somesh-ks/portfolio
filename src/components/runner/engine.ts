@@ -48,6 +48,8 @@ const MILESTONE = 100;
 const MIN_VIEW_CELLS = 100;
 /** Largest cell, in CSS pixels. */
 const MAX_CELL_PX = 6;
+/** How long the crash pose holds before Claude walks again. */
+const CRASH_HOLD_MS = 600;
 
 export interface EngineCallbacks {
   onScore: (points: number) => void;
@@ -87,6 +89,10 @@ export function createEngine(
   let offsetY = 0;
   let lastPoints = -1;
   let frozenAt = 0;
+  /** Between runs Claude walks in place; null while a run plays or a crash holds. */
+  let walkFrame: number | null = null;
+  let holdUntil = 0;
+  let onScreen = true;
   let colors = {} as Record<Tone | "ground" | "dust", string>;
 
   function readColors() {
@@ -181,7 +187,8 @@ export function createEngine(
 
     const sprite = SPRITES[costume];
     let rects = sprite.idle;
-    if (state) {
+    if (walkFrame !== null) rects = sprite.frames[walkFrame % sprite.frames.length] ?? sprite.idle;
+    else if (state) {
       // Frozen in the air and on a crash; otherwise the riding loop plays.
       const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps) : null;
       const index = held ?? Math.floor(state.time * sprite.fps);
@@ -191,10 +198,28 @@ export function createEngine(
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
   }
 
+  /** Between runs: hold the crash pose, then clear the desk and walk in place.
+   * Reduced motion stands still instead. */
+  function idle(now: number) {
+    if (now < holdUntil) return schedule();
+    if (run?.over && run.obstacles.length) {
+      run.obstacles = [];
+      run.height = 0;
+      walkFrame = null;
+    }
+    const sprite = SPRITES[costume];
+    const next = motion.matches ? -1 : Math.floor((now / 1000) * sprite.fps);
+    if (next !== walkFrame) {
+      walkFrame = next;
+      draw();
+    }
+    if (!motion.matches) schedule();
+  }
+
   function frame(now: number) {
     raf = 0;
     const state = run;
-    if (!state || state.over) return;
+    if (!state || state.over) return idle(now);
     if (last !== null) accumulator += Math.min((now - last) / 1000, STEP * MAX_STEPS);
     last = now;
 
@@ -216,12 +241,17 @@ export function createEngine(
       callbacks.onScore(points);
     }
     draw();
-    if (state.over) callbacks.onOver(points);
-    else schedule();
+    if (state.over) {
+      holdUntil = now + CRASH_HOLD_MS;
+      callbacks.onOver(points);
+    }
+    schedule();
   }
 
+  /** A run keeps going off screen; the idle walk only plays while visible. */
   function schedule() {
-    if (!raf && !document.hidden) raf = requestAnimationFrame(frame);
+    const playing = run !== null && !run.over;
+    if (!raf && !document.hidden && (playing || onScreen)) raf = requestAnimationFrame(frame);
   }
 
   function onVisibility() {
@@ -236,6 +266,12 @@ export function createEngine(
 
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
+  const visibility = new IntersectionObserver(([entry]) => {
+    onScreen = entry?.isIntersecting ?? true;
+    last = null;
+    schedule();
+  });
+  visibility.observe(canvas);
   const themeObserver = new MutationObserver(() => {
     readColors();
     draw();
@@ -252,12 +288,14 @@ export function createEngine(
   document.addEventListener("visibilitychange", onVisibility);
   readColors();
   resize();
+  schedule();
 
   return {
     start(seed, next) {
       costume = next;
       run = createRun(seed, SPRITES[next].hitbox);
       pressed = false;
+      walkFrame = null;
       last = null;
       accumulator = 0;
       lastPoints = -1;
@@ -274,6 +312,7 @@ export function createEngine(
     destroy() {
       cancelAnimationFrame(raf);
       observer.disconnect();
+      visibility.disconnect();
       themeObserver.disconnect();
       darkQuery.removeEventListener("change", onScheme);
       document.removeEventListener("visibilitychange", onVisibility);

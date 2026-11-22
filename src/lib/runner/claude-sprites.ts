@@ -18,7 +18,7 @@ export interface RawSprite {
 }
 
 /** x, y, w, h, colour */
-export type SpriteRect = readonly [number, number, number, number, string];
+type SpriteRect = readonly [number, number, number, number, string];
 
 export interface Sprite {
   fps: number;
@@ -129,9 +129,9 @@ export function buildSprite(raw: RawSprite, costume: Costume): Sprite {
   };
 }
 
-/** The standing Claude, for the server-rendered frame. */
-export function idleFrame(): SpriteRect[] {
-  return buildSprite(walk as RawSprite, "walk").idle;
+/** The walking Claude, for the server-rendered frame. */
+export function walkLoop(): Sprite {
+  return buildSprite(walk as RawSprite, "walk");
 }
 
 export const walkSprite = walk as RawSprite;

@@ -2,20 +2,29 @@
 
 /**
  * Claude runner: an endless runner in the homepage hero and on its
- * experiment page, dressed like claude.dev: a terminal window, mono labels,
- * key hints, colour only in the pixel art.
+ * experiment page, dressed like claude.dev: mono labels, key hints, colour
+ * only in the pixel art.
  *
  * The server renders a static frame; the canvas engine loads on the first
  * start, so the page stays light until someone plays.
- * Keys while the game has focus: Space/ArrowUp jump, C costume,
- * F fullscreen, M sound. Touch: tap to jump.
+ * Keys while the game has focus: Space/ArrowUp jump, C character,
+ * F fullscreen, M sound. Space also starts it while it's on screen and
+ * nothing else has focus. Touch: tap to jump.
  */
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import { useSound } from "@/components/providers/SoundProvider";
 import {
   COSTUME_NAMES,
   COSTUMES,
-  idleFrame,
+  walkLoop,
   type Costume,
   type RawSprite,
 } from "@/lib/runner/claude-sprites";
@@ -34,7 +43,7 @@ interface Board {
 
 const BEST_KEY = "runner:best";
 const NAME_KEY = "runner:name";
-const IDLE = idleFrame();
+const WALK = walkLoop();
 
 function readStorage(key: string): string | null {
   try {
@@ -53,9 +62,21 @@ function writeStorage(key: string, value: string) {
 
 const pad = (value: number) => String(value).padStart(5, "0");
 
-/** The standing frame as SVG: server-rendered, no JavaScript needed. Same
- * 64-cell-tall mapping as the canvas, so the first frame lands in place. */
+/** Claude walking in place, as SVG: server-rendered, animated by CSS, no
+ * JavaScript needed. Same 64-cell-tall mapping as the canvas, so the engine's
+ * first frame lands in place. Reduced motion shows the standing pose. */
 function StaticFrame() {
+  const pose = (rects: typeof WALK.idle) =>
+    rects.map(([x, y, w, h, color]) => (
+      <rect
+        key={`${x}-${y}-${w}-${color}`}
+        x={WORLD.mascotX + x}
+        y={WORLD.ground + y}
+        width={w}
+        height={h}
+        fill={color}
+      />
+    ));
   return (
     <svg
       className="runner__static"
@@ -63,17 +84,15 @@ function StaticFrame() {
       preserveAspectRatio="xMinYMax slice"
       shapeRendering="crispEdges"
       aria-hidden="true"
+      style={{ "--walk": `${WALK.frames.length / WALK.fps}s` } as CSSProperties}
     >
       <rect x={0} y={WORLD.ground} width={400} height={1} fill="var(--border-strong)" />
-      {IDLE.map(([x, y, w, h, color]) => (
-        <rect
-          key={`${x}-${y}-${w}-${color}`}
-          x={WORLD.mascotX + x}
-          y={WORLD.ground + y}
-          width={w}
-          height={h}
-          fill={color}
-        />
+      <g className="runner__pose">{pose(WALK.idle)}</g>
+      {WALK.frames.map((rects, index) => (
+        // oxlint-disable-next-line react/no-array-index-key
+        <g key={index} className="runner__step" style={{ "--i": index } as CSSProperties}>
+          {pose(rects)}
+        </g>
       ))}
     </svg>
   );
@@ -109,6 +128,8 @@ export function ClaudeRunner() {
   const engine = useRef<Engine | null>(null);
   const token = useRef<string | null>(null);
   const picked = useRef<Costume | null>(null);
+  const loading = useRef<Promise<Engine | null> | null>(null);
+  const costumeRef = useRef<Costume>("walk");
   const leaderboardOn = useRef(false);
   const playRef = useRef(play);
   useEffect(() => {
@@ -118,13 +139,14 @@ export function ClaudeRunner() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [points, setPoints] = useState(0);
   const [best, setBest] = useState(0);
-  const [costume, setCostume] = useState<Costume>("walk");
   const [immersive, setImmersive] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [board, setBoard] = useState<Board>({ enabled: false, top: [] });
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
   const [hasToken, setHasToken] = useState(false);
+  const [engineReady, setEngineReady] = useState(false);
+  const [jumped, setJumped] = useState(false);
   const [ready, setReady] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const nameId = useId();
@@ -143,19 +165,15 @@ export function ClaudeRunner() {
     }
   }, []);
 
-  const startRun = useCallback(async () => {
-    // A costume the player picked sticks; otherwise each run gets a random one.
-    const next = picked.current ?? COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
-    setCostume(next);
-    setPoints(0);
-    setSubmitted("no");
-    setReady(false);
-    setAnnouncement("");
-    token.current = null;
-    setHasToken(false);
+  const chooseCostume = useCallback((next: Costume) => {
+    costumeRef.current = next;
+    engine.current?.setCostume(next);
+  }, []);
 
-    if (!engine.current) {
-      setPhase("loading");
+  /** Loads the engine and rides once: on the first start, or on the first
+   * character change so the new character shows before anyone plays. */
+  const ensureEngine = useCallback(() => {
+    loading.current ??= (async () => {
       setBest(Number(readStorage(BEST_KEY)) || 0);
       setName(readStorage(NAME_KEY) ?? "");
       const [{ createEngine }, rides] = await Promise.all([
@@ -165,10 +183,13 @@ export function ClaudeRunner() {
           .catch(() => ({})) as Promise<Record<string, RawSprite>>,
         loadBoard(),
       ]);
-      if (!canvas.current) return;
-      engine.current = createEngine(canvas.current, next, rides, {
+      if (!canvas.current) return null;
+      engine.current = createEngine(canvas.current, costumeRef.current, rides, {
         onScore: setPoints,
-        onJump: () => playRef.current("jump"),
+        onJump: () => {
+          setJumped(true);
+          playRef.current("jump");
+        },
         onMilestone: () => playRef.current("milestone"),
         onOver: (final) => {
           playRef.current("crash");
@@ -182,7 +203,25 @@ export function ClaudeRunner() {
           setAnnouncement(`Game over. ${final} points.`);
         },
       });
-    }
+      setEngineReady(true);
+      return engine.current;
+    })();
+    return loading.current;
+  }, [loadBoard]);
+
+  const startRun = useCallback(async () => {
+    // What you see is what you ride: the character on screen runs.
+    const next = costumeRef.current;
+    setPoints(0);
+    setSubmitted("no");
+    setReady(false);
+    setAnnouncement("");
+    token.current = null;
+    setHasToken(false);
+
+    if (!engine.current) setPhase("loading");
+    const loaded = await ensureEngine();
+    if (!loaded) return;
 
     // Get the run token before the clock starts, so the server's "reachable
     // in the time since" check never sees less time than the run took.
@@ -204,16 +243,24 @@ export function ClaudeRunner() {
 
     setPhase("running");
     screen.current?.focus({ preventScroll: true });
-    engine.current.start((Math.random() * 2 ** 31) | 0, next);
-  }, [loadBoard]);
+    loaded.start((Math.random() * 2 ** 31) | 0, next);
+  }, [ensureEngine]);
 
   // A beat after a crash before a press restarts, so a jump pressed as
   // Claude hit something doesn't skip the result.
   useEffect(() => {
     if (phase !== "over") return;
-    const timer = window.setTimeout(() => setReady(true), 600);
+    const timer = window.setTimeout(() => {
+      setReady(true);
+      // Unless the player chose one, the next run gets a new character,
+      // shown walking as soon as the crash clears.
+      if (!picked.current) {
+        const others = COSTUMES.filter((option) => option !== costumeRef.current);
+        chooseCostume(others[Math.floor(Math.random() * others.length)] ?? "walk");
+      }
+    }, 600);
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [phase, chooseCostume]);
 
   const press = useCallback(() => {
     if (phase === "running") engine.current?.jump();
@@ -221,12 +268,45 @@ export function ClaudeRunner() {
   }, [phase, ready, startRun]);
 
   const cycleCostume = useCallback(() => {
-    const next = COSTUMES[(COSTUMES.indexOf(costume) + 1) % COSTUMES.length] ?? "walk";
+    const next = COSTUMES[(COSTUMES.indexOf(costumeRef.current) + 1) % COSTUMES.length] ?? "walk";
     picked.current = next;
-    setCostume(next);
-    engine.current?.setCostume(next);
+    chooseCostume(next);
+    setAnnouncement(COSTUME_NAMES[next]);
+    void ensureEngine();
     play("tick");
-  }, [costume, play]);
+  }, [chooseCostume, ensureEngine, play]);
+
+  // Space on the page starts the game while it's on screen, instead of
+  // scrolling past it. Only when nothing else has focus.
+  const pressRef = useRef(press);
+  useEffect(() => {
+    pressRef.current = press;
+  }, [press]);
+  useEffect(() => {
+    const element = frame.current;
+    if (!element) return;
+    let inView = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        inView = Boolean(entry?.isIntersecting);
+      },
+      { threshold: 0.6 },
+    );
+    observer.observe(element);
+    const onKey = (event: KeyboardEvent) => {
+      const idle = event.target === document.body || event.target === document.documentElement;
+      if (!inView || !idle || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key !== " " && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      screen.current?.focus({ preventScroll: true });
+      if (!event.repeat) pressRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   // Fullscreen where the browser supports it (desktop, Android); a fixed
   // overlay elsewhere (iPhone Safari only allows fullscreen video).
@@ -307,6 +387,7 @@ export function ClaudeRunner() {
       <div
         ref={screen}
         className="runner__screen"
+        data-active={phase !== "idle" || undefined}
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         role="application"
@@ -331,7 +412,7 @@ export function ClaudeRunner() {
         }}
       >
         <canvas ref={canvas} className="runner__canvas" aria-hidden="true" />
-        {phase === "idle" || phase === "loading" ? <StaticFrame /> : null}
+        {engineReady ? null : <StaticFrame />}
 
         {phase === "idle" || phase === "loading" ? (
           <button
@@ -340,8 +421,14 @@ export function ClaudeRunner() {
             onClick={() => void startRun()}
             disabled={phase === "loading"}
           >
-            <Key keyName="SPACE" touch="TAP" /> START
+            <Key keyName="SPACE" touch="TAP TO" /> PLAY
           </button>
+        ) : null}
+
+        {phase === "running" && !jumped ? (
+          <p className="runner__hint" aria-hidden="true">
+            <Key keyName="SPACE" touch="TAP TO" /> JUMP
+          </p>
         ) : null}
 
         {phase === "over" ? (
@@ -387,7 +474,7 @@ export function ClaudeRunner() {
               className="runner__action"
               onClick={() => ready && void startRun()}
             >
-              <Key keyName="SPACE" touch="TAP" /> RETRY
+              <Key keyName="SPACE" touch="TAP TO" /> RETRY
             </button>
           </div>
         ) : null}
@@ -395,7 +482,7 @@ export function ClaudeRunner() {
 
       <div className="runner__foot">
         <button type="button" className="runner__action" onClick={cycleCostume}>
-          <Key keyName="C" /> {COSTUME_NAMES[costume]}
+          <Key keyName="C" /> CHANGE CHARACTER
         </button>
         <span className="runner__spacer" />
         <button

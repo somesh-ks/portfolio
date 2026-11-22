@@ -267,6 +267,10 @@ claude-mascot:defined > * {
   gap: var(--space-3);
   min-height: 2.25rem;
 }
+.runner__foot {
+  /* The buttons' own padding spaces them, so the row fits a 320px phone. */
+  gap: 0;
+}
 /* Footer buttons keep their hit area but line their text up with the column. */
 .runner__foot .runner__action:first-child {
   padding-left: 0;
@@ -298,6 +302,10 @@ claude-mascot:defined > * {
 .runner__screen:focus-visible {
   outline-offset: -2px;
 }
+/* Mid-game the moving Claude is the focus cue; a ring would box the game in. */
+.runner__screen[data-active]:focus-visible {
+  outline: none;
+}
 .runner__canvas,
 .runner__static {
   position: absolute;
@@ -311,7 +319,7 @@ claude-mascot:defined > * {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5ch;
+  gap: 1ch;
   width: 100%;
   color: var(--text-primary);
   font: inherit;
@@ -328,8 +336,50 @@ claude-mascot:defined > * {
   gap: var(--space-2);
   padding: var(--space-3);
   overflow-y: auto;
-  background: color-mix(in oklch, var(--surface-canvas) 85%, transparent);
   cursor: default;
+}
+.runner__hint {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+  padding-top: var(--space-6);
+  text-align: center;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+/* Claude walks in place: one frame shown per slot of the cycle. The keyframes
+ * assume the five-frame walk loop (a unit test pins that). */
+.runner__step {
+  opacity: 0;
+  animation: runner-walk var(--walk) steps(1, end) infinite;
+  animation-delay: calc((var(--i) - 5) * var(--walk) / 5);
+}
+.runner__pose {
+  display: none;
+}
+@keyframes runner-walk {
+  0% {
+    opacity: 1;
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner__step {
+    display: none;
+  }
+  .runner__pose {
+    display: inline;
+  }
+}
+/* Text stays readable when a sprite or spark walks behind it. */
+.runner__over,
+.runner__hint {
+  text-shadow:
+    0 0 2px var(--surface-canvas),
+    0 0 6px var(--surface-canvas);
 }
 .runner__final {
   color: var(--text-primary);
@@ -389,7 +439,7 @@ claude-mascot:defined > * {
 .runner__action {
   display: inline-flex;
   align-items: center;
-  gap: 0.5ch;
+  gap: 1ch;
   min-height: 2.75rem;
   padding-inline: var(--space-2);
   color: var(--text-secondary);
@@ -466,6 +516,10 @@ claude-mascot:defined > * {
   overflow: hidden;
 }
 @media (max-width: 639px) {
+  /* Text sits above the walking Claude, not on top of the car. */
+  .runner__over {
+    justify-content: safe flex-start;
+  }
   /* The short phone screen fits a top 3, and the name field replaces it. */
   .runner__board li:nth-child(n + 4),
   .runner__over:has(.runner__form) .runner__board {
