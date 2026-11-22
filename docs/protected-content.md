@@ -10,7 +10,7 @@ ROYC and Luminovo are under NDA. The repo holds only their public teasers (`cont
 | `PORTFOLIO_PASSWORD_ROYC_HASH`, `PORTFOLIO_PASSWORD_LUMINOVO_HASH` | Optional per-study passwords. They override the shared one for that study.            |
 | `PORTFOLIO_COOKIE_SECRET`                                          | 32+ random bytes, base64 (`openssl rand -base64 32`). Rotating it signs everyone out. |
 | `PROTECTED_CONTENT_SOURCE`                                         | A directory (default `content/protected`, gitignored) or an https base URL.           |
-| `PROTECTED_CONTENT_TOKEN`                                          | Optional bearer token sent to the https source.                                       |
+| `PROTECTED_CONTENT_TOKEN`                                          | Bearer token for the https source; falls back to `BLOB_READ_WRITE_TOKEN`.             |
 
 If the hash or secret is missing, the gate shows "unlocking is switched off" and nothing protected is ever read.
 
@@ -28,19 +28,25 @@ Media referenced with relative paths in the MDX (`<Figure src="hero.webp" />`) r
 ## Production setup on Vercel
 
 1. Set `PORTFOLIO_PASSWORD_HASH` and `PORTFOLIO_COOKIE_SECRET` in the Vercel project (Production and Preview).
-2. Put the bodies and media in a private store and point `PROTECTED_CONTENT_SOURCE` at it. The free default is a private GitHub repo (below). A private Vercel Blob store or a bucket behind a token works the same way.
+2. Put the bodies and media in a private store and point `PROTECTED_CONTENT_SOURCE` at it. The setup below uses a private Vercel Blob store; any https store that accepts a bearer token works the same way.
 3. Add a Vercel Firewall rate-limit rule on `POST /api/unlock` (for example 10 requests per minute per IP). In-memory rate limiting does not work on serverless, because each instance has its own memory and instances come and go. The route adds a fixed 750ms delay to every failure, which slows guessing but is not a limit.
 
-## Free store: a private GitHub repo
+## Store: a private Vercel Blob store
 
-1. Create a private repo, for example `somesh-ks/portfolio-protected`, holding `royc.mdx`, `luminovo.mdx` and `media/<slug>/<file>.webp` (the layout above).
-2. Create a fine-grained personal access token at github.com/settings/personal-access-tokens: repository access "Only select repositories" with that one repo, and permission "Contents: Read-only". Nothing else.
-3. In Vercel set:
-   - `PROTECTED_CONTENT_SOURCE=https://raw.githubusercontent.com/somesh-ks/portfolio-protected/main`
-   - `PROTECTED_CONTENT_TOKEN=<the token>`
-4. Check it before relying on it: `curl -sI -H "Authorization: Bearer <token>" https://raw.githubusercontent.com/somesh-ks/portfolio-protected/main/royc.mdx` should return 200.
+At portfolio traffic this fits Hobby's free Blob allowance (1 GB storage, 10,000 simple operations a month; only uncached reads count). On Hobby, going over pauses Blob for the rest of the 30 days instead of billing you, so an unlocked page would show "The full case study is unavailable right now" until it resets.
 
-Fine-grained tokens expire (a year at most). When the token lapses, unlocked pages show "The full case study is unavailable right now", so set a reminder to renew it a month early.
+1. Create the store and connect it to the `portfolio` project: Vercel dashboard, Storage, Create, Blob, access **Private**. Connecting adds `BLOB_READ_WRITE_TOKEN` to the project, and the site uses it automatically.
+2. Upload with fixed pathnames (no random suffix is the default):
+   ```sh
+   vercel blob put royc.mdx --access private
+   vercel blob put luminovo.mdx --access private
+   vercel blob put media/royc/hero.webp --pathname media/royc/hero.webp --access private
+   ```
+   Add `--force` to replace a file that's already there.
+3. Set `PROTECTED_CONTENT_SOURCE=https://<store-id>.private.blob.vercel-storage.com` (the store id is in the store's settings), then redeploy.
+4. Check it: `curl -sI -H "Authorization: Bearer $BLOB_READ_WRITE_TOKEN" https://<store-id>.private.blob.vercel-storage.com/royc.mdx` should return 200.
+
+A private GitHub repo works too: set the source to `https://raw.githubusercontent.com/<owner>/<repo>/main` and `PROTECTED_CONTENT_TOKEN` to a fine-grained token with read-only Contents on that repo.
 
 ## Magic links
 

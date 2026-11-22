@@ -32,7 +32,8 @@ async function read(relativePath: string, env = process.env): Promise<Buffer | n
   try {
     if (base.startsWith("https://")) {
       const url = new URL(relativePath, base.endsWith("/") ? base : `${base}/`);
-      const token = env.PROTECTED_CONTENT_TOKEN;
+      // A Vercel Blob store connected to the project provides BLOB_READ_WRITE_TOKEN.
+      const token = env.PROTECTED_CONTENT_TOKEN || env.BLOB_READ_WRITE_TOKEN;
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
