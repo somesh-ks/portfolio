@@ -1061,12 +1061,8 @@ claude-mascot:defined > * {
   cursor: pointer;
   color: var(--text-secondary);
 }
-.palette__input::-webkit-search-cancel-button {
-  appearance: none;
-}
-/* Focused row, or the first match that Enter in the input will open. */
-.palette__item:focus-visible,
-.palette__field:focus-within + .palette__list li:first-child .palette__item {
+/* The highlighted row, which Enter opens. */
+.palette__item[data-highlighted] {
   color: var(--text-primary);
   background: var(--surface-hover);
 }
@@ -1079,6 +1075,9 @@ claude-mascot:defined > * {
 .palette__group,
 .palette__empty {
   color: var(--text-secondary);
+}
+.palette__empty:empty {
+  display: none;
 }
 .palette__item {
   min-height: 2.75rem;

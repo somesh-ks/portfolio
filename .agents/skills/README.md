@@ -1,6 +1,6 @@
 # Vendored agent skills
 
-Copied from Somesh's curated plugins in the private `somesh-ks/.agents` repo, plus three upstream skills. Cloud agent sessions cannot read that repo, so this folder is the copy they use. `.claude/skills` is a symlink to this folder.
+Copied from Somesh's curated plugins in the private `somesh-ks/.agents` repo, plus four upstream skills. Cloud agent sessions cannot read that repo, so this folder is the copy they use. `.claude/skills` is a symlink to this folder.
 
 Paths inside these skills written as `~/.agents/DESIGN.md` or `~/.agents/CODE.md` resolve to `.agents/DESIGN.md` and `.agents/CODE.md` in this repo.
 
@@ -15,5 +15,8 @@ Paths inside these skills written as `~/.agents/DESIGN.md` or `~/.agents/CODE.md
 | better-ui | `jakubkrehel/skills@672ae44` (MIT) |
 | mobile-native | `emilkowalski/skills@64eb3de` (MIT) |
 | userinterface-wiki | `raphaelsalaja/userinterface-wiki@256a954` |
+| ui-sdk | `vercel-labs/ui@8060d16` (`packages/core/skills/ui-sdk`, `@ui-sdk/core` 0.1.0-beta.14, Apache-2.0, LICENSE kept) |
 
 To update, re-copy from the source rather than editing here, so the plugin copy stays the single source of truth.
+
+ui-sdk is here for its behavior, agent-readiness and testing guidance. The site stays on Base UI, so treat its `@ui-sdk/*` code as reference, not as an install instruction. Re-sync: copy `packages/core/skills/ui-sdk` from a newer vercel-labs/ui commit and update the hash above.

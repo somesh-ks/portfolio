@@ -137,7 +137,7 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
   await page.keyboard.press("ControlOrMeta+k");
-  const input = page.getByRole("searchbox", { name: "Jump to" });
+  const input = page.getByRole("combobox", { name: "Jump to" });
   await expect(input).toBeFocused();
   await input.fill("resume");
   await input.press("Enter");
@@ -150,9 +150,20 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   await input.press("Enter");
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", theme ?? "");
 
+  // Arrow keys move the highlight, Enter opens it; Escape closes even with a query typed.
   await page.keyboard.press("ControlOrMeta+k");
+  const first = await page.getByRole("option").first().textContent();
+  await input.press("ArrowDown");
+  await expect(page.getByRole("option").nth(1)).toHaveAttribute("data-highlighted", "");
+  // Accents match like Base UI's own filter: "résumé" finds Resume.
+  await input.fill("résumé");
+  await expect(page.getByRole("option")).toHaveText([/Resume/]);
+  await input.fill("zzz");
+  await expect(page.getByRole("option")).toHaveCount(0);
+  await expect(page.getByText("no match", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(first).toBeTruthy();
   expect(errors).toEqual([]);
 });
 
@@ -164,5 +175,5 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await expect(jump).toBeHidden();
   await page.evaluate(() => window.scrollTo(0, 600));
   await jump.click();
-  await expect(page.getByRole("searchbox", { name: "Jump to" })).toBeFocused();
+  await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });

@@ -1,9 +1,10 @@
 "use client";
 
+import { Autocomplete } from "@base-ui/react/autocomplete";
 import { Dialog } from "@base-ui/react/dialog";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PROFILE } from "@content/profile";
 import { useSound } from "@/components/providers/SoundProvider";
 import type { Route } from "next";
@@ -13,6 +14,11 @@ import { switchTheme, THEME_LABELS, THEMES } from "@/lib/theme-switch";
 import type { CommandLink } from "./items";
 
 const openMail = () => window.location.assign(`mailto:${PROFILE.email}`);
+
+interface Item {
+  label: string;
+  group: string;
+}
 
 interface Row {
   label: string;
@@ -57,29 +63,28 @@ export default function CommandPalette({
     },
   ];
 
+  // Base UI keeps the highlight while items stay the same objects, so only the labels feed it.
+  const runs = new Map(rows.map((row) => [row.label, row]));
+  const key = rows.map((row) => `${row.group}:${row.label}`).join("|");
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const items = useMemo(() => rows.map(({ label, group }) => ({ label, group })), [key]);
   const [query, setQuery] = useState("");
-  const list = useRef<HTMLUListElement>(null);
-  const q = query.trim().toLowerCase();
-  const shown = q ? rows.filter((row) => row.label.toLowerCase().includes(q)) : rows;
+  // One filter for the list and the live count, so "résumé" both shows and announces Resume.
+  const { contains } = Autocomplete.useFilter();
+  const q = query.trim();
+  const shown = q ? items.filter((item) => contains(item.label, q)) : items;
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const choose = (row: Row | undefined) => {
+  const choose = (label: string) => {
+    const row = runs.get(label);
     if (!row) return;
     onOpenChange(false);
     setQuery("");
+    // Enter and clicks on a row: tap, unless the row made its own sound.
+    const before = performance.now();
     row.run();
+    if (!playedSince(before)) sound.play("tap");
   };
-
-  // Arrow keys walk the input and the result buttons; Enter in the input runs the first match.
-  const move = (event: React.KeyboardEvent<HTMLElement>, from: number) => {
-    const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-    if (!step) return;
-    event.preventDefault();
-    const buttons = list.current?.querySelectorAll("button") ?? [];
-    const next = from + step;
-    if (next < 0) inputRef.current?.focus();
-    else buttons[Math.min(next, buttons.length - 1)]?.focus();
-  };
-  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Dialog.Root
@@ -92,50 +97,42 @@ export default function CommandPalette({
       <Dialog.Portal>
         <Dialog.Backdrop className="palette-backdrop" />
         <Dialog.Popup className="palette" aria-label="Jump to" initialFocus={inputRef}>
-          <div className="palette__field">
-            <span aria-hidden="true">&gt;</span>
-            <input
-              ref={inputRef}
-              className="palette__input"
-              type="search"
-              aria-label="Jump to"
-              placeholder="jump to…"
-              autoComplete="off"
-              spellCheck={false}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.nativeEvent.isComposing) return;
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  // Enter has no click to tap on; skip it when the row made its own sound.
-                  const before = performance.now();
-                  choose(shown[0]);
-                  if (shown[0] && !playedSince(before)) sound.play("tap");
-                } else move(event, -1);
-              }}
-            />
-          </div>
-          <ul className="palette__list" ref={list}>
-            {shown.map((row, index) => (
-              <li key={`${row.group}:${row.label}`}>
-                <button
-                  type="button"
+          <Autocomplete.Root
+            open
+            inline
+            items={items}
+            filteredItems={shown}
+            itemToStringValue={(item: Item) => item.label}
+            autoHighlight="always"
+            keepHighlight
+            value={query}
+            onValueChange={setQuery}
+          >
+            <Autocomplete.InputGroup className="palette__field">
+              <span aria-hidden="true">&gt;</span>
+              <Autocomplete.Input
+                ref={inputRef}
+                className="palette__input"
+                aria-label="Jump to"
+                placeholder="jump to…"
+                spellCheck={false}
+              />
+            </Autocomplete.InputGroup>
+            <Autocomplete.List className="palette__list">
+              {(item: Item) => (
+                <Autocomplete.Item
+                  key={`${item.group}:${item.label}`}
+                  value={item}
                   className="palette__item"
-                  onClick={() => choose(row)}
-                  onKeyDown={(event) => move(event, index)}
+                  onClick={() => choose(item.label)}
                 >
-                  <span>{row.label}</span>
-                  <span className="palette__group">{row.group}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {shown.length === 0 ? (
-            <p className="palette__empty" aria-hidden="true">
-              no match
-            </p>
-          ) : null}
+                  <span>{item.label}</span>
+                  <span className="palette__group">{item.group}</span>
+                </Autocomplete.Item>
+              )}
+            </Autocomplete.List>
+            <Autocomplete.Empty className="palette__empty">no match</Autocomplete.Empty>
+          </Autocomplete.Root>
           <p className="palette__hints" aria-hidden="true">
             <span>
               <Kbd>↑</Kbd>
