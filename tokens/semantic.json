@@ -3,11 +3,11 @@
   "surface": {
     "$type": "color",
     "canvas": {
-      "$value": "{color.sand.25}",
+      "$value": "{color.gray.25}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.25}",
-          "dark": "{color.sand.975}"
+          "light": "{color.gray.25}",
+          "dark": "{color.gray.975}"
         }
       }
     },
@@ -16,34 +16,34 @@
       "$extensions": {
         "mode": {
           "light": "{color.white}",
-          "dark": "{color.sand.925}"
+          "dark": "{color.gray.925}"
         }
       }
     },
     "sunken": {
-      "$value": "{color.sand.50}",
+      "$value": "{color.gray.50}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.50}",
-          "dark": "{color.sand.950}"
+          "light": "{color.gray.50}",
+          "dark": "{color.gray.950}"
         }
       }
     },
     "hover": {
-      "$value": "{color.sand.100}",
+      "$value": "{color.gray.100}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.100}",
-          "dark": "{color.sand.900}"
+          "light": "{color.gray.100}",
+          "dark": "{color.gray.900}"
         }
       }
     },
     "inverse": {
-      "$value": "{color.sand.950}",
+      "$value": "{color.gray.950}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.950}",
-          "dark": "{color.sand.50}"
+          "light": "{color.gray.950}",
+          "dark": "{color.gray.50}"
         }
       }
     }
@@ -51,38 +51,38 @@
   "text": {
     "$type": "color",
     "primary": {
-      "$value": "{color.sand.950}",
+      "$value": "{color.gray.950}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.950}",
-          "dark": "{color.sand.50}"
+          "light": "{color.gray.950}",
+          "dark": "{color.gray.50}"
         }
       }
     },
     "secondary": {
-      "$value": "{color.sand.600}",
+      "$value": "{color.gray.600}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.600}",
-          "dark": "{color.sand.400}"
+          "light": "{color.gray.600}",
+          "dark": "{color.gray.400}"
         }
       }
     },
     "inverse": {
-      "$value": "{color.sand.25}",
+      "$value": "{color.gray.25}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.25}",
-          "dark": "{color.sand.975}"
+          "light": "{color.gray.25}",
+          "dark": "{color.gray.975}"
         }
       }
     },
     "accent": {
-      "$value": "{color.clay.700}",
+      "$value": "{color.gray.950}",
       "$extensions": {
         "mode": {
-          "light": "{color.clay.700}",
-          "dark": "{color.clay.400}"
+          "light": "{color.gray.950}",
+          "dark": "{color.gray.50}"
         }
       }
     },
@@ -110,14 +110,14 @@
     "subtle": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.2, 0.01, 75],
+        "components": [0.2, 0, 0],
         "alpha": 0.08
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.2, 0.01, 75],
+            "components": [0.2, 0, 0],
             "alpha": 0.08
           },
           "dark": {
@@ -131,14 +131,14 @@
     "default": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.2, 0.01, 75],
+        "components": [0.2, 0, 0],
         "alpha": 0.13
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.2, 0.01, 75],
+            "components": [0.2, 0, 0],
             "alpha": 0.13
           },
           "dark": {
@@ -150,11 +150,11 @@
       }
     },
     "strong": {
-      "$value": "{color.sand.500}",
+      "$value": "{color.gray.500}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.500}",
-          "dark": "{color.sand.500}"
+          "light": "{color.gray.500}",
+          "dark": "{color.gray.500}"
         }
       }
     },
@@ -183,14 +183,14 @@
       "$description": "Underline under inline links: quiet at rest, full text colour on hover.",
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.2, 0.01, 75],
+        "components": [0.2, 0, 0],
         "alpha": 0.35
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.2, 0.01, 75],
+            "components": [0.2, 0, 0],
             "alpha": 0.35
           },
           "dark": {
@@ -205,11 +205,11 @@
   "accent": {
     "$type": "color",
     "solid": {
-      "$value": "{color.clay.700}",
+      "$value": "{color.gray.950}",
       "$extensions": {
         "mode": {
-          "light": "{color.clay.700}",
-          "dark": "{color.clay.400}"
+          "light": "{color.gray.950}",
+          "dark": "{color.gray.50}"
         }
       }
     },
@@ -218,27 +218,27 @@
       "$extensions": {
         "mode": {
           "light": "{color.white}",
-          "dark": "{color.sand.975}"
+          "dark": "{color.gray.975}"
         }
       }
     },
     "tint": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.5, 0.145, 40],
-        "alpha": 0.1
+        "components": [0.2, 0, 0],
+        "alpha": 0.06
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.5, 0.145, 40],
-            "alpha": 0.1
+            "components": [0.2, 0, 0],
+            "alpha": 0.06
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.76, 0.115, 40],
-            "alpha": 0.14
+            "components": [1, 0, 0],
+            "alpha": 0.08
           }
         }
       }
@@ -247,11 +247,11 @@
   "focus": {
     "$type": "color",
     "ring": {
-      "$value": "{color.clay.600}",
+      "$value": "{color.gray.950}",
       "$extensions": {
         "mode": {
-          "light": "{color.clay.600}",
-          "dark": "{color.clay.400}"
+          "light": "{color.gray.950}",
+          "dark": "{color.gray.50}"
         }
       }
     }
@@ -261,20 +261,20 @@
     "bg": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.5, 0.145, 40],
-        "alpha": 0.18
+        "components": [0.2, 0, 0],
+        "alpha": 0.14
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.5, 0.145, 40],
-            "alpha": 0.18
+            "components": [0.2, 0, 0],
+            "alpha": 0.14
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.76, 0.115, 40],
-            "alpha": 0.3
+            "components": [1, 0, 0],
+            "alpha": 0.22
           }
         }
       }
@@ -285,14 +285,14 @@
     "soft": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.2, 0.02, 60],
+        "components": [0.2, 0, 0],
         "alpha": 0.06
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.2, 0.02, 60],
+            "components": [0.2, 0, 0],
             "alpha": 0.06
           },
           "dark": {
@@ -306,14 +306,14 @@
     "strong": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.2, 0.02, 60],
+        "components": [0.2, 0, 0],
         "alpha": 0.1
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.2, 0.02, 60],
+            "components": [0.2, 0, 0],
             "alpha": 0.1
           },
           "dark": {
@@ -337,11 +337,11 @@
       }
     },
     "mascot-ink": {
-      "$value": "{color.sand.975}",
+      "$value": "{color.gray.975}",
       "$extensions": {
         "mode": {
-          "light": "{color.sand.975}",
-          "dark": "{color.sand.975}"
+          "light": "{color.gray.975}",
+          "dark": "{color.gray.975}"
         }
       }
     },
@@ -357,19 +357,19 @@
     "grid": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.5, 0.01, 75],
+        "components": [0.5, 0, 0],
         "alpha": 0.18
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.5, 0.01, 75],
+            "components": [0.5, 0, 0],
             "alpha": 0.18
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.8, 0.01, 75],
+            "components": [0.8, 0, 0],
             "alpha": 0.16
           }
         }

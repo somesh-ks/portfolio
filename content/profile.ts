@@ -26,6 +26,12 @@ export const COMPANIES = {
     about: "AI safety company and the makers of Claude.",
     relation: "Claude Ambassador, Sweden.",
   },
+  stripe: {
+    id: "stripe",
+    name: "Stripe",
+    about: "Payments and financial infrastructure for the internet.",
+    relation: "Stripe Ambassador, building the startup community.",
+  },
   bmw: {
     id: "bmw",
     name: "BMW / Rolls-Royce",
@@ -65,9 +71,8 @@ export type CompanyId = keyof typeof COMPANIES;
  * web and as plain text in Markdown exports.
  */
 export const BIO = [
-  "I design products from zero to one, and I build what I design.",
-  "I'm a senior product designer at {company:netlight}. I've shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo} and {company:oyo}, used by 3M+ people in 22 countries.",
-  "At {company:anthropic} I'm Claude Ambassador, Sweden, and I host Claude for Designers meetups. I also co-founded Into Design Systems in Stockholm. Now I'm working out what a design system needs so coding agents can build with it well.",
+  "Senior product designer at {company:netlight}. Ambassador at {company:anthropic} and {company:stripe}.",
+  "Shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo}, {company:oyo} and HackerRank. $1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
 ] as const;
 
 export const PROFILE = {
@@ -77,7 +82,7 @@ export const PROFILE = {
   headline: "Design engineer in Stockholm",
   location: { city: "Stockholm", country: "Sweden" },
   worksFor: "Netlight Consulting",
-  affiliations: ["Claude Ambassador, Sweden", "Into Design Systems, Stockholm"],
+  affiliations: ["Claude Ambassador, Sweden", "Stripe Ambassador"],
   alumniOf: ["KTH Royal Institute of Technology", "EIT Digital", "VIT University"],
   knowsAbout: [
     "Design Engineering",
