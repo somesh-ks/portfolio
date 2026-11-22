@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
 import { SiteFooter } from "@/components/editorial/SiteFooter";
@@ -14,14 +14,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
-});
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  style: ["italic"],
-  weight: ["400"],
-  variable: "--font-newsreader",
-  display: "swap",
-  preload: false,
 });
 
 const description = `${PROFILE.name} is a design engineer and senior product designer in Stockholm, and Claude Ambassador for Sweden.`;
@@ -52,11 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable}`}>
       <body>
         <script
           type="application/ld+json"
