@@ -1,0 +1,60 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "ease": {
+    "$type": "cubicBezier",
+    "out": {
+      "$value": [0.23, 1, 0.32, 1]
+    },
+    "in-out": {
+      "$value": [0.77, 0, 0.175, 1]
+    },
+    "drawer": {
+      "$value": [0.32, 0.72, 0, 1]
+    }
+  },
+  "duration": {
+    "$type": "duration",
+    "press": {
+      "$value": {
+        "value": 140,
+        "unit": "ms"
+      }
+    },
+    "tooltip": {
+      "$value": {
+        "value": 160,
+        "unit": "ms"
+      }
+    },
+    "popover": {
+      "$value": {
+        "value": 200,
+        "unit": "ms"
+      }
+    },
+    "dropdown": {
+      "$value": {
+        "value": 200,
+        "unit": "ms"
+      }
+    },
+    "modal": {
+      "$value": {
+        "value": 260,
+        "unit": "ms"
+      }
+    },
+    "stagger-step": {
+      "$value": {
+        "value": 50,
+        "unit": "ms"
+      }
+    },
+    "ceiling": {
+      "$value": {
+        "value": 300,
+        "unit": "ms"
+      }
+    }
+  }
+}

@@ -1,0 +1,348 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "surface": {
+    "$type": "color",
+    "canvas": {
+      "$value": "{color.sand.25}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.25}",
+          "dark": "{color.sand.975}"
+        }
+      }
+    },
+    "raised": {
+      "$value": "{color.white}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.white}",
+          "dark": "{color.sand.925}"
+        }
+      }
+    },
+    "sunken": {
+      "$value": "{color.sand.50}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.50}",
+          "dark": "{color.sand.950}"
+        }
+      }
+    },
+    "hover": {
+      "$value": "{color.sand.100}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.100}",
+          "dark": "{color.sand.900}"
+        }
+      }
+    },
+    "inverse": {
+      "$value": "{color.sand.950}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.950}",
+          "dark": "{color.sand.50}"
+        }
+      }
+    }
+  },
+  "text": {
+    "$type": "color",
+    "primary": {
+      "$value": "{color.sand.950}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.950}",
+          "dark": "{color.sand.50}"
+        }
+      }
+    },
+    "secondary": {
+      "$value": "{color.sand.600}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.600}",
+          "dark": "{color.sand.400}"
+        }
+      }
+    },
+    "inverse": {
+      "$value": "{color.sand.25}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.25}",
+          "dark": "{color.sand.975}"
+        }
+      }
+    },
+    "accent": {
+      "$value": "{color.clay.700}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.700}",
+          "dark": "{color.clay.400}"
+        }
+      }
+    },
+    "success": {
+      "$value": "{color.green.600}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.green.600}",
+          "dark": "{color.green.300}"
+        }
+      }
+    },
+    "danger": {
+      "$value": "{color.red.600}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.red.600}",
+          "dark": "{color.red.300}"
+        }
+      }
+    }
+  },
+  "border": {
+    "$type": "color",
+    "subtle": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.2, 0.01, 75],
+        "alpha": 0.08
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.2, 0.01, 75],
+            "alpha": 0.08
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [1, 0, 0],
+            "alpha": 0.07
+          }
+        }
+      }
+    },
+    "default": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.2, 0.01, 75],
+        "alpha": 0.13
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.2, 0.01, 75],
+            "alpha": 0.13
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [1, 0, 0],
+            "alpha": 0.12
+          }
+        }
+      }
+    },
+    "strong": {
+      "$value": "{color.sand.500}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.500}",
+          "dark": "{color.sand.500}"
+        }
+      }
+    },
+    "image": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0, 0, 0],
+        "alpha": 0.1
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0, 0, 0],
+            "alpha": 0.1
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [1, 0, 0],
+            "alpha": 0.1
+          }
+        }
+      }
+    }
+  },
+  "accent": {
+    "$type": "color",
+    "solid": {
+      "$value": "{color.clay.700}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.700}",
+          "dark": "{color.clay.400}"
+        }
+      }
+    },
+    "on-solid": {
+      "$value": "{color.white}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.white}",
+          "dark": "{color.sand.975}"
+        }
+      }
+    },
+    "tint": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.5, 0.145, 40],
+        "alpha": 0.1
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.5, 0.145, 40],
+            "alpha": 0.1
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.76, 0.115, 40],
+            "alpha": 0.14
+          }
+        }
+      }
+    }
+  },
+  "focus": {
+    "$type": "color",
+    "ring": {
+      "$value": "{color.clay.600}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.600}",
+          "dark": "{color.clay.400}"
+        }
+      }
+    }
+  },
+  "selection": {
+    "$type": "color",
+    "bg": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.5, 0.145, 40],
+        "alpha": 0.18
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.5, 0.145, 40],
+            "alpha": 0.18
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.76, 0.115, 40],
+            "alpha": 0.3
+          }
+        }
+      }
+    }
+  },
+  "shadow": {
+    "$type": "color",
+    "soft": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.2, 0.02, 60],
+        "alpha": 0.06
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.2, 0.02, 60],
+            "alpha": 0.06
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0, 0, 0],
+            "alpha": 0.4
+          }
+        }
+      }
+    },
+    "strong": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.2, 0.02, 60],
+        "alpha": 0.1
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.2, 0.02, 60],
+            "alpha": 0.1
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0, 0, 0],
+            "alpha": 0.55
+          }
+        }
+      }
+    }
+  },
+  "illustration": {
+    "$type": "color",
+    "mascot": {
+      "$value": "{color.clay.500}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.500}",
+          "dark": "{color.clay.500}"
+        }
+      }
+    },
+    "mascot-ink": {
+      "$value": "{color.sand.975}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.sand.975}",
+          "dark": "{color.sand.975}"
+        }
+      }
+    },
+    "grid": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.5, 0.01, 75],
+        "alpha": 0.18
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.5, 0.01, 75],
+            "alpha": 0.18
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.8, 0.01, 75],
+            "alpha": 0.16
+          }
+        }
+      }
+    }
+  }
+}

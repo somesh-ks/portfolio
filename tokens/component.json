@@ -1,0 +1,27 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "$description": "Component tier. Aliases semantic tokens only, never primitives, so a theme that overrides the semantic tier restyles every component.",
+  "button": {
+    "radius": { "$type": "dimension", "$value": "{radius.md}" },
+    "bg": { "$type": "color", "$value": "{surface.raised}" },
+    "fg": { "$type": "color", "$value": "{text.primary}" },
+    "border": { "$type": "color", "$value": "{border.default}" },
+    "hover-bg": { "$type": "color", "$value": "{surface.hover}" },
+    "primary-bg": { "$type": "color", "$value": "{accent.solid}" },
+    "primary-fg": { "$type": "color", "$value": "{accent.on-solid}" }
+  },
+  "chip": {
+    "radius": { "$type": "dimension", "$value": "{radius.pill}" },
+    "border": { "$type": "color", "$value": "{border.default}" },
+    "fg": { "$type": "color", "$value": "{text.secondary}" },
+    "selected-bg": { "$type": "color", "$value": "{accent.tint}" },
+    "selected-fg": { "$type": "color", "$value": "{text.accent}" }
+  },
+  "input": {
+    "radius": { "$type": "dimension", "$value": "{radius.md}" },
+    "bg": { "$type": "color", "$value": "{surface.raised}" },
+    "fg": { "$type": "color", "$value": "{text.primary}" },
+    "border": { "$type": "color", "$value": "{border.strong}" },
+    "invalid": { "$type": "color", "$value": "{text.danger}" }
+  }
+}
