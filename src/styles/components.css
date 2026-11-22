@@ -67,6 +67,9 @@ main:focus {
   color: var(--text-secondary);
   line-height: 1.4;
 }
+.intro__role em {
+  white-space: nowrap;
+}
 .intro__role em,
 .serif-em {
   font-family: var(--font-serif);
@@ -81,6 +84,9 @@ main:focus {
 }
 .bio p {
   line-height: 1.7;
+}
+.nowrap {
+  white-space: nowrap;
 }
 
 /* Company names read as plain underlined links. The trigger is a button,

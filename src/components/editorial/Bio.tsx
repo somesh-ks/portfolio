@@ -4,6 +4,7 @@ import { BIO, COMPANIES, type CompanyId } from "@content/profile";
 import { CompanyPreview } from "./CompanyPreview";
 
 const TOKEN = /\{company:([a-z]+)\}/g;
+const GLUE = /^[.,;:!?)]+/;
 
 function hasFile(...segments: string[]): boolean {
   return existsSync(path.join(process.cwd(), "public", ...segments));
@@ -18,17 +19,21 @@ export function Bio() {
           <p key={paragraph.slice(0, 24)}>
             {parts.map((part, index) => {
               // split() with one capture group alternates text, id, text, id...
-              if (index % 2 === 0) return part;
+              // Punctuation right after a company sticks to it, so a line never
+              // starts with a stray comma (the trigger is an atomic inline box).
+              if (index % 2 === 0) return index > 0 ? part.replace(GLUE, "") : part;
               const company = COMPANIES[part as CompanyId];
-              return company ? (
-                <CompanyPreview
-                  key={part}
-                  company={company}
-                  thumbnail={hasFile("previews", `${part}.webp`)}
-                  logo={hasFile("logos", `${part}.webp`)}
-                />
-              ) : (
-                part
+              if (!company) return part;
+              const glued = parts[index + 1]?.match(GLUE)?.[0] ?? "";
+              return (
+                <span key={part} className="nowrap">
+                  <CompanyPreview
+                    company={company}
+                    thumbnail={hasFile("previews", `${part}.webp`)}
+                    logo={hasFile("logos", `${part}.webp`)}
+                  />
+                  {glued}
+                </span>
               );
             })}
           </p>
