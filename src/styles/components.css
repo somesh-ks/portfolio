@@ -760,14 +760,14 @@ claude-mascot:defined > * {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm-min);
 }
-/* Shared keycap (Kbd): hairline cap, thicker bottom edge, in the label's colour. */
+/* Shared keycap (Kbd): hairline cap with a thicker bottom edge, from border tokens. */
 .kbd {
   display: inline-block;
   min-width: 2.5ch;
   padding: 0.1em 0.5ch 0;
-  border: 1px solid color-mix(in oklab, currentColor 45%, transparent);
-  border-bottom-width: 2px;
-  border-radius: 3px;
+  border: 1px solid var(--border-default);
+  border-bottom: 2px solid var(--border-strong);
+  border-radius: var(--radius-xs);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs-min);
   line-height: 1.4;
