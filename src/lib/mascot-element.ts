@@ -57,6 +57,13 @@ function createElementClass() {
       return isAnimation(value) ? value : "idle";
     }
 
+    // React 19 assigns props as properties when the element already defines
+    // them (client navigation after the element is registered). Without a
+    // setter that assignment throws and takes the whole page down.
+    set animation(value: Animation) {
+      this.setAttribute("animation", value);
+    }
+
     play(animation: Animation): void {
       this.#oneShot = { animation, until: performance.now() + LOOP_SECONDS[animation] * 1000 };
       this.#start = performance.now();

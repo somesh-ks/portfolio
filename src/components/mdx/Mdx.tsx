@@ -36,6 +36,12 @@ export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: s
         {
           themes: { light: "github-light", dark: "github-dark" },
           defaultColor: false,
+          // Load grammars on demand. Bundling every language cost ~6s on each
+          // cold start, so clicks into a dynamic page looked dead.
+          langs: [],
+          lazy: true,
+          // Unknown fence languages render plain instead of failing the page.
+          fallbackLanguage: "text",
           // Code blocks scroll sideways on phones, so keyboard users must reach them.
           transformers: [
             {
