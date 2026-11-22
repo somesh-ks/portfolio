@@ -40,6 +40,8 @@ export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: s
           // cold start, so clicks into a dynamic page looked dead.
           langs: [],
           lazy: true,
+          // Unknown fence languages render plain instead of failing the page.
+          fallbackLanguage: "text",
           // Code blocks scroll sideways on phones, so keyboard users must reach them.
           transformers: [
             {

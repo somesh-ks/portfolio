@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import "@/styles/globals.css";
 
 /** Last-resort boundary for errors in the root layout. Replaces the root layout. */
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <html lang="en">
       <body>
@@ -17,8 +22,12 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
                   Something broke while it loaded. Try again, or start over from the home page.
                 </p>
               </header>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                <button type="button" className="button button--primary" onClick={reset}>
+              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => window.location.reload()}
+                >
                   Try again
                 </button>
                 <Link href="/" className="button">

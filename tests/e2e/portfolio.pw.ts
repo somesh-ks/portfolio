@@ -40,10 +40,11 @@ test("click into every entry and back, with no console errors", async ({ page })
   await page.goto("/");
   for (const route of [...publicRoutes().filter((r) => r !== "/" && r !== "/resume"), ...LOCKED]) {
     const link = page.locator(`a[href="${route}"]`).first();
-    if (!(await link.count())) continue;
+    await expect(link, `home links ${route}`).toHaveCount(1);
     await link.click();
     await expect(page).toHaveURL(route);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("This page tripped")).toHaveCount(0);
     await page.goBack();
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
