@@ -3,7 +3,7 @@ title: Singularity Agentic Design System
 slug: singularity-design-system
 kind: project
 order: 3
-summary: An MIT-licensed design system written for coding agents as much as for people, with a live style guide and one gate command.
+summary: A design system written for coding agents.
 publishedAt: 2026-11-15
 tags: [design systems, tokens, agents]
 stack: [TypeScript, W3C design tokens, React]
@@ -11,6 +11,6 @@ liveUrl: https://singularity-design.vercel.app
 repoUrl: https://github.com/somesh-ks/singularityfm-design-system
 ---
 
-`@singularityfm/design-system` is the system behind the Singularity app. It is tonal and flat, sits on an 8pt grid, and treats tokens as the only allowed values: primitive, then semantic, then component.
+`@singularityfm/design-system` runs the Singularity app. Tonal, flat, on an 8pt grid, and tokens are the only allowed values.
 
-What makes it different is the reader it was written for. An `AGENTS.md` contract tells a coding agent what it may and may not do, and `pnpm run gate` fails the build when an agent reaches for a raw hex value or an off-grid spacing. The case study [Building an Agentic Design System](/work/building-agentic-design-system) explains why.
+It's written for agents too. An `AGENTS.md` contract says what they may do, and `pnpm run gate` fails the build on a raw hex or off-grid spacing. [Building an Agentic Design System](/work/building-agentic-design-system) explains why.

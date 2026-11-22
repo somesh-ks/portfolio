@@ -3,29 +3,29 @@ title: Building an Agentic Design System
 slug: building-agentic-design-system
 kind: case-study
 order: 2
-summary: Why coding agents drift on traditional design systems, and how AGENTS.md contracts, DTCG tokens and a single gate command keep them on the system.
+summary: Contracts, tokens and one gate command that stop coding agents drifting.
 publishedAt: 2026-11-15
 role: Designer and engineer, solo
 timeline: Built alongside the Singularity app
-problem: Agents read a design system as suggestions. They copy a hex value from a screenshot, invent a 13px gap, and ship it because nothing stops them.
+problem: Agents treat a design system as suggestions and ship off-system values.
 metrics:
-  - One gate command, pnpm run gate, that fails on drift
-  - Three token tiers in W3C DTCG format
-  - Machine-readable contracts in AGENTS.md
+  - One gate command that fails on drift
+  - Three token tiers in W3C DTCG
+  - Contracts in AGENTS.md
 stack: [W3C design tokens, TypeScript, React, CI]
 tags: [design systems, agents, tokens]
 repoUrl: https://github.com/somesh-ks/singularityfm-design-system
 ---
 
-`@singularityfm/design-system` is the system behind the Singularity app. Most of its code is written by coding agents, with me reviewing. That arrangement exposed something I had not noticed working with people: a design system built for humans does not survive contact with an agent.
+`@singularityfm/design-system` runs the Singularity app. Agents write most of its code and I review it. That showed me a design system built for people does not survive an agent.
 
-This is not a component gallery. The [live style guide](https://singularity-design.vercel.app) does that job. This is about the architecture that makes an agent stay on the system.
+The [live style guide](https://singularity-design.vercel.app) shows the components. This page is about what keeps an agent on the system.
 
 ## The problem
 
-- **Agents optimise for "looks right in the screenshot".** If a raw `#3B82F6` gets closer to the mockup than `--color-interactive`, the agent uses the hex.
-- **Documentation is advice.** A Storybook page that says "use the 8pt grid" carries the same weight as a Stack Overflow answer that says otherwise.
-- **Drift compounds.** One off-grid value becomes the example the next agent copies. After a week, the codebase teaches the wrong system.
+- **Agents chase the screenshot.** If a raw `#3B82F6` looks closer than `--color-interactive`, they use the hex.
+- **Docs are advice.** A Storybook note carries as much weight as a random answer online.
+- **Drift compounds.** One off-grid value becomes the example the next agent copies.
 
 <BeforeAfterScrubber variant="agentic-ds" />
 
@@ -33,38 +33,29 @@ This is not a component gallery. The [live style guide](https://singularity-desi
 
 ### Contracts, not docs
 
-Each package has an `AGENTS.md` that reads like a contract, not a guide. It lists what an agent may import, which tokens exist for which job, and what it must never do: no raw colours, no spacing outside the scale, no new component when an existing one fits. Short rules, stated once, with the reason next to each.
-
-Agents follow rules they can check. A paragraph about "visual harmony" gives them nothing to check. "Spacing values must come from `--space-*`" does.
+Each package has an `AGENTS.md` that reads like a contract: what an agent may import, which token does which job, and what it must never do. Agents follow rules they can check. "Spacing comes from `--space-*`" is checkable. "Visual harmony" is not.
 
 ### Tokens are the only values
 
-Tokens are written in W3C DTCG format in three tiers: primitive (`sand.600`), semantic (`text.secondary`) and component (`button.bg`). Components may only read semantic or component tokens, never primitives.
-
-That rule is what makes theming and dark mode cheap, but the real benefit for agents is smaller: there is exactly one right answer for "what colour is secondary text", and it has a name an agent can search for.
+Tokens come in three DTCG tiers: primitive (`sand.600`), semantic (`text.secondary`) and component (`button.bg`). Components never read primitives. So there is one right answer for "secondary text colour", and an agent can search for it.
 
 ### One gate, run by everyone
 
-`pnpm run gate` runs types, lint, token lint and contrast checks in one command. It is the last instruction in every `AGENTS.md`: run the gate, and do not stop until it passes. CI runs the same command, so an agent cannot argue with it.
+`pnpm run gate` runs types, lint, token lint and contrast checks. Every `AGENTS.md` ends with it, and CI runs the same command. The token lint fails on raw colours, off-scale spacing and primitives in components. The contrast check fails any pair that breaks WCAG 2.2 AA.
 
-The token lint is the part that matters most. It fails on raw colour literals, off-scale spacing and any primitive token used inside a component. The contrast check measures every text and surface pair in light and dark, so a palette tweak that breaks WCAG 2.2 AA fails the build instead of shipping.
-
-Flip the switch below to see the same card built twice: once by an agent working from a screenshot, once by an agent that had to pass the gate.
+The same card, built from a screenshot and built through the gate:
 
 <AgenticTokenDiff />
 
 ## What changed
 
-Review got faster. Before the gate, most of my review comments were about values: wrong grey, wrong gap. After it, those mistakes never reached me, and review became about the design itself, the part an agent is worst at and a person should own.
-
-The system also got smaller. When every value has to be a token, you notice the tokens nobody uses. Three months in, the semantic layer has fewer roles than it started with.
+Review got faster. Wrong greys and wrong gaps stopped reaching me, so review became about the design itself. The system also got smaller: when every value must be a token, unused tokens stand out.
 
 ## Tradeoffs
 
-- A strict gate slows down exploration. For throwaway prototypes I turn it off and say so in the commit.
-- Contracts need upkeep. When a rule changes, `AGENTS.md` changes in the same commit, or agents follow the old rule.
-- Three tiers are more indirection than a small app needs. I kept them because the agent benefits more than I pay.
+- A strict gate slows exploration. I turn it off for throwaway prototypes.
+- When a rule changes, `AGENTS.md` changes in the same commit.
 
 ## Other fun stuff
 
-The most common gate failure, by far, is an agent writing `gap: 12px` because it looked right. The scale has `--space-3` for exactly that, and now the agent finds it.
+The top gate failure: `gap: 12px`. That's what `--space-3` is for.

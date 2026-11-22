@@ -3,26 +3,26 @@ title: Claude Stickers
 slug: claude-stickers
 kind: case-study
 order: 1
-summary: Designing a pixel-art sticker set end to end, from the first cell to a QA pipeline and exports for every platform people would paste them into.
+summary: Pixel-art stickers exported to SVG, Lottie, GIF and the web.
 publishedAt: 2026-06-20
 role: Designer and engineer, solo
 timeline: Six weeks, alongside client work
-problem: Pixel art breaks in small, hard-to-see ways when one design has to ship as SVG, Lottie, GIF and a Web Component.
+problem: Pixel art breaks in small ways when one design ships in four formats.
 metrics:
-  - Four export formats from one source file
+  - Four formats from one source
   - Cell-level QA on every frame
-  - One rect model shared by stickers and the live mascot
+  - One model for stickers and mascot
 stack: [SVG, Lottie, Web Components, TypeScript]
 tags: [illustration, animation, tooling]
 ---
 
-The stickers started as a gift for the Claude community in Sweden and turned into a small production line. Each sticker is a grid of pixels with a few frames of animation, and each one had to look right in Slack, in Keynote, on a website and printed on a laptop lid.
+A gift for the Claude community in Sweden that turned into a small production line. Each sticker had to look right in Slack, in Keynote, on the web and on a laptop lid.
 
 ## The problem
 
-- A pixel that is off by one is invisible at 2x and obvious at 8x. Hand-drawn frames drifted between exports.
-- Every format had its own quirks: GIF has no partial transparency, Lottie wants vectors, slides want video.
-- Checking 40 frames by eye did not scale, and I kept missing the same mistakes.
+- A pixel off by one is invisible at 2x and obvious at 8x.
+- Every format has quirks. GIF has no partial transparency, Lottie wants vectors.
+- Checking 40 frames by eye did not scale.
 
 <BeforeAfterScrubber variant="stickers" />
 
@@ -30,24 +30,23 @@ The stickers started as a gift for the Claude community in Sweden and turned int
 
 ### One model, many outputs
 
-Every sticker is stored as rectangles on a grid, not as an image. Exporters read the model and write SVG, Lottie, GIF or a `<claude-mascot>` element. A fix in the model fixes every format at once.
+Each sticker is rectangles on a grid, not an image. Exporters read the model and write SVG, Lottie, GIF or a `<claude-mascot>` element. One fix fixes every format.
 
 ### QA at the cell level
 
-A small checker compares every frame against the grid and flags cells that are half-filled, off-palette or out of bounds. It caught more mistakes in its first run than I had found in a week of looking.
+A checker flags cells that are half-filled, off-palette or out of bounds. Its first run caught more than a week of looking.
 
 ### Let people play with it
 
-A sticker you can poke is more memorable than one you look at. The sheet below is the real set, rendered live from the same model.
+The sheet below is the real set, rendered live.
 
 <ClaudeStickerSheet />
 
 ## Tradeoffs
 
-- Rects make shading hard, so the style stays flat. I chose that look on purpose, but it rules out some ideas.
-- GIF export dithers semi-transparent edges, so stickers have hard edges everywhere.
-- Writing exporters took longer than drawing. It paid off on the third format.
+- Rects make shading hard, so the style stays flat.
+- Exporters took longer than drawing. It paid off by the third format.
 
 ## Other fun stuff
 
-The first person to print one put it on a water bottle, which is a format I did not plan for.
+The first print ended up on a water bottle.
