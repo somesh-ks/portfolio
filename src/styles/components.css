@@ -469,19 +469,6 @@ claude-mascot:defined > * {
 .runner__key {
   color: var(--text-primary);
 }
-/* Retro keycap: a hairline cap with a thicker bottom edge for depth. */
-.runner__kbd {
-  display: inline-block;
-  min-width: 2.25ch;
-  padding: 0.1em 0.6ch 0;
-  /* Edges follow the label colour, so the cap reads on both themes. */
-  border: 1px solid color-mix(in oklab, currentColor 55%, transparent);
-  border-bottom: 3px solid currentColor;
-  border-radius: 3px;
-  font: inherit;
-  line-height: 1.4;
-  text-align: center;
-}
 .runner__spacer {
   flex: 1;
 }

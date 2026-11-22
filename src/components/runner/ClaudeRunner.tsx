@@ -21,6 +21,7 @@ import {
   type FormEvent,
 } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
+import { Kbd } from "@/components/ui/Kbd";
 import {
   COSTUME_NAMES,
   COSTUMES,
@@ -123,13 +124,13 @@ function StaticFrame() {
   );
 }
 
-/** A keycap with a keyboard, "TAP" on touch; CSS picks one. */
+/** The shared keycap with a keyboard, "TAP" on touch; CSS picks one. */
 function Key({ keyName, touch }: { keyName: string; touch?: string }) {
   return (
     <>
-      <kbd className="runner__key runner__kbd" data-input="keys">
-        {keyName}
-      </kbd>
+      <span className="runner__key" data-input="keys">
+        <Kbd>{keyName}</Kbd>
+      </span>
       {touch ? (
         <span className="runner__key" data-input="touch">
           {touch}
