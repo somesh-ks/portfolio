@@ -1437,25 +1437,19 @@ claude-mascot:defined > * {
 .toc {
   display: none;
 }
+/* Pinned to the viewport from first paint, mid-screen, left of the 40rem
+   column, so it never scrolls in late. */
 @media (min-width: 80rem) {
   .toc:not([hidden]) {
-    display: block;
-    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: fixed;
     top: 0;
     bottom: 0;
-    right: calc(100% + 4rem + var(--space-6));
+    left: calc(50% - 20rem - 4rem - var(--space-6) - 9rem);
     width: 9rem;
   }
-}
-/* A viewport-tall sticky box with the list centred in it, so the rail sits
-   at mid-screen while you read. */
-.toc__inner {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100dvh;
 }
 .toc__title {
   margin-bottom: var(--space-3);

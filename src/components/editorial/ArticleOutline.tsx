@@ -23,7 +23,9 @@ export function ArticleOutline() {
 
     const update = () => {
       frame = 0;
+      // Nothing is highlighted until a section reaches the reading line.
       const atBottom =
+        window.scrollY > 0 &&
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
       const line = window.innerHeight * 0.3;
       let current: string | undefined;
@@ -59,22 +61,20 @@ export function ArticleOutline() {
 
   return (
     <nav ref={ref} aria-label="On this page" className="toc" hidden={!sections.length}>
-      <div className="toc__inner">
-        <p className="toc__title">On this page</p>
-        <ol className="toc__list">
-          {sections.map((s) => (
-            <li key={s.id}>
-              <a
-                href={`#${s.id}`}
-                className="toc__link"
-                aria-current={active === s.id ? "location" : undefined}
-              >
-                {s.text}
-              </a>
-            </li>
-          ))}
-        </ol>
-      </div>
+      <p className="toc__title">On this page</p>
+      <ol className="toc__list">
+        {sections.map((s) => (
+          <li key={s.id}>
+            <a
+              href={`#${s.id}`}
+              className="toc__link"
+              aria-current={active === s.id ? "location" : undefined}
+            >
+              {s.text}
+            </a>
+          </li>
+        ))}
+      </ol>
     </nav>
   );
 }
