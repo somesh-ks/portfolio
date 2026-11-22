@@ -19,6 +19,8 @@ export function CopyButton({ text, label = text }: { text: string; label?: strin
       <button
         type="button"
         className="icon-button copy-button"
+        // The copy confirms with its own tick once the clipboard write lands.
+        data-sound="none"
         aria-label={copied ? "Copied" : `Copy: ${label}`}
         onClick={async (event) => {
           // React clears currentTarget once the handler yields, so grab it before awaiting.
