@@ -21,7 +21,9 @@
     "test:a11y": "playwright test --grep @a11y",
     "auth:hash": "bun scripts/hash-password.ts",
     "auth:link": "bun scripts/magic-link.ts",
-    "previews": "bun scripts/capture-previews.ts"
+    "previews": "bun scripts/capture-previews.ts",
+    "resume": "bun scripts/build-resume.ts",
+    "resume:check": "bun scripts/build-resume.ts --check"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

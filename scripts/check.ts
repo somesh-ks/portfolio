@@ -1,7 +1,7 @@
 /** One gate for local and CI: types, lint, format, tokens, dead code. */
 import { spawnSync } from "node:child_process";
 
-const STEPS = ["typecheck", "lint", "format:check", "tokens:check", "knip"];
+const STEPS = ["typecheck", "lint", "format:check", "tokens:check", "resume:check", "knip"];
 const failed: string[] = [];
 for (const step of STEPS) {
   console.warn(`\n▸ ${step}`);
