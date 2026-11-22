@@ -2410,8 +2410,7 @@ claude-mascot:defined > * {
   .stream__step {
     animation-name: fade-in;
   }
-  .spin,
-  .spinner-demo__wrap {
+  .spin {
     animation-duration: 2.4s;
   }
   .stage__mascot:active {
@@ -2744,6 +2743,11 @@ claude-mascot:defined > * {
 }
 .spinner-demo__wrap--grid {
   display: inline-grid;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner-demo__wrap {
+    animation-duration: 2.4s;
+  }
 }
 
 /* Stopwatch: proportional digits change width every tick; tabular ones do not. */

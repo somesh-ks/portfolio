@@ -38,6 +38,11 @@ describe("mdxToMarkdown", () => {
     expect(markdown).toContain("*Figure: A chart*");
     expect(markdown).toContain("<Button />");
   });
+
+  test("keeps a Command's text as a bash fence", () => {
+    const markdown = mdxToMarkdown('<Command command="npx skills add a/b" />');
+    expect(markdown).toContain("```bash\nnpx skills add a/b\n```");
+  });
 });
 
 describe("oklch", () => {

@@ -39,6 +39,10 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
 const JSX_OPEN = /^<([A-Z][A-Za-z0-9]*)\b/;
 
 function describe(name: string, block: string): string {
+  if (name === "Command") {
+    const command = /command="([^"]*)"/.exec(block)?.[1];
+    if (command) return `\`\`\`bash\n${command}\n\`\`\``;
+  }
   if (name === "Figure") {
     const alt = /alt="([^"]*)"/.exec(block)?.[1];
     const caption = /caption="([^"]*)"/.exec(block)?.[1];
