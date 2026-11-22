@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono, Geist_Pixel, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
 import { SiteFooter } from "@/components/editorial/SiteFooter";
@@ -13,6 +13,12 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "sw
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
+  display: "swap",
+});
+// Display only: the name and page titles. Body stays Geist, chrome and code Geist Mono.
+const geistPixel = Geist_Pixel({
+  subsets: ["latin"],
+  variable: "--font-geist-pixel",
   display: "swap",
 });
 const newsreader = Newsreader({
@@ -55,7 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${geistPixel.variable} ${newsreader.variable}`}
     >
       <body>
         <script

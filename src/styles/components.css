@@ -58,20 +58,13 @@ main:focus {
   margin-bottom: var(--space-6);
 }
 .intro__name {
-  font-size: var(--step-base);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  font-size: var(--step-xl);
+  line-height: 1.2;
+  margin-bottom: var(--space-1);
 }
 .intro__role {
   color: var(--text-secondary);
   line-height: 1.4;
-}
-.serif-em {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 1.06em;
-  letter-spacing: 0;
 }
 
 .bio {
@@ -465,6 +458,15 @@ claude-mascot:defined > * {
 }
 .site-footer__note .link {
   color: var(--text-secondary);
+}
+
+/* ---------- Pixel display ----------
+   Geist Pixel only where a page announces itself: the name and page titles. */
+.intro__name,
+.entry__title {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 /* ---------- Mono chrome ----------
