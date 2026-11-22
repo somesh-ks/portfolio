@@ -29,6 +29,7 @@ import {
   type RawSprite,
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
+import { CLOUD, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
 import type { Engine } from "./engine";
 
 type Phase = "idle" | "loading" | "running" | "over";
@@ -84,8 +85,24 @@ function StaticFrame() {
       preserveAspectRatio="xMinYMax slice"
       shapeRendering="crispEdges"
       aria-hidden="true"
-      style={{ "--walk": `${WALK.frames.length / WALK.fps}s` } as CSSProperties}
+      // A stroll: the same pace as the engine's between-run walk.
+      style={{ "--walk": `${WALK.frames.length / (WALK.fps * 0.6)}s` } as CSSProperties}
     >
+      <g className="runner__clouds" fill="var(--border-default)">
+        {[0, CLOUD_STRIP, 2 * CLOUD_STRIP].map((offset) =>
+          CLOUD_SPOTS.map(([x, y]) =>
+            CLOUD.map(([cx, cy, w]) => (
+              <rect
+                key={`${offset}-${x}-${cy}`}
+                x={offset + x + cx}
+                y={y + cy}
+                width={w}
+                height={1}
+              />
+            )),
+          ),
+        )}
+      </g>
       <rect x={0} y={WORLD.ground} width={400} height={1} fill="var(--border-strong)" />
       <g className="runner__pose">{pose(WALK.idle)}</g>
       {WALK.frames.map((rects, index) => (
@@ -210,6 +227,22 @@ export function ClaudeRunner() {
     })();
     return loading.current;
   }, [loadBoard]);
+
+  // A different Claude on each visit. The classic one is in the server frame;
+  // any other loads the engine once the page is idle, not on the critical path.
+  useEffect(() => {
+    const pick = COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
+    if (pick === "walk") return;
+    costumeRef.current = pick;
+    const load = () => void ensureEngine();
+    // Safari has no requestIdleCallback; a short timeout stands in.
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(load, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(load, 1500);
+    return () => clearTimeout(timer);
+  }, [ensureEngine]);
 
   const starting = useRef(false);
   const startRun = useCallback(async () => {
@@ -386,7 +419,9 @@ export function ClaudeRunner() {
       data-expanded={expanded || undefined}
       data-immersive={immersive || undefined}
       data-input={input}
-      onPointerDownCapture={(event) => setInput(event.pointerType === "touch" ? "touch" : "keys")}
+      // On pointer up, not down: swapping hints mid-press would move the
+      // button under the pointer and cancel the click.
+      onPointerUpCapture={(event) => setInput(event.pointerType === "touch" ? "touch" : "keys")}
       onKeyDownCapture={() => setInput("keys")}
       aria-label="Claude runner game"
     >

@@ -360,6 +360,16 @@ claude-mascot:defined > * {
 .runner__pose {
   display: none;
 }
+/* Clouds drift one 200-cell strip (CLOUD_STRIP; copies make it seamless)
+   at 3 cells a second, the engine's resting pace. */
+.runner__clouds {
+  animation: runner-clouds 66s linear infinite;
+}
+@keyframes runner-clouds {
+  to {
+    transform: translateX(-200px);
+  }
+}
 @keyframes runner-walk {
   0% {
     opacity: 1;
@@ -370,6 +380,9 @@ claude-mascot:defined > * {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .runner__clouds {
+    animation: none;
+  }
   .runner__step {
     display: none;
   }

@@ -16,7 +16,14 @@ import {
   type RawSprite,
   type Sprite,
 } from "@/lib/runner/claude-sprites";
-import { OBSTACLE_SPRITES, type Cell, type Tone } from "@/lib/runner/sprites";
+import {
+  CLOUD,
+  CLOUD_SPOTS,
+  CLOUD_STRIP,
+  OBSTACLE_SPRITES,
+  type Cell,
+  type Tone,
+} from "@/lib/runner/sprites";
 
 /** Rides arrive as /runner/rides.json (static, outside the JS bundle). */
 function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite> {
@@ -50,6 +57,12 @@ const MIN_VIEW_CELLS = 100;
 const MAX_CELL_PX = 6;
 /** How long the crash pose holds before Claude walks again. */
 const CRASH_HOLD_MS = 600;
+/** Between runs Claude strolls; in a run the same loop plays faster. */
+const STROLL = 0.6;
+const RUN = 1.5;
+/** Clouds drift a few cells a second at rest and at a sixth of the run speed. */
+const CLOUD_IDLE_SPEED = 3;
+const CLOUD_PARALLAX = 1 / 6;
 
 export interface EngineCallbacks {
   onScore: (points: number) => void;
@@ -93,7 +106,9 @@ export function createEngine(
   let walkFrame: number | null = null;
   let holdUntil = 0;
   let onScreen = true;
-  let colors = {} as Record<Tone | "ground" | "dust", string>;
+  let cloudShift = 0;
+  let idleLast: number | null = null;
+  let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
 
   function readColors() {
     const style = getComputedStyle(canvas);
@@ -103,6 +118,7 @@ export function createEngine(
         Object.entries(TONE_VARS).map(([tone, name]) => [tone, read(name)]),
       ) as Record<Tone, string>),
       ground: read("--border-strong"),
+      cloud: read("--border-default"),
       dust: read("--illustration-grid"),
     };
   }
@@ -161,24 +177,23 @@ export function createEngine(
     }
   }
 
-  /** Far-off sparks drift at a fifth of the run speed; off with reduced motion. */
-  function drawSky(distance: number) {
-    if (motion.matches) return;
-    const drift = distance / 5;
-    for (let i = 0; i < 6; i += 1) {
-      const span = viewWidth + 40;
-      const x = ((((i * 47 - drift) % span) + span) % span) - 20;
-      const y = 8 + ((i * 13) % 22);
-      fill(x + 1, y, 1, 3, colors.sand);
-      fill(x, y + 1, 3, 1, colors.sand);
-    }
+  /** Grey clouds on a repeating strip; they hold still under reduced motion. */
+  function drawSky() {
+    const span = Math.max(CLOUD_STRIP, Math.ceil(viewWidth / CLOUD_STRIP) * CLOUD_STRIP);
+    const shift = Math.floor(cloudShift);
+    for (let copy = 0; copy < span / CLOUD_STRIP; copy += 1)
+      for (const [spotX, y] of CLOUD_SPOTS) {
+        // Wrap 14 cells (a cloud's width) early so clouds slide off the left edge.
+        const x = ((((spotX + copy * CLOUD_STRIP - shift + 14) % span) + span) % span) - 14;
+        for (const [cx, cy, w] of CLOUD) fill(x + cx, y + cy, w, 1, colors.cloud);
+      }
   }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const state = run;
     const distance = state?.distance ?? 0;
-    drawSky(distance);
+    drawSky();
     drawGround(distance);
 
     for (const obstacle of state?.obstacles ?? []) {
@@ -192,7 +207,7 @@ export function createEngine(
     else if (state) {
       // Frozen in the air and on a crash; otherwise the riding loop plays.
       const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps) : null;
-      const index = held ?? Math.floor(state.time * sprite.fps);
+      const index = held ?? Math.floor(state.time * sprite.fps * RUN);
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
@@ -209,8 +224,12 @@ export function createEngine(
       walkFrame = null;
     }
     const sprite = SPRITES[costume];
-    const next = motion.matches ? -1 : Math.floor((now / 1000) * sprite.fps);
-    if (next !== walkFrame) {
+    const next = motion.matches ? -1 : Math.floor((now / 1000) * sprite.fps * STROLL);
+    const before = Math.floor(cloudShift);
+    if (!motion.matches && idleLast !== null)
+      cloudShift += (Math.min(now - idleLast, 100) / 1000) * CLOUD_IDLE_SPEED;
+    idleLast = now;
+    if (next !== walkFrame || Math.floor(cloudShift) !== before) {
       walkFrame = next;
       draw();
     }
@@ -229,6 +248,7 @@ export function createEngine(
       const milestoneBefore = Math.floor(score(state) / MILESTONE);
       const wasGrounded = grounded(state);
       step(state, pressed, viewWidth);
+      if (!motion.matches) cloudShift += state.speed * STEP * CLOUD_PARALLAX;
       if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.time;
       pressed = false;
       accumulator -= STEP;
@@ -297,6 +317,7 @@ export function createEngine(
       run = createRun(seed, SPRITES[next].hitbox);
       pressed = false;
       walkFrame = null;
+      idleLast = null;
       last = null;
       accumulator = 0;
       lastPoints = -1;
