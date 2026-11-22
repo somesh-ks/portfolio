@@ -1,22 +1,22 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Contrast } from "lucide-react";
 import { useState } from "react";
 import { DemoFrame, type DemoMode } from "./DemoFrame";
 
-/** A mini card that switches theme. Typical: every colour transitions at its own speed.
+/** A mini card that flips to the opposite of the site theme. Typical: every colour transitions at its own speed.
  * Fixed: transitions are suspended for the flip and restored after two frames. */
 export function ThemeSmearDemo() {
   const [mode, setMode] = useState<DemoMode>("typical");
-  const [dark, setDark] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const [suspended, setSuspended] = useState(false);
   const flip = () => {
     if (mode === "typical") {
-      setDark((value) => !value);
+      setFlipped((value) => !value);
       return;
     }
     setSuspended(true);
-    setDark((value) => !value);
+    setFlipped((value) => !value);
     requestAnimationFrame(() => requestAnimationFrame(() => setSuspended(false)));
   };
   return (
@@ -32,7 +32,7 @@ export function ThemeSmearDemo() {
       }}
     >
       <div
-        className={`smear-card smear-card--${mode}${dark ? " smear-card--dark" : ""}${
+        className={`smear-card smear-card--${mode}${flipped ? " smear-card--flipped" : ""}${
           suspended ? " smear-card--suspended" : ""
         }`}
       >
@@ -42,9 +42,10 @@ export function ThemeSmearDemo() {
             type="button"
             className="smear-card__toggle"
             onClick={flip}
-            aria-label={dark ? "Switch card to light" : "Switch card to dark"}
+            aria-label="Flip the card's theme"
+            aria-pressed={flipped}
           >
-            {dark ? <Sun aria-hidden="true" size={15} /> : <Moon aria-hidden="true" size={15} />}
+            <Contrast aria-hidden="true" size={15} />
           </button>
         </div>
         <p className="smear-card__body">Signups grew 12% while churn held steady.</p>

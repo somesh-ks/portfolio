@@ -1748,6 +1748,7 @@ claude-mascot:defined > * {
   background: var(--surface-hover);
 }
 .hit-tabs--show .hit-tabs__tab {
+  background: var(--surface-raised);
   box-shadow: inset 0 0 0 1px var(--text-accent);
 }
 .hit-tabs--show.hit-tabs--typical {
@@ -1798,7 +1799,7 @@ claude-mascot:defined > * {
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--border-default);
 }
-.smear-card--dark {
+.smear-card--flipped {
   background: var(--surface-inverse);
   color: var(--text-inverse);
 }
@@ -1848,7 +1849,19 @@ claude-mascot:defined > * {
   font-size: var(--step-xs);
   box-shadow: inset 0 0 0 1px var(--border-default);
 }
-.smear-card--dark .smear-card__toggle,
-.smear-card--dark .smear-card__chips > span {
+.smear-card--flipped .smear-card__toggle,
+.smear-card--flipped .smear-card__chips > span {
   box-shadow: inset 0 0 0 1px var(--text-inverse);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-install__icons > [data-visible="false"] {
+    transform: none;
+  }
+  .smear-card--typical,
+  .smear-card--typical *,
+  .smear-card--fixed,
+  .smear-card--fixed * {
+    transition: none;
+  }
 }

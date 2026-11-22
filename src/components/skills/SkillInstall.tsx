@@ -23,7 +23,7 @@ const INSTALL: Record<Tab, { commands: string[]; note: string }> = {
   Manual: {
     commands: [
       "git clone https://github.com/somesh-ks/skills",
-      "cp -r skills/skills/interface-mechanics ~/.claude/skills/",
+      "mkdir -p ~/.claude/skills && cp -r skills/skills/interface-mechanics ~/.claude/skills/",
     ],
     note: "Or copy the folder into your agent's skills directory.",
   },
