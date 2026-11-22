@@ -178,6 +178,28 @@
           }
         }
       }
+    },
+    "link": {
+      "$description": "Underline under inline links: quiet at rest, full text colour on hover.",
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.2, 0.01, 75],
+        "alpha": 0.35
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.2, 0.01, 75],
+            "alpha": 0.35
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [1, 0, 0],
+            "alpha": 0.4
+          }
+        }
+      }
     }
   },
   "accent": {

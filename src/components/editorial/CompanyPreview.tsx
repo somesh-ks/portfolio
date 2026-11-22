@@ -11,7 +11,15 @@ import Image from "next/image";
 import type { Company } from "@content/profile";
 import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
 
-export function CompanyPreview({ company, thumbnail }: { company: Company; thumbnail: boolean }) {
+export function CompanyPreview({
+  company,
+  thumbnail,
+  logo,
+}: {
+  company: Company;
+  thumbnail: boolean;
+  logo: boolean;
+}) {
   const fineHover = useMediaQuery(FINE_HOVER);
   return (
     <Popover.Root>
@@ -21,6 +29,15 @@ export function CompanyPreview({ company, thumbnail }: { company: Company; thumb
         closeDelay={120}
         className="company-pill pressable"
       >
+        {logo ? (
+          <Image
+            src={`/logos/${company.id}.webp`}
+            alt=""
+            width={32}
+            height={32}
+            className="company-pill__logo"
+          />
+        ) : null}
         {company.name}
       </Popover.Trigger>
       <Popover.Portal>

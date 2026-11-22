@@ -23,6 +23,7 @@ export function fluidCss(primitives: { font: { size: Record<string, unknown> } }
     const min = (sizes[`${step}-min`] as DimensionToken).$value.value;
     const max = (sizes[`${step}-max`] as DimensionToken).$value.value;
     if (max > min * 2.5) throw new Error(`font.size.${step}: max exceeds 2.5x min (WCAG 1.4.4)`);
+    if (max === min) return `  --step-${step}: ${min}rem;`;
     const slope = (max - min) / (VIEWPORT_MAX_REM - VIEWPORT_MIN_REM);
     const intercept = min - slope * VIEWPORT_MIN_REM;
     const preferred = `${round(intercept)}rem + ${round(slope * 100)}vw`;
