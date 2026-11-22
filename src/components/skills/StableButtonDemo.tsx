@@ -1,10 +1,12 @@
 "use client";
 
 import { Check, LoaderCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { DemoFrame, type DemoMode } from "./DemoFrame";
+import { useEffect, useState } from "react";
+import { BeforeAfter } from "./BeforeAfter";
+import { useAutoplay, useEvery } from "./useAutoplay";
 
 type Phase = "idle" | "saving" | "saved";
+const PHASES: Phase[] = ["idle", "saving", "saved"];
 
 const LABEL: Record<Phase, string> = {
   idle: "Save changes",
@@ -25,55 +27,56 @@ function Content({ phase }: { phase: Phase }) {
   );
 }
 
-/** A save button whose content swaps. Typical: width jumps. Fixed: every state in one grid cell. */
+/** A save button whose content swaps. Before: the width jumps. After: every state in one grid cell.
+ * Both sides share one phase, so pressing either plays them together. */
 export function StableButtonDemo() {
-  const [mode, setMode] = useState<DemoMode>("typical");
   const [phase, setPhase] = useState<Phase>("idle");
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  const run = () => {
-    if (phase !== "idle") return;
-    setPhase("saving");
-    timers.current.push(
-      setTimeout(() => setPhase("saved"), 1200),
-      setTimeout(() => setPhase("idle"), 2600),
+  const { ref, playing } = useAutoplay();
+  // Each phase schedules the next: saving for 1.2s, saved for 1.4s, then idle.
+  useEffect(() => {
+    if (phase === "idle") return;
+    const id = setTimeout(
+      () => setPhase(phase === "saving" ? "saved" : "idle"),
+      phase === "saving" ? 1200 : 1400,
     );
-  };
-  return (
-    <DemoFrame
-      label="Button version"
-      mode={mode}
-      onMode={setMode}
-      caption={{
-        typical:
-          "Press Save. The content swaps, the button resizes and Cancel jumps sideways under the pointer.",
-        fixed:
-          "Every state is stacked in one grid cell and only the active one is visible, so the widest state sets the width and nothing moves.",
-      }}
-    >
+    return () => clearTimeout(id);
+  }, [phase]);
+  const run = () => setPhase((current) => (current === "idle" ? "saving" : current));
+  useEvery(playing, 3600, run);
+  const row = (stable: boolean) => (
+    <div className="stable-stage">
+      {/* Dashed frames mark where the buttons sat at rest, so any jump shows. */}
+      <div className="stable-row stable-row--ghost" aria-hidden="true">
+        <span className="button">Cancel</span>
+        <span className="button button--primary">{LABEL.idle}</span>
+      </div>
       <div className="stable-row">
         <button type="button" className="button">
           Cancel
         </button>
-        <button
-          type="button"
-          className={`button button--primary stable-button stable-button--${mode}`}
-          onClick={run}
-          aria-live="polite"
-        >
-          {mode === "typical" ? (
-            <Content phase={phase} />
-          ) : (
+        <button type="button" className="button button--primary" onClick={run}>
+          {stable ? (
             <span className="stable-button__stack">
-              {(Object.keys(LABEL) as Phase[]).map((state) => (
+              {PHASES.map((state) => (
                 <span key={state} aria-hidden={state !== phase} data-active={state === phase}>
                   <Content phase={state} />
                 </span>
               ))}
             </span>
+          ) : (
+            <Content phase={phase} />
           )}
         </button>
       </div>
-    </DemoFrame>
+    </div>
+  );
+  return (
+    <BeforeAfter
+      ref={ref}
+      title="Buttons that keep their size"
+      line="Watch the dashed frames: a typical button shrinks as it saves, and Cancel jumps out of place."
+      before={row(false)}
+      after={row(true)}
+    />
   );
 }

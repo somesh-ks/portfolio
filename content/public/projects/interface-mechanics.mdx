@@ -3,49 +3,20 @@ title: Interface Mechanics Skill
 slug: interface-mechanics
 kind: project
 order: 1
-summary: An agent skill of verified CSS and motion techniques.
+summary: The small UI details coding agents miss, and how to fix them.
 publishedAt: 2026-11-22
 tags: [agents, skills, design engineering]
-stack: [Agent Skills, Claude Code, Markdown]
 repoUrl: https://github.com/somesh-ks/skills
 ---
 
-Coding agents are good at producing interfaces that work. They are less good at the mechanics that make an interface feel finished: hover that never drops between targets, buttons that keep their size while a spinner swaps in, a theme switch that lands in one clean frame.
-
-`interface-mechanics` writes those mechanics down for agents. It holds about 100 techniques. Each one has working code, a **Support** line with browser versions checked against MDN, and a **Source** link, and the agent carries both lines into its answer so you can check them.
-
-<SkillInstall />
-
-## Three things agents get wrong
-
-Each demo shows what an agent typically writes, then the version the skill teaches.
-
-<HitAreaDemo />
+<Command command="npx skills add somesh-ks/skills --skill interface-mechanics" />
 
 <StableButtonDemo />
 
-<ThemeSmearDemo />
+<HitAreaDemo />
 
-## What it covers
+<SpinnerDemo />
 
-| Area                        | Examples                                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| CSS animation and anchoring | `height: auto`, anchor fallbacks, `@starting-style`, popover exit, `@property`               |
-| CSS layout and visual       | `:has()` quantity queries, scroll edge fades, subgrid, concentric radii, layered shadows     |
-| DOM transitions             | View transitions, directional reveal, FLIP, shared layout, spring solver                     |
-| Pointer and input           | Pointer-capture drag, hit areas with no dead zones, roving tabindex, command palette         |
-| Motion                      | Interruptible springs, scroll-linked progress, icon swaps, `linear()` springs, stagger       |
-| Performance                 | `content-visibility`, blurry text, passive listeners, backdrop blur cost                     |
-| Typography                  | Container units, font metric overrides, `text-box-trim`, tabular numbers, `@scope`           |
-| Color                       | `light-dark()`, smear-free theme switch, relative color, oklch gradients, `contrast-color()` |
-| Accessibility               | `inert` with focus restore, focus rings, reduced motion, live regions, forced colors         |
-| Mobile                      | `touch-action`, `dvh`, safe areas, input zoom, overscroll canvas                             |
-| Components                  | `asChild` slot, controlled and uncontrolled state, ARIA tabs, optical padding                |
+<IconSwapDemo />
 
-## How it works
-
-The skill is a router. `SKILL.md` is one table that maps each kind of task to one of eleven reference files, and the agent loads only that file. A task costs a few kilobytes of context, not the whole 120 KB library.
-
-Support lines were verified on 2026-09-10. Once that date is more than six months old, the skill tells the agent to re-check MDN before relying on a line. Durations and easings come from your project's tokens, with defaults for projects that have none.
-
-Missing a technique, or found a stale Support line? [Open an issue](https://github.com/somesh-ks/skills/issues).
+<TabularNumbersDemo />

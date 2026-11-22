@@ -16,6 +16,7 @@ here, when a row names a file or export that doesn't exist, or when a row leaves
 | `Command`        | `src/components/code/Command.tsx`             | One shell command with a CSS-drawn prompt and a copy button.                                                                                     | An install line or one command a visitor copies.                                                                 | Several commands or output (use a `terminal` code fence).                             |
 | `CopyButton`     | `src/components/code/CopyButton.tsx`          | Copies text; if the clipboard is blocked it selects the nearest `<pre>` in `[data-copy-root]`.                                                   | A copy action inside a code or command frame.                                                                    | A general button (use the `button` class).                                            |
 | `AsciiEmpty`     | `src/components/ui/AsciiEmpty.tsx`            | Empty state with decorative ASCII art; children carry the message.                                                                               | A page or panel with nothing to show yet (404, an empty demo).                                                   | Loading or error states that need a live region.                                      |
+| `GitHubMark`     | `src/components/ui/GitHubMark.tsx`            | The GitHub logo as inline SVG in `currentColor`.                                                                                                 | A link to a GitHub repo, next to its `owner/repo` label (the entry header does this from `repoUrl`).             | Other brands, or a generic external link (use `ArrowUpRight`).                        |
 | `Kbd`            | `src/components/ui/Kbd.tsx`                   | A keycap with a thicker bottom edge, drawn with the border tokens. Pair with `useModKey()` for ⌘ vs Ctrl.                                        | Keyboard shortcuts and key hints. One key, or one short chord such as `⌘K`, per `Kbd`.                           | Buttons, or tags and badges (use `chip`).                                             |
 | `SoundToggle`    | `src/components/ui/SoundToggle.tsx`           | Icon button that turns UI sound on and off through `useSound()`.                                                                                 | The site footer (once), and next to a toy that plays sound.                                                      | Playing a sound (call `useSound()`).                                                  |
 | `ThemeToggle`    | `src/components/ui/ThemeToggle.tsx`           | Icon button that cycles system, light and dark.                                                                                                  | The footer. One per page.                                                                                        | Theming a section (override semantic tokens in a `[data-theme]` block).               |
@@ -43,19 +44,20 @@ here, when a row names a file or export that doesn't exist, or when a row leaves
 
 Some parts are a class, not a component. Use these before you write new CSS.
 
-| Class           | What it is                                                                |
-| --------------- | ------------------------------------------------------------------------- |
-| `button`        | Text button; add `button--primary` for the one main action.               |
-| `icon-button`   | Square icon-only button; give it an `sr-only` label.                      |
-| `chip`          | Toggle chip; state comes from `aria-pressed`.                             |
-| `field`         | Wrapper that stacks a label over its control.                             |
-| `pressable`     | Press feedback (scale on `:active`) for any clickable element.            |
-| `toy`           | Frame for an interactive demo in MDX, with `toy__bar` and `toy__caption`. |
-| `section-title` | Mono caps section heading.                                                |
-| `link`          | Underlined inline link.                                                   |
-| `tabular`       | Tabular figures for numbers that change or line up.                       |
-| `nowrap`        | Keeps a short phrase on one line.                                         |
-| `sr-only`       | Text for screen readers only.                                             |
+| Class           | What it is                                                                      |
+| --------------- | ------------------------------------------------------------------------------- |
+| `button`        | Text button; add `button--primary` for the one main action.                     |
+| `icon-button`   | Square icon-only button; give it an `sr-only` label.                            |
+| `chip`          | Toggle chip; state comes from `aria-pressed`.                                   |
+| `field`         | Wrapper that stacks a label over its control.                                   |
+| `pressable`     | Press feedback (scale on `:active`) for any clickable element.                  |
+| `toy`           | Frame for an interactive demo in MDX, with `toy__bar` and `toy__caption`.       |
+| `before-after`  | Titled pair of Before / After stages; `BeforeAfter` in `src/components/skills`. |
+| `section-title` | Mono caps section heading.                                                      |
+| `link`          | Underlined inline link.                                                         |
+| `tabular`       | Tabular figures for numbers that change or line up.                             |
+| `nowrap`        | Keeps a short phrase on one line.                                               |
+| `sr-only`       | Text for screen readers only.                                                   |
 
 ## When nothing fits
 

@@ -1,57 +1,82 @@
 "use client";
 
-import { useState } from "react";
-import { DemoFrame, type DemoMode } from "./DemoFrame";
+import { MousePointer2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { BeforeAfter } from "./BeforeAfter";
+import { useAutoplay } from "./useAutoplay";
 
-const TABS = ["Overview", "Activity", "Files", "Settings"];
+const TABS = ["Overview", "Files", "Settings"];
 
-/** Tabs spaced with `gap` leave dead zones where hover drops; flush tabs with inner padding do not. */
-export function HitAreaDemo() {
-  const [mode, setMode] = useState<DemoMode>("typical");
-  const [showAreas, setShowAreas] = useState(false);
+/** A tab bar. While `sweeping`, a drawn cursor glides across it and drives the hover state. */
+function Tabs({
+  flush,
+  sweeping,
+  onReal,
+}: {
+  flush: boolean;
+  sweeping: boolean;
+  onReal: () => void;
+}) {
   const [hovered, setHovered] = useState<string | null>(null);
-  return (
-    <DemoFrame
-      label="Tab bar version"
-      mode={mode}
-      onMode={setMode}
-      caption={{
-        typical:
-          "Move the pointer slowly across the tabs. A gap is empty DOM, so hover drops between tabs and a click there lands on nothing.",
-        fixed:
-          "The tabs sit flush and the spacing lives inside each tab as padding, so the pointer is always over a target.",
-      }}
-      extra={
-        <label className="skill-demo__switch">
-          <input
-            type="checkbox"
-            checked={showAreas}
-            onChange={(event) => setShowAreas(event.target.checked)}
-          />
-          Show hit areas
-        </label>
+  const cursor = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!sweeping) return;
+    let frame = requestAnimationFrame(function follow() {
+      const tip = cursor.current?.getBoundingClientRect();
+      if (tip) {
+        const under = document.elementFromPoint(tip.left + 1, tip.top + 1);
+        setHovered(under?.closest<HTMLElement>(".hit-tabs__tab")?.dataset.tab ?? null);
       }
-    >
+      frame = requestAnimationFrame(follow);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [sweeping]);
+  const hover = (tab: string | null) => {
+    onReal();
+    setHovered(tab);
+  };
+  return (
+    <div className="hit-demo">
       <div
-        className={`hit-tabs hit-tabs--${mode}${showAreas ? " hit-tabs--show" : ""}`}
-        onPointerLeave={() => setHovered(null)}
+        className={`hit-tabs hit-tabs--${flush ? "fixed" : "typical"}`}
+        onPointerLeave={() => hover(null)}
       >
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
             className="hit-tabs__tab"
-            onPointerEnter={() => setHovered(tab)}
-            onPointerLeave={() => setHovered(null)}
+            data-tab={tab}
+            onPointerEnter={() => hover(tab)}
+            onPointerLeave={() => hover(null)}
             data-hovered={hovered === tab}
           >
             <span className="hit-tabs__label">{tab}</span>
           </button>
         ))}
+        {sweeping ? (
+          <span ref={cursor} className="hit-demo__cursor" aria-hidden="true">
+            <MousePointer2 size={16} strokeWidth={1.75} />
+          </span>
+        ) : null}
       </div>
-      <p className="skill-demo__readout" aria-hidden="true">
+      <p className="hit-demo__readout" aria-hidden="true" data-empty={hovered === null}>
         Hovering: {hovered ?? "nothing"}
       </p>
-    </DemoFrame>
+    </div>
+  );
+}
+
+/** Tabs spaced with `gap` leave dead zones (hatched) where hover drops; flush tabs with inner padding do not. */
+export function HitAreaDemo() {
+  const { ref, playing, stop } = useAutoplay();
+  return (
+    <BeforeAfter
+      ref={ref}
+      title="Hover with no dead zones"
+      line="Follow the cursor: in the striped gaps between tabs, a typical bar hovers nothing."
+      before={<Tabs flush={false} sweeping={playing} onReal={stop} />}
+      after={<Tabs flush sweeping={playing} onReal={stop} />}
+    />
   );
 }

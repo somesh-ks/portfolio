@@ -177,6 +177,20 @@
         "colorSpace": "oklch",
         "components": [1, 0, 0]
       }
+    },
+    "blue": {
+      "300": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.76, 0.11, 255]
+        }
+      },
+      "600": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.55, 0.17, 255]
+        }
+      }
     }
   },
   "space": {
