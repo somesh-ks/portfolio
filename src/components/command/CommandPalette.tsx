@@ -8,6 +8,7 @@ import { PROFILE } from "@content/profile";
 import { useSound } from "@/components/providers/SoundProvider";
 import type { Route } from "next";
 import { Kbd } from "@/components/ui/Kbd";
+import { playedSince } from "@/lib/ui-audio";
 import { switchTheme, THEME_LABELS, THEMES } from "@/lib/theme-switch";
 import type { CommandLink } from "./items";
 
@@ -107,7 +108,10 @@ export default function CommandPalette({
                 if (event.nativeEvent.isComposing) return;
                 if (event.key === "Enter") {
                   event.preventDefault();
+                  // Enter has no click to tap on; skip it when the row made its own sound.
+                  const before = performance.now();
                   choose(shown[0]);
+                  if (shown[0] && !playedSince(before)) sound.play("tap");
                 } else move(event, -1);
               }}
             />

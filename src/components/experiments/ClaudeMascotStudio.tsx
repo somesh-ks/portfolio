@@ -126,6 +126,7 @@ export function ClaudeMascotStudio() {
         <button
           type="button"
           className="button pressable"
+          data-sound="none"
           onClick={async () => {
             await navigator.clipboard.writeText(markup);
             setCopied(true);
