@@ -56,7 +56,7 @@
   html {
     /* Height of the fixed SiteBar; anchors and focus land below it. */
     --site-bar-height: 3.25rem;
-    scroll-padding-top: var(--site-bar-height);
+    scroll-padding-top: calc(var(--site-bar-height) + env(safe-area-inset-top));
     background: var(--surface-canvas);
     color: var(--text-primary);
     font-family: var(--font-sans);
