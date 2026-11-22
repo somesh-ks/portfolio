@@ -222,6 +222,177 @@ claude-mascot:defined > * {
   font-size: var(--step-sm);
 }
 
+/* ---------- Claude runner ---------- */
+.runner {
+  margin-block: var(--space-12);
+  border-radius: var(--radius-xl);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding: var(--space-2);
+}
+.runner__screen {
+  position: relative;
+  /* Multiples of 64px keep the 64-cell world on whole pixels. */
+  height: 12rem;
+  overflow: hidden;
+  border-radius: calc(var(--radius-xl) - var(--space-2));
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 1px var(--border-subtle),
+    0 1px 2px var(--shadow-soft);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.runner__canvas,
+.runner__static {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.runner__static {
+  background: var(--surface-raised);
+}
+.runner__hud {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.runner__best {
+  color: var(--text-secondary);
+}
+.runner__prompt,
+.runner__over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+}
+.runner__over {
+  background: color-mix(in oklch, var(--surface-raised) 72%, transparent);
+  cursor: default;
+}
+.runner__hint {
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+}
+.runner__result {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-variant-numeric: tabular-nums;
+}
+.runner__result strong {
+  color: var(--text-primary);
+  font-size: var(--step-lg);
+  font-weight: 500;
+}
+.runner__board {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+}
+.runner__board li:first-child {
+  color: var(--text-accent);
+}
+.runner__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--step-sm);
+}
+.runner__form label {
+  color: var(--text-secondary);
+}
+.runner__initials {
+  width: 4.5rem;
+  min-height: 2.75rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
+  color: var(--input-fg);
+  box-shadow: inset 0 0 0 1px var(--input-border);
+  font-family: var(--font-mono);
+  font-size: max(16px, var(--step-base));
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.runner__error {
+  width: 100%;
+  color: var(--text-danger);
+}
+.runner__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1) var(--space-1) var(--space-2);
+}
+.runner__caption {
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+}
+
+/* Fullscreen (API) and the iPhone fallback overlay share one layout. */
+.runner:fullscreen,
+.runner[data-immersive] {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-radius: 0;
+  padding: max(var(--space-2), env(safe-area-inset-top))
+    max(var(--space-2), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom))
+    max(var(--space-2), env(safe-area-inset-left));
+  background: var(--surface-sunken);
+}
+.runner[data-immersive] {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  height: 100dvh;
+}
+.runner:fullscreen .runner__screen,
+.runner[data-immersive] .runner__screen {
+  flex: 1;
+  height: auto;
+}
+:root.runner-lock,
+:root.runner-lock body {
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .runner__screen {
+    height: 16rem;
+  }
+}
+
 /* ---------- Controls ---------- */
 .icon-button {
   display: inline-grid;

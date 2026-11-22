@@ -323,6 +323,15 @@
         }
       }
     },
+    "mascot-shade": {
+      "$value": "{color.clay.600}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.600}",
+          "dark": "{color.clay.600}"
+        }
+      }
+    },
     "grid": {
       "$value": {
         "colorSpace": "oklch",

@@ -33,6 +33,19 @@ test("home to experiment to case study, with no console errors", async ({ page }
   expect(errors).toEqual([]);
 });
 
+test("the hero runner plays, crashes and offers a rematch", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  const runner = page.locator(".runner");
+  await runner.getByRole("button", { name: "Play" }).click();
+  await expect(runner.locator(".runner__hud")).toContainText(/0000[1-9]|000[1-9]\d/);
+  await expect(runner.getByRole("button", { name: "Play again" })).toBeFocused({ timeout: 20_000 });
+  await expect(runner.locator(".runner__result")).toContainText(/\d+/);
+  // No Redis in tests: the leaderboard stays hidden and nothing errors.
+  await expect(runner.getByLabel("Your initials")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("locked case study: wrong password, right password, survives reload", async ({ page }) => {
   await page.goto("/work/royc");
   const body = page.locator("body");

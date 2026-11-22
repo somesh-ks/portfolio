@@ -80,6 +80,7 @@
   --illustration-grid: oklch(50% 0.01 75 / 0.18);
   --illustration-mascot: var(--color-clay-500);
   --illustration-mascot-ink: var(--color-sand-975);
+  --illustration-mascot-shade: var(--color-clay-600);
   --input-bg: var(--surface-raised);
   --input-border: var(--border-strong);
   --input-fg: var(--text-primary);
@@ -137,6 +138,7 @@
   --illustration-grid: oklch(80% 0.01 75 / 0.16);
   --illustration-mascot: var(--color-clay-500);
   --illustration-mascot-ink: var(--color-sand-975);
+  --illustration-mascot-shade: var(--color-clay-600);
   --selection-bg: oklch(76% 0.115 40 / 0.3);
   --shadow-soft: oklch(0% 0 0 / 0.4);
   --shadow-strong: oklch(0% 0 0 / 0.55);
