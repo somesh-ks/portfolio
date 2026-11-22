@@ -65,10 +65,9 @@ export type CompanyId = keyof typeof COMPANIES;
  * web and as plain text in Markdown exports.
  */
 export const BIO = [
-  "I'm a senior product designer and strategy lead at {company:netlight}, where I've shipped for {company:bmw}, the {company:wfp} and {company:royc}. I'm also a Claude Ambassador at {company:anthropic}, running the AI for Designers community, and a Stripe Ambassador, building the startup community.",
-  "Before Netlight I designed for {company:luminovo}, {company:oyo} and HackerRank, and in 2020 I won the MIT Bitcoin hackathon with a zero-knowledge login.",
-  "Across 10+ companies that adds up to $1.5M+ in cost savings, 10+ enterprise clients won, and products used by 3M+ people in 22 countries. A few I'm proud of: a CRM at OYO that folded seven tools into one and saves $1.2M a year, a mobile flow that cut the World Food Programme's school meal reporting time by 60%, and Dimension 4, a Figma design library with 2,000+ downloads.",
-  "Now I'm working out what a design system needs so coding agents can build with it well.",
+  "Senior product designer at {company:netlight}, shipping for {company:bmw}, the {company:wfp} and {company:royc}. Claude Ambassador at {company:anthropic}. Stripe Ambassador.",
+  "Before that: {company:luminovo}, {company:oyo}, HackerRank. Won the MIT Bitcoin hackathon in 2020.",
+  "$1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
 ] as const;
 
 export const PROFILE = {

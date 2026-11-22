@@ -173,22 +173,16 @@ main:focus {
 }
 
 /* ---------- Mascot stage ---------- */
+/* Frames are flat: hairlines top and bottom, full column width, one box at most. */
 .stage {
   margin-block: var(--space-12);
-  border-radius: var(--radius-xl);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  padding: var(--space-2);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border-subtle);
 }
 .stage__canvas {
   display: grid;
   place-items: center;
   height: 13rem;
-  border-radius: calc(var(--radius-xl) - var(--space-2));
-  background: var(--surface-raised);
-  box-shadow:
-    0 0 0 1px var(--border-subtle),
-    0 1px 2px var(--shadow-soft);
 }
 .stage__canvas--large {
   height: 18rem;
@@ -223,14 +217,13 @@ claude-mascot:defined > * {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-1) var(--space-1);
+  padding-top: var(--space-2);
 }
 .stage__tools {
   display: flex;
   gap: var(--space-1);
 }
 .stage__caption {
-  padding: 0 var(--space-2) var(--space-1);
   color: var(--text-secondary);
   font-size: var(--step-sm);
 }
@@ -674,10 +667,8 @@ claude-mascot:defined > * {
 /* ---------- Toys (shared) ---------- */
 .toy {
   margin-block: var(--space-8);
-  padding: var(--space-2);
-  border-radius: var(--radius-xl);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border-subtle);
 }
 .toy > * + * {
   margin-top: var(--space-2);
@@ -692,10 +683,9 @@ claude-mascot:defined > * {
 .toy__status {
   color: var(--text-secondary);
   font-size: var(--step-sm);
-  padding-inline: var(--space-2);
 }
 .toy__caption {
-  padding: var(--space-1) var(--space-2) 0;
+  padding-top: var(--space-1);
   color: var(--text-secondary);
   font-size: var(--step-sm);
   line-height: 1.5;
@@ -706,7 +696,6 @@ claude-mascot:defined > * {
   gap: var(--space-2);
 }
 .toy__details {
-  padding: 0 var(--space-2);
   font-size: var(--step-sm);
   color: var(--text-secondary);
 }
