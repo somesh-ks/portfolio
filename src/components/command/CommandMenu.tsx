@@ -1,6 +1,5 @@
 "use client";
 
-import { Search } from "lucide-react";
 import { type ComponentType, lazy, Suspense, useEffect, useState } from "react";
 import type { CommandLink } from "./items";
 
@@ -55,8 +54,7 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
           setOpen(true);
         }}
       >
-        <Search aria-hidden="true" size={16} strokeWidth={1.75} />
-        <span className="sr-only">Jump to a page</span>
+        <span aria-hidden="true">&gt;</span> jump<span className="sr-only"> to a page</span>
         <kbd aria-hidden="true">⌘K</kbd>
       </button>
       {used ? (
