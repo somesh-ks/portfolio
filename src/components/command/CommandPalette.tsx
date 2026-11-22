@@ -8,6 +8,7 @@ import { PROFILE } from "@content/profile";
 import { useSound } from "@/components/providers/SoundProvider";
 import type { Route } from "next";
 import { Kbd } from "@/components/ui/Kbd";
+import { switchTheme, THEME_LABELS, THEMES } from "@/lib/theme-switch";
 import type { CommandLink } from "./items";
 
 const openMail = () => window.location.assign(`mailto:${PROFILE.email}`);
@@ -28,17 +29,21 @@ export default function CommandPalette({
   links: CommandLink[];
 }) {
   const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  // The two modes you're not in, the one that flips the page first.
+  const flip = resolvedTheme === "dark" ? "light" : "dark";
+  const modes = THEMES.filter((mode) => mode !== (theme ?? "system")).toSorted(
+    (a, b) => Number(b === flip) - Number(a === flip),
+  );
   const sound = useSound();
-  const dark = resolvedTheme === "dark";
 
   const rows: Row[] = [
     ...links.map((link) => ({ ...link, run: () => router.push(link.href as Route) })),
-    {
-      label: dark ? "Light theme" : "Dark theme",
+    ...modes.map((mode) => ({
+      label: THEME_LABELS[mode],
       group: "Actions",
-      run: () => setTheme(dark ? "light" : "dark"),
-    },
+      run: () => switchTheme(setTheme, mode),
+    })),
     { label: sound.enabled ? "Mute sound" : "Sound on", group: "Actions", run: sound.toggle },
     {
       label: "Copy email",

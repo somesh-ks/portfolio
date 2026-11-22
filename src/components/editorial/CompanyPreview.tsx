@@ -49,17 +49,11 @@ export function CompanyPreview({
                 alt=""
                 width={560}
                 height={350}
-                sizes="272px"
+                sizes="240px"
                 className="company-card__thumb"
               />
             ) : null}
-            <div className="company-card__body">
-              <Popover.Title className="company-card__name">{company.name}</Popover.Title>
-              <Popover.Description className="company-card__about">
-                {company.about}
-              </Popover.Description>
-              <p className="company-card__relation">{company.relation}</p>
-            </div>
+            <Popover.Title className="company-card__name">{company.name}</Popover.Title>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

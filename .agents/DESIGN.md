@@ -185,7 +185,7 @@ Decision order: entering/exiting → `ease-out` · on-screen movement → `ease-
 | Modals, drawers | 200–300ms |
 | Stagger interval between entering items | 30–80ms |
 
-The single documented exception: a full-height drawer using `--ease-drawer` may run to 500ms, because the curve spends most of that time near its endpoint. Nothing else crosses 300ms.
+One documented exception: a full-height drawer using `--ease-drawer` may run to 500ms, because the curve spends most of that time near its endpoint. The theme switch's pixel dissolve (`--duration-theme`, 480ms) is the second, approved by Somesh: it plays once per explicit theme change and the page stays readable throughout. Nothing else crosses 300ms.
 
 ### Physicality & Origin
 

@@ -6,7 +6,7 @@
  */
 import { PROFILE, plainBio } from "@content/profile";
 import {
-  BEYOND_WORK,
+  COMMUNITY,
   EDUCATION,
   EXPERIENCE,
   RESUME_PDF_URL,
@@ -79,7 +79,7 @@ function homeMarkdown(): string {
     entriesOf("experiment")
       .map((entry) => listLine(entry))
       .join("\n"),
-    "## Case studies",
+    "## Writing",
     caseStudies
       .map((entry) =>
         listLine(entry, entry.meta.protected ? " (summary only, full study under NDA)" : ""),
@@ -137,11 +137,8 @@ function resumeMarkdown(): string {
     [
       `### ${role.title}, ${role.organisation}`,
       `${role.period} · ${role.location}`,
-      ...role.projects.map((project) =>
-        [
-          `#### ${project.name}: ${project.context}`,
-          ...project.points.map((point) => `- **${point.label}:** ${point.text}`),
-        ].join("\n"),
+      ...role.projects.map(
+        (project) => `- **${project.name}** (${project.context}): ${project.outcome}`,
       ),
     ].join("\n\n"),
   );
@@ -155,8 +152,8 @@ function resumeMarkdown(): string {
     EDUCATION.map((item) => `- ${item.degree}, ${item.school}`).join("\n"),
     "## Skills",
     SKILLS.map((skill) => `- **${skill.area}:** ${skill.items}`).join("\n"),
-    "## Beyond work",
-    BEYOND_WORK.map((item) => `- **${item.label}:** ${item.text}`).join("\n"),
+    "## Community",
+    COMMUNITY.map((item) => `- ${item}`).join("\n"),
     "",
   ].join("\n\n");
 }

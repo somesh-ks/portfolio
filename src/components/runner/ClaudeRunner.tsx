@@ -7,9 +7,9 @@
  *
  * The server renders a static frame; the canvas engine loads on the first
  * start, so the page stays light until someone plays.
- * Keys while the game has focus: Space/ArrowUp jump, C character,
- * F fullscreen, M sound. Space also starts it while it's on screen and
- * nothing else has focus. Touch: tap to jump.
+ * A click or tap starts a run (Space on the page never does: it scrolls).
+ * Keys while the game has focus: Enter/Space/ArrowUp start and jump,
+ * C character, F fullscreen, M sound. Touch: tap to jump.
  */
 import {
   useCallback,
@@ -20,6 +20,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
+import { Maximize2, Minimize2, Shuffle, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -124,12 +125,13 @@ function StaticFrame() {
   );
 }
 
-/** The shared keycap with a keyboard, "TAP" on touch; CSS picks one. */
-function Key({ keyName, touch }: { keyName: string; touch?: string }) {
+/** The shared keycap with a keyboard, "TAP" on touch; CSS picks one.
+ * `click` swaps the keycap for a word, for actions that start with a click. */
+function Key({ keyName, touch, click }: { keyName?: string; touch?: string; click?: string }) {
   return (
     <>
       <span className="runner__key" data-input="keys">
-        <Kbd>{keyName}</Kbd>
+        {click ?? <Kbd>{keyName}</Kbd>}
       </span>
       {touch ? (
         <span className="runner__key" data-input="touch">
@@ -334,39 +336,6 @@ export function ClaudeRunner() {
     play("tick");
   }, [chooseCostume, ensureEngine, play]);
 
-  // Space on the page starts the game while it's on screen, instead of
-  // scrolling past it. Only when nothing else has focus.
-  const pressRef = useRef(press);
-  useEffect(() => {
-    pressRef.current = press;
-  }, [press]);
-  useEffect(() => {
-    const element = frame.current;
-    if (!element) return;
-    let inView = false;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        inView = Boolean(entry?.isIntersecting);
-      },
-      { threshold: 0.6 },
-    );
-    observer.observe(element);
-    const onKey = (event: KeyboardEvent) => {
-      const idle = event.target === document.body || event.target === document.documentElement;
-      if (!inView || !idle || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key !== " " && event.key !== "ArrowUp") return;
-      event.preventDefault();
-      setInput("keys");
-      screen.current?.focus({ preventScroll: true });
-      if (!event.repeat) pressRef.current();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("keydown", onKey);
-    };
-  }, []);
-
   // Fullscreen where the browser supports it (desktop, Android); a fixed
   // overlay elsewhere (iPhone Safari only allows fullscreen video).
   const toggleFullscreen = useCallback(async () => {
@@ -459,7 +428,7 @@ export function ClaudeRunner() {
         tabIndex={0}
         role="application"
         aria-roledescription="game"
-        aria-label="Press Space to jump. C changes costume, F fullscreen, M sound."
+        aria-label="Click or press Enter to play, Space to jump. C changes costume, F fullscreen, M sound."
         onPointerDown={(event) => {
           if (event.button !== 0 || (event.target as HTMLElement).closest("button, input, form"))
             return;
@@ -488,7 +457,7 @@ export function ClaudeRunner() {
             onClick={() => void startRun()}
             disabled={phase === "loading"}
           >
-            <Key keyName="SPACE" touch="TAP TO" /> PLAY
+            <Key click="CLICK TO" touch="TAP TO" /> PLAY
           </button>
         ) : null}
 
@@ -541,7 +510,7 @@ export function ClaudeRunner() {
               className="runner__action"
               onClick={() => ready && void startRun()}
             >
-              <Key keyName="SPACE" touch="TAP TO" /> RETRY
+              <Key click="CLICK TO" touch="TAP TO" /> RETRY
             </button>
           </div>
         ) : null}
@@ -549,7 +518,10 @@ export function ClaudeRunner() {
 
       <div className="runner__foot">
         <button type="button" className="runner__action" onClick={cycleCostume}>
-          <Key keyName="C" /> CHANGE CHARACTER
+          <Shuffle aria-hidden="true" size={18} className="runner__icon" />
+          <span className="runner__label">
+            <Key keyName="C" /> CHANGE CHARACTER
+          </span>
         </button>
         <span className="runner__spacer" />
         <button
@@ -558,7 +530,14 @@ export function ClaudeRunner() {
           aria-pressed={expanded}
           onClick={() => void toggleFullscreen()}
         >
-          <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
+          {expanded ? (
+            <Minimize2 aria-hidden="true" size={18} className="runner__icon" />
+          ) : (
+            <Maximize2 aria-hidden="true" size={18} className="runner__icon" />
+          )}
+          <span className="runner__label">
+            <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
+          </span>
         </button>
         <button
           type="button"
@@ -566,7 +545,14 @@ export function ClaudeRunner() {
           aria-pressed={soundOn}
           onClick={toggleSound}
         >
-          <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
+          {soundOn ? (
+            <Volume2 aria-hidden="true" size={18} className="runner__icon" />
+          ) : (
+            <VolumeX aria-hidden="true" size={18} className="runner__icon" />
+          )}
+          <span className="runner__label">
+            <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
+          </span>
         </button>
       </div>
       <p className="sr-only" aria-live="polite">

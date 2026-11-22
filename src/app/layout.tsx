@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/editorial/SiteHeader";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { personGraph, serializeJsonLd } from "@/lib/schema-org";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL, THEME_COLOR } from "@/lib/site";
 import "@/styles/globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -33,11 +33,11 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-// Browser chrome colours mirror surface.canvas (tokens/semantic.json); metadata needs literals.
+// Browser chrome follows the OS here; ThemeFavicon retints it when the visitor picks a theme.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfbf9" },
-    { media: "(prefers-color-scheme: dark)", color: "#121110" },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
   ],
   viewportFit: "cover",
   colorScheme: "light dark",
