@@ -1,6 +1,6 @@
 /**
  * Resume, transcribed from Somesh's LaTeX source. Phone number, email and
- * home details are left out on purpose; the PDF (built from resume/resume.tex) has email and links but no phone.
+ * home details are left out on purpose; the PDF is built from resume/resume.tex on deploy and has no phone.
  */
 export const RESUME_PDF_URL = "/resume.pdf";
 
