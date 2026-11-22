@@ -13,7 +13,8 @@ Somesh made these calls. They win over the general guidance further down this fi
 
 - **Look:** a neutral black and white canvas in the style of claude.dev. Use mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines and a terminal feel. Borrow the structure, never Anthropic's fonts, mascot, orange or wording.
 - **No box inside a box.** Sections are separated by hairlines and space. Don't add a filled or bordered card inside another frame. Hairlines replace the shadows described under "Shadows over Borders" below.
-- **Full bleed media.** Case study figures and videos run edge to edge on phones and 4rem past the text column on wide screens.
+- **No AI-slop patterns.** No pill tag or badge stacked over a title, no tinted chips used as decoration, no gradient heroes, no emoji markers. If a label is needed, use a plain mono meta line.
+- **Full bleed media, one left edge.** Case study figures and videos run edge to edge on phones. On wide screens they extend 8rem to the right of the text column, but their left edge always lines up with the text, so no heading or paragraph ever looks indented.
 - **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon, never in text. Body text is a flat 14px.
 - **Copy:** brief, at Salaja's level. List subtitles stay around the length of "A design system written for coding agents."
 - **Modes:** mobile first. Light and dark get equal care.

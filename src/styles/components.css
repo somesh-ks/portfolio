@@ -1221,8 +1221,9 @@ claude-mascot:defined > * {
   border-radius: var(--radius-lg);
 }
 
-/* Media is full bleed: edge to edge on phones, 4rem past the text column on
-   wide screens (narrow enough to clear the outline rail). Toys stay inset on
+/* Media is full bleed: edge to edge on phones, and 8rem past the text column's
+   right edge on wide screens. The left edge always lines up with the text, so
+   headings and body never look indented under a wider figure. Toys stay inset on
    phones so their controls never touch the bezel or the back-swipe edge. */
 .prose {
   counter-reset: fig;
@@ -1244,10 +1245,10 @@ claude-mascot:defined > * {
     padding-inline: var(--space-4);
   }
 }
-@media (min-width: 52rem) {
+@media (min-width: 60rem) {
   .prose > .figure,
   .prose > .toy {
-    margin-inline: -4rem;
+    margin-right: -8rem;
   }
 }
 
@@ -1429,15 +1430,6 @@ claude-mascot:defined > * {
   background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
 }
-.agentic-scene--gated .agentic-card__badge {
-  justify-self: start;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--accent-tint);
-  color: var(--text-accent);
-  font-size: var(--step-xs);
-  font-weight: 500;
-}
 .agentic-scene--gated .agentic-card__title {
   font-size: var(--step-base);
   font-weight: 600;
@@ -1476,14 +1468,6 @@ claude-mascot:defined > * {
   border: 1px solid #e5e5e5;
   color: #111;
   font-family: Arial, sans-serif;
-}
-.agentic-scene--naive .agentic-card__badge {
-  justify-self: start;
-  padding: 2px 9px;
-  border-radius: 3px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 11px;
 }
 .agentic-scene--naive .agentic-card__title {
   font-size: 17px;
