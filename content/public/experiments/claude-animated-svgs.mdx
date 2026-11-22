@@ -1,0 +1,22 @@
+---
+title: Claude Mascot Studio
+slug: claude-animated-svgs
+kind: experiment
+order: 1
+summary: A mascot drawn from rectangles alone, animated in real time and exportable as animated SVG, Lottie, a Web Component or video.
+publishedAt: 2026-07-01
+tags: [svg, animation, web components]
+stack: [SVG, Web Components, WebCodecs]
+---
+
+The mascot has no image files. It is a grid of rectangles, and every animation is a function from time to a set of rectangles. That model is small enough to inspect, which is the point: switch on the grid and you see exactly what the renderer sees.
+
+<ClaudeMascotStudio />
+
+Because the model is just rects, the same animation can leave the browser in several shapes. An animated SVG respects `prefers-reduced-motion` on its own. A Lottie file goes to motion designers. A `<claude-mascot>` element drops into any page with no framework. WebCodecs turns it into an MP4 for slides.
+
+## What I learned
+
+- **Constraints make the style.** Rectangles force a pixel-art look, and the look forgives a lot. A blink is two rows changing colour.
+- **Reduced motion is a design choice, not a switch.** With reduced motion on, the mascot still changes expression. It just stops moving across the stage.
+- **Sound needs consent.** The click is muted until you turn it on, and the audio context only starts after that tap.

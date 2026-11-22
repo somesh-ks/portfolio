@@ -1,0 +1,20 @@
+---
+title: OKLCH Token & Contrast Inspector
+slug: oklch-token-inspector
+kind: experiment
+order: 2
+summary: Pick a hue and chroma, get an 11-step perceptual colour ramp, and see which text and surface pairs pass WCAG 2.2 AA as you drag.
+publishedAt: 2026-08-15
+tags: [color, design tokens, accessibility]
+stack: [OKLCH, W3C design tokens, WCAG 2.2]
+---
+
+HSL lies about lightness. A yellow and a blue at the same HSL lightness look nothing alike, so a palette built in HSL needs hand-tuning at every step. OKLCH fixes that: equal steps in L look like equal steps to a person, which makes a ramp you can generate rather than paint.
+
+<OklchTokenInspector />
+
+The inspector builds the ramp the way this site's tokens are built. It fixes the lightness for each step, eases chroma down towards the ends so colours stay inside the sRGB gamut, and measures every foreground and background pair against 4.5:1 for text and 3:1 for interface parts. When a pair fails, it says so in words, not only in red.
+
+## Why this matters for a design system
+
+A ramp that is generated can be regenerated. Change the brand hue and every step, every semantic role and every contrast check follows. This site's tokens run the same check in CI, so a colour change that breaks contrast never ships.
