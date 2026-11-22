@@ -7,7 +7,7 @@ ROYC and Luminovo are under NDA. The repo holds only their public teasers (`cont
 | Variable                                                           | Purpose                                                                                       |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | `PORTFOLIO_PASSWORD_HASH`                                          | scrypt hash of the shared password. Create with `bun run auth:hash "<password>"`.             |
-| `PORTFOLIO_PASSWORD_ROYC_HASH`, `PORTFOLIO_PASSWORD_LUMINOVO_HASH` | Optional per-study passwords. They override the shared one for that study.                    |
+| `PORTFOLIO_PASSWORD_ROYC_HASH`, `PORTFOLIO_PASSWORD_LUMINOVO_HASH` | Optional per-study passwords. Each opens only its study; the shared one still opens both.     |
 | `PORTFOLIO_COOKIE_SECRET`                                          | 32+ random bytes, base64 (`openssl rand -base64 32`). Rotating it signs everyone out.         |
 | `PROTECTED_CONTENT_SOURCE`                                         | A directory (default `content/protected`, gitignored) or an https base URL.                   |
 | `PROTECTED_CONTENT_TOKEN`                                          | Bearer token for the https source; falls back to `BLOB_READ_WRITE_TOKEN` for Blob hosts only. |
