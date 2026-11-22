@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
+import { AsciiEmpty } from "@/components/ui/AsciiEmpty";
 
 interface Step {
   kind: "plan" | "tool" | "result" | "gate" | "answer";
@@ -209,7 +210,11 @@ export function AgenticStreamDemo() {
             Spinner, then a wall
           </h3>
           <div className="stream__body">
-            {state.naive === "idle" ? <p className="stream__empty">Nothing yet.</p> : null}
+            {state.naive === "idle" ? (
+              <AsciiEmpty art="idle" size="sm">
+                Nothing yet.
+              </AsciiEmpty>
+            ) : null}
             {state.naive === "spinning" ? (
               <p className="stream__spinner">
                 <LoaderCircle aria-hidden="true" size={18} className="spin" />
@@ -225,7 +230,13 @@ export function AgenticStreamDemo() {
             Staged, stoppable, gated
           </h3>
           <ol className="stream__steps">
-            {state.status === "idle" ? <li className="stream__empty">Nothing yet.</li> : null}
+            {state.status === "idle" ? (
+              <li>
+                <AsciiEmpty art="idle" size="sm">
+                  Nothing yet.
+                </AsciiEmpty>
+              </li>
+            ) : null}
             {steps.map((step, index) => {
               const isLast = index === steps.length - 1;
               const isGate = step.kind === "gate";

@@ -9,6 +9,8 @@
   --accent-tint: oklch(50% 0.145 40 / 0.1);
   --border-default: oklch(20% 0.01 75 / 0.13);
   --border-image: oklch(0% 0 0 / 0.1);
+  /* Underline under inline links: quiet at rest, full text colour on hover. */
+  --border-link: oklch(20% 0.01 75 / 0.35);
   --border-strong: var(--color-sand-500);
   --border-subtle: oklch(20% 0.01 75 / 0.08);
   --button-bg: var(--surface-raised);
@@ -62,17 +64,17 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --focus-ring: var(--color-clay-600);
-  --font-size-2xl-max: 2.125rem;
-  --font-size-2xl-min: 1.5rem;
-  --font-size-base-max: 1.0625rem;
-  --font-size-base-min: 0.9375rem;
-  --font-size-lg-max: 1.25rem;
-  --font-size-lg-min: 1.0625rem;
-  --font-size-sm-max: 0.875rem;
+  --font-size-2xl-max: 1.625rem;
+  --font-size-2xl-min: 1.375rem;
+  --font-size-base-max: 0.875rem;
+  --font-size-base-min: 0.875rem;
+  --font-size-lg-max: 1rem;
+  --font-size-lg-min: 0.9375rem;
+  --font-size-sm-max: 0.8125rem;
   --font-size-sm-min: 0.8125rem;
-  --font-size-xl-max: 1.625rem;
-  --font-size-xl-min: 1.25rem;
-  --font-size-xs-max: 0.8125rem;
+  --font-size-xl-max: 1.25rem;
+  --font-size-xl-min: 1.125rem;
+  --font-size-xs-max: 0.75rem;
   --font-size-xs-min: 0.75rem;
   --font-weight-medium: 500;
   --font-weight-regular: 400;
@@ -131,6 +133,8 @@
   --button-border: var(--border-default);
   --chip-border: var(--border-default);
   --border-image: oklch(100% 0 0 / 0.1);
+  /* Underline under inline links: quiet at rest, full text colour on hover. */
+  --border-link: oklch(100% 0 0 / 0.4);
   --border-strong: var(--color-sand-500);
   --border-subtle: oklch(100% 0 0 / 0.07);
   --focus-ring: var(--color-clay-400);

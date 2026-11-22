@@ -5,8 +5,8 @@ import { CompanyPreview } from "./CompanyPreview";
 
 const TOKEN = /\{company:([a-z]+)\}/g;
 
-function hasThumbnail(id: string): boolean {
-  return existsSync(path.join(process.cwd(), "public", "previews", `${id}.webp`));
+function hasFile(...segments: string[]): boolean {
+  return existsSync(path.join(process.cwd(), "public", ...segments));
 }
 
 export function Bio() {
@@ -21,7 +21,12 @@ export function Bio() {
               if (index % 2 === 0) return part;
               const company = COMPANIES[part as CompanyId];
               return company ? (
-                <CompanyPreview key={part} company={company} thumbnail={hasThumbnail(part)} />
+                <CompanyPreview
+                  key={part}
+                  company={company}
+                  thumbnail={hasFile("previews", `${part}.webp`)}
+                  logo={hasFile("logos", `${part}.png`)}
+                />
               ) : (
                 part
               );
