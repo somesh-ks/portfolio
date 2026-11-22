@@ -8,6 +8,9 @@
  * While sound is on, one window listener gives every link, button and summary
  * a soft tap. A component that plays its own sound in that click wins, and
  * `data-sound="none"` (or another sound name) on an element overrides the tap.
+ *
+ * The synth (ui-audio) loads as its own chunk right after hydration, off the
+ * critical path; nothing can play before the first gesture anyway.
  */
 import {
   createContext,
@@ -19,7 +22,16 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { play as playNow, playedSince, sleep, unlock, type SoundName } from "@/lib/ui-audio";
+import type { SoundName } from "@/lib/ui-audio";
+
+type Audio = typeof import("@/lib/ui-audio");
+let audio: Audio | null = null;
+let loading: Promise<Audio> | null = null;
+function loadAudio(): Promise<Audio> {
+  loading ??= import("@/lib/ui-audio").then((m) => (audio = m));
+  return loading;
+}
+const playNow = (name: SoundName) => audio?.play(name);
 
 export type { SoundName };
 
@@ -73,7 +85,7 @@ function subscribe(listener: () => void) {
 
 function onClick(event: MouseEvent) {
   // Something in this click already made a sound (a toy, the runner, the toggle).
-  if (playedSince(event.timeStamp)) return;
+  if (audio?.playedSince(event.timeStamp)) return;
   // The path, not target.closest(): a handler may have swapped the clicked icon out already.
   const target = event
     .composedPath()
@@ -89,7 +101,8 @@ export function SoundProvider({ children }: { children: ReactNode }) {
 
   // Let the context sleep while the tab is hidden, muted or not.
   useEffect(() => {
-    const onVisibility = () => (document.hidden ? sleep() : undefined);
+    void loadAudio();
+    const onVisibility = () => (document.hidden ? audio?.sleep() : undefined);
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
@@ -98,7 +111,7 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     enabledRef.current = enabled;
     if (!enabled) return;
     // Wake the context on the first gesture of a remembered visit.
-    const wake = () => unlock();
+    const wake = () => audio?.unlock();
     // Bubble phase on window: React's handlers (on the document) run first.
     for (const type of WAKE_EVENTS)
       window.addEventListener(type, wake, { capture: true, passive: true });
