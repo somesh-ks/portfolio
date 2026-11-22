@@ -37,12 +37,11 @@ test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
   const runner = page.locator(".runner");
-  // Space on the page starts the game in view instead of scrolling past it.
+  // Space on the page scrolls as usual; a click on the game starts it.
   await runner.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  const scrolled = await page.evaluate(() => window.scrollY);
-  await page.keyboard.press("Space");
+  await expect(runner.locator(".runner__prompt")).toContainText(/(CLICK|TAP) TO PLAY/);
+  await runner.locator(".runner__screen").click();
   await expect(runner.locator(".runner__prompt")).toHaveCount(0);
-  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
   await expect(runner.locator(".runner__score")).toContainText(/0000[1-9]|000[1-9]\d/);
   await expect(runner.locator(".runner__over")).toBeVisible({ timeout: 20_000 });
   await expect(runner.locator(".runner__final")).toHaveText(/^\d{5}$/);
