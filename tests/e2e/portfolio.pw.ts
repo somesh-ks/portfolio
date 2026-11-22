@@ -155,6 +155,9 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   const first = await page.getByRole("option").first().textContent();
   await input.press("ArrowDown");
   await expect(page.getByRole("option").nth(1)).toHaveAttribute("data-highlighted", "");
+  // Accents match like Base UI's own filter: "résumé" finds Resume.
+  await input.fill("résumé");
+  await expect(page.getByRole("option")).toHaveText([/Resume/]);
   await input.fill("zzz");
   await expect(page.getByRole("option")).toHaveCount(0);
   await expect(page.getByText("no match", { exact: true })).toBeVisible();

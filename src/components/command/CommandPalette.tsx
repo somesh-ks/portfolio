@@ -69,8 +69,10 @@ export default function CommandPalette({
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const items = useMemo(() => rows.map(({ label, group }) => ({ label, group })), [key]);
   const [query, setQuery] = useState("");
-  const q = query.trim().toLowerCase();
-  const shown = q ? items.filter((item) => item.label.toLowerCase().includes(q)) : items;
+  // One filter for the list and the live count, so "résumé" both shows and announces Resume.
+  const { contains } = Autocomplete.useFilter();
+  const q = query.trim();
+  const shown = q ? items.filter((item) => contains(item.label, q)) : items;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const choose = (label: string) => {
@@ -99,6 +101,7 @@ export default function CommandPalette({
             open
             inline
             items={items}
+            filteredItems={shown}
             itemToStringValue={(item: Item) => item.label}
             autoHighlight="always"
             keepHighlight
