@@ -319,9 +319,11 @@ claude-mascot:defined > * {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Safe: a tall panel scrolls from the top instead of clipping both ends. */
+  justify-content: safe center;
   gap: var(--space-2);
   padding: var(--space-3);
+  overflow-y: auto;
   background: color-mix(in oklch, var(--surface-raised) 80%, transparent);
   cursor: default;
 }
@@ -457,6 +459,13 @@ claude-mascot:defined > * {
 @media (max-width: 519px) {
   /* Phones: the score needs the bar more than the title does. */
   .runner__title {
+    display: none;
+  }
+}
+@media (max-width: 639px) {
+  /* The short phone screen fits a top 3, and the name field replaces it. */
+  .runner__board li:nth-child(n + 4),
+  .runner__over:has(.runner__form) .runner__board {
     display: none;
   }
 }
