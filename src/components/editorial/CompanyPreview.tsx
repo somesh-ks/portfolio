@@ -8,6 +8,7 @@
  */
 import { Popover } from "@base-ui/react/popover";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import type { Company } from "@content/profile";
 import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -18,8 +19,8 @@ export function CompanyPreview({
 }: {
   company: Company;
   thumbnail: boolean;
-  /** Draws the mark from the page's LogoSprite. */
-  logo: boolean;
+  /** Inline SVG from CompanyLogo, rendered on the server; null when none. */
+  logo: ReactNode;
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
   // The card's image only mounts when the popover opens. Start the fetch on
@@ -39,16 +40,7 @@ export function CompanyPreview({
         onPointerEnter={warm}
         onFocus={warm}
       >
-        {logo ? (
-          <svg
-            aria-hidden="true"
-            focusable="false"
-            fill="currentColor"
-            className="company-pill__logo"
-          >
-            <use href={`#logo-${company.id}`} />
-          </svg>
-        ) : null}
+        {logo}
         {company.name}
       </Popover.Trigger>
       <Popover.Portal>

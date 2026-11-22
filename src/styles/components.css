@@ -106,7 +106,7 @@ main:focus {
     text-decoration-color: var(--text-primary);
   }
 }
-/* Inline SVG icon from LogoSprite. Inline-block so the underline skips it; 1em tracks the text size. */
+/* Inline SVG icon from CompanyLogo. Inline-block so the underline skips it; 1em tracks the text size. */
 .company-pill__logo {
   display: inline-block;
   width: 1em;
