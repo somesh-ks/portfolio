@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { hasAccess, SESSION_COOKIE } from "@/lib/auth";
+import { parseRange } from "@/lib/byte-range";
 import { isMediaFileName, loadProtectedMedia } from "@/lib/protected-source";
 import { isLockedSlug } from "@/lib/site";
 
@@ -25,12 +26,33 @@ export async function GET(
   }
   const media = await loadProtectedMedia(slug, file);
   if (!media) return new Response("Not found", { status: 404, headers: PRIVATE });
+  const size = media.body.length;
+  const base = {
+    ...PRIVATE,
+    "Content-Type": media.type,
+    "X-Content-Type-Options": "nosniff",
+    "Accept-Ranges": "bytes",
+  };
+  const range = parseRange(request.headers.get("range"), size);
+  if (range === "unsatisfiable") {
+    return new Response(null, {
+      status: 416,
+      headers: { ...base, "Content-Range": `bytes */${size}` },
+    });
+  }
+  // Only ranged requests are sliced; a plain GET (an <img>) gets the whole file.
+  if (range) {
+    const body = media.body.subarray(range.start, range.end + 1);
+    return new Response(new Uint8Array(body), {
+      status: 206,
+      headers: {
+        ...base,
+        "Content-Range": `bytes ${range.start}-${range.end}/${size}`,
+        "Content-Length": String(body.length),
+      },
+    });
+  }
   return new Response(new Uint8Array(media.body), {
-    headers: {
-      ...PRIVATE,
-      "Content-Type": media.type,
-      "Content-Length": String(media.body.length),
-      "X-Content-Type-Options": "nosniff",
-    },
+    headers: { ...base, "Content-Length": String(size) },
   });
 }

@@ -50,6 +50,26 @@ test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+// Client-side navigation reuses registered custom elements, which full page
+// loads never do. Click in from home and press back for every route.
+test("click into every entry and back, with no console errors", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  for (const route of [...publicRoutes().filter((r) => r !== "/" && r !== "/resume"), ...LOCKED]) {
+    const link = page.locator(`a[href="${route}"]`).first();
+    await expect(link, `home links ${route}`).toHaveCount(1);
+    await link.click();
+    await expect(page).toHaveURL(route);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("This page tripped")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL("/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("This page tripped")).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("locked case study: wrong password, right password, survives reload", async ({ page }) => {
   await page.goto("/work/royc");
   const body = page.locator("body");
@@ -88,4 +108,23 @@ test("every public route answers Accept: text/markdown", async ({ request }) => 
   }
   const html = await request.get("/");
   expect(html.headers()["vary"] ?? "").toMatch(/accept/i);
+});
+
+test("favicon follows the browser scheme, then the site toggle", async ({ page }) => {
+  const icons = page.locator('head link[rel="icon"]');
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await expect(icons).toHaveCount(2);
+  await expect(icons.and(page.locator('[media*="dark"]'))).toHaveAttribute(
+    "href",
+    "/favicon-dark.svg",
+  );
+
+  // System → light: one icon, pinned to the site theme rather than the browser's.
+  await page.getByRole("button", { name: /Switch to light theme/ }).click();
+  await expect(icons).toHaveCount(1);
+  await expect(icons).toHaveAttribute("href", "/favicon-light.svg");
+
+  const svg = await page.request.get("/favicon-light.svg");
+  expect(svg.ok()).toBe(true);
 });
