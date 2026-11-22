@@ -1,0 +1,53 @@
+---
+title: Graphic Comic Making from Novels
+slug: graphic-comic-making-from-novels
+kind: case-study
+order: 3
+summary: Turning long-form prose into structured panel layouts, a visual continuity pipeline and illustrated graphic-novel PDFs.
+publishedAt: 2026-09-20
+role: Designer and engineer, solo
+timeline: Ongoing side project
+problem: Novels describe scenes in time, comics show them in space, and the translation loses characters, places and pacing along the way.
+metrics:
+  - Three-stage pipeline from prose to printed spread
+  - One continuity sheet per character and location
+  - Print-ready PDF output
+stack: [TypeScript, Image generation, PDF]
+tags: [storytelling, pipelines, illustration]
+---
+
+I wanted to read a few favourite novels as comics, and none existed. So I built a pipeline that does the boring parts of adaptation, splitting chapters into beats and beats into panels, and leaves the judgement to me.
+
+## The problem
+
+- Prose has no panels. A paragraph can hold three actions or none.
+- Characters drift. A jacket changes colour between pages, a scar moves sides.
+- Generated images look impressive alone and fall apart in sequence.
+
+<BeforeAfterScrubber variant="comic" />
+
+## Three bets
+
+### Structure before pictures
+
+The pipeline first turns a chapter into a blueprint: beats, panels per page, shot type and who is in frame. Nothing is drawn until the blueprint reads well as a page.
+
+### Continuity as data
+
+Every character and place gets a sheet: what they look like, what they wear, what never changes. Each panel prompt is built from the sheet, not from memory, so the jacket stays blue.
+
+### The spread is the unit
+
+Comics are read a page at a time, so the tool lays out and reviews spreads, not single images. A panel that works alone but breaks the rhythm of the page gets redone.
+
+<ComicStageScrubber />
+
+## Tradeoffs
+
+- Blueprints are slow to review, but they are where adaptation actually happens.
+- Strict continuity sheets make images more consistent and a little less surprising.
+- I only adapt books for my own shelf, so the PDFs stay private.
+
+## Other fun stuff
+
+The hardest panel so far was a character thinking. Prose does that in one line. A comic needs a whole page.

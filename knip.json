@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/*.ts", "tests/**/*.ts", "terrazzo.config.ts"],
+  "project": ["src/**/*.{ts,tsx}", "content/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
+  "ignoreDependencies": ["tailwindcss"]
+}

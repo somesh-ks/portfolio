@@ -1,0 +1,70 @@
+---
+title: Building an Agentic Design System
+slug: building-agentic-design-system
+kind: case-study
+order: 2
+summary: Why coding agents drift on traditional design systems, and how AGENTS.md contracts, DTCG tokens and a single gate command keep them on the system.
+publishedAt: 2026-11-15
+role: Designer and engineer, solo
+timeline: Built alongside the Singularity app
+problem: Agents read a design system as suggestions. They copy a hex value from a screenshot, invent a 13px gap, and ship it because nothing stops them.
+metrics:
+  - One gate command, pnpm run gate, that fails on drift
+  - Three token tiers in W3C DTCG format
+  - Machine-readable contracts in AGENTS.md
+stack: [W3C design tokens, TypeScript, React, CI]
+tags: [design systems, agents, tokens]
+repoUrl: https://github.com/somesh-ks/singularityfm-design-system
+---
+
+`@singularityfm/design-system` is the system behind the Singularity app. Most of its code is written by coding agents, with me reviewing. That arrangement exposed something I had not noticed working with people: a design system built for humans does not survive contact with an agent.
+
+This is not a component gallery. The [live style guide](https://singularity-design.vercel.app) does that job. This is about the architecture that makes an agent stay on the system.
+
+## The problem
+
+- **Agents optimise for "looks right in the screenshot".** If a raw `#3B82F6` gets closer to the mockup than `--color-interactive`, the agent uses the hex.
+- **Documentation is advice.** A Storybook page that says "use the 8pt grid" carries the same weight as a Stack Overflow answer that says otherwise.
+- **Drift compounds.** One off-grid value becomes the example the next agent copies. After a week, the codebase teaches the wrong system.
+
+<BeforeAfterScrubber variant="agentic-ds" />
+
+## Three bets
+
+### Contracts, not docs
+
+Each package has an `AGENTS.md` that reads like a contract, not a guide. It lists what an agent may import, which tokens exist for which job, and what it must never do: no raw colours, no spacing outside the scale, no new component when an existing one fits. Short rules, stated once, with the reason next to each.
+
+Agents follow rules they can check. A paragraph about "visual harmony" gives them nothing to check. "Spacing values must come from `--space-*`" does.
+
+### Tokens are the only values
+
+Tokens are written in W3C DTCG format in three tiers: primitive (`sand.600`), semantic (`text.secondary`) and component (`button.bg`). Components may only read semantic or component tokens, never primitives.
+
+That rule is what makes theming and dark mode cheap, but the real benefit for agents is smaller: there is exactly one right answer for "what colour is secondary text", and it has a name an agent can search for.
+
+### One gate, run by everyone
+
+`pnpm run gate` runs types, lint, token lint and contrast checks in one command. It is the last instruction in every `AGENTS.md`: run the gate, and do not stop until it passes. CI runs the same command, so an agent cannot argue with it.
+
+The token lint is the part that matters most. It fails on raw colour literals, off-scale spacing and any primitive token used inside a component. The contrast check measures every text and surface pair in light and dark, so a palette tweak that breaks WCAG 2.2 AA fails the build instead of shipping.
+
+Flip the switch below to see the same card built twice: once by an agent working from a screenshot, once by an agent that had to pass the gate.
+
+<AgenticTokenDiff />
+
+## What changed
+
+Review got faster. Before the gate, most of my review comments were about values: wrong grey, wrong gap. After it, those mistakes never reached me, and review became about the design itself, the part an agent is worst at and a person should own.
+
+The system also got smaller. When every value has to be a token, you notice the tokens nobody uses. Three months in, the semantic layer has fewer roles than it started with.
+
+## Tradeoffs
+
+- A strict gate slows down exploration. For throwaway prototypes I turn it off and say so in the commit.
+- Contracts need upkeep. When a rule changes, `AGENTS.md` changes in the same commit, or agents follow the old rule.
+- Three tiers are more indirection than a small app needs. I kept them because the agent benefits more than I pay.
+
+## Other fun stuff
+
+The most common gate failure, by far, is an agent writing `gap: 12px` because it looked right. The scale has `--space-3` for exactly that, and now the agent finds it.

@@ -1,0 +1,264 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./fluid.css";
+@import "./components.css";
+
+/* Theme switches on [data-theme] (set by next-themes before paint). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Map semantic tokens into Tailwind. Primitives stay out on purpose:
+   components may only use semantic roles. */
+@theme inline {
+  --color-*: initial;
+  --color-canvas: var(--surface-canvas);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+  --color-hover: var(--surface-hover);
+  --color-inverse: var(--surface-inverse);
+  --color-fg: var(--text-primary);
+  --color-fg-muted: var(--text-secondary);
+  --color-fg-inverse: var(--text-inverse);
+  --color-accent: var(--text-accent);
+  --color-accent-solid: var(--accent-solid);
+  --color-on-accent: var(--accent-on-solid);
+  --color-accent-tint: var(--accent-tint);
+  --color-success: var(--text-success);
+  --color-danger: var(--text-danger);
+  --color-line: var(--border-default);
+  --color-line-subtle: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+  --color-focus: var(--focus-ring);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --spacing: 0.25rem;
+  /* radius-* and ease-* come straight from tokens.css (unlayered, so it wins). */
+
+  --text-xs: var(--step-xs);
+  --text-sm: var(--step-sm);
+  --text-base: var(--step-base);
+  --text-lg: var(--step-lg);
+  --text-xl: var(--step-xl);
+  --text-2xl: var(--step-2xl);
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+
+  --shadow-raised:
+    0 0 0 1px var(--border-subtle), 0 1px 2px var(--shadow-soft), 0 4px 12px var(--shadow-soft);
+  --shadow-popover:
+    0 0 0 1px var(--border-default), 0 2px 4px var(--shadow-soft), 0 12px 32px var(--shadow-strong);
+}
+
+@layer base {
+  html {
+    background: var(--surface-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-color: var(--border-strong) transparent;
+    accent-color: var(--accent-solid);
+    caret-color: var(--text-accent);
+  }
+
+  body {
+    min-height: 100dvh;
+    font-size: var(--step-base);
+    line-height: 1.6;
+    overscroll-behavior-y: none;
+  }
+
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+
+  a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  img,
+  video {
+    outline: 1px solid var(--border-image);
+    outline-offset: -1px;
+  }
+
+  /* Inputs at 16px+ so iOS Safari never zooms on focus. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  :where(.tabular) {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Pressable feedback: every button and link-button gets a small press. */
+  .pressable {
+    transition:
+      transform var(--duration-press) var(--ease-out),
+      background-color var(--duration-press) ease,
+      color var(--duration-press) ease,
+      box-shadow var(--duration-press) ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+
+  .link {
+    color: var(--text-primary);
+    text-decoration-line: underline;
+    text-decoration-color: var(--border-strong);
+    transition: text-decoration-color var(--duration-press) ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .link:hover {
+      text-decoration-color: var(--text-primary);
+    }
+  }
+
+  /* Long-form prose for case studies and experiments. */
+  .prose {
+    max-width: var(--measure-prose);
+    color: var(--text-primary);
+  }
+  .prose > * + * {
+    margin-top: 1.1em;
+  }
+  .prose h2 {
+    margin-top: 2.75em;
+    font-size: var(--step-lg);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+  }
+  .prose h3 {
+    margin-top: 2em;
+    font-size: var(--step-base);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .prose h2 + *,
+  .prose h3 + * {
+    margin-top: 0.5em;
+  }
+  .prose p,
+  .prose li {
+    color: var(--text-primary);
+  }
+  .prose ul {
+    padding-left: 1.1em;
+    list-style: disc;
+  }
+  .prose ul li::marker {
+    color: var(--text-secondary);
+  }
+  .prose li + li {
+    margin-top: 0.4em;
+  }
+  .prose a {
+    color: var(--text-primary);
+    text-decoration-line: underline;
+    text-decoration-color: var(--border-strong);
+  }
+  .prose strong {
+    font-weight: 600;
+  }
+  .prose code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border-radius: var(--radius-xs);
+    background: var(--surface-sunken);
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+  }
+  .prose pre {
+    overflow-x: auto;
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+    font-size: var(--step-sm);
+    line-height: 1.55;
+  }
+  .prose pre code {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .prose blockquote {
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+  }
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--step-sm);
+  }
+  .prose th,
+  .prose td {
+    padding: var(--space-2) var(--space-3) var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  /* Interactive proof toys break out of the prose measure on wide screens. */
+  .prose > .toy {
+    margin-block: 2em;
+  }
+
+  /* Shiki dual theme. */
+  .shiki,
+  .shiki span {
+    color: var(--shiki-light);
+  }
+  [data-theme="dark"] .shiki,
+  [data-theme="dark"] .shiki span {
+    color: var(--shiki-dark);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep feedback, drop travel: presses no longer scale. */
+  .pressable:active {
+    transform: none;
+  }
+}
