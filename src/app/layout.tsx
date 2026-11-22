@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   authors: [{ name: PROFILE.name, url: SITE_URL }],
   creator: PROFILE.name,
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/" },
-  twitter: { card: "summary_large_image", creator: "@someshks11" },
+  twitter: { card: "summary_large_image" },
   alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
   robots: { index: true, follow: true },
   formatDetection: { telephone: false },
