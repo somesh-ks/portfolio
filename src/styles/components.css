@@ -914,6 +914,11 @@ claude-mascot:defined > * {
 .site-bar[data-filled]::before {
   opacity: 1;
 }
+@media (prefers-reduced-motion: reduce) {
+  .site-bar::before {
+    transition: none;
+  }
+}
 .site-bar__row {
   display: flex;
   align-items: center;
