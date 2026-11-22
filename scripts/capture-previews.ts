@@ -15,6 +15,7 @@ const TARGETS: Record<string, string> = {
   wfp: "https://www.wfp.org/who-we-are",
   luminovo: "https://luminovo.com",
   oyo: "https://www.oyorooms.com",
+  stripe: "https://stripe.com",
 };
 
 /** Cookie banners would dominate a 272px thumbnail. Hide them visually for

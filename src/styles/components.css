@@ -67,16 +67,6 @@ main:focus {
   color: var(--text-secondary);
   line-height: 1.4;
 }
-.intro__role em {
-  white-space: nowrap;
-}
-.intro__role em,
-.serif-em {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 1.06em;
-  letter-spacing: 0;
-}
 
 .bio {
   display: grid;
@@ -177,22 +167,16 @@ main:focus {
 }
 
 /* ---------- Mascot stage ---------- */
+/* Frames are flat: hairlines top and bottom, full column width, one box at most. */
 .stage {
   margin-block: var(--space-12);
-  border-radius: var(--radius-xl);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  padding: var(--space-2);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border-subtle);
 }
 .stage__canvas {
   display: grid;
   place-items: center;
   height: 13rem;
-  border-radius: calc(var(--radius-xl) - var(--space-2));
-  background: var(--surface-raised);
-  box-shadow:
-    0 0 0 1px var(--border-subtle),
-    0 1px 2px var(--shadow-soft);
 }
 .stage__canvas--large {
   height: 18rem;
@@ -227,14 +211,13 @@ claude-mascot:defined > * {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-1) var(--space-1);
+  padding-top: var(--space-2);
 }
 .stage__tools {
   display: flex;
   gap: var(--space-1);
 }
 .stage__caption {
-  padding: 0 var(--space-2) var(--space-1);
   color: var(--text-secondary);
   font-size: var(--step-sm);
 }
@@ -279,6 +262,19 @@ claude-mascot:defined > * {
 }
 .runner__foot .runner__action:last-child {
   padding-right: 0;
+}
+@media (max-width: 39.999rem) {
+  /* Too narrow for one row: wrap, left-aligned, with no spacer. */
+  .runner__foot {
+    flex-wrap: wrap;
+    column-gap: var(--space-5);
+  }
+  .runner__foot .runner__action {
+    padding-inline: 0;
+  }
+  .runner__foot .runner__spacer {
+    display: none;
+  }
 }
 .runner__score {
   display: flex;
@@ -767,37 +763,44 @@ claude-mascot:defined > * {
 
 /* ---------- Footer ---------- */
 .site-footer {
-  display: grid;
-  gap: var(--space-6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
   margin-top: var(--space-20);
-  padding-top: var(--space-6);
+  padding-block: var(--space-4);
   border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: var(--step-sm);
 }
-.site-footer__links {
+.contact-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
+  gap: 0 var(--space-5);
 }
-.site-footer__links .link {
+.contact-links .link {
   color: var(--text-secondary);
   display: inline-block;
   padding-block: var(--space-2);
 }
 @media (hover: hover) and (pointer: fine) {
-  .site-footer__links .link:hover {
+  .contact-links .link:hover {
     color: var(--text-primary);
   }
 }
-.site-footer__end {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.site-footer__note .link {
-  color: var(--text-secondary);
+
+/* ---------- Mono chrome ----------
+   Labels, wayfinding and metadata speak in mono caps; reading text stays sans. */
+.section-title,
+.back-link,
+.next-link__label,
+.facts dt,
+.contact-links .link,
+.code-block__bar {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 /* ---------- Entry pages ---------- */
@@ -984,10 +987,8 @@ claude-mascot:defined > * {
 /* ---------- Toys (shared) ---------- */
 .toy {
   margin-block: var(--space-8);
-  padding: var(--space-2);
-  border-radius: var(--radius-xl);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border-subtle);
 }
 .toy > * + * {
   margin-top: var(--space-2);
@@ -1002,10 +1003,9 @@ claude-mascot:defined > * {
 .toy__status {
   color: var(--text-secondary);
   font-size: var(--step-sm);
-  padding-inline: var(--space-2);
 }
 .toy__caption {
-  padding: var(--space-1) var(--space-2) 0;
+  padding-top: var(--space-1);
   color: var(--text-secondary);
   font-size: var(--step-sm);
   line-height: 1.5;
@@ -1016,7 +1016,6 @@ claude-mascot:defined > * {
   gap: var(--space-2);
 }
 .toy__details {
-  padding: 0 var(--space-2);
   font-size: var(--step-sm);
   color: var(--text-secondary);
 }
@@ -1995,7 +1994,8 @@ claude-mascot:defined > * {
   display: grid;
   gap: var(--space-2);
 }
-.skill-install__line {
+/* ---------- Code: command line, code block, terminal ---------- */
+.command {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -2006,7 +2006,7 @@ claude-mascot:defined > * {
   background: var(--surface-raised);
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
-.skill-install__command {
+.command__text {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -2016,21 +2016,104 @@ claude-mascot:defined > * {
   font-size: var(--step-xs);
   white-space: pre;
 }
-.skill-install__copy {
+/* The prompt is drawn, never selected or copied. */
+.command__text::before,
+.code-block .line--prompt::before {
+  content: "$ ";
+  color: var(--text-secondary);
+  user-select: none;
+}
+.command__text::before {
+  content: attr(data-prompt) " ";
+}
+.copy-button {
   flex: none;
 }
-.skill-install__icons {
+.copy-button__icons {
   display: grid;
 }
-.skill-install__icons > * {
+.copy-button__icons > * {
   grid-area: 1 / 1;
   transition:
     opacity var(--duration-press) var(--ease-out),
     transform var(--duration-press) var(--ease-out);
 }
-.skill-install__icons > [data-visible="false"] {
+.copy-button__icons > [data-visible="false"] {
   opacity: 0;
   transform: scale(0.6);
+}
+
+.code-block {
+  margin-block: 1.5em;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.code-block__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding-inline: var(--space-4) var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+}
+.code-block__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-block__dots {
+  display: flex;
+  gap: 6px;
+}
+.code-block__dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+/* Terminal title sits centred between the dots and the copy button. */
+.code-block[data-terminal] .code-block__title {
+  text-align: center;
+}
+.code-block pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  line-height: 1.6;
+}
+.code-block pre:focus-visible {
+  outline-offset: -2px;
+}
+/* Terminals are two-tone: commands in full ink, output quieter. Shiki writes
+   colours inline as var() calls, so retarget the variables, not the colour. */
+.code-block[data-terminal] .line {
+  --shiki-foreground: var(--text-secondary);
+  --shiki-token-keyword: var(--text-secondary);
+  --shiki-token-function: var(--text-secondary);
+  --shiki-token-constant: var(--text-secondary);
+  --shiki-token-parameter: var(--text-secondary);
+  --shiki-token-string: var(--text-secondary);
+  --shiki-token-string-expression: var(--text-secondary);
+  --shiki-token-punctuation: var(--text-secondary);
+}
+.code-block[data-terminal] .line--prompt {
+  --shiki-foreground: var(--text-primary);
+  --shiki-token-keyword: var(--text-primary);
+  --shiki-token-function: var(--text-primary);
+  --shiki-token-constant: var(--text-primary);
+  --shiki-token-parameter: var(--text-primary);
+  --shiki-token-string: var(--text-primary);
+  --shiki-token-string-expression: var(--text-primary);
+  --shiki-token-punctuation: var(--text-primary);
 }
 
 .skill-demo__stage {
@@ -2198,7 +2281,7 @@ claude-mascot:defined > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skill-install__icons > [data-visible="false"] {
+  .copy-button__icons > [data-visible="false"] {
     transform: none;
   }
   .smear-card--typical,
