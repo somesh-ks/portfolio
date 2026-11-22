@@ -98,13 +98,13 @@ function StaticFrame() {
   );
 }
 
-/** "[SPACE]" with a keyboard, "TAP" on touch; CSS picks one. */
+/** A keycap with a keyboard, "TAP" on touch; CSS picks one. */
 function Key({ keyName, touch }: { keyName: string; touch?: string }) {
   return (
     <>
-      <span className="runner__key" data-input="keys">
-        [{keyName}]
-      </span>
+      <kbd className="runner__key runner__kbd" data-input="keys">
+        {keyName}
+      </kbd>
       {touch ? (
         <span className="runner__key" data-input="touch">
           {touch}
@@ -147,6 +147,8 @@ export function ClaudeRunner() {
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
   const [jumped, setJumped] = useState(false);
+  /** The last input used, so hints say TAP or [SPACE] to match. */
+  const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const nameId = useId();
@@ -307,6 +309,7 @@ export function ClaudeRunner() {
       if (!inView || !idle || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key !== " " && event.key !== "ArrowUp") return;
       event.preventDefault();
+      setInput("keys");
       screen.current?.focus({ preventScroll: true });
       if (!event.repeat) pressRef.current();
     };
@@ -382,6 +385,9 @@ export function ClaudeRunner() {
       className="runner"
       data-expanded={expanded || undefined}
       data-immersive={immersive || undefined}
+      data-input={input}
+      onPointerDownCapture={(event) => setInput(event.pointerType === "touch" ? "touch" : "keys")}
+      onKeyDownCapture={() => setInput("keys")}
       aria-label="Claude runner game"
     >
       <div className="runner__bar">

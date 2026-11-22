@@ -152,7 +152,8 @@ export function createEngine(
   function drawGround(distance: number) {
     fill(0, WORLD.ground, viewWidth, 1, colors.ground);
     // Specks below the line scroll with the run; a hash keeps them stable.
-    const shift = Math.floor(distance);
+    // Reduced motion holds them still: only the obstacles, the game itself, move.
+    const shift = motion.matches ? 0 : Math.floor(distance);
     for (let x = 0; x < viewWidth + 8; x += 1) {
       const world = x + shift;
       const hash = (world * 2654435761) >>> 0;
