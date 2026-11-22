@@ -31,6 +31,7 @@ export function ThemeToggle() {
         });
       }}
       className="icon-button pressable"
+      data-sound="toggle"
       aria-label={`${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next].toLowerCase()}`}
     >
       <Icon aria-hidden="true" size={16} strokeWidth={1.75} />

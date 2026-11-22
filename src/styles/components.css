@@ -882,6 +882,10 @@ claude-mascot:defined > * {
   border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
+.site-footer__toggles {
+  display: flex;
+  flex-shrink: 0;
+}
 /* Top bar: SK mark (home) left, "jump" right. Hidden at the top of the page so the
    hero stays clean; past the hero (the 10rem sentinel) it slides in with the canvas
    fill and a hairline. Opacity and transform only. */

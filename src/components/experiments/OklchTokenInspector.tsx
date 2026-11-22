@@ -163,6 +163,7 @@ export function OklchTokenInspector() {
         <button
           type="button"
           className="button pressable"
+          data-sound="none"
           onClick={async () => {
             await navigator.clipboard.writeText(dtcg);
             setCopied(true);
