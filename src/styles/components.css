@@ -214,8 +214,8 @@ claude-mascot:defined > * {
    Terminal feel without a window: no frame, no panels. The ground line and
    mono uppercase labels carry it. Colour lives only in the pixel art. */
 .runner {
-  /* Same rhythm as .list-section, so the game reads as its own section. */
-  margin-block: var(--space-16) var(--space-12);
+  /* One step more than the .list-section gap, so the hero breathes. */
+  margin-block: var(--space-20) var(--space-12);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   letter-spacing: 0.04em;
@@ -224,7 +224,7 @@ claude-mascot:defined > * {
 }
 @media (min-width: 40rem) {
   .runner {
-    margin-top: var(--space-20);
+    margin-top: var(--space-24);
   }
 }
 @media (max-width: 39.999rem) {
