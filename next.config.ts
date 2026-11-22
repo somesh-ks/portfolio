@@ -40,6 +40,25 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./content/public/**/*"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/projects/design-engineering-skill.md",
+        destination: "/projects/interface-mechanics.md",
+        permanent: true,
+      },
+      {
+        source: "/projects/design-engineering-skill",
+        destination: "/projects/interface-mechanics",
+        permanent: true,
+      },
+      {
+        source: "/skills/interface-mechanics",
+        destination: "/projects/interface-mechanics",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

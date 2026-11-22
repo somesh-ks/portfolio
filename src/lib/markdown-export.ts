@@ -21,6 +21,14 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
     "Generates an 11-step OKLCH ramp and checks WCAG 2.2 contrast as you change it.",
   AgenticStreamDemo:
     "Side-by-side comparison of a spinner-and-dump response and an interruptible, staged agent response with an approval gate.",
+  SkillInstall:
+    "Install commands. Any agent: `npx skills add somesh-ks/skills --skill interface-mechanics`. Claude Code: `/plugin marketplace add somesh-ks/skills`, then `/plugin install interface-mechanics@somesh-ks`.",
+  HitAreaDemo:
+    "Tab bar where hover drops in the gaps between tabs, next to a flush version with spacing moved inside each tab.",
+  StableButtonDemo:
+    "Save button that resizes when its spinner and label swap, next to a version that stacks every state in one grid cell.",
+  ThemeSmearDemo:
+    "Card whose colours smear during a theme switch, next to a version that suspends transitions for the flip.",
   Figure: "Figure.",
 };
 
