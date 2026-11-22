@@ -1,4 +1,5 @@
 import { ArrowUpRight, Lock } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -9,10 +10,13 @@ interface ListRowProps {
   meta?: string;
   locked?: boolean;
   external?: boolean;
+  /** Decorative still shown beside the row on wide screens with a mouse. */
+  thumb?: string;
 }
 
 /** One editorial row: title and meta on the first line, summary under it.
- * The whole row is the link, so the target spans the full width on phones. */
+ * The whole row is the link, so the target spans the full width on phones.
+ * A thumb floats in the right gutter on hover; it is out of flow, so rows never shift. */
 export function ListRow({
   href,
   title,
@@ -20,6 +24,7 @@ export function ListRow({
   meta,
   locked = false,
   external = false,
+  thumb,
 }: ListRowProps) {
   const content = (
     <>
@@ -35,6 +40,16 @@ export function ListRow({
         {external ? <ArrowUpRight aria-hidden="true" size={14} className="list-row__icon" /> : null}
       </span>
       <span className="list-row__summary">{summary}</span>
+      {thumb ? (
+        <Image
+          src={thumb}
+          alt=""
+          width={320}
+          height={200}
+          sizes="160px"
+          className="list-row__thumb"
+        />
+      ) : null}
     </>
   );
   return (

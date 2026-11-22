@@ -7,60 +7,44 @@
 export interface Company {
   id: string;
   name: string;
-  /** One line about the company itself. */
-  about: string;
-  /** One line on Somesh's connection to it. */
-  relation: string;
 }
 
 export const COMPANIES = {
   netlight: {
     id: "netlight",
     name: "Netlight",
-    about: "IT and design consultancy founded in Stockholm.",
-    relation: "Senior product designer since 2022.",
   },
   anthropic: {
     id: "anthropic",
     name: "Anthropic",
-    about: "AI safety company and the makers of Claude.",
-    relation: "Claude Ambassador, Sweden.",
   },
   stripe: {
     id: "stripe",
     name: "Stripe",
-    about: "Payments and financial infrastructure for the internet.",
-    relation: "Stripe Ambassador, building the startup community.",
   },
-  bmw: {
-    id: "bmw",
-    name: "BMW / Rolls-Royce",
-    about: "Automotive group behind BMW, MINI and Rolls-Royce Motor Cars.",
-    relation: "Climate and Settings HMI apps, and the first Neue Klasse pilot for Rolls-Royce.",
+  rollsroyce: {
+    id: "rollsroyce",
+    name: "Rolls-Royce",
+  },
+  mercedes: {
+    id: "mercedes",
+    name: "Mercedes-Benz",
   },
   wfp: {
     id: "wfp",
     name: "World Food Programme",
-    about: "The United Nations agency for food assistance.",
-    relation: "SchoolOps, meal data for 3M students in 22 countries.",
   },
   royc: {
     id: "royc",
     name: "ROYC",
-    about: "Private-markets infrastructure for family offices and wealth managers.",
-    relation: "Lead product designer. Rebrand and a white-label design system.",
   },
   luminovo: {
     id: "luminovo",
     name: "Luminovo",
-    about: "Sourcing and quoting software for electronics manufacturers.",
-    relation: "Product designer. Redesigned sourcing and quoting.",
   },
   oyo: {
     id: "oyo",
     name: "OYO",
-    about: "Hospitality platform that started in India.",
-    relation: "One CRM for 90K+ users, replacing seven legacy tools.",
   },
 } as const satisfies Record<string, Company>;
 
@@ -72,7 +56,7 @@ export type CompanyId = keyof typeof COMPANIES;
  */
 export const BIO = [
   "Senior product designer at {company:netlight}. Ambassador at {company:anthropic} and {company:stripe}.",
-  "Shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo}, {company:oyo} and HackerRank. $1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
+  "Shipped for {company:rollsroyce}, {company:mercedes}, the {company:wfp}, {company:royc}, {company:luminovo}, {company:oyo} and HackerRank. $1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
 ] as const;
 
 export const PROFILE = {
