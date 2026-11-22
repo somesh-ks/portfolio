@@ -107,6 +107,7 @@ export default function CommandPalette({
                 if (event.nativeEvent.isComposing) return;
                 if (event.key === "Enter") {
                   event.preventDefault();
+                  if (shown[0]) sound.play("tap");
                   choose(shown[0]);
                 } else move(event, -1);
               }}

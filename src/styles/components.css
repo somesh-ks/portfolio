@@ -882,6 +882,10 @@ claude-mascot:defined > * {
   border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
+.site-footer__toggles {
+  display: flex;
+  flex-shrink: 0;
+}
 /* Cmd+K quick-jump trigger, top-right on every page. ⌘K only shows on fine pointers. */
 .site-header {
   position: absolute;

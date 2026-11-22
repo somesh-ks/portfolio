@@ -1,23 +1,27 @@
 "use client";
 
 /**
- * UI sound, muted by default. The audio library loads and the AudioContext
- * starts only after the visitor turns sound on, inside that click, so mobile
- * Safari never blocks it and nobody hears a sound they did not ask for.
- * The choice is per visit on purpose: no storage, no hydration mismatch.
+ * UI sound, off until the visitor turns it on. The choice is remembered in
+ * this browser. The AudioContext starts inside a gesture (the toggle click, or
+ * the first tap or key press of a later visit), so mobile Safari never blocks it.
+ *
+ * While sound is on, one window listener gives every link, button and summary
+ * a soft tap. A component that plays its own sound in that click wins, and
+ * `data-sound="none"` (or another sound name) on an element overrides the tap.
  */
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { play as playNow, playedSince, sleep, unlock, type SoundName } from "@/lib/ui-audio";
 
-export type SoundName = "tap" | "pop" | "tick" | "toggle" | "jump" | "milestone" | "crash";
-type Player = () => void;
+export type { SoundName };
 
 interface SoundContextValue {
   enabled: boolean;
@@ -31,73 +35,87 @@ const SoundContext = createContext<SoundContextValue>({
   play: () => {},
 });
 
-async function loadPlayers(): Promise<Record<SoundName, Player>> {
-  const { defineSound, ensureReady } = await import("@web-kits/audio");
-  await ensureReady();
-  return {
-    tap: defineSound({
-      source: { type: "noise", color: "white" },
-      filter: { type: "bandpass", frequency: 3200 },
-      envelope: { attack: 0.001, decay: 0.018, sustain: 0, release: 0.01 },
-      gain: 0.12,
-    }),
-    pop: defineSound({
-      source: { type: "sine", frequency: { start: 880, end: 320 } },
-      envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.03 },
-      gain: 0.18,
-    }),
-    tick: defineSound({
-      source: { type: "triangle", frequency: 1600 },
-      envelope: { attack: 0.001, decay: 0.012, sustain: 0, release: 0.008 },
-      gain: 0.06,
-    }),
-    toggle: defineSound({
-      source: { type: "sine", frequency: { start: 520, end: 780 } },
-      envelope: { attack: 0.002, decay: 0.06, sustain: 0, release: 0.02 },
-      gain: 0.14,
-    }),
-    jump: defineSound({
-      source: { type: "square", frequency: { start: 330, end: 660 } },
-      envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.02 },
-      gain: 0.05,
-    }),
-    milestone: defineSound({
-      source: { type: "square", frequency: { start: 880, end: 1320 } },
-      envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 },
-      gain: 0.045,
-    }),
-    crash: defineSound({
-      source: { type: "square", frequency: { start: 220, end: 70 } },
-      envelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.05 },
-      gain: 0.06,
-    }),
-  };
+const STORAGE_KEY = "sound";
+const CLICKABLE = "a[href], button, summary, [data-sound]";
+
+// The choice lives in localStorage, with an in-memory copy for blocked storage.
+let stored: boolean | null = null;
+const listeners = new Set<() => void>();
+
+function readStored(): boolean {
+  if (stored === null) {
+    try {
+      stored = localStorage.getItem(STORAGE_KEY) === "on";
+    } catch {
+      stored = false;
+    }
+  }
+  return stored;
+}
+
+function remember(on: boolean) {
+  stored = on;
+  try {
+    if (on) localStorage.setItem(STORAGE_KEY, "on");
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Private mode or blocked storage: the choice lasts this visit only.
+  }
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function onClick(event: MouseEvent) {
+  // Something in this click already made a sound (a toy, the runner, the toggle).
+  if (playedSince(event.timeStamp)) return;
+  // The path, not target.closest(): a handler may have swapped the clicked icon out already.
+  const target = event
+    .composedPath()
+    .find((node): node is Element => node instanceof Element && node.matches(CLICKABLE));
+  if (!target || target.matches(":disabled, [aria-disabled='true']")) return;
+  const name = target.getAttribute("data-sound") ?? "tap";
+  if (name !== "none") playNow(name as SoundName);
 }
 
 export function SoundProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useState(false);
-  const players = useRef<Record<SoundName, Player> | null>(null);
+  const enabled = useSyncExternalStore(subscribe, readStored, () => false);
+  const enabledRef = useRef(false);
 
-  const ensurePlayers = useCallback(async () => {
-    players.current ??= await loadPlayers();
-    return players.current;
-  }, []);
+  useEffect(() => {
+    enabledRef.current = enabled;
+    if (!enabled) return;
+    // Wake the context on the first gesture of a remembered visit, and let it
+    // sleep while the tab is hidden.
+    const wake = () => unlock();
+    const onVisibility = () => (document.hidden ? sleep() : undefined);
+    // Bubble phase on window: React's handlers (on the document) run first.
+    window.addEventListener("pointerdown", wake, { capture: true, passive: true });
+    window.addEventListener("keydown", wake, { capture: true, passive: true });
+    window.addEventListener("click", onClick);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pointerdown", wake, { capture: true });
+      window.removeEventListener("keydown", wake, { capture: true });
+      window.removeEventListener("click", onClick);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled]);
 
   const toggle = useCallback(() => {
-    setEnabled((previous) => {
-      const next = !previous;
-      if (next) void ensurePlayers().then((loaded) => loaded.toggle());
-      return next;
-    });
-  }, [ensurePlayers]);
+    const next = !enabledRef.current;
+    enabledRef.current = next;
+    // Inside the click, so the context may start; the off sound confirms the mute.
+    playNow(next ? "toggle" : "toggleOff");
+    remember(next);
+  }, []);
 
-  const play = useCallback(
-    (name: SoundName) => {
-      if (!enabled) return;
-      void ensurePlayers().then((loaded) => loaded[name]());
-    },
-    [enabled, ensurePlayers],
-  );
+  const play = useCallback((name: SoundName) => {
+    if (enabledRef.current) playNow(name);
+  }, []);
 
   const value = useMemo(() => ({ enabled, toggle, play }), [enabled, toggle, play]);
   return <SoundContext value={value}>{children}</SoundContext>;

@@ -31,7 +31,8 @@ Components use semantic or component tokens, never primitives or raw colors (the
 
 - Animate `transform` and `opacity` only. Use the motion tokens (`--ease-*`, `--duration-*`).
 - Every animation has a `prefers-reduced-motion` path. Interactions must be interruptible.
-- Sound is off by default and never persists. Play only through `useSound()`.
+- Sound is off by default; turning it on is remembered in `localStorage` (Somesh, 2026-11-22). Play only through `useSound()`, which synthesizes in `src/lib/ui-audio.ts`.
+- While sound is on, every link, button and summary taps. A component that calls `play()` in its own click wins; `data-sound="none"` or `data-sound="<name>"` overrides the tap. No hover sounds.
 
 ## Mobile
 

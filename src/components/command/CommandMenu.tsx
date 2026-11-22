@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentType, lazy, Suspense, useEffect, useState } from "react";
+import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import { useModKey } from "@/hooks/usePlatform";
 import type { CommandLink } from "./items";
@@ -29,6 +30,7 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
   const [open, setOpen] = useState(false);
   const [used, setUsed] = useState(false);
   const mod = useModKey();
+  const { play } = useSound();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -39,12 +41,13 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
       if (!open && (isEditable(event.target) || document.fullscreenElement)) return;
       event.preventDefault();
       setUsed(true);
+      if (!open) play("pop");
       setOpen((value) => !value);
     };
     // Capture phase, so nothing on the page (the runner game) swallows it.
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [open]);
+  }, [open, play]);
 
   return (
     <>
@@ -54,6 +57,7 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
         aria-keyshortcuts={mod === "⌘" ? "Meta+K" : "Control+K"}
         onClick={() => {
           setUsed(true);
+          play("pop");
           setOpen(true);
         }}
       >
