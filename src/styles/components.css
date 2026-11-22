@@ -1836,6 +1836,8 @@ claude-mascot:defined > * {
 }
 .smear-card__body {
   margin-top: var(--space-2);
+  /* .prose p sets its own colour; follow the card's so the flipped state stays readable. */
+  color: inherit;
   font-size: var(--step-sm);
 }
 .smear-card__chips {
