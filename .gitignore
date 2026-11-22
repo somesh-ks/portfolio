@@ -22,3 +22,6 @@ content/protected/
 # misc
 .DS_Store
 .vercel
+
+# Built from resume/resume.tex on deploy
+/public/resume.pdf

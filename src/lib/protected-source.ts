@@ -35,14 +35,28 @@ function tokenFor(url: URL, env: Record<string, string | undefined>): string | u
 
 // Remote reads are cached per server instance so each page view doesn't
 // spend a store operation (Hobby Blob pauses after its monthly allowance).
-// Safe because callers check the session before reading.
+// Safe because callers check the session before reading. The pending
+// promise is cached, so parallel cold reads share one store operation;
+// failures are dropped so the next request retries.
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const cache = new Map<string, { at: number; body: Buffer }>();
+const cache = new Map<string, { at: number; body: Promise<Buffer | null> }>();
 
-async function fetchRemote(url: URL, env: Record<string, string | undefined>) {
+function fetchRemote(url: URL, env: Record<string, string | undefined>) {
   const key = url.href;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.body;
+  const body = fetchUncached(url, env).then(
+    (result) => (result ? result : (cache.delete(key), null)),
+    (error: unknown) => {
+      cache.delete(key);
+      throw error;
+    },
+  );
+  cache.set(key, { at: Date.now(), body });
+  return body;
+}
+
+async function fetchUncached(url: URL, env: Record<string, string | undefined>) {
   const token = tokenFor(url, env);
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -54,9 +68,7 @@ async function fetchRemote(url: URL, env: Record<string, string | undefined>) {
     console.error(`protected source: ${response.status} for ${url.pathname}`);
     return null;
   }
-  const body = Buffer.from(await response.arrayBuffer());
-  cache.set(key, { at: Date.now(), body });
-  return body;
+  return Buffer.from(await response.arrayBuffer());
 }
 
 async function read(

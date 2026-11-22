@@ -12,7 +12,7 @@ import { isLockedSlug, LOCKED_SLUGS, type LockedSlug } from "./site";
 
 export const SESSION_COOKIE = "portfolio_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24 * 14;
+export const MAGIC_LINK_TTL_SECONDS = 60 * 60 * 24 * 7;
 /** Fixed delay on a wrong password. Serverless instances share no memory, so
  * an in-process counter would reset per instance; real rate limiting belongs
  * to a Vercel Firewall rule on POST /api/unlock (see docs/protected-content.md). */
@@ -49,7 +49,9 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const parts = stored.trim().split(":");
   if (parts.length !== 6 || parts[0] !== "scrypt") return false;
   const [log2n, r, p] = parts.slice(1, 4).map(Number) as [number, number, number];
-  if (![log2n, r, p].every(Number.isInteger) || log2n < 14 || log2n > 20) return false;
+  if (![log2n, r, p].every(Number.isInteger)) return false;
+  // Bounds keep a corrupted env hash from throwing inside scrypt (a 500).
+  if (log2n < 14 || log2n > 20 || r < 1 || r > 32 || p < 1 || p > 16) return false;
   const salt = Buffer.from(parts[4] ?? "", "base64url");
   const expected = Buffer.from(parts[5] ?? "", "base64url");
   if (salt.length < 16 || expected.length !== KEY_LENGTH) return false;
@@ -172,12 +174,14 @@ export function sessionCookie(token: string, secure: boolean) {
   };
 }
 
-export function isGateConfigured(env: Record<string, string | undefined> = process.env): boolean {
+/** Can any password open this slug? Needs the cookie secret and either the
+ * shared hash or the slug's own hash. */
+export function isGateConfigured(
+  slug: LockedSlug,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
   return (
     secretKey(env) !== null &&
-    Boolean(
-      env.PORTFOLIO_PASSWORD_HASH ||
-      LOCKED_SLUGS.some((slug) => env[`PORTFOLIO_PASSWORD_${slug.toUpperCase()}_HASH`]),
-    )
+    Boolean(env.PORTFOLIO_PASSWORD_HASH || env[`PORTFOLIO_PASSWORD_${slug.toUpperCase()}_HASH`])
   );
 }

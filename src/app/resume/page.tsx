@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { Download } from "lucide-react";
 import type { Metadata } from "next";
 import { PROFILE } from "@content/profile";
 import {
@@ -44,8 +44,8 @@ export default function ResumePage() {
         <h1 className="entry__title">Resume</h1>
         <p className="entry__summary">{RESUME_SUMMARY}</p>
         <p className="entry__links">
-          <a href={RESUME_PDF_URL} className="button pressable" target="_blank" rel="noopener">
-            PDF version <ArrowUpRight aria-hidden="true" size={14} />
+          <a href={RESUME_PDF_URL} className="button pressable" download="Somesh-KS-Resume.pdf">
+            Download PDF <Download aria-hidden="true" size={14} />
           </a>
         </p>
       </header>
