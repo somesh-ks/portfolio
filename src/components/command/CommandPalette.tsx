@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { PROFILE } from "@content/profile";
 import { useSound } from "@/components/providers/SoundProvider";
 import type { Route } from "next";
+import { Kbd } from "@/components/ui/Kbd";
 import type { CommandLink } from "./items";
 
 const openMail = () => window.location.assign(`mailto:${PROFILE.email}`);
@@ -126,6 +127,18 @@ export default function CommandPalette({
               no match
             </p>
           ) : null}
+          <p className="palette__hints" aria-hidden="true">
+            <span>
+              <Kbd>↑</Kbd>
+              <Kbd>↓</Kbd> move
+            </span>
+            <span>
+              <Kbd>↵</Kbd> open
+            </span>
+            <span>
+              <Kbd>esc</Kbd> close
+            </span>
+          </p>
           <output className="sr-only">
             {shown[0] ? `${shown.length} results. Enter opens ${shown[0].label}.` : "No match."}
           </output>

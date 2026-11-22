@@ -1,6 +1,8 @@
 "use client";
 
 import { type ComponentType, lazy, Suspense, useEffect, useState } from "react";
+import { Kbd } from "@/components/ui/Kbd";
+import { useModKey } from "@/hooks/usePlatform";
 import type { CommandLink } from "./items";
 
 // The palette loads on first open, so it costs nothing on page load.
@@ -26,6 +28,7 @@ function isEditable(target: EventTarget | null): boolean {
 export function CommandMenu({ links }: { links: CommandLink[] }) {
   const [open, setOpen] = useState(false);
   const [used, setUsed] = useState(false);
+  const mod = useModKey();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -48,14 +51,19 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
       <button
         type="button"
         className="palette-trigger pressable"
-        aria-keyshortcuts="Meta+K Control+K"
+        aria-keyshortcuts={mod === "⌘" ? "Meta+K" : "Control+K"}
         onClick={() => {
           setUsed(true);
           setOpen(true);
         }}
       >
         <span aria-hidden="true">&gt;</span> jump<span className="sr-only"> to a page</span>
-        <kbd aria-hidden="true">⌘K</kbd>
+        {mod ? (
+          <span className="palette-trigger__keys" aria-hidden="true">
+            <Kbd>{mod}</Kbd>
+            <Kbd>K</Kbd>
+          </span>
+        ) : null}
       </button>
       {used ? (
         <Suspense fallback={null}>
