@@ -170,6 +170,8 @@ export const CLOUD: readonly (readonly [number, number, number])[] = [
 ];
 /** Clouds along a repeating 200-cell strip of sky: [x, y]. A phone shows
  * about 100 cells, so two or three are always in view. */
+/** Clouds drift this many cells a second at rest. */
+export const CLOUD_IDLE_SPEED = 3;
 export const CLOUD_STRIP = 200;
 export const CLOUD_SPOTS: readonly (readonly [number, number])[] = [
   [24, 12],

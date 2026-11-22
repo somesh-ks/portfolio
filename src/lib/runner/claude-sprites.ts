@@ -139,7 +139,9 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
   const [start, end] = LOOPS.walk;
   const steps = walkFrames.slice(start, end);
   // Walk palette index -> kite palette index, matched by colour.
-  const colour = legsRaw.palette.map((hex) => raw.palette.indexOf(hex));
+  // A colour the kite lacks draws nothing rather than a wrong colour.
+  const kite = raw.palette.map((hex) => hex.toLowerCase());
+  const colour = legsRaw.palette.map((hex) => kite.indexOf(hex.toLowerCase()));
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
   const length = (frames.length * steps.length) / gcd(frames.length, steps.length);
   return Array.from({ length }, (_, i) => {
@@ -149,7 +151,7 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
       for (let x = 0; x < legsRaw.w; x += 1) {
         const value = legs[(WALK_LEG_TOP + row) * legsRaw.w + x] ?? 255;
         pixels[(KITE_LEG_TOP + row) * raw.w + x] =
-          value === 255 ? 255 : (colour[value] ?? -1) >= 0 ? colour[value]! : value;
+          value === 255 || (colour[value] ?? -1) < 0 ? 255 : colour[value]!;
       }
     return pixels;
   });
@@ -162,7 +164,9 @@ export function buildSprite(raw: RawSprite, costume: Costume): Sprite {
   const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
   const box = bounds(raw, [...loop, all[0] ?? new Uint8Array()], loop);
   const width = box.right - box.left + 1;
-  const front = box.footRight - box.left + 1;
+  // The kite flies ahead of Claude; only its feet can hit. Other rides hit
+  // with their full front, body included, since tall obstacles reach it.
+  const front = (costume === "kite" ? box.footRight : box.right) - box.left + 1;
   const hit = Math.min(front, MAX_HIT_WIDTH);
   return {
     fps: raw.fps,

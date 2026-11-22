@@ -29,7 +29,7 @@ import {
   type RawSprite,
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
-import { CLOUD, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
+import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
 import type { Engine } from "./engine";
 
 type Phase = "idle" | "loading" | "running" | "over";
@@ -81,12 +81,20 @@ function StaticFrame() {
   return (
     <svg
       className="runner__static"
-      viewBox={`0 0 400 ${WORLD.height}`}
-      preserveAspectRatio="xMinYMax slice"
+      // The canvas's mapping: cells sized by height, capped so at least
+      // WORLD.minWidth fit across, bottom-aligned; the rest overflows right.
+      viewBox={`0 0 ${WORLD.minWidth} ${WORLD.height}`}
+      preserveAspectRatio="xMinYMax meet"
+      overflow="visible"
       shapeRendering="crispEdges"
       aria-hidden="true"
       // A stroll: the same pace as the engine's between-run walk.
-      style={{ "--walk": `${WALK.frames.length / (WALK.fps * 0.6)}s` } as CSSProperties}
+      style={
+        {
+          "--walk": `${WALK.frames.length / (WALK.fps * 0.6)}s`,
+          "--clouds": `${CLOUD_STRIP / CLOUD_IDLE_SPEED}s`,
+        } as CSSProperties
+      }
     >
       <g className="runner__clouds" fill="var(--border-default)">
         {[0, CLOUD_STRIP, 2 * CLOUD_STRIP].map((offset) =>
@@ -224,7 +232,11 @@ export function ClaudeRunner() {
       });
       setEngineReady(true);
       return engine.current;
-    })();
+    })().catch(() => {
+      // A stale chunk or no canvas: forget the attempt so the next press retries.
+      loading.current = null;
+      return null;
+    });
     return loading.current;
   }, [loadBoard]);
 
@@ -263,6 +275,7 @@ export function ClaudeRunner() {
     const loaded = await ensureEngine();
     if (!loaded) {
       starting.current = false;
+      setPhase("idle");
       return;
     }
 
@@ -422,7 +435,10 @@ export function ClaudeRunner() {
       // On pointer up, not down: swapping hints mid-press would move the
       // button under the pointer and cancel the click.
       onPointerUpCapture={(event) => setInput(event.pointerType === "touch" ? "touch" : "keys")}
-      onKeyDownCapture={() => setInput("keys")}
+      onKeyDownCapture={(event) => {
+        // Typing a leaderboard name on a phone's keyboard is still touch.
+        if (!(event.target instanceof HTMLInputElement)) setInput("keys");
+      }}
       aria-label="Claude runner game"
     >
       <div className="runner__bar">

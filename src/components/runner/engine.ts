@@ -19,6 +19,7 @@ import {
 import {
   CLOUD,
   CLOUD_SPOTS,
+  CLOUD_IDLE_SPEED,
   CLOUD_STRIP,
   OBSTACLE_SPRITES,
   type Cell,
@@ -52,8 +53,6 @@ const TONE_VARS: Record<Tone, string> = {
 };
 const MAX_STEPS = 5;
 const MILESTONE = 100;
-/** Narrowest view, in cells: about a second of warning at top speed. */
-const MIN_VIEW_CELLS = 100;
 /** Largest cell, in CSS pixels. */
 const MAX_CELL_PX = 6;
 /** How long the crash pose holds before Claude walks again. */
@@ -62,7 +61,6 @@ const CRASH_HOLD_MS = 600;
 const STROLL = 0.6;
 const RUN = 1.5;
 /** Clouds drift a few cells a second at rest and at a sixth of the run speed. */
-const CLOUD_IDLE_SPEED = 3;
 const CLOUD_PARALLAX = 1 / 6;
 
 export interface EngineCallbacks {
@@ -107,7 +105,10 @@ export function createEngine(
   let walkFrame: number | null = null;
   let holdUntil = 0;
   let onScreen = true;
-  let cloudShift = 0;
+  // Pick up where the SVG clouds' CSS animation is, so the handover doesn't jump.
+  let cloudShift = motion.matches
+    ? 0
+    : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
   let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
 
@@ -139,7 +140,7 @@ export function createEngine(
     // Whole device pixels per cell keep every pixel square.
     scale = Math.max(
       1,
-      Math.floor(Math.min(height / WORLD.height, width / MIN_VIEW_CELLS, MAX_CELL_PX * dpr)),
+      Math.floor(Math.min(height / WORLD.height, width / WORLD.minWidth, MAX_CELL_PX * dpr)),
     );
     viewWidth = Math.ceil(width / scale);
     // Ground stays near the bottom like the static frame; extra room goes on top,
@@ -180,7 +181,8 @@ export function createEngine(
 
   /** Grey clouds on a repeating strip; they hold still under reduced motion. */
   function drawSky() {
-    const span = Math.max(CLOUD_STRIP, Math.ceil(viewWidth / CLOUD_STRIP) * CLOUD_STRIP);
+    // At least a cloud wider than the view, so the wrap happens off screen.
+    const span = Math.ceil((viewWidth + 14) / CLOUD_STRIP) * CLOUD_STRIP;
     const shift = Math.floor(cloudShift);
     for (let copy = 0; copy < span / CLOUD_STRIP; copy += 1)
       for (const [spotX, y] of CLOUD_SPOTS) {
@@ -207,7 +209,7 @@ export function createEngine(
     if (walkFrame !== null) rects = sprite.frames[walkFrame % sprite.frames.length] ?? sprite.idle;
     else if (state) {
       // Frozen in the air and on a crash; otherwise the riding loop plays.
-      const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps) : null;
+      const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps * RUN) : null;
       const index = held ?? Math.floor(state.time * sprite.fps * RUN);
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
