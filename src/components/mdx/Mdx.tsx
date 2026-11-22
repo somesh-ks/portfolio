@@ -51,8 +51,10 @@ function compile(source: string) {
           // cold start, so clicks into a dynamic page looked dead.
           langs: [],
           lazy: true,
-          // Unknown fence languages render plain instead of failing the page.
+          // Unknown fence languages render plain instead of failing the page,
+          // and bare fences still get the framed block and copy button.
           fallbackLanguage: "text",
+          defaultLanguage: "text",
           // Adds titles, terminal prompts, copy text and tabindex (blocks scroll sideways on phones).
           transformers: [codeMeta()],
         },
