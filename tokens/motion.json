@@ -55,6 +55,13 @@
         "value": 300,
         "unit": "ms"
       }
+    },
+    "theme": {
+      "$value": {
+        "value": 480,
+        "unit": "ms"
+      },
+      "$description": "Pixel dissolve between themes. Somesh approved going past the 300ms ceiling (2026-11-22)."
     }
   }
 }

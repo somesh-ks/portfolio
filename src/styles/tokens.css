@@ -59,6 +59,8 @@
   --duration-popover: 200ms;
   --duration-press: 140ms;
   --duration-stagger-step: 50ms;
+  /* Pixel dissolve between themes. Somesh approved going past the 300ms ceiling (2026-11-22). */
+  --duration-theme: 480ms;
   --duration-tooltip: 160ms;
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
