@@ -809,8 +809,9 @@ claude-mascot:defined > * {
   display: inline-block;
   min-width: 2.5ch;
   padding: 0.1em 0.5ch 0;
-  border: 1px solid var(--border-default);
-  border-bottom: 2px solid var(--border-strong);
+  /* Strong edges: --border-default vanishes on light 1x screens. */
+  border: 1px solid var(--border-strong);
+  border-bottom: 2px solid var(--text-secondary);
   border-radius: var(--radius-xs);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs-min);
@@ -989,6 +990,8 @@ claude-mascot:defined > * {
 .section-title,
 .back-link,
 .next-link__label,
+.entry__meta,
+.toc__title,
 .facts dt,
 .contact-links .link,
 .code-block__bar {
@@ -1020,6 +1023,10 @@ claude-mascot:defined > * {
 .entry__header {
   margin-top: var(--space-8);
   margin-bottom: var(--space-8);
+}
+.entry__meta {
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
 }
 .entry__title {
   font-size: var(--step-2xl);
@@ -1080,14 +1087,13 @@ claude-mascot:defined > * {
 .metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--space-2);
   margin-bottom: var(--space-6);
+  border-top: 1px solid var(--border-subtle);
 }
 .metrics__item {
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding-block: var(--space-3);
+  padding-right: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: var(--step-sm);
   line-height: 1.45;
 }
@@ -1245,6 +1251,96 @@ claude-mascot:defined > * {
   border-radius: var(--radius-lg);
 }
 
+/* Media is full bleed: edge to edge on phones, and 8rem past the text column's
+   right edge on wide screens. The left edge always lines up with the text, so
+   headings and body never look indented under a wider figure. Toys stay inset on
+   phones so their controls never touch the bezel or the back-swipe edge. */
+.prose {
+  counter-reset: fig;
+}
+.prose > .figure > figcaption::before {
+  counter-increment: fig;
+  content: "Fig " counter(fig, upper-alpha) "\00a0\00a0";
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+@media (max-width: 39.999rem) {
+  .prose > .figure {
+    margin-inline: calc(-1 * var(--space-4));
+  }
+  .prose > .figure > figcaption {
+    padding-inline: var(--space-4);
+  }
+}
+@media (min-width: 60rem) {
+  .prose > .figure,
+  .prose > .toy {
+    margin-right: -8rem;
+  }
+}
+
+/* ---------- Outline rail (.toc: Tailwind owns .outline) ---------- */
+.entry__body {
+  position: relative;
+}
+.toc {
+  display: none;
+}
+@media (min-width: 80rem) {
+  .toc:not([hidden]) {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(100% + 4rem + var(--space-6));
+    width: 9rem;
+  }
+}
+/* A viewport-tall sticky box with the list centred in it, so the rail sits
+   at mid-screen while you read. */
+.toc__inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100dvh;
+}
+.toc__title {
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-3);
+  color: var(--text-secondary);
+}
+.toc__list {
+  display: grid;
+  border-left: 1px solid var(--border-subtle);
+}
+.toc__link {
+  display: block;
+  margin-left: -1px;
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
+  border-left: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+  line-height: 1.4;
+  text-decoration: none;
+  transition:
+    color var(--duration-press) ease,
+    border-color var(--duration-press) ease;
+}
+.toc__link[aria-current] {
+  border-left-color: var(--text-primary);
+  color: var(--text-primary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .toc__link:hover {
+    color: var(--text-primary);
+  }
+}
+
 /* ---------- Before / after scrubber ---------- */
 .scrubber__frame {
   position: relative;
@@ -1370,15 +1466,6 @@ claude-mascot:defined > * {
   background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
 }
-.agentic-scene--gated .agentic-card__badge {
-  justify-self: start;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--accent-tint);
-  color: var(--text-accent);
-  font-size: var(--step-xs);
-  font-weight: 500;
-}
 .agentic-scene--gated .agentic-card__title {
   font-size: var(--step-base);
   font-weight: 600;
@@ -1417,14 +1504,6 @@ claude-mascot:defined > * {
   border: 1px solid #e5e5e5;
   color: #111;
   font-family: Arial, sans-serif;
-}
-.agentic-scene--naive .agentic-card__badge {
-  justify-self: start;
-  padding: 2px 9px;
-  border-radius: 3px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 11px;
 }
 .agentic-scene--naive .agentic-card__title {
   font-size: 17px;

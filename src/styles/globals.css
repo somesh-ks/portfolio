@@ -164,6 +164,7 @@
     margin-top: 1.1em;
   }
   .prose h2 {
+    scroll-margin-top: var(--space-8);
     margin-top: 2.75em;
     font-size: var(--step-xl);
     font-weight: 600;

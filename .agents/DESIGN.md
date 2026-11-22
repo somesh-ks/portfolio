@@ -7,6 +7,39 @@
 > `CODE.md` says how to implement them and never restates a number. When a value
 > changes, it changes here and only here.
 
+## Site decisions (someshks.com)
+
+Somesh made these calls. They win over the general guidance further down this file. Don't reopen them without asking him.
+
+- **Look:** a neutral black and white canvas in the style of claude.dev. Use mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines and a terminal feel. Borrow the structure, never Anthropic's fonts, mascot, orange or wording.
+- **No box inside a box.** Sections are separated by hairlines and space. Don't add a filled or bordered card inside another frame. Hairlines replace the shadows described under "Shadows over Borders" below.
+- **No AI-slop patterns.** No pill tag or badge stacked over a title, no tinted chips used as decoration, no gradient heroes, no emoji markers. If a label is needed, use a plain mono meta line.
+- **Full bleed media, one left edge.** Case study figures and videos run edge to edge on phones. On wide screens they extend 8rem to the right of the text column, but their left edge always lines up with the text, so no heading or paragraph ever looks indented.
+- **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon, never in text. Body text is a flat 14px.
+- **Copy:** brief, at Salaja's level. List subtitles stay around the length of "A design system written for coding agents."
+- **Modes:** mobile first. Light and dark get equal care.
+- **Motion:** CSS only. No `motion/react`.
+- **Components:** Base UI only for behaviour. Cmd+K is built on Base UI and lazy-loaded on first open. There is one shared, platform-aware `Kbd`. Every component is listed in [`docs/ui-kit.md`](../docs/ui-kit.md), and a drift test enforces this.
+- **Hero:** never change the name and headline in `content/profile.ts` unless Somesh asks.
+- **Media:** video posters are the Framer thumbnails, stored next to the videos.
+
+## Case study format
+
+Every case study, public or protected, follows this format. It is based on what works in strong portfolios: a case study is an argument with one conflict and one outcome, under about 800 words, where every visual earns its place and the reader can skim headings and results to get the whole story.
+
+1. **Header** (rendered by `EntryArticle` from frontmatter): a mono meta line ("Case study · 2026"), the title, a one-line `summary`, the `metrics` row and the facts list (`role`, `timeline`, `team`, `problem`, `stack`). Put no numbers in the body that the header already shows.
+2. **Hero:** one `Video` loop or `Figure` directly under the opening paragraph, with no caption.
+3. **`## What was broken`** (or a sharper title): two or three bullets. Each one is a pain, not a feature.
+4. **`## Bet 1: …` to `## Bet 3: …`:** at most three. Each has one line on why, one visual (`Figure`, `Video`, a scrubber or a toy) and one bold result line, such as `**+42%** sourcing flow completion.`
+5. **`## What stuck with me`:** up to three one-line lessons, then the team photo if there is one.
+6. **Next:** `EntryArticle` adds the link to the next study.
+
+Layout rules that come with the format:
+
+- Every `##` gets an id automatically. With two or more `##` headings, a sticky "On this page" rail appears in the left gutter at 80rem and wider and marks the section in view. Below 80rem there is no table of contents. Keep `##` titles short so they fit a 9rem rail.
+- Figure captions are numbered with a CSS counter ("FIG A"). Screen readers read the label too. Captionless figures don't take a letter.
+- Use `###` sparingly. The rail lists only `##`.
+
 ## Skills
 
 For deep design engineering and animation work, invoke these skills:
@@ -85,6 +118,8 @@ For deep design engineering and animation work, invoke these skills:
 - Add a subtle 1px semi-transparent outline (`outline: 1px solid var(--color-image-outline); outline-offset: -1px`, token value `rgba(0,0,0,0.1)`) to images for perceived depth and consistency in design systems.
 
 ### Shadows over Borders
+
+> On someshks.com, hairlines replace shadows (see Site decisions). This section applies to other projects.
 
 - Prefer layered `box-shadow` over solid borders for cards and surfaces; shadows adapt to any background via transparency and add depth. Use 2 to 3 stacked shadows at differing spreads/offsets for a natural look.
 - In dark appearances, elevate with a lighter surface step instead: a shadow barely registers on near-black.
