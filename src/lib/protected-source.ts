@@ -12,15 +12,15 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { LockedSlug } from "./site";
 
-// Images only: the media route answers with one whole buffer and no Range
-// support, which video players need. Add streaming before allowing video.
-const MEDIA_FILE = /^[a-z0-9][a-z0-9_-]{0,80}\.(avif|webp|png|jpg|jpeg)$/;
+const MEDIA_FILE = /^[a-z0-9][a-z0-9_-]{0,80}\.(avif|webp|png|jpg|jpeg|mp4|webm)$/;
 const MEDIA_TYPES: Record<string, string> = {
   avif: "image/avif",
   webp: "image/webp",
   png: "image/png",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
+  mp4: "video/mp4",
+  webm: "video/webm",
 };
 
 function source(env: Record<string, string | undefined> = process.env): string {

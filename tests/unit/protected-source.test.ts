@@ -52,8 +52,9 @@ describe("remote protected source", () => {
   });
 });
 
-test("gated media is images only", () => {
+test("gated media names are strict", () => {
   expect(isMediaFileName("hero.webp")).toBe(true);
-  expect(isMediaFileName("demo.mp4")).toBe(false);
+  expect(isMediaFileName("demo.mp4")).toBe(true);
+  expect(isMediaFileName("demo.mov")).toBe(false);
   expect(isMediaFileName("../royc.mdx")).toBe(false);
 });
