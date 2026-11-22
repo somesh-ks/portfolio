@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { Figure, Video } from "@/components/case-studies/Figure";
 import { CodeBlock } from "@/components/code/CodeBlock";
 import { Command } from "@/components/code/Command";
+import { rehypeHeadingIds } from "@/lib/heading-ids";
 import { codeMeta, codeTheme } from "@/lib/shiki";
 import * as toys from "./toys";
 
@@ -43,6 +44,7 @@ function compile(source: string) {
     ...runtime,
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
+      rehypeHeadingIds,
       [
         rehypeShiki,
         {
