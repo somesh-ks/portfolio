@@ -25,20 +25,25 @@ Somesh made these calls. They win over the general guidance further down this fi
 
 ## Case study format
 
-Every case study, public or protected, follows this format. It is based on what works in strong portfolios: a case study is an argument with one conflict and one outcome, under about 800 words, where every visual earns its place and the reader can skim headings and results to get the whole story.
+Every case study, public or protected, reads as one continuous story: short, plain and seamless. A reader should be able to skim the headings alone and get the arc. Aim for under about 800 words, and make every visual earn its place.
 
-1. **Header** (rendered by `EntryArticle` from frontmatter): a mono meta line ("Case study · 2026"), the title, a one-line `summary`, the `metrics` row and the facts list (`role`, `timeline`, `team`, `problem`, `stack`). Put no numbers in the body that the header already shows.
-2. **Hero:** one `Video` loop or `Figure` directly under the opening paragraph, with no caption.
-3. **`## What was broken`** (or a sharper title): two or three bullets. Each one is a pain, not a feature.
-4. **`## Bet 1: …` to `## Bet 3: …`:** at most three. Each has one line on why, one visual (`Figure`, `Video`, a scrubber or a toy) and one bold result line, such as `**+42%** sourcing flow completion.`
-5. **`## What stuck with me`:** up to three one-line lessons, then the team photo if there is one.
+1. **Header** (rendered by `EntryArticle` from frontmatter): a mono meta line ("Case study · 2026"), the title, a one-line `summary`, the `metrics` row and the facts list (`role`, `timeline`, `team`, `problem`, `stack`). Don't repeat in the body a number the header already shows.
+2. **Opening:** one or two sentences of context, then a hero `Video` or `Figure` with no caption.
+3. **Why it was hard:** a section with a plain, specific heading ("Why agents drift", not "The problem"), holding two or three short points.
+4. **What I did:** two to four sections, each with a heading that names the idea itself ("Contracts, not docs", "One drawing, every format"). Each has a few sentences, one visual and, where there is one, the result stated plainly in the text.
+5. **`## Looking back`:** tradeoffs and lessons in a few lines. End on one light closing line, and the team photo if there is one.
 6. **Next:** `EntryArticle` adds the link to the next study.
+
+Writing rules:
+
+- No framing labels such as "Bets", "The problem", "Solution" or "Takeaways", and no numbered headings. Headings say what the section is about.
+- No nested `###` structure under a `##` umbrella. If it deserves a heading, make it a `##`, so it shows in the rail.
+- Short paragraphs and plain sentences. Bold only for a key result.
 
 Layout rules that come with the format:
 
 - Every `##` gets an id automatically. With two or more `##` headings, a sticky "On this page" rail appears in the left gutter at 80rem and wider and marks the section in view. Below 80rem there is no table of contents. Keep `##` titles short so they fit a 9rem rail.
 - Figure captions are numbered with a CSS counter ("FIG A"). Screen readers read the label too. Captionless figures don't take a letter.
-- Use `###` sparingly. The rail lists only `##`.
 
 ## Skills
 
