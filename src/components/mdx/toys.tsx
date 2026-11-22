@@ -44,10 +44,6 @@ export const AgenticStreamDemo = dynamic(() =>
   import("../experiments/AgenticStreamDemo").then((m) => m.AgenticStreamDemo),
 );
 /** @public used by MDX through the namespace import */
-export const SkillInstall = dynamic(() =>
-  import("../skills/SkillInstall").then((m) => m.SkillInstall),
-);
-/** @public used by MDX through the namespace import */
 export const HitAreaDemo = dynamic(() =>
   import("../skills/HitAreaDemo").then((m) => m.HitAreaDemo),
 );
@@ -56,8 +52,16 @@ export const StableButtonDemo = dynamic(() =>
   import("../skills/StableButtonDemo").then((m) => m.StableButtonDemo),
 );
 /** @public used by MDX through the namespace import */
-export const ThemeSmearDemo = dynamic(() =>
-  import("../skills/ThemeSmearDemo").then((m) => m.ThemeSmearDemo),
+export const SpinnerDemo = dynamic(() =>
+  import("../skills/SpinnerDemo").then((m) => m.SpinnerDemo),
+);
+/** @public used by MDX through the namespace import */
+export const IconSwapDemo = dynamic(() =>
+  import("../skills/IconSwapDemo").then((m) => m.IconSwapDemo),
+);
+/** @public used by MDX through the namespace import */
+export const TabularNumbersDemo = dynamic(() =>
+  import("../skills/TabularNumbersDemo").then((m) => m.TabularNumbersDemo),
 );
 /** @public used by MDX through the namespace import */
 export const ClaudeRunner = dynamic(() =>

@@ -1166,7 +1166,6 @@ claude-mascot:defined > * {
 .section-title,
 .back-link,
 .next-link__label,
-.entry__meta,
 .toc__title,
 .facts dt,
 .contact-links .link,
@@ -1199,10 +1198,6 @@ claude-mascot:defined > * {
 .entry__header {
   margin-top: var(--space-8);
   margin-bottom: var(--space-8);
-}
-.entry__meta {
-  margin-bottom: var(--space-3);
-  color: var(--text-secondary);
 }
 .entry__title {
   font-size: var(--step-2xl);
@@ -2415,7 +2410,8 @@ claude-mascot:defined > * {
   .stream__step {
     animation-name: fade-in;
   }
-  .spin {
+  .spin,
+  .spinner-demo__wrap {
     animation-duration: 2.4s;
   }
   .stage__mascot:active {
@@ -2431,11 +2427,6 @@ claude-mascot:defined > * {
   }
 }
 
-/* ---------- Skill page: install box and demos ---------- */
-.skill-install__commands {
-  display: grid;
-  gap: var(--space-2);
-}
 /* ---------- Code: command line, code block, terminal ---------- */
 .command {
   display: flex;
@@ -2558,26 +2549,76 @@ claude-mascot:defined > * {
   --shiki-token-punctuation: var(--text-primary);
 }
 
-.skill-demo__stage {
+/* ---------- Skill page: before / after examples ---------- */
+.before-after {
+  margin-block: var(--space-12);
+}
+.before-after__line {
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+}
+.before-after__pair {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+@media (min-width: 40rem) {
+  .before-after__pair {
+    grid-template-columns: 1fr 1fr;
+  }
+  .before-after__stage {
+    min-height: 9rem;
+  }
+}
+@media (min-width: 60rem) {
+  .prose > .before-after .before-after__pair {
+    margin-right: -8rem;
+  }
+}
+.before-after__panel {
+  display: grid;
+  gap: var(--space-2);
+}
+.before-after__stage {
   display: grid;
   place-items: center;
-  gap: var(--space-3);
-  min-height: 10rem;
-  padding: var(--space-6) var(--space-3);
+  min-height: 7rem;
+  padding: var(--space-4) var(--space-3);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
-.skill-demo__switch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 2.75rem;
-  padding-inline: var(--space-2);
+.before-after__panel figcaption {
   color: var(--text-secondary);
   font-size: var(--step-sm);
 }
-.skill-demo__readout {
+
+.hit-demo {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+}
+.hit-tabs {
+  position: relative;
+}
+/* The drawn cursor's tip is its top-left corner; it sweeps the bar and back. */
+.hit-demo__cursor {
+  position: absolute;
+  top: 55%;
+  left: 0;
+  color: var(--text-primary);
+  pointer-events: none;
+  animation: hit-sweep 3.2s var(--ease-in-out) infinite alternate;
+}
+@keyframes hit-sweep {
+  from {
+    left: 4%;
+  }
+  to {
+    left: calc(100% - 1.25rem);
+  }
+}
+.hit-demo__readout {
   color: var(--text-secondary);
   font-size: var(--step-xs);
   font-family: var(--font-mono);
@@ -2613,11 +2654,12 @@ claude-mascot:defined > * {
 .hit-tabs__tab[data-hovered="true"] .hit-tabs__label {
   background: var(--surface-hover);
 }
-.hit-tabs--show .hit-tabs__tab {
+/* Hit areas are always drawn, so the point reads without a pointer. */
+.hit-tabs__tab {
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--text-accent);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
-.hit-tabs--show.hit-tabs--typical {
+.hit-tabs--typical {
   background: repeating-linear-gradient(45deg, var(--accent-tint) 0 4px, transparent 4px 8px);
 }
 
@@ -2656,81 +2698,75 @@ claude-mascot:defined > * {
   }
 }
 
-/* Theme smear: the typical card gives each property its own transition speed. */
-.smear-card {
-  width: min(100%, 20rem);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+/* Icon swap: both icons share one cell and cross-fade with scale and blur. */
+.icon-swap {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
   background: var(--surface-canvas);
-  color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--border-default);
 }
-.smear-card--flipped {
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
+.icon-swap__cell {
+  display: grid;
 }
-.smear-card--typical,
-.smear-card--typical * {
+.icon-swap__cell > * {
+  grid-area: 1 / 1;
   transition:
-    background-color calc(var(--duration-ceiling) * 3) linear,
-    color calc(var(--duration-ceiling) * 0.5) linear,
-    box-shadow calc(var(--duration-ceiling) * 5) linear;
+    opacity var(--duration-popover) var(--ease-out),
+    transform var(--duration-popover) var(--ease-out),
+    filter var(--duration-popover) var(--ease-out);
 }
-.smear-card--fixed,
-.smear-card--fixed * {
-  transition: background-color var(--duration-press) var(--ease-out);
+.icon-swap__cell > [data-visible="false"] {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
 }
-.smear-card--suspended,
-.smear-card--suspended * {
-  transition: none !important;
+
+/* Spinner: the before wrapper is inline-block, so the line box sets its height
+   and the rotation centre falls below the icon's. The after wrapper hugs it. */
+.spinner-demo {
+  color: var(--text-secondary);
+  font-size: var(--step-lg);
+  line-height: 2.5;
 }
-.smear-card__head {
+.spinner-demo__wrap {
+  margin-right: var(--space-3);
+  color: var(--text-primary);
+  vertical-align: middle;
+  animation: spin 0.9s linear infinite;
+}
+/* Icons are inline by default outside a CSS reset; this site's reset makes them block. */
+.spinner-demo__wrap svg {
+  display: inline;
+}
+.spinner-demo__wrap--inline {
+  display: inline-block;
+}
+.spinner-demo__wrap--grid {
+  display: inline-grid;
+}
+
+/* Stopwatch: proportional digits change width every tick; tabular ones do not. */
+.stopwatch {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-3);
 }
-.smear-card__title {
+.stopwatch__time {
+  font-size: var(--step-2xl);
   font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: proportional-nums;
 }
-.smear-card__toggle {
-  display: inline-grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-md);
-  box-shadow: inset 0 0 0 1px var(--border-default);
-}
-.smear-card__body {
-  margin-top: var(--space-2);
-  /* .prose p sets its own colour; follow the card's so the flipped state stays readable. */
-  color: inherit;
-  font-size: var(--step-sm);
-}
-.smear-card__chips {
-  display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-.smear-card__chips > span {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-pill);
-  font-size: var(--step-xs);
-  box-shadow: inset 0 0 0 1px var(--border-default);
-}
-.smear-card--flipped .smear-card__toggle,
-.smear-card--flipped .smear-card__chips > span {
-  box-shadow: inset 0 0 0 1px var(--text-inverse);
+.stopwatch__time--tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .copy-button__icons > [data-visible="false"] {
+  .copy-button__icons > [data-visible="false"],
+  .icon-swap__cell > [data-visible="false"] {
     transform: none;
-  }
-  .smear-card--typical,
-  .smear-card--typical *,
-  .smear-card--fixed,
-  .smear-card--fixed * {
-    transition: none;
+    filter: none;
   }
 }
 

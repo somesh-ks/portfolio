@@ -4,6 +4,7 @@ import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { Entry } from "@/lib/content";
 import { entryGraph, serializeJsonLd } from "@/lib/schema-org";
+import { GitHubMark } from "@/components/ui/GitHubMark";
 import { ArticleOutline } from "./ArticleOutline";
 import { BackLink } from "./BackLink";
 import { FactsList } from "./FactsList";
@@ -15,11 +16,9 @@ interface EntryArticleProps {
   children: ReactNode;
 }
 
-const KIND_LABEL = {
-  "case-study": "Case study",
-  project: "Project",
-  experiment: "Experiment",
-} as const;
+/** "https://github.com/owner/repo" -> "owner/repo", the label people recognise. */
+const repoName = (url: string) =>
+  url.replace(/^https?:\/\/(www\.)?github\.com\//, "").replace(/\/$/, "");
 
 export function EntryArticle({ entry, next, children }: EntryArticleProps) {
   const { meta } = entry;
@@ -31,10 +30,6 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
       />
       <BackLink />
       <header className="entry__header">
-        <p className="entry__meta">
-          {KIND_LABEL[meta.kind]} ·{" "}
-          <time dateTime={meta.publishedAt}>{meta.publishedAt.slice(0, 4)}</time>
-        </p>
         <h1 className="entry__title">{meta.title}</h1>
         <p className="entry__summary">{meta.summary}</p>
         {meta.liveUrl || meta.repoUrl ? (
@@ -46,7 +41,7 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
             ) : null}
             {meta.repoUrl ? (
               <a href={meta.repoUrl} className="button pressable" target="_blank" rel="noopener">
-                Source <ArrowUpRight aria-hidden="true" size={14} />
+                <GitHubMark /> {repoName(meta.repoUrl)}
               </a>
             ) : null}
           </p>
