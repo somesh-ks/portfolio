@@ -712,6 +712,7 @@ claude-mascot:defined > * {
     z-index: -1;
     height: var(--hover-h, 0);
     transform: translateY(var(--hover-y, 0));
+    border-radius: var(--radius-md);
     background: var(--surface-hover);
     opacity: 0;
     pointer-events: none;
@@ -723,8 +724,7 @@ claude-mascot:defined > * {
   .list[data-hover="on"]::before {
     transition:
       opacity var(--duration-dropdown) ease,
-      transform var(--duration-dropdown) var(--ease-out),
-      height var(--duration-dropdown) var(--ease-out);
+      transform var(--duration-dropdown) var(--ease-out);
   }
   .list[data-hover] .list-row:hover {
     background: transparent;

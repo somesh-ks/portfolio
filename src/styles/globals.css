@@ -281,11 +281,12 @@
   }
 }
 
-/* Theme switch: switchTheme() snapshots the page and crossfades old into new.
-   Normal blending, since the default plus-lighter flashes bright mid-fade on dark. */
-::view-transition-old(root),
+/* Theme switch: switchTheme() snapshots the page; the new theme fades in over
+   the old one, which stays opaque so nothing behind shows through mid-fade. */
+::view-transition-old(root) {
+  animation: none;
+}
 ::view-transition-new(root) {
   animation-duration: var(--duration-modal);
   animation-timing-function: ease;
-  mix-blend-mode: normal;
 }

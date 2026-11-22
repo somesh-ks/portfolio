@@ -10,11 +10,11 @@ function over(event: PointerEvent<HTMLUListElement>) {
   list.style.setProperty("--hover-y", `${row.offsetTop}px`);
   list.style.setProperty("--hover-h", `${row.offsetHeight}px`);
   // Coming from outside, appear on the row; only moves between rows glide.
+  // Commit the un-transitioned position first, or the pill slides from its last row.
   if (!list.dataset.hover) {
     list.dataset.hover = "enter";
-    requestAnimationFrame(() => {
-      if (list.dataset.hover) list.dataset.hover = "on";
-    });
+    void getComputedStyle(list, "::before").transform;
+    list.dataset.hover = "on";
   }
 }
 

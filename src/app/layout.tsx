@@ -6,9 +6,8 @@ import { SiteFooter } from "@/components/editorial/SiteFooter";
 import { SiteHeader } from "@/components/editorial/SiteHeader";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { THEME_COLOR } from "@/lib/site";
 import { personGraph, serializeJsonLd } from "@/lib/schema-org";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL, THEME_COLOR } from "@/lib/site";
 import "@/styles/globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
