@@ -33,8 +33,15 @@ if (existsSync(cached)) {
 
 const tectonic = await findTectonic();
 if (!tectonic) {
-  if (existsSync(LAST)) copyFileSync(LAST, OUT);
-  console.warn("resume: tectonic unavailable, using the last PDF if there is one");
+  if (existsSync(LAST)) {
+    copyFileSync(LAST, OUT);
+    console.warn("resume: tectonic unavailable, serving the last good PDF");
+  } else if (process.env.VERCEL) {
+    console.error("resume: tectonic download failed and no earlier PDF exists");
+    process.exit(1);
+  } else {
+    console.warn("resume: tectonic not on PATH, skipping the PDF locally");
+  }
   process.exit(0);
 }
 
