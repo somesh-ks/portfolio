@@ -5,7 +5,7 @@ export function BackLink() {
   return (
     <Link href="/" className="back-link pressable">
       <ArrowLeft aria-hidden="true" size={15} strokeWidth={1.75} />
-      Somesh Kesarla Suresh
+      Home
     </Link>
   );
 }
