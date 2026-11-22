@@ -28,10 +28,11 @@ import {
 /** Rides arrive as /runner/rides.json (static, outside the JS bundle). */
 function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite> {
   return Object.fromEntries(
-    COSTUMES.map((costume) => [
-      costume,
-      buildSprite(costume === "walk" ? walkSprite : (rides[costume] ?? walkSprite), costume),
-    ]),
+    // A ride that failed to load falls back to the classic walk, loops and all.
+    COSTUMES.map((costume) => {
+      const raw = costume === "walk" ? undefined : rides[costume];
+      return [costume, raw ? buildSprite(raw, costume) : buildSprite(walkSprite, "walk")];
+    }),
   ) as Record<Costume, Sprite>;
 }
 

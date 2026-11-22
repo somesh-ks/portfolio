@@ -251,9 +251,7 @@ claude-mascot:defined > * {
   min-height: 2.25rem;
 }
 .runner__foot {
-  /* The buttons' own padding spaces them, so the row fits a 320px phone;
-     narrower screens wrap it. */
-  flex-wrap: wrap;
+  /* The buttons' own padding spaces them; phones wrap the row (below). */
   gap: 0;
 }
 /* Footer buttons keep their hit area but line their text up with the column. */
