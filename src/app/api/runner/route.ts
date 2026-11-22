@@ -44,10 +44,7 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ??
     "unknown";
   try {
-    const result = await submitScore(
-      { token: body.token, initials: body.initials, score: body.score },
-      ip,
-    );
+    const result = await submitScore({ token: body.token, name: body.name, score: body.score }, ip);
     const status = result.ok ? 200 : result.reason === "limited" ? 429 : 400;
     return NextResponse.json(result, { status, headers: NO_STORE });
   } catch {

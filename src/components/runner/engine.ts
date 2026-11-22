@@ -9,14 +9,24 @@
  */
 import { createRun, grounded, score, step, STEP, WORLD, type RunState } from "@/lib/runner/sim";
 import {
-  MASCOT,
-  mascotCells,
-  OBSTACLE_SPRITES,
-  POSES,
-  type Cell,
+  buildSprite,
+  COSTUMES,
+  walkSprite,
   type Costume,
-  type Tone,
-} from "@/lib/runner/sprites";
+  type RawSprite,
+  type Sprite,
+} from "@/lib/runner/claude-sprites";
+import { OBSTACLE_SPRITES, type Cell, type Tone } from "@/lib/runner/sprites";
+
+/** Rides arrive as /runner/rides.json (static, outside the JS bundle). */
+function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite> {
+  return Object.fromEntries(
+    COSTUMES.map((costume) => [
+      costume,
+      buildSprite(costume === "walk" ? walkSprite : (rides[costume] ?? walkSprite), costume),
+    ]),
+  ) as Record<Costume, Sprite>;
+}
 
 const TONE_VARS: Record<Tone, string> = {
   body: "--illustration-mascot",
@@ -47,7 +57,7 @@ export interface EngineCallbacks {
 }
 
 export interface Engine {
-  start: (seed: number) => void;
+  start: (seed: number, costume: Costume) => void;
   jump: () => void;
   setCostume: (costume: Costume) => void;
   destroy: () => void;
@@ -56,8 +66,10 @@ export interface Engine {
 export function createEngine(
   canvas: HTMLCanvasElement,
   initialCostume: Costume,
+  rides: Record<string, RawSprite>,
   callbacks: EngineCallbacks,
 ): Engine {
+  const SPRITES = buildSprites(rides);
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas 2D is unavailable");
   const ctx = context;
@@ -74,6 +86,7 @@ export function createEngine(
   let viewWidth = 120;
   let offsetY = 0;
   let lastPoints = -1;
+  let frozenAt = 0;
   let colors = {} as Record<Tone | "ground" | "dust", string>;
 
   function readColors() {
@@ -166,12 +179,16 @@ export function createEngine(
       drawCells(sprite.cells, Math.round(obstacle.x), WORLD.ground - sprite.h);
     }
 
-    let pose: (typeof POSES)[keyof typeof POSES] = POSES.idle;
-    if (state?.over) pose = POSES.crash;
-    else if (state && !grounded(state)) pose = POSES.jump;
-    else if (state) pose = Math.floor(distance / 7) % 2 === 0 ? POSES.runA : POSES.runB;
-    const height = Math.round(state?.height ?? 0);
-    drawCells(mascotCells(pose, costume), WORLD.mascotX, WORLD.ground - MASCOT.h - height);
+    const sprite = SPRITES[costume];
+    let rects = sprite.idle;
+    if (state) {
+      // Frozen in the air and on a crash; otherwise the riding loop plays.
+      const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps) : null;
+      const index = held ?? Math.floor(state.time * sprite.fps);
+      rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
+    }
+    const lift = WORLD.ground - Math.round(state?.height ?? 0);
+    for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
   }
 
   function frame(now: number) {
@@ -184,7 +201,9 @@ export function createEngine(
     while (accumulator >= STEP && !state.over) {
       const before = state.jumps;
       const milestoneBefore = Math.floor(score(state) / MILESTONE);
+      const wasGrounded = grounded(state);
       step(state, pressed, viewWidth);
+      if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.time;
       pressed = false;
       accumulator -= STEP;
       if (state.jumps > before) callbacks.onJump();
@@ -235,8 +254,9 @@ export function createEngine(
   resize();
 
   return {
-    start(seed) {
-      run = createRun(seed);
+    start(seed, next) {
+      costume = next;
+      run = createRun(seed, SPRITES[next].hitbox);
       pressed = false;
       last = null;
       accumulator = 0;
@@ -248,6 +268,7 @@ export function createEngine(
     },
     setCostume(next) {
       costume = next;
+      if (run) run.hitbox = SPRITES[next].hitbox;
       draw();
     },
     destroy() {

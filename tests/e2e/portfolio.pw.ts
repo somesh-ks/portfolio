@@ -33,16 +33,20 @@ test("home to experiment to case study, with no console errors", async ({ page }
   expect(errors).toEqual([]);
 });
 
-test("the hero runner plays, crashes and offers a rematch", async ({ page }) => {
+test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
   const runner = page.locator(".runner");
-  await runner.getByRole("button", { name: "Play" }).click();
-  await expect(runner.locator(".runner__hud")).toContainText(/0000[1-9]|000[1-9]\d/);
-  await expect(runner.getByRole("button", { name: "Play again" })).toBeFocused({ timeout: 20_000 });
-  await expect(runner.locator(".runner__result")).toContainText(/\d+/);
+  await runner.locator(".runner__prompt").click();
+  await expect(runner.locator(".runner__score")).toContainText(/0000[1-9]|000[1-9]\d/);
+  await expect(runner.locator(".runner__over")).toBeVisible({ timeout: 20_000 });
+  await expect(runner.locator(".runner__final")).toHaveText(/^\d{5}$/);
   // No Redis in tests: the leaderboard stays hidden and nothing errors.
-  await expect(runner.getByLabel("Your initials")).toHaveCount(0);
+  await expect(runner.getByLabel("First name")).toHaveCount(0);
+  // Space on the focused game starts the next run after a short beat.
+  await page.waitForTimeout(700);
+  await runner.locator(".runner__screen").press("Space");
+  await expect(runner.locator(".runner__over")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

@@ -3,7 +3,7 @@
  * calls `step` at a fixed rate; tests drive it directly. Units are grid cells
  * and seconds.
  */
-import { MASCOT, MASCOT_HITBOX, OBSTACLE_SPRITES, OBSTACLES, type ObstacleKind } from "./sprites";
+import { OBSTACLE_SPRITES, OBSTACLES, type ObstacleKind } from "./sprites";
 
 export const WORLD = {
   /** Visible height in cells; the renderer picks the width from the aspect. */
@@ -38,7 +38,15 @@ export interface Obstacle {
   x: number;
 }
 
+/** Collision box along x, measured from the mascot's left edge. */
+export interface Hitbox {
+  x: number;
+  w: number;
+}
+const DEFAULT_HITBOX: Hitbox = { x: 4, w: 16 };
+
 export interface RunState {
+  hitbox: Hitbox;
   time: number;
   speed: number;
   distance: number;
@@ -64,8 +72,9 @@ function random(state: RunState): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-export function createRun(seed: number): RunState {
+export function createRun(seed: number, hitbox: Hitbox = DEFAULT_HITBOX): RunState {
   return {
+    hitbox,
     time: 0,
     speed: PHYSICS.startSpeed,
     distance: 0,
@@ -108,12 +117,11 @@ function spawn(state: RunState, viewWidth: number) {
 
 export function overlaps(state: RunState, obstacle: Obstacle): boolean {
   const sprite = OBSTACLE_SPRITES[obstacle.kind];
-  const left = WORLD.mascotX + MASCOT_HITBOX.x;
-  const right = left + MASCOT_HITBOX.w;
-  // Bottom of the hitbox, in cells above the ground.
-  const bottom = state.height + (MASCOT.h - (MASCOT_HITBOX.y + MASCOT_HITBOX.h));
+  const left = WORLD.mascotX + state.hitbox.x;
+  const right = left + state.hitbox.w;
   const inX = right > obstacle.x + 1 && left < obstacle.x + sprite.w - 1;
-  return inX && bottom < sprite.h - 1;
+  // Feet above the obstacle's top (less a forgiving cell) clear it.
+  return inX && state.height < sprite.h - 1;
 }
 
 /** Advance one fixed step. `jump` is true on the step a press arrives. */

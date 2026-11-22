@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  createRunToken,
-  isPlausible,
-  normalizeInitials,
-  readRunToken,
-} from "@/lib/runner/leaderboard";
+import { createRunToken, isPlausible, normalizeName, readRunToken } from "@/lib/runner/leaderboard";
 import {
   createRun,
   maxScoreFor,
@@ -16,7 +11,15 @@ import {
   WORLD,
   type RunState,
 } from "@/lib/runner/sim";
-import { COSTUMES, mascotCells, OBSTACLE_SPRITES, POSES } from "@/lib/runner/sprites";
+import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
+import rides from "../../public/runner/rides.json";
+import { OBSTACLE_SPRITES } from "@/lib/runner/sprites";
+
+const sprite = (costume: (typeof COSTUMES)[number]) =>
+  buildSprite(
+    costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!,
+    costume,
+  );
 
 const VIEW = 200;
 const ENV = { PORTFOLIO_COOKIE_SECRET: Buffer.alloc(32, 7).toString("base64") };
@@ -96,26 +99,38 @@ describe("runner sim", () => {
     expect(maxScoreFor(60)).toBeLessThan(score(state) * 1.1);
   });
 
-  test("every costume renders inside a sane box", () => {
+  test("every costume decodes, loops and can clear every obstacle", () => {
     for (const costume of COSTUMES) {
-      for (const [x, y, w, h] of mascotCells(POSES.runA, costume)) {
-        expect(x).toBeGreaterThanOrEqual(0);
-        expect(x + w).toBeLessThanOrEqual(24);
-        expect(y).toBeGreaterThanOrEqual(-8);
-        expect(y + h).toBeLessThanOrEqual(16);
+      const built = sprite(costume);
+      expect(built.frames.length).toBeGreaterThan(1);
+      expect(built.hitbox.w).toBeGreaterThan(8);
+      expect(built.hitbox.w).toBeLessThanOrEqual(16);
+      for (const kind of Object.keys(OBSTACLE_SPRITES) as (keyof typeof OBSTACLE_SPRITES)[]) {
+        const cleared = Array.from({ length: 80 }, (_, lead) => {
+          const state = createRun(0, built.hitbox);
+          state.untilNext = Infinity;
+          state.obstacles = [{ kind, x: WORLD.mascotX + built.hitbox.x + built.hitbox.w + lead }];
+          for (let i = 0; i < 120 && !state.over; i += 1) step(state, i === 0, VIEW);
+          return !state.over;
+        });
+        expect(cleared.some(Boolean)).toBe(true);
       }
     }
   });
 });
 
 describe("runner leaderboard", () => {
-  test("initials are three letters and never blocked words", () => {
-    expect(normalizeInitials("abc")).toBe("ABC");
-    expect(normalizeInitials(" sks ")).toBe("SKS");
-    expect(normalizeInitials("AB")).toBeNull();
-    expect(normalizeInitials("A1C")).toBeNull();
-    expect(normalizeInitials("KKK")).toBeNull();
-    expect(normalizeInitials(42)).toBeNull();
+  test("first names are short, letter-only and not offensive", () => {
+    expect(normalizeName(" Somesh ")).toBe("Somesh");
+    expect(normalizeName("Anne-Marie")).toBe("Anne-Marie");
+    expect(normalizeName("Zoë")).toBe("Zoë");
+    expect(normalizeName("Mary  Jo")).toBe("Mary Jo");
+    expect(normalizeName("")).toBeNull();
+    expect(normalizeName("R2D2")).toBeNull();
+    expect(normalizeName("Averyverylongname")).toBeNull();
+    expect(normalizeName("<script>")).toBeNull();
+    expect(normalizeName("ShitHead")).toBeNull();
+    expect(normalizeName(42)).toBeNull();
   });
 
   test("run tokens verify, expire and reject tampering", () => {

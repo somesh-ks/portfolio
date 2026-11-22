@@ -2,31 +2,29 @@
 
 /**
  * Claude runner: an endless runner in the homepage hero and on its
- * experiment page. The server renders a static frame; the canvas engine loads
- * on the first Play, so the page stays light until someone wants to play.
+ * experiment page, dressed like claude.dev: a terminal window, mono labels,
+ * key hints, colour only in the pixel art.
  *
- * One input everywhere: Space, ArrowUp or Enter while the game has focus,
- * or a tap or click on the screen.
+ * The server renders a static frame; the canvas engine loads on the first
+ * start, so the page stays light until someone plays.
+ * Keys while the game has focus: Space/ArrowUp jump, C costume,
+ * F fullscreen, M sound. Touch: tap to jump.
  */
-import { Maximize2, Minimize2, Shirt } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
-import { SoundToggle } from "@/components/ui/SoundToggle";
-import { WORLD } from "@/lib/runner/sim";
 import {
   COSTUME_NAMES,
   COSTUMES,
-  MASCOT,
-  mascotCells,
-  POSES,
+  idleFrame,
   type Costume,
-  type Tone,
-} from "@/lib/runner/sprites";
+  type RawSprite,
+} from "@/lib/runner/claude-sprites";
+import { WORLD } from "@/lib/runner/sim";
 import type { Engine } from "./engine";
 
 type Phase = "idle" | "loading" | "running" | "over";
 interface Entry {
-  initials: string;
+  name: string;
   score: number;
 }
 interface Board {
@@ -35,21 +33,8 @@ interface Board {
 }
 
 const BEST_KEY = "runner:best";
-const INITIALS_KEY = "runner:initials";
-const TONE_FILL: Record<Tone, string> = {
-  body: "var(--illustration-mascot)",
-  shade: "var(--illustration-mascot-shade)",
-  ink: "var(--illustration-mascot-ink)",
-  line: "var(--text-primary)",
-  paper: "var(--surface-raised)",
-  muted: "var(--text-secondary)",
-  sky: "var(--illustration-sky)",
-  gold: "var(--illustration-gold)",
-  sand: "var(--illustration-sand)",
-  moss: "var(--illustration-moss)",
-  cream: "var(--illustration-cream)",
-  steel: "var(--illustration-steel)",
-};
+const NAME_KEY = "runner:name";
+const IDLE = idleFrame();
 
 function readStorage(key: string): string | null {
   try {
@@ -62,15 +47,15 @@ function writeStorage(key: string, value: string) {
   try {
     window.localStorage.setItem(key, value);
   } catch {
-    // Private mode or blocked storage: the best score just won't persist.
+    // Private mode or blocked storage: it just won't persist.
   }
 }
 
-/** The idle frame as SVG: server-rendered, no JavaScript needed. */
-function StaticFrame({ costume }: { costume: Costume }) {
-  const top = WORLD.ground - MASCOT.h;
-  // 400 cells wide with "slice": the 64-cell height always sets the scale,
-  // matching the canvas engine at any aspect ratio.
+const pad = (value: number) => String(value).padStart(5, "0");
+
+/** The standing frame as SVG: server-rendered, no JavaScript needed. Same
+ * 64-cell-tall mapping as the canvas, so the first frame lands in place. */
+function StaticFrame() {
   return (
     <svg
       className="runner__static"
@@ -80,17 +65,33 @@ function StaticFrame({ costume }: { costume: Costume }) {
       aria-hidden="true"
     >
       <rect x={0} y={WORLD.ground} width={400} height={1} fill="var(--border-strong)" />
-      {mascotCells(POSES.idle, costume).map(([x, y, w, h, tone]) => (
+      {IDLE.map(([x, y, w, h, color]) => (
         <rect
-          key={`${x}-${y}-${w}-${h}-${tone}`}
+          key={`${x}-${y}-${w}-${color}`}
           x={WORLD.mascotX + x}
-          y={top + y}
+          y={WORLD.ground + y}
           width={w}
           height={h}
-          fill={TONE_FILL[tone]}
+          fill={color}
         />
       ))}
     </svg>
+  );
+}
+
+/** "[SPACE]" with a keyboard, "TAP" on touch; CSS picks one. */
+function Key({ keyName, touch }: { keyName: string; touch?: string }) {
+  return (
+    <>
+      <span className="runner__key" data-input="keys">
+        [{keyName}]
+      </span>
+      {touch ? (
+        <span className="runner__key" data-input="touch">
+          {touch}
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -101,13 +102,14 @@ function qualifies(board: Board, points: number): boolean {
 }
 
 export function ClaudeRunner() {
-  const { play } = useSound();
+  const { enabled: soundOn, toggle: toggleSound, play } = useSound();
+  const frame = useRef<HTMLElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Engine | null>(null);
-  const restart = useRef<HTMLButtonElement>(null);
   const token = useRef<string | null>(null);
   const picked = useRef<Costume | null>(null);
+  const leaderboardOn = useRef(false);
   const playRef = useRef(play);
   useEffect(() => {
     playRef.current = play;
@@ -116,21 +118,19 @@ export function ClaudeRunner() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [points, setPoints] = useState(0);
   const [best, setBest] = useState(0);
-  const [newBest, setNewBest] = useState(false);
-  const [costume, setCostume] = useState<Costume>("none");
+  const [costume, setCostume] = useState<Costume>("walk");
   const [immersive, setImmersive] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [board, setBoard] = useState<Board>({ enabled: false, top: [] });
-  const [initials, setInitials] = useState("");
+  const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
-  const [announcement, setAnnouncement] = useState("");
   const [hasToken, setHasToken] = useState(false);
-  const [rematchReady, setRematchReady] = useState(false);
-  const titleId = useId();
-  const initialsId = useId();
+  const [ready, setReady] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const nameId = useId();
 
   useEffect(() => () => engine.current?.destroy(), []);
 
-  const leaderboardOn = useRef(false);
   const loadBoard = useCallback(async () => {
     try {
       const response = await fetch("/api/runner", { cache: "no-store" });
@@ -145,24 +145,28 @@ export function ClaudeRunner() {
 
   const startRun = useCallback(async () => {
     // A costume the player picked sticks; otherwise each run gets a random one.
-    const next =
-      picked.current ?? COSTUMES[1 + Math.floor(Math.random() * (COSTUMES.length - 1))] ?? "none";
+    const next = picked.current ?? COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
     setCostume(next);
     setPoints(0);
-    setNewBest(false);
     setSubmitted("no");
+    setReady(false);
     setAnnouncement("");
     token.current = null;
     setHasToken(false);
-    setRematchReady(false);
 
     if (!engine.current) {
       setPhase("loading");
       setBest(Number(readStorage(BEST_KEY)) || 0);
-      setInitials(readStorage(INITIALS_KEY) ?? "");
-      const [{ createEngine }] = await Promise.all([import("./engine"), loadBoard()]);
+      setName(readStorage(NAME_KEY) ?? "");
+      const [{ createEngine }, rides] = await Promise.all([
+        import("./engine"),
+        fetch("/runner/rides.json")
+          .then((response) => (response.ok ? response.json() : {}))
+          .catch(() => ({})) as Promise<Record<string, RawSprite>>,
+        loadBoard(),
+      ]);
       if (!canvas.current) return;
-      engine.current = createEngine(canvas.current, next, {
+      engine.current = createEngine(canvas.current, next, rides, {
         onScore: setPoints,
         onJump: () => playRef.current("jump"),
         onMilestone: () => playRef.current("milestone"),
@@ -173,18 +177,15 @@ export function ClaudeRunner() {
           setBest((previous) => {
             if (final <= previous) return previous;
             writeStorage(BEST_KEY, String(final));
-            setNewBest(true);
             return final;
           });
           setAnnouncement(`Game over. ${final} points.`);
         },
       });
-    } else {
-      engine.current.setCostume(next);
     }
 
     // Get the run token before the clock starts, so the server's "reachable
-    // in the time since" check never sees less time than the run really took.
+    // in the time since" check never sees less time than the run took.
     if (leaderboardOn.current) {
       try {
         const response = await fetch("/api/runner", {
@@ -203,47 +204,43 @@ export function ClaudeRunner() {
 
     setPhase("running");
     screen.current?.focus({ preventScroll: true });
-    engine.current.start((Math.random() * 2 ** 31) | 0);
+    engine.current.start((Math.random() * 2 ** 31) | 0, next);
   }, [loadBoard]);
+
+  // A beat after a crash before a press restarts, so a jump pressed as
+  // Claude hit something doesn't skip the result.
+  useEffect(() => {
+    if (phase !== "over") return;
+    const timer = window.setTimeout(() => setReady(true), 600);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
 
   const press = useCallback(() => {
     if (phase === "running") engine.current?.jump();
-    else if (phase === "idle") void startRun();
-  }, [phase, startRun]);
+    else if (phase === "idle" || (phase === "over" && ready)) void startRun();
+  }, [phase, ready, startRun]);
 
-  useEffect(() => {
-    if (phase !== "over") return;
-    // A beat before focusing "Play again", so a jump pressed as Claude crashed
-    // doesn't restart the run and skip the result.
-    const timer = window.setTimeout(() => {
-      restart.current?.focus({ preventScroll: true });
-      setRematchReady(true);
-    }, 600);
-    return () => window.clearTimeout(timer);
-  }, [phase]);
+  const cycleCostume = useCallback(() => {
+    const next = COSTUMES[(COSTUMES.indexOf(costume) + 1) % COSTUMES.length] ?? "walk";
+    picked.current = next;
+    setCostume(next);
+    engine.current?.setCostume(next);
+    play("tick");
+  }, [costume, play]);
 
   // Fullscreen where the browser supports it (desktop, Android); a fixed
   // overlay elsewhere (iPhone Safari only allows fullscreen video).
   const toggleFullscreen = useCallback(async () => {
-    const element = screen.current?.closest<HTMLElement>(".runner");
+    const element = frame.current;
     if (!element) return;
-    if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => {});
-      return;
-    }
-    if (immersive) {
-      setImmersive(false);
-      return;
-    }
-    if (document.fullscreenEnabled && element.requestFullscreen) {
+    if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    else if (immersive) setImmersive(false);
+    else if (document.fullscreenEnabled && element.requestFullscreen)
       await element.requestFullscreen().catch(() => setImmersive(true));
-    } else {
-      setImmersive(true);
-    }
+    else setImmersive(true);
     screen.current?.focus({ preventScroll: true });
   }, [immersive]);
 
-  const [fullscreen, setFullscreen] = useState(false);
   useEffect(() => {
     const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", onChange);
@@ -261,43 +258,28 @@ export function ClaudeRunner() {
   }, [immersive]);
   const expanded = fullscreen || immersive;
 
-  const cycleCostume = () => {
-    const next = COSTUMES[(COSTUMES.indexOf(costume) + 1) % COSTUMES.length] ?? "none";
-    picked.current = next;
-    setCostume(next);
-    engine.current?.setCostume(next);
-    play("tick");
-  };
-
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const clean = initials
-      .toUpperCase()
-      .replace(/[^A-Z]/g, "")
-      .slice(0, 3);
-    if (clean.length !== 3) return;
+    const clean = name.trim().replace(/\s+/g, " ");
+    if (!clean) return;
     if (!token.current) {
       setSubmitted("failed");
       return;
     }
     setSubmitted("sending");
-    writeStorage(INITIALS_KEY, clean);
+    writeStorage(NAME_KEY, clean);
     try {
       const response = await fetch("/api/runner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "score",
-          token: token.current,
-          initials: clean,
-          score: points,
-        }),
+        body: JSON.stringify({ action: "score", token: token.current, name: clean, score: points }),
       });
       const body = (await response.json()) as { ok: boolean; top?: Entry[] };
       if (!body.ok || !body.top) throw new Error("rejected");
       setBoard({ enabled: true, top: body.top });
       setSubmitted("yes");
       setAnnouncement(`Saved as ${clean}.`);
+      screen.current?.focus({ preventScroll: true });
     } catch {
       setSubmitted("failed");
     }
@@ -306,13 +288,27 @@ export function ClaudeRunner() {
   const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
 
   return (
-    <figure
+    <section
+      ref={frame}
       className="runner"
       data-expanded={expanded || undefined}
       data-immersive={immersive || undefined}
-      aria-labelledby={titleId}
+      aria-label="Claude runner game"
     >
-      {/* The play surface is a game (role="application"): it takes Space and taps directly. */}
+      <div className="runner__bar">
+        <span className="runner__dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="runner__title">claude-runner</span>
+        <span className="runner__score" aria-hidden="true">
+          {best > 0 ? <span className="runner__hi">HI {pad(best)}</span> : null}
+          {pad(points)}
+        </span>
+      </div>
+
+      {/* The play surface is a game (role="application"): it takes keys and taps directly. */}
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={screen}
@@ -321,10 +317,8 @@ export function ClaudeRunner() {
         tabIndex={0}
         role="application"
         aria-roledescription="game"
-        aria-label="Claude runner. Press Space to jump."
-        aria-describedby={titleId}
+        aria-label="Press Space to jump. C changes costume, F fullscreen, M sound."
         onPointerDown={(event) => {
-          if (phase === "over" || phase === "loading") return;
           if (event.button !== 0 || (event.target as HTMLElement).closest("button, input, form"))
             return;
           event.preventDefault();
@@ -332,127 +326,104 @@ export function ClaudeRunner() {
           press();
         }}
         onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) return;
-          if (event.key === " " || event.key === "ArrowUp" || event.key === "Enter") {
+          if (event.target !== event.currentTarget || event.metaKey || event.ctrlKey) return;
+          const key = event.key.toLowerCase();
+          if (key === " " || key === "arrowup" || key === "enter") {
             event.preventDefault();
             if (!event.repeat) press();
-          }
+          } else if (key === "c") cycleCostume();
+          else if (key === "f") void toggleFullscreen();
+          else if (key === "m") toggleSound();
         }}
       >
         <canvas ref={canvas} className="runner__canvas" aria-hidden="true" />
-        {phase === "idle" || phase === "loading" ? <StaticFrame costume={costume} /> : null}
-
-        {phase === "over" ? null : (
-          <div className="runner__hud" aria-hidden="true">
-            <span>{String(points).padStart(5, "0")}</span>
-            {best > 0 ? (
-              <span className="runner__best">Best {String(best).padStart(5, "0")}</span>
-            ) : null}
-          </div>
-        )}
+        {phase === "idle" || phase === "loading" ? <StaticFrame /> : null}
 
         {phase === "idle" || phase === "loading" ? (
-          <div className="runner__prompt">
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() => void startRun()}
-              disabled={phase === "loading"}
-            >
-              {phase === "loading" ? "Loading" : "Play"}
-            </button>
-            <span className="runner__hint">Space or tap to jump</span>
-          </div>
+          <button
+            type="button"
+            className="runner__prompt"
+            onClick={() => void startRun()}
+            disabled={phase === "loading"}
+          >
+            <Key keyName="SPACE" touch="TAP" /> START
+          </button>
         ) : null}
 
         {phase === "over" ? (
           <div className="runner__over">
-            <p className="runner__result">
-              <strong>{points}</strong> {newBest ? "· new best" : `· best ${best}`}
-            </p>
+            <p className="runner__final">{pad(points)}</p>
             {board.enabled && board.top.length > 0 ? (
               <ol className="runner__board" aria-label="Top scores">
                 {board.top.slice(0, 5).map((entry, rank) => (
-                  // Rank is the identity here: the same initials can hold two places.
+                  // Rank is the identity here: the same name can hold two places.
                   // oxlint-disable-next-line react/no-array-index-key
                   <li key={rank}>
-                    {entry.initials} {entry.score}
+                    <span>{rank + 1}</span>
+                    <span className="runner__name">{entry.name}</span>
+                    <span>{pad(entry.score)}</span>
                   </li>
                 ))}
               </ol>
             ) : null}
             {canSubmit ? (
               <form className="runner__form" onSubmit={submit}>
-                <label htmlFor={initialsId}>Your initials</label>
+                <label className="sr-only" htmlFor={nameId}>
+                  First name
+                </label>
                 <input
-                  id={initialsId}
-                  className="runner__initials"
-                  value={initials}
-                  onChange={(event) =>
-                    setInitials(
-                      event.target.value
-                        .toUpperCase()
-                        .replace(/[^A-Z]/g, "")
-                        .slice(0, 3),
-                    )
-                  }
-                  maxLength={3}
+                  id={nameId}
+                  className="runner__input"
+                  value={name}
+                  onChange={(event) => setName(event.target.value.slice(0, 12))}
+                  placeholder="FIRST NAME"
+                  maxLength={12}
                   autoComplete="off"
-                  autoCapitalize="characters"
                   spellCheck={false}
-                  pattern="[A-Za-z]{3}"
                   required
                 />
-                <button type="submit" className="button" disabled={submitted === "sending"}>
-                  Save
+                <button type="submit" className="runner__action" disabled={submitted === "sending"}>
+                  <Key keyName="ENTER" /> SAVE
                 </button>
-                {submitted === "failed" ? (
-                  <span className="runner__error">Couldn&apos;t save that one.</span>
-                ) : null}
+                {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
               </form>
             ) : null}
             <button
-              ref={restart}
               type="button"
-              className="button button--primary"
-              onClick={() => rematchReady && void startRun()}
+              className="runner__action"
+              onClick={() => ready && void startRun()}
             >
-              Play again
+              <Key keyName="SPACE" touch="TAP" /> RETRY
             </button>
           </div>
         ) : null}
       </div>
 
-      <div className="runner__controls">
-        <figcaption id={titleId} className="runner__caption">
-          {phase === "idle" || phase === "loading"
-            ? "Claude, in costume, dodging the desk. Jump with Space or a tap."
-            : `Wearing: ${COSTUME_NAMES[costume]}.`}
-        </figcaption>
-        <div className="stage__tools">
-          <button type="button" className="icon-button pressable" onClick={cycleCostume}>
-            <Shirt aria-hidden="true" size={16} strokeWidth={1.75} />
-            <span className="sr-only">Change costume</span>
-          </button>
-          <button
-            type="button"
-            className="icon-button pressable"
-            aria-pressed={expanded}
-            onClick={() => void toggleFullscreen()}
-          >
-            {expanded ? (
-              <Minimize2 aria-hidden="true" size={16} strokeWidth={1.75} />
-            ) : (
-              <Maximize2 aria-hidden="true" size={16} strokeWidth={1.75} />
-            )}
-            <span className="sr-only">Fullscreen</span>
-          </button>
-          <SoundToggle />
-        </div>
+      <div className="runner__foot">
+        <button type="button" className="runner__action" onClick={cycleCostume}>
+          <Key keyName="C" /> {COSTUME_NAMES[costume]}
+        </button>
+        <span className="runner__spacer" />
+        <button
+          type="button"
+          className="runner__action"
+          aria-pressed={expanded}
+          onClick={() => void toggleFullscreen()}
+        >
+          <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
+        </button>
+        <button
+          type="button"
+          className="runner__action"
+          aria-pressed={soundOn}
+          onClick={toggleSound}
+        >
+          <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
+        </button>
       </div>
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
-    </figure>
+    </section>
   );
 }

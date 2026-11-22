@@ -3,25 +3,24 @@ title: Claude Runner
 slug: claude-runner
 kind: experiment
 order: 0
-summary: An endless runner with Claude in costume, drawn from rectangles on a canvas.
+summary: An endless runner with Claude on a skateboard, scooter, bike or in a car.
 publishedAt: 2026-11-22
 tags: [canvas, game, pixel art]
 stack: [Canvas 2D, Fixed-step simulation, Upstash Redis]
 ---
 
-Claude runs, the desk scrolls, you jump. One input on every device: Space, a tap or a click. It also lives in the homepage hero.
+Jump the desk. Space or a tap. It also lives on the homepage.
 
 <ClaudeRunner />
 
-The mascot and its costumes are rect lists on a 24 by 16 grid, the same model as the [mascot studio](/experiments/claude-animated-svgs). Each run picks a costume at random; the shirt button cycles them.
-
 ## How it works
 
-- **The game is pure data.** A seeded simulation steps at a fixed 60 Hz, with no DOM and no clock. The canvas only draws it, so a 144 Hz screen plays at the same speed as a 60 Hz one, and the tests drive the same code.
-- **Every gap is jumpable.** Obstacle spacing comes from jump airtime at the current speed, and a test plays thousands of runs to prove it.
-- **Pixels stay square.** The canvas scales by whole numbers of device pixels and reads its colours from the design tokens, so light and dark mode switch mid-run.
-- **Nothing loads until you play.** The hero is a static SVG frame; the engine arrives on the first press.
+- **The sprites are claude.dev's.** Each one ships as a palette, a base frame and per-frame pixel deltas. They decode into rectangles once, and the game plays the steady part of each ride as a loop.
+- **The game is pure data.** A seeded simulation steps at a fixed 60 Hz with no DOM and no clock, so 60 Hz and 144 Hz screens play at the same speed, and the tests drive the same code.
+- **Every gap is jumpable.** Spacing comes from jump airtime at the current speed. A test plays 300 seeded courses for two minutes each, and checks that every ride can clear every obstacle.
+- **Pixels stay square.** The canvas draws whole device pixels per cell and reads its colours from the design tokens, so the theme can change mid-run.
+- **Nothing loads until you play.** The hero is a static SVG frame; the engine and the rides arrive on the first press.
 
 ## The leaderboard
 
-Scores are three arcade initials, so there is nothing to moderate. A run starts with a signed token, and a score only counts if it's reachable in the time since. That stops casual tampering, not a determined bot, which is the right trade for a toy.
+A first name and a score. A run starts with a signed token, and a score only counts if it's reachable in the time since. One token is one entry. That stops casual tampering, not a determined bot, which is the right trade for a toy.

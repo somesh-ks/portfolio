@@ -4,7 +4,7 @@
  * Kept simple on purpose. A run starts with a stateless HMAC token (the
  * issue time and a nonce), and a score is accepted only if it is reachable in
  * the time since then. The board is keyed by the token nonce, so replaying a
- * token (even with other initials) can only raise that one entry. Submissions are rate limited per salted
+ * token (even with another name) can only raise that one entry. Submissions are rate limited per salted
  * IP hash. This stops casual tampering, not a determined bot, which is the
  * right trade for a portfolio toy.
  *
@@ -17,41 +17,47 @@ import { maxScoreFor } from "./sim";
 type Env = Record<string, string | undefined>;
 
 const BOARD_KEY = "runner:board";
-/** nonce -> initials. The board's members are nonces, so one token is one entry. */
+/** nonce -> name. The board's members are nonces, so one token is one entry. */
 const NAMES_KEY = "runner:names";
 const KEEP = 100;
 const TOP = 10;
 const TOKEN_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const SUBMISSIONS_PER_HOUR = 20;
 
-/** A small blocklist; initials are A-Z only, so this is the whole surface. */
-const BLOCKED = new Set([
-  "ASS",
-  "CUM",
-  "FAG",
-  "FUK",
-  "FUC",
-  "FCK",
-  "KKK",
-  "NIG",
-  "NGR",
-  "SEX",
-  "TIT",
-  "XXX",
-  "DIK",
-  "COK",
-]);
+/** Words a first name may not contain. Names are short and letter-only, so a
+ * substring check on the letters is the whole moderation surface. */
+const BLOCKED = [
+  "fuck",
+  "fuk",
+  "shit",
+  "cunt",
+  "cock",
+  "pussy",
+  "nigg",
+  "nigga",
+  "kkk",
+  "rape",
+  "hitler",
+  "whore",
+  "slut",
+  "bitch",
+  "penis",
+  "porn",
+];
 
 export interface Entry {
-  initials: string;
+  name: string;
   score: number;
 }
 
-export function normalizeInitials(raw: unknown): string | null {
+/** A first name: 1 to 12 letters, single spaces, hyphens or apostrophes. */
+export function normalizeName(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const initials = raw.trim().toUpperCase();
-  if (!/^[A-Z]{3}$/.test(initials) || BLOCKED.has(initials)) return null;
-  return initials;
+  const name = raw.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!/^\p{L}[\p{L}\p{M}' -]{0,11}$/u.test(name)) return null;
+  const letters = name.toLowerCase().replace(/[^\p{L}]/gu, "");
+  if (BLOCKED.some((word) => letters.includes(word))) return null;
+  return name;
 }
 
 function redisConfig(env: Env) {
@@ -119,13 +125,13 @@ async function redis(env: Env, commands: (string | number)[][]): Promise<unknown
   });
 }
 
-/** ZREVRANGE WITHSCORES gives [nonce, score, ...]; look the initials up. */
+/** ZREVRANGE WITHSCORES gives [nonce, score, ...]; look the names up. */
 async function withNames(env: Env, flat: unknown): Promise<Entry[]> {
   if (!Array.isArray(flat) || flat.length === 0) return [];
   const nonces = flat.filter((_, i) => i % 2 === 0).map(String);
   const [names] = await redis(env, [["HMGET", NAMES_KEY, ...nonces]]);
   return nonces.map((_, i) => ({
-    initials: String((names as unknown[] | undefined)?.[i] ?? "???"),
+    name: String((names as unknown[] | undefined)?.[i] ?? "?"),
     score: Number(flat[i * 2 + 1]),
   }));
 }
@@ -146,15 +152,15 @@ export type SubmitResult =
   | { ok: false; reason: "invalid" | "limited" };
 
 export async function submitScore(
-  input: { token: unknown; initials: unknown; score: unknown },
+  input: { token: unknown; name: unknown; score: unknown },
   ip: string,
   env: Env = process.env,
   now = Date.now(),
 ): Promise<SubmitResult> {
   const run = readRunToken(input.token, env, now);
-  const initials = normalizeInitials(input.initials);
+  const name = normalizeName(input.name);
   const points = Number(input.score);
-  if (!run || !initials || !isPlausible(points, now - run.issued))
+  if (!run || !name || !isPlausible(points, now - run.issued))
     return { ok: false, reason: "invalid" };
 
   const limiter = ipKey(ip, env);
@@ -165,8 +171,8 @@ export async function submitScore(
   if (Number(count) > SUBMISSIONS_PER_HOUR) return { ok: false, reason: "limited" };
 
   const results = await redis(env, [
-    // The first initials sent with a token stick; later sends can only raise its score.
-    ["HSETNX", NAMES_KEY, run.nonce, initials],
+    // The first name sent with a token sticks; later sends can only raise its score.
+    ["HSETNX", NAMES_KEY, run.nonce, name],
     ["ZADD", BOARD_KEY, "GT", points, run.nonce],
     ["ZREMRANGEBYRANK", BOARD_KEY, 0, -(KEEP + 1)],
     ["ZREVRANGE", BOARD_KEY, 0, TOP - 1, "WITHSCORES"],

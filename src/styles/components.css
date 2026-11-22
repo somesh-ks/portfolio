@@ -222,29 +222,74 @@ claude-mascot:defined > * {
   font-size: var(--step-sm);
 }
 
-/* ---------- Claude runner ---------- */
+/* ---------- Claude runner ----------
+   claude.dev chrome: square corners, 1px hairlines, mono uppercase labels,
+   bracketed key hints. Colour lives only in the pixel art. */
 .runner {
   margin-block: var(--space-12);
-  border-radius: var(--radius-xl);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.runner__bar,
+.runner__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.25rem;
+  padding-inline: var(--space-3);
+}
+.runner__bar {
+  position: relative;
+  border-bottom: 1px solid var(--border-default);
+}
+.runner__foot {
+  border-top: 1px solid var(--border-default);
+  padding-inline: var(--space-1);
+}
+.runner__dots {
+  display: flex;
+  gap: 6px;
+}
+.runner__dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.runner__title {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  text-transform: none;
+}
+.runner__score {
+  display: flex;
+  gap: var(--space-3);
+  margin-left: auto;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.runner__hi {
+  color: var(--text-secondary);
 }
 .runner__screen {
   position: relative;
   /* Multiples of 64px keep the 64-cell world on whole pixels. */
   height: 12rem;
   overflow: hidden;
-  border-radius: calc(var(--radius-xl) - var(--space-2));
-  background: var(--surface-raised);
-  box-shadow:
-    0 0 0 1px var(--border-subtle),
-    0 1px 2px var(--shadow-soft);
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+.runner__screen:focus-visible {
+  outline-offset: -2px;
 }
 .runner__canvas,
 .runner__static {
@@ -252,27 +297,22 @@ claude-mascot:defined > * {
   inset: 0;
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
 }
 .runner__static {
   background: var(--surface-raised);
 }
-.runner__hud {
+.runner__prompt {
   position: absolute;
-  top: var(--space-3);
-  right: var(--space-4);
+  inset: 0;
   display: flex;
-  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  gap: 0.5ch;
+  width: 100%;
   color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  font: inherit;
+  letter-spacing: inherit;
 }
-.runner__best {
-  color: var(--text-secondary);
-}
-.runner__prompt,
 .runner__over {
   position: absolute;
   inset: 0;
@@ -281,43 +321,34 @@ claude-mascot:defined > * {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-4);
-  text-align: center;
-}
-.runner__over {
-  background: color-mix(in oklch, var(--surface-raised) 72%, transparent);
+  padding: var(--space-3);
+  background: color-mix(in oklch, var(--surface-raised) 80%, transparent);
   cursor: default;
 }
-.runner__hint {
-  color: var(--text-secondary);
-  font-size: var(--step-sm);
-}
-.runner__result {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-  font-variant-numeric: tabular-nums;
-}
-.runner__result strong {
+.runner__final {
   color: var(--text-primary);
   font-size: var(--step-lg);
-  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 .runner__board {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-1) var(--space-3);
+  display: grid;
+  grid-template-columns: auto minmax(0, 12ch) auto;
+  gap: 0 var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
   font-variant-numeric: tabular-nums;
 }
+.runner__board li {
+  display: contents;
+}
 .runner__board li:first-child {
-  color: var(--text-accent);
+  color: var(--text-primary);
+}
+.runner__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .runner__form {
   display: flex;
@@ -325,39 +356,77 @@ claude-mascot:defined > * {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  font-size: var(--step-sm);
 }
-.runner__form label {
-  color: var(--text-secondary);
-}
-.runner__initials {
-  width: 4.5rem;
-  min-height: 2.75rem;
+.runner__input {
+  width: 14ch;
+  min-height: 2.25rem;
   padding: 0 var(--space-2);
-  border-radius: var(--input-radius);
-  background: var(--input-bg);
-  color: var(--input-fg);
-  box-shadow: inset 0 0 0 1px var(--input-border);
-  font-family: var(--font-mono);
-  font-size: max(16px, var(--step-base));
-  letter-spacing: 0.2em;
-  text-align: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  /* iOS zooms into inputs under 16px. */
+  font-size: max(16px, var(--step-xs));
+  letter-spacing: inherit;
   text-transform: uppercase;
+}
+.runner__input::placeholder {
+  color: var(--text-secondary);
 }
 .runner__error {
   width: 100%;
   color: var(--text-danger);
+  text-align: center;
 }
-.runner__controls {
-  display: flex;
+.runner__action {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-1) var(--space-1) var(--space-2);
-}
-.runner__caption {
+  gap: 0.5ch;
+  min-height: 2.75rem;
+  padding-inline: var(--space-2);
   color: var(--text-secondary);
-  font-size: var(--step-sm);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+.runner__action[aria-pressed="true"],
+.runner__over .runner__action {
+  color: var(--text-primary);
+}
+.runner__action:disabled {
+  opacity: 0.6;
+}
+.runner__key {
+  color: var(--text-primary);
+}
+.runner__spacer {
+  flex: 1;
+}
+/* Key hints with a keyboard, "TAP" on touch. */
+.runner__key[data-input="touch"] {
+  display: none;
+}
+@media (pointer: coarse) {
+  .runner__key[data-input="touch"] {
+    display: inline;
+  }
+  .runner__key[data-input="keys"] {
+    display: none;
+  }
+  /* Footer keys are keyboard shortcuts; on touch the label alone is the button. */
+  .runner__foot .runner__key {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .runner__action {
+    min-height: 2.25rem;
+  }
+  .runner__action:hover {
+    color: var(--text-primary);
+  }
 }
 
 /* Fullscreen (API) and the iPhone fallback overlay share one layout. */
@@ -366,11 +435,9 @@ claude-mascot:defined > * {
   display: flex;
   flex-direction: column;
   margin: 0;
-  border-radius: 0;
-  padding: max(var(--space-2), env(safe-area-inset-top))
-    max(var(--space-2), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom))
-    max(var(--space-2), env(safe-area-inset-left));
-  background: var(--surface-sunken);
+  border: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
 .runner[data-immersive] {
   position: fixed;
@@ -386,6 +453,12 @@ claude-mascot:defined > * {
 :root.runner-lock,
 :root.runner-lock body {
   overflow: hidden;
+}
+@media (max-width: 519px) {
+  /* Phones: the score needs the bar more than the title does. */
+  .runner__title {
+    display: none;
+  }
 }
 @media (min-width: 640px) {
   .runner__screen {
