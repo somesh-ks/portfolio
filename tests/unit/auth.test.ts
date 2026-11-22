@@ -97,4 +97,13 @@ describe("magic links", () => {
     const link = createMagicToken("royc", { now: NOW, ttl: 3600, env }) ?? "";
     expect(readMagicToken(link, { now: NOW + 3601, env })).toBeNull();
   });
+
+  test("editing the expiry or scope breaks the signature", () => {
+    const link = createMagicToken("royc", { now: NOW, ttl: 3600, env }) ?? "";
+    const [version, exp, scope, sig] = link.split(".");
+    const later = [version, String(Number(exp) + 86_400), scope, sig].join(".");
+    const wider = [version, exp, "royc+luminovo", sig].join(".");
+    expect(readMagicToken(later, { now: NOW, env })).toBeNull();
+    expect(readMagicToken(wider, { now: NOW, env })).toBeNull();
+  });
 });

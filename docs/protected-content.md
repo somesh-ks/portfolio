@@ -33,7 +33,7 @@ Media referenced with relative paths in the MDX (`<Figure src="hero.webp" />`) r
 
 ## Magic links
 
-`bun run auth:link royc [days]` prints a URL that unlocks ROYC (default 14 days). The session it starts lasts 7 days. The expiry is inside the HMAC signature, so it can't be extended by editing the link. The proxy swaps the link for a session cookie and redirects to the clean URL.
+`bun run auth:link royc [days]` prints a URL that unlocks ROYC (default 7 days). The session it starts lasts 7 days. The expiry is inside the HMAC signature, so it can't be extended by editing the link. The proxy swaps the link for a session cookie and redirects to the clean URL.
 
 ## Local development
 

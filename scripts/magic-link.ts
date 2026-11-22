@@ -3,7 +3,7 @@
 import { createMagicToken } from "../src/lib/auth.ts";
 import { absoluteUrl, isLockedSlug } from "../src/lib/site.ts";
 
-const [slug = "", days = "14"] = process.argv.slice(2);
+const [slug = "", days = "7"] = process.argv.slice(2);
 if (!isLockedSlug(slug)) {
   console.error("Usage: bun run auth:link <royc|luminovo> [days]");
   process.exit(1);

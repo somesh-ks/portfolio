@@ -6,6 +6,14 @@ Last updated 2026-11-22 by the overnight build on `claude/project-thread-rnx5bn`
 
 `bun run check`, `bun test` (23), `bun run build`, `bun run size`, `bun run test:e2e` (68 incl. axe on every route, light and dark, mobile and desktop).
 
+## Audit pass 1
+
+- Lighthouse (mobile, local prod build): 98–100 in every category on 7 routes, LCP about 0.9s, CLS 0.
+- Security curls: locked HTML is `private, no-store`; `/api/media` returns 401 without a session; `.md` and `Accept: text/markdown` serve only teasers; a forged magic link sets no cookie; a cross-origin unlock POST returns 403.
+- Fixed: the scrubber's native range input was visible (missing CSS), company pill spacing, magic-link default TTL cut to 7 days, and a tamper test for token expiry and scope.
+- Not yet verified on a real deployment: Vercel CDN headers on locked routes and the origin check under someshks.com.
+- `coderabbit review --agent` did not run, because installing the CodeRabbit CLI in the cloud container was blocked. The CodeRabbit GitHub app reviews the PR instead.
+
 ## Decisions
 
 - TypeScript 7 native `tsc` works with Next 16.4, so there is no fallback.
