@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { hasAccess, SESSION_COOKIE } from "@/lib/auth";
-import { MAX_CHUNK, parseRange } from "@/lib/byte-range";
+import { parseRange } from "@/lib/byte-range";
 import { isMediaFileName, loadProtectedMedia } from "@/lib/protected-source";
 import { isLockedSlug } from "@/lib/site";
 
@@ -40,15 +40,14 @@ export async function GET(
       headers: { ...base, "Content-Range": `bytes */${size}` },
     });
   }
-  // Large files always go out in slices so the response fits the function limit.
-  const slice = range ?? (size > MAX_CHUNK ? { start: 0, end: MAX_CHUNK - 1 } : null);
-  if (slice) {
-    const body = media.body.subarray(slice.start, slice.end + 1);
+  // Only ranged requests are sliced; a plain GET (an <img>) gets the whole file.
+  if (range) {
+    const body = media.body.subarray(range.start, range.end + 1);
     return new Response(new Uint8Array(body), {
       status: 206,
       headers: {
         ...base,
-        "Content-Range": `bytes ${slice.start}-${slice.end}/${size}`,
+        "Content-Range": `bytes ${range.start}-${range.end}/${size}`,
         "Content-Length": String(body.length),
       },
     });

@@ -31,7 +31,11 @@ export function GatedVideo({
 
   useEffect(() => {
     const video = ref.current;
-    if (!video || reduced) return;
+    if (!video) return;
+    if (reduced) {
+      video.pause();
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) void video.play().catch(() => {});

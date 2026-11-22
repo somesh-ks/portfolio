@@ -3,7 +3,7 @@
  * responses, and a Vercel function response must stay under 4.5 MB, so
  * every slice is capped. Browsers ask for the rest as playback continues.
  */
-export const MAX_CHUNK = 3 * 1024 * 1024;
+const MAX_CHUNK = 3 * 1024 * 1024;
 
 export type ByteRange = { start: number; end: number } | "unsatisfiable" | null;
 
