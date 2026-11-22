@@ -65,9 +65,8 @@ export type CompanyId = keyof typeof COMPANIES;
  * web and as plain text in Markdown exports.
  */
 export const BIO = [
-  "Senior product designer at {company:netlight}, shipping for {company:bmw}, the {company:wfp} and {company:royc}. Claude Ambassador at {company:anthropic}. Stripe Ambassador.",
-  "Before that: {company:luminovo}, {company:oyo}, HackerRank. Won the MIT Bitcoin hackathon in 2020.",
-  "$1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
+  "Senior product designer at {company:netlight}. Claude Ambassador at {company:anthropic}. Stripe Ambassador.",
+  "Shipped for {company:bmw}, the {company:wfp}, {company:royc}, {company:luminovo}, {company:oyo} and HackerRank. $1.5M+ saved, 10+ enterprise clients, products used by 3M+ people in 22 countries.",
 ] as const;
 
 export const PROFILE = {
