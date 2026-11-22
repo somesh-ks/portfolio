@@ -72,3 +72,22 @@ test("every public route answers Accept: text/markdown", async ({ request }) => 
   const html = await request.get("/");
   expect(html.headers()["vary"] ?? "").toMatch(/accept/i);
 });
+
+test("favicon follows the browser scheme, then the site toggle", async ({ page }) => {
+  const icons = page.locator('head link[rel="icon"]');
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await expect(icons).toHaveCount(2);
+  await expect(icons.and(page.locator('[media*="dark"]'))).toHaveAttribute(
+    "href",
+    "/favicon-dark.svg",
+  );
+
+  // System → light: one icon, pinned to the site theme rather than the browser's.
+  await page.getByRole("button", { name: /Switch to light theme/ }).click();
+  await expect(icons).toHaveCount(1);
+  await expect(icons).toHaveAttribute("href", "/favicon-light.svg");
+
+  const svg = await page.request.get("/favicon-light.svg");
+  expect(svg.ok()).toBe(true);
+});
