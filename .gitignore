@@ -1,0 +1,24 @@
+# deps and builds
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# test output
+playwright-report/
+test-results/
+blob-report/
+
+# env and secrets: never commit
+.env
+.env.*
+!.env.example
+
+# NDA content lives outside git (see docs/protected-content.md)
+content/protected/
+
+# misc
+.DS_Store
+.vercel
