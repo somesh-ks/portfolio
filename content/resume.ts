@@ -49,7 +49,7 @@ export const EXPERIENCE: ResumeRole[] = [
         points: [
           {
             label: "Impact",
-            text: "Won 5 major clients with a platform redesign, and introduced a modular white-label design system that saved an estimated $250,000 of design and development effort across four SaaS products.",
+            text: "Helped grow from 5 to 20 clients with a platform redesign, and introduced a modular white-label design system that saved an estimated EUR 200,000 of design and development effort across four SaaS products.",
           },
           {
             label: "Execution",
