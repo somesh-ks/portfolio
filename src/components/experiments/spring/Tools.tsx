@@ -8,11 +8,11 @@ import { exportAll, toDesignMd, toPrompt } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { MOODS, pairings, type Pairing } from "@/lib/spring/pairing";
 import { COMPONENTS, ICONS, iconStroke, recommend } from "@/lib/spring/stack";
-import { inputFromSeed, type SystemInput } from "@/lib/spring/system";
+import { inputFromSeed, type System, type SystemInput } from "@/lib/spring/system";
 import { FONT_NAMES, googleFontsUrl, opticalBase, type FontName } from "@/lib/spring/type";
-import { parseColor } from "@/lib/spring/color";
+import { contrast, parseColor } from "@/lib/spring/color";
 import { Segmented } from "../Segmented";
-import { AppScreen, Components, Homepage, Specimen, Wordmark } from "./Preview";
+import { AppScreen, Components, Homepage, Ladder, Wordmark } from "./Preview";
 import { shareUrl, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
@@ -256,16 +256,28 @@ export function SpringColor() {
         />
       </div>
       <div className="spring-scales">
+        <div className="spring-scale spring-scale--head" aria-hidden>
+          <span />
+          <span className="spring-bands">
+            <span style={{ gridColumn: "1 / 3" }}>bg</span>
+            <span style={{ gridColumn: "3 / 6" }}>fill</span>
+            <span style={{ gridColumn: "6 / 9" }}>border</span>
+            <span style={{ gridColumn: "9 / 11" }}>solid</span>
+            <span style={{ gridColumn: "11 / 13" }}>text</span>
+          </span>
+        </div>
         {(["accent", "neutral", "danger", "warning", "success", "info"] as const).map((s) => (
           <div key={s} className="spring-scale">
             <span>{s}</span>
             <span className="spring-scale__steps">
-              {system.scales[s][mode].map((sw) => (
+              {system.scales[s][mode].map((sw, i, all) => (
                 <span
                   key={sw.step}
-                  style={{ background: sw.hex }}
+                  style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
                   title={`${s} ${sw.step} ${sw.hex}`}
-                />
+                >
+                  {i >= 10 ? contrast(sw.hex, all[0]!.hex).toFixed(1) : null}
+                </span>
               ))}
             </span>
           </div>
@@ -359,14 +371,11 @@ export function SpringType() {
           show={`${t.base}px`}
           onChange={(v) => set({ base: v })}
         />
-        <Slider
+        <Choice
           label="Scale"
-          value={t.ratio}
-          min={1.1}
-          max={1.5}
-          step={0.005}
-          show={t.ratio.toFixed(3)}
-          onChange={(v) => set({ ratio: v })}
+          value={String(t.ratio)}
+          options={ratioOptions(t.ratio)}
+          onChange={(v) => set({ ratio: Number(v) })}
         />
         {ws.length > 1 ? (
           <Slider
@@ -388,7 +397,8 @@ export function SpringType() {
           </button>
         </p>
       ) : null}
-      <Specimen system={system} mode="light" line={line} />
+      <p className="toy__caption">{ratioAdvice(input.stack.building, t.ratio)}</p>
+      <Ladder system={system} line={line} />
       <div className="spring-grid">
         <Facts font={t.heading} job="Headings" />
         {t.body !== t.heading ? (
@@ -399,6 +409,38 @@ export function SpringType() {
       </div>
     </Toy>
   );
+}
+
+const RATIOS = [
+  { value: "1.125", label: "1.125" },
+  { value: "1.2", label: "1.2" },
+  { value: "1.25", label: "1.25" },
+  { value: "1.333", label: "1.333" },
+  { value: "1.5", label: "1.5" },
+];
+const ratioOptions = (r: number) =>
+  RATIOS.some((o) => Number(o.value) === r)
+    ? RATIOS
+    : [...RATIOS, { value: String(r), label: r.toFixed(3) }].toSorted(
+        (a, b) => Number(a.value) - Number(b.value),
+      );
+
+/** Why a ratio fits, in a sentence: dense screens need small steps, pages can shout. */
+function ratioAdvice(building: string, r: number): string {
+  const fit =
+    building === "site" ? [1.25, 1.333] : building === "dashboard" ? [1.125, 1.2] : [1.2, 1.25];
+  const what = building === "site" ? "A site" : building === "dashboard" ? "A dashboard" : "An app";
+  const why =
+    building === "site"
+      ? "can afford big jumps: few headings per page, read top to bottom"
+      : "stacks many titles in little room, so small steps keep them from crowding the content";
+  const verdict =
+    r >= fit[0]! && r <= fit[1]!
+      ? "Your scale fits."
+      : r > fit[1]!
+        ? "Yours will feel loud here."
+        : "Yours may flatten the hierarchy.";
+  return `${what} ${why}: ${fit[0]}–${fit[1]}. ${verdict} Phones use a gentler ratio automatically; sizes show phone–desktop.`;
 }
 
 function PairButton({
@@ -487,7 +529,7 @@ export function SpringShape() {
   const r = system.shape.radius;
   const c = system.space.control;
   return (
-    <Toy caption="Spacing stays on a 4px grid; density moves control heights and gaps. Nested corners follow inner = outer − padding.">
+    <Toy caption="Spacing stays on a 4px grid; density moves control heights and gaps together, so a denser system stays aligned.">
       <div className="spring-grid">
         <Slider
           label="Density"
@@ -508,8 +550,44 @@ export function SpringShape() {
           onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
         />
       </div>
+      <Nested system={system} />
       <Components system={system} mode="light" />
     </Toy>
+  );
+}
+
+/** The one corner rule most systems miss: inner radius = outer radius − padding. */
+function Nested({ system }: { system: System }) {
+  const outer = system.shape.radius.lg;
+  const pad = system.space.paddingX.sm;
+  const inner = Math.max(0, outer - pad);
+  const n = system.scales.neutral.light;
+  const a = system.scales.accent.light;
+  return (
+    <div className="spring-nested">
+      {[
+        { label: `Same radius (${outer}px) inside: the gap bulges`, r: outer },
+        { label: `${outer} − ${pad} padding = ${inner}px: the gap stays even`, r: inner },
+      ].map((x) => (
+        <figure key={x.label} className="spring-nested__case">
+          <span
+            className="spring-nested__outer"
+            style={{
+              borderRadius: outer,
+              padding: pad,
+              background: n[2]!.hex,
+              borderColor: n[5]!.hex,
+            }}
+          >
+            <span
+              className="spring-nested__inner"
+              style={{ borderRadius: x.r, background: a[3]!.hex, border: `1px solid ${a[6]!.hex}` }}
+            />
+          </span>
+          <figcaption className="spring-meta">{x.label}</figcaption>
+        </figure>
+      ))}
+    </div>
   );
 }
 
@@ -519,7 +597,7 @@ export function SpringMotion() {
   const m = system.motion;
   return (
     <Toy
-      caption={`Durations ${m.duration.fast}/${m.duration.base}/${m.duration.slow}ms. The spring (stiffness ${m.springConfig.stiffness}, damping ${m.springConfig.damping}) ships as CSS linear(), so it needs no library.`}
+      caption={`Energy sets every duration at once. The spring (stiffness ${m.springConfig.stiffness}, damping ${m.springConfig.damping}) ships as CSS linear(), so it needs no library.`}
     >
       <Slider
         label="Energy"
@@ -530,19 +608,32 @@ export function SpringMotion() {
         show={input.motion < 0.34 ? "calm" : input.motion < 0.67 ? "responsive" : "lively"}
         onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
       />
-      <div className="spring-track">
-        <span
-          key={run}
-          className="spring-ball"
-          data-run={run > 0}
-          style={
-            { "--d": `${m.duration.slow * 2}ms`, "--e": m.easing.spring } as React.CSSProperties
-          }
-        />
+      <div className="spring-race">
+        {(
+          [
+            ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI"],
+            ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen"],
+            ["spring", m.easing.spring, m.duration.slow * 2, "Drag release, playful moments"],
+          ] as const
+        ).map(([name, ease, ms, job]) => (
+          <div key={name} className="spring-lane">
+            <span className="spring-meta">
+              {name} · {ms}ms · {job}
+            </span>
+            <span className="spring-track">
+              <span
+                key={run}
+                className="spring-ball"
+                data-run={run > 0}
+                style={{ "--d": `${ms}ms`, "--e": ease } as React.CSSProperties}
+              />
+            </span>
+          </div>
+        ))}
       </div>
       <div className="toy__actions">
         <button type="button" className="button pressable" onClick={() => setRun((r) => r + 1)}>
-          Play the spring
+          Race them
         </button>
       </div>
     </Toy>

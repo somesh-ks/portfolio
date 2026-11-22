@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Mode } from "@/lib/spring/color";
 import type { System } from "@/lib/spring/system";
+import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
 
 const lineOf = (l: string) => l.trim() || "A short line about what it does and who it helps.";
@@ -32,35 +33,6 @@ export function Wordmark({ system, mode }: { system: System; mode: Mode }) {
           <div className="sp-tile sp-tile--accent sp-h3">{name}</div>
           <div className="sp-tile sp-tile--ink sp-h3">{name}</div>
           <div className="sp-tile sp-tile--subtle sp-h3">{name}</div>
-        </div>
-      </div>
-    </Scope>
-  );
-}
-
-/** Type set in the visitor's own words, with numbers and a label. */
-export function Specimen({ system, mode, line }: { system: System; mode: Mode; line: string }) {
-  const body = system.type.tokens.find((t) => t.role === "body");
-  return (
-    <Scope system={system} mode={mode}>
-      <div className="grid gap-5 p-5">
-        <div className="sp-display">{lineOf(line)}</div>
-        <div className="sp-lead">
-          Every screen, email and slide speaks in the same voice, so the product feels like one
-          thing.
-        </div>
-        <div className="sp-rule grid gap-2 pt-4">
-          <div className="sp-h2">Reading at length</div>
-          <div>
-            Body text carries most of the product. It is set at {body?.max}px with a line height on
-            the grid, so paragraphs stay calm over a long read.
-          </div>
-        </div>
-        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-          <span className="sp-h1 sp-num">€48,210.50</span>
-          <span className="sp-label">Revenue this month</span>
-          <span className="sp-caption">+12.4% vs last month</span>
-          <span className="sp-mono">npm i acme</span>
         </div>
       </div>
     </Scope>
@@ -248,6 +220,62 @@ export function AppScreen({ system, mode }: { system: System; mode: Mode }) {
             ))}
           </div>
         </div>
+      </div>
+    </Scope>
+  );
+}
+
+const SAMPLE: Partial<Record<Role, string>> = {
+  h1: "Page title",
+  h2: "Section title",
+  h3: "Card and group title",
+  "body-lg": "Lead paragraphs open a page and set its tone.",
+  body: "Running text carries most of the product, so it gets the calmest line height.",
+  label: "Save changes",
+  caption: "Updated 3 min ago by Ana",
+  code: "const total = 48210.5;",
+};
+
+/**
+ * Every role at its desktop size, with the numbers a developer copies:
+ * phone–desktop size, line height on the 4px grid, weight and tracking,
+ * all derived per role rather than one line height for every row.
+ */
+export function Ladder({ system, line }: { system: System; line: string }) {
+  return (
+    <Scope system={system} mode="light">
+      <div className="grid">
+        {system.type.tokens.map((t) => {
+          const px = t.max;
+          return (
+            <div key={t.role} className="spring-rung">
+              <span className="sp-mono sp-muted spring-rung__spec">
+                <span className="sp-label" style={{ fontFamily: "var(--font-mono)" }}>
+                  {t.role}
+                </span>
+                <span>
+                  {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx}
+                </span>
+                <span>
+                  {t.weight}
+                  {t.tracking ? ` · ${t.tracking > 0 ? "+" : ""}${t.tracking}em` : ""}
+                </span>
+              </span>
+              <span
+                className="spring-rung__sample"
+                style={{
+                  fontFamily: `"${t.family}", var(--font-${t.role === "code" ? "mono" : ["display", "h1", "h2", "h3"].includes(t.role) ? "heading" : "body"})`,
+                  fontSize: px,
+                  lineHeight: t.lineHeight,
+                  letterSpacing: `${t.tracking}em`,
+                  fontWeight: t.weight,
+                }}
+              >
+                {t.role === "display" ? lineOf(line) : SAMPLE[t.role]}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </Scope>
   );
