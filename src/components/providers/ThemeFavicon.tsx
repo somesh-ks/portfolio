@@ -1,15 +1,23 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { THEME_COLOR } from "@/lib/site";
 
 const subscribe = () => () => {};
 const href = (scheme: "light" | "dark") => `/favicon-${scheme}.svg`;
 
 // The favicon follows the browser scheme by default, and the site toggle once the
 // visitor picks light or dark. React 19 hoists these links into <head> and owns them.
+// The theme-color metas (browser chrome on phones) follow the same choice.
 export function ThemeFavicon() {
   const { theme } = useTheme();
+  useEffect(() => {
+    for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+      const own = meta.media.includes("dark") ? THEME_COLOR.dark : THEME_COLOR.light;
+      meta.content = theme === "light" || theme === "dark" ? THEME_COLOR[theme] : own;
+    }
+  }, [theme]);
   const mounted = useSyncExternalStore(
     subscribe,
     () => true,

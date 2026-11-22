@@ -678,6 +678,8 @@ claude-mascot:defined > * {
   font-weight: 500;
 }
 .list {
+  position: relative;
+  isolation: isolate;
   margin-inline: calc(-1 * var(--space-3));
 }
 .list-row {
@@ -699,6 +701,33 @@ claude-mascot:defined > * {
   }
   .list-row:hover .list-row__rule {
     opacity: 1;
+  }
+  /* One shared highlight that glides between rows (HoverList sets the
+     position). It fades out in place, and appears without sliding when the
+     pointer comes from outside. Rows drop their own fill while it shows. */
+  .list::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: var(--hover-h, 0);
+    transform: translateY(var(--hover-y, 0));
+    background: var(--surface-hover);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-dropdown) ease;
+  }
+  .list[data-hover]::before {
+    opacity: 1;
+  }
+  .list[data-hover="on"]::before {
+    transition:
+      opacity var(--duration-dropdown) ease,
+      transform var(--duration-dropdown) var(--ease-out),
+      height var(--duration-dropdown) var(--ease-out);
+  }
+  .list[data-hover] .list-row:hover {
+    background: transparent;
   }
 }
 .list-row__head {
@@ -2491,4 +2520,11 @@ claude-mascot:defined > * {
 }
 .ascii-empty[data-size="sm"] .ascii-empty__text {
   font-size: var(--step-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The row highlight jumps to the row instead of travelling. */
+  .list[data-hover="on"]::before {
+    transition: opacity var(--duration-dropdown) ease;
+  }
 }

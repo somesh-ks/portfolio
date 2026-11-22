@@ -280,3 +280,12 @@
     transform: none;
   }
 }
+
+/* Theme switch: switchTheme() snapshots the page and crossfades old into new.
+   Normal blending, since the default plus-lighter flashes bright mid-fade on dark. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-modal);
+  animation-timing-function: ease;
+  mix-blend-mode: normal;
+}

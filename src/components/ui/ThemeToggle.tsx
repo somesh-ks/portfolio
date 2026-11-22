@@ -3,11 +3,9 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
+import { switchTheme, THEME_LABELS, THEMES, type Theme } from "@/lib/theme-switch";
 
-const ORDER = ["system", "light", "dark"] as const;
-type Theme = (typeof ORDER)[number];
 const ICONS = { system: Monitor, light: Sun, dark: Moon } as const;
-const LABELS = { system: "System theme", light: "Light theme", dark: "Dark theme" } as const;
 
 const subscribe = () => () => {};
 
@@ -19,15 +17,15 @@ export function ThemeToggle() {
     () => true,
     () => false,
   );
-  const current: Theme = mounted && ORDER.includes(theme as Theme) ? (theme as Theme) : "system";
-  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length] ?? "system";
+  const current: Theme = mounted && THEMES.includes(theme as Theme) ? (theme as Theme) : "system";
+  const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length] ?? "system";
   const Icon = ICONS[current];
   return (
     <button
       type="button"
-      onClick={() => setTheme(next)}
+      onClick={() => switchTheme(setTheme, next)}
       className="icon-button pressable"
-      aria-label={`${LABELS[current]}. Switch to ${LABELS[next].toLowerCase()}`}
+      aria-label={`${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next].toLowerCase()}`}
     >
       <Icon aria-hidden="true" size={16} strokeWidth={1.75} />
     </button>
