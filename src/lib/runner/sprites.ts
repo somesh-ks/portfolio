@@ -6,8 +6,21 @@
  */
 
 /** Colour roles. `ink` stays dark in both modes (eyes, shades on the face);
- * `line` follows the text colour so hats stay visible on a dark page. */
-export type Tone = "body" | "shade" | "ink" | "line" | "paper" | "muted";
+ * `line` follows the text colour so outlines stay visible on a dark page.
+ * The rest are the claude.dev-style accent palette, the same in both modes. */
+export type Tone =
+  | "body"
+  | "shade"
+  | "ink"
+  | "line"
+  | "paper"
+  | "muted"
+  | "sky"
+  | "gold"
+  | "sand"
+  | "moss"
+  | "cream"
+  | "steel";
 
 /** x, y, w, h, tone */
 export type Cell = readonly [number, number, number, number, Tone];
@@ -90,46 +103,53 @@ export const COSTUME_NAMES: Record<Costume, string> = {
 const COSTUME_CELLS: Record<Costume, Cell[]> = {
   none: [],
   headphones: [
-    [5, -2, 14, 1, "line"],
-    [4, -1, 1, 1, "line"],
-    [19, -1, 1, 1, "line"],
-    [3, 0, 1, 1, "line"],
-    [20, 0, 1, 1, "line"],
-    [2, 1, 2, 3, "line"],
-    [20, 1, 2, 3, "line"],
+    [5, -2, 14, 1, "steel"],
+    [4, -1, 1, 1, "steel"],
+    [19, -1, 1, 1, "steel"],
+    [3, 0, 1, 1, "steel"],
+    [20, 0, 1, 1, "steel"],
+    [2, 1, 2, 3, "steel"],
+    [20, 1, 2, 3, "steel"],
+    [2, 2, 1, 1, "sky"],
+    [21, 2, 1, 1, "sky"],
   ],
   beanie: [
-    [7, -3, 10, 1, "line"],
-    [6, -2, 12, 1, "line"],
-    [5, -1, 14, 1, "line"],
-    [11, -5, 2, 2, "line"],
-    [4, 0, 16, 1, "paper"],
-    [4, 1, 16, 1, "muted"],
+    [7, -3, 10, 1, "sky"],
+    [6, -2, 12, 1, "sky"],
+    [5, -1, 14, 1, "sky"],
+    [11, -5, 2, 2, "cream"],
+    [4, 0, 16, 1, "cream"],
+    [4, 1, 16, 1, "sand"],
   ],
   party: art(
     ["...PP...", "...AA...", "..AAAA..", "..SSSS..", ".AAAAAA.", ".SSSSSS.", "AAAAAAAA"],
     8,
     -7,
-    { P: "line", A: "line", S: "muted" },
+    { P: "cream", A: "sky", S: "sand" },
   ),
   shades: [
     [5, 2, 5, 2, "ink"],
     [14, 2, 5, 2, "ink"],
     [10, 2, 4, 1, "ink"],
+    [6, 2, 1, 1, "steel"],
+    [15, 2, 1, 1, "steel"],
   ],
-  crown: art(["L..L..L..L", "LL.LL.LL.L", "LLLLLLLLLL", "LLLLLLLLLL"], 7, -4, { L: "line" }),
+  crown: art(["G..G..G..G", "GG.GS.GG.G", "GGGGGGGGGG", "GGSGGGGSGG"], 7, -4, {
+    G: "gold",
+    S: "sky",
+  }),
   chef: art(
     [
-      "..MMMMMMMM..",
-      ".MMMMMMMMMM.",
-      "MMMMMMMMMMMM",
-      ".MMMMMMMMMM.",
-      "..LLLLLLLL..",
-      "..LLLLLLLL..",
+      "..CCCCCCCC..",
+      ".CCCCCCCCCC.",
+      "CCCCCCCCCCCC",
+      ".CCCCCCCCCC.",
+      "..SSSSSSSS..",
+      "..CCCCCCCC..",
     ],
     6,
     -6,
-    { M: "muted", L: "line" },
+    { C: "cream", S: "sand" },
   ),
 };
 
@@ -185,18 +205,18 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
     h: 8,
     cells: art(
       [
-        "..LLLLLL..",
-        "..LPPPPL..",
-        ".LLLLLLLL.",
-        ".LPPPPPPL.",
-        "LLLLLLLLLL",
-        "LPPPPPPPPL",
-        "LPPPPPPPPL",
-        "LLLLLLLLLL",
+        "..SSSSSS..",
+        "..SCKKCS..",
+        ".SSSSSSSS.",
+        ".SCMMCCCS.",
+        "SSSSSSSSSS",
+        "SCKKKCCCCS",
+        "SCCCCCCCCS",
+        "SSSSSSSSSS",
       ],
       0,
       0,
-      { L: "line", P: "paper" },
+      { S: "sand", C: "cream", K: "sky", M: "moss" },
     ),
   },
   mug: {
@@ -206,17 +226,17 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
       [
         "..M.M....",
         ".M.M.....",
-        "LLLLLL...",
-        "LPPPPLLL.",
-        "LPPPPL.L.",
-        "LPPPPL.L.",
-        "LPPPPLLL.",
-        "LPPPPL...",
-        "LLLLLL...",
+        "BBBBBB...",
+        "BCCCCBSS.",
+        "BBBBBB.S.",
+        "BBBBBB.S.",
+        "BBBBBBSS.",
+        "BBBBBB...",
+        "SSSSSS...",
       ],
       0,
       0,
-      { L: "line", P: "paper", M: "muted" },
+      { B: "body", S: "shade", C: "cream", M: "sand" },
     ),
   },
   bug: {
@@ -224,17 +244,17 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
     h: 7,
     cells: art(
       [
-        "L.......L..",
-        ".L.....L...",
-        "..LLLLL....",
-        ".LLLLLLL...",
-        "LLPLLLPLL..",
-        ".LLLLLLL...",
-        "L.L.L.L.L..",
+        "M.......M..",
+        ".M.....M...",
+        "..MMMMM....",
+        ".MMMMMMM...",
+        "MMCMMMCMM..",
+        ".MMMMMMM...",
+        "M.M.M.M.M..",
       ],
       0,
       0,
-      { L: "line", P: "paper" },
+      { M: "moss", C: "cream" },
     ),
   },
   rack: {
@@ -242,23 +262,23 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
     h: 13,
     cells: art(
       [
-        "LLLLLLLLL",
-        "LPPPPPPPL",
-        "LPMMMMMPL",
-        "LPPPPPPPL",
-        "LLLLLLLLL",
-        "LPPPPPPPL",
-        "LPMMMMMPL",
-        "LPPPPPPPL",
-        "LLLLLLLLL",
-        "LPPPPPPPL",
-        "LPMMMMMPL",
-        "LPPPPPPPL",
-        "LLLLLLLLL",
+        "TTTTTTTTT",
+        "TSSSSSSST",
+        "TSKSGSSST",
+        "TSSSSSSST",
+        "TTTTTTTTT",
+        "TSSSSSSST",
+        "TSMSKSSST",
+        "TSSSSSSST",
+        "TTTTTTTTT",
+        "TSSSSSSST",
+        "TSGSMSSST",
+        "TSSSSSSST",
+        "TTTTTTTTT",
       ],
       0,
       0,
-      { L: "line", P: "paper", M: "muted" },
+      { T: "steel", S: "line", K: "sky", G: "gold", M: "moss" },
     ),
   },
   plant: {
@@ -274,14 +294,14 @@ export const OBSTACLE_SPRITES: Record<ObstacleKind, ObstacleSprite> = {
         "L..LLL..L",
         ".LLLLLLL.",
         "...LLL...",
-        ".MMMMMMM.",
-        "..MPPPM..",
-        "..MPPPM..",
-        "..MMMMM..",
+        ".BBBBBBB.",
+        "..BBBBB..",
+        "..BBBBB..",
+        "..SSSSS..",
       ],
       0,
       0,
-      { L: "line", M: "muted", P: "paper" },
+      { L: "moss", B: "body", S: "shade" },
     ),
   },
 };

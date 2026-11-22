@@ -43,6 +43,12 @@ const TONE_FILL: Record<Tone, string> = {
   line: "var(--text-primary)",
   paper: "var(--surface-raised)",
   muted: "var(--text-secondary)",
+  sky: "var(--illustration-sky)",
+  gold: "var(--illustration-gold)",
+  sand: "var(--illustration-sand)",
+  moss: "var(--illustration-moss)",
+  cream: "var(--illustration-cream)",
+  steel: "var(--illustration-steel)",
 };
 
 function readStorage(key: string): string | null {
@@ -61,7 +67,7 @@ function writeStorage(key: string, value: string) {
 }
 
 /** The idle frame as SVG: server-rendered, no JavaScript needed. */
-function StaticFrame() {
+function StaticFrame({ costume }: { costume: Costume }) {
   const top = WORLD.ground - MASCOT.h;
   // 400 cells wide with "slice": the 64-cell height always sets the scale,
   // matching the canvas engine at any aspect ratio.
@@ -74,7 +80,7 @@ function StaticFrame() {
       aria-hidden="true"
     >
       <rect x={0} y={WORLD.ground} width={400} height={1} fill="var(--border-strong)" />
-      {mascotCells(POSES.idle, "none").map(([x, y, w, h, tone]) => (
+      {mascotCells(POSES.idle, costume).map(([x, y, w, h, tone]) => (
         <rect
           key={`${x}-${y}-${w}-${h}-${tone}`}
           x={WORLD.mascotX + x}
@@ -101,6 +107,7 @@ export function ClaudeRunner() {
   const engine = useRef<Engine | null>(null);
   const restart = useRef<HTMLButtonElement>(null);
   const token = useRef<string | null>(null);
+  const picked = useRef<Costume | null>(null);
   const playRef = useRef(play);
   useEffect(() => {
     playRef.current = play;
@@ -116,6 +123,8 @@ export function ClaudeRunner() {
   const [initials, setInitials] = useState("");
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
   const [announcement, setAnnouncement] = useState("");
+  const [hasToken, setHasToken] = useState(false);
+  const [rematchReady, setRematchReady] = useState(false);
   const titleId = useId();
   const initialsId = useId();
 
@@ -135,13 +144,17 @@ export function ClaudeRunner() {
   }, []);
 
   const startRun = useCallback(async () => {
-    const next = COSTUMES[1 + Math.floor(Math.random() * (COSTUMES.length - 1))] ?? "none";
+    // A costume the player picked sticks; otherwise each run gets a random one.
+    const next =
+      picked.current ?? COSTUMES[1 + Math.floor(Math.random() * (COSTUMES.length - 1))] ?? "none";
     setCostume(next);
     setPoints(0);
     setNewBest(false);
     setSubmitted("no");
     setAnnouncement("");
     token.current = null;
+    setHasToken(false);
+    setRematchReady(false);
 
     if (!engine.current) {
       setPhase("loading");
@@ -182,6 +195,7 @@ export function ClaudeRunner() {
       .then((response) => (response.ok ? response.json() : null))
       .then((body: { token?: string } | null) => {
         token.current = body?.token ?? null;
+        setHasToken(Boolean(token.current));
       })
       .catch(() => {});
   }, [loadBoard]);
@@ -192,7 +206,14 @@ export function ClaudeRunner() {
   }, [phase, startRun]);
 
   useEffect(() => {
-    if (phase === "over") restart.current?.focus({ preventScroll: true });
+    if (phase !== "over") return;
+    // A beat before focusing "Play again", so a jump pressed as Claude crashed
+    // doesn't restart the run and skip the result.
+    const timer = window.setTimeout(() => {
+      restart.current?.focus({ preventScroll: true });
+      setRematchReady(true);
+    }, 600);
+    return () => window.clearTimeout(timer);
   }, [phase]);
 
   // Fullscreen where the browser supports it (desktop, Android); a fixed
@@ -236,6 +257,7 @@ export function ClaudeRunner() {
 
   const cycleCostume = () => {
     const next = COSTUMES[(COSTUMES.indexOf(costume) + 1) % COSTUMES.length] ?? "none";
+    picked.current = next;
     setCostume(next);
     engine.current?.setCostume(next);
     play("tick");
@@ -247,7 +269,11 @@ export function ClaudeRunner() {
       .toUpperCase()
       .replace(/[^A-Z]/g, "")
       .slice(0, 3);
-    if (clean.length !== 3 || !token.current) return;
+    if (clean.length !== 3) return;
+    if (!token.current) {
+      setSubmitted("failed");
+      return;
+    }
     setSubmitted("sending");
     writeStorage(INITIALS_KEY, clean);
     try {
@@ -271,7 +297,7 @@ export function ClaudeRunner() {
     }
   }
 
-  const canSubmit = phase === "over" && submitted !== "yes" && qualifies(board, points);
+  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
 
   return (
     <figure
@@ -292,6 +318,7 @@ export function ClaudeRunner() {
         aria-label="Claude runner. Press Space to jump."
         aria-describedby={titleId}
         onPointerDown={(event) => {
+          if (phase === "over" || phase === "loading") return;
           if (event.button !== 0 || (event.target as HTMLElement).closest("button, input, form"))
             return;
           event.preventDefault();
@@ -307,7 +334,7 @@ export function ClaudeRunner() {
         }}
       >
         <canvas ref={canvas} className="runner__canvas" aria-hidden="true" />
-        {phase === "idle" || phase === "loading" ? <StaticFrame /> : null}
+        {phase === "idle" || phase === "loading" ? <StaticFrame costume={costume} /> : null}
 
         {phase === "over" ? null : (
           <div className="runner__hud" aria-hidden="true">
@@ -382,7 +409,7 @@ export function ClaudeRunner() {
               ref={restart}
               type="button"
               className="button button--primary"
-              onClick={() => void startRun()}
+              onClick={() => rematchReady && void startRun()}
             >
               Play again
             </button>

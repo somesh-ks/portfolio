@@ -3,8 +3,8 @@
  *
  * Kept simple on purpose. A run starts with a stateless HMAC token (the
  * issue time and a nonce), and a score is accepted only if it is reachable in
- * the time since then. Each token maps to one leaderboard entry, so replaying
- * a token can only move that entry. Submissions are rate limited per salted
+ * the time since then. The board is keyed by the token nonce, so replaying a
+ * token (even with other initials) can only raise that one entry. Submissions are rate limited per salted
  * IP hash. This stops casual tampering, not a determined bot, which is the
  * right trade for a portfolio toy.
  *
@@ -17,6 +17,8 @@ import { maxScoreFor } from "./sim";
 type Env = Record<string, string | undefined>;
 
 const BOARD_KEY = "runner:board";
+/** nonce -> initials. The board's members are nonces, so one token is one entry. */
+const NAMES_KEY = "runner:names";
 const KEEP = 100;
 const TOP = 10;
 const TOKEN_MAX_AGE_MS = 2 * 60 * 60 * 1000;
@@ -117,19 +119,20 @@ async function redis(env: Env, commands: (string | number)[][]): Promise<unknown
   });
 }
 
-function toEntries(flat: unknown): Entry[] {
-  if (!Array.isArray(flat)) return [];
-  const entries: Entry[] = [];
-  for (let i = 0; i + 1 < flat.length; i += 2) {
-    const initials = String(flat[i]).split(":")[0] ?? "";
-    entries.push({ initials, score: Number(flat[i + 1]) });
-  }
-  return entries;
+/** ZREVRANGE WITHSCORES gives [nonce, score, ...]; look the initials up. */
+async function withNames(env: Env, flat: unknown): Promise<Entry[]> {
+  if (!Array.isArray(flat) || flat.length === 0) return [];
+  const nonces = flat.filter((_, i) => i % 2 === 0).map(String);
+  const [names] = await redis(env, [["HMGET", NAMES_KEY, ...nonces]]);
+  return nonces.map((_, i) => ({
+    initials: String((names as unknown[] | undefined)?.[i] ?? "???"),
+    score: Number(flat[i * 2 + 1]),
+  }));
 }
 
 export async function topScores(env: Env = process.env): Promise<Entry[]> {
   const [flat] = await redis(env, [["ZREVRANGE", BOARD_KEY, 0, TOP - 1, "WITHSCORES"]]);
-  return toEntries(flat);
+  return withNames(env, flat);
 }
 
 function ipKey(ip: string, env: Env): string {
@@ -162,9 +165,11 @@ export async function submitScore(
   if (Number(count) > SUBMISSIONS_PER_HOUR) return { ok: false, reason: "limited" };
 
   const results = await redis(env, [
-    ["ZADD", BOARD_KEY, "GT", points, `${initials}:${run.nonce}`],
+    // The first initials sent with a token stick; later sends can only raise its score.
+    ["HSETNX", NAMES_KEY, run.nonce, initials],
+    ["ZADD", BOARD_KEY, "GT", points, run.nonce],
     ["ZREMRANGEBYRANK", BOARD_KEY, 0, -(KEEP + 1)],
     ["ZREVRANGE", BOARD_KEY, 0, TOP - 1, "WITHSCORES"],
   ]);
-  return { ok: true, top: toEntries(results[2]) };
+  return { ok: true, top: await withNames(env, results[3]) };
 }

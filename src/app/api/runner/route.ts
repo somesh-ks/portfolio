@@ -38,7 +38,11 @@ export async function POST(request: NextRequest) {
   if (body?.action !== "score")
     return NextResponse.json({ ok: false }, { status: 400, headers: NO_STORE });
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // Vercel sets x-real-ip itself; x-forwarded-for is only a fallback elsewhere.
+  const ip =
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ??
+    "unknown";
   try {
     const result = await submitScore(
       { token: body.token, initials: body.initials, score: body.score },

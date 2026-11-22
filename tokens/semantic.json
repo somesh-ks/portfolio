@@ -352,6 +352,114 @@
           }
         }
       }
+    },
+    "sky": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.674, 0.09, 249.3]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.674, 0.09, 249.3]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.674, 0.09, 249.3]
+          }
+        }
+      }
+    },
+    "gold": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.848, 0.125, 85.6]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.848, 0.125, 85.6]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.848, 0.125, 85.6]
+          }
+        }
+      }
+    },
+    "sand": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.852, 0.064, 74.5]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.852, 0.064, 74.5]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.852, 0.064, 74.5]
+          }
+        }
+      }
+    },
+    "moss": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.612, 0.071, 127.1]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.612, 0.071, 127.1]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.612, 0.071, 127.1]
+          }
+        }
+      }
+    },
+    "cream": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.982, 0.005, 95.1]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.982, 0.005, 95.1]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.982, 0.005, 95.1]
+          }
+        }
+      }
+    },
+    "steel": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.478, 0.006, 95.2]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.478, 0.006, 95.2]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.478, 0.006, 95.2]
+          }
+        }
+      }
     }
   }
 }

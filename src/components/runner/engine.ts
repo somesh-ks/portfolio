@@ -4,7 +4,7 @@
  *
  * - Fixed 60 Hz simulation with a clamped accumulator: the same speed on 60
  *   and 144 Hz screens, and no catch-up spiral after a background tab.
- * - Integer cell scale, so pixels stay square and crisp at any DPR.
+ * - Whole device pixels per cell, so pixels stay square and crisp.
  * - Colours come from CSS custom properties and are re-read on theme change.
  */
 import { createRun, grounded, score, step, STEP, WORLD, type RunState } from "@/lib/runner/sim";
@@ -25,11 +25,17 @@ const TONE_VARS: Record<Tone, string> = {
   line: "--text-primary",
   paper: "--surface-raised",
   muted: "--text-secondary",
+  sky: "--illustration-sky",
+  gold: "--illustration-gold",
+  sand: "--illustration-sand",
+  moss: "--illustration-moss",
+  cream: "--illustration-cream",
+  steel: "--illustration-steel",
 };
 const MAX_STEPS = 5;
 const MILESTONE = 100;
 /** Narrowest view, in cells: about a second of warning at top speed. */
-const MIN_VIEW_CELLS = 110;
+const MIN_VIEW_CELLS = 100;
 /** Largest cell, in CSS pixels. */
 const MAX_CELL_PX = 6;
 
@@ -94,9 +100,16 @@ export function createEngine(
     // A tall, narrow screen (a phone held upright in fullscreen) would leave
     // no room to see what's coming, so width caps the scale there.
     // A big fullscreen monitor shows more desk instead of a giant mascot.
-    scale = Math.min(height / WORLD.height, width / MIN_VIEW_CELLS, MAX_CELL_PX * dpr);
+    // Whole device pixels per cell keep every pixel square.
+    scale = Math.max(
+      1,
+      Math.floor(Math.min(height / WORLD.height, width / MIN_VIEW_CELLS, MAX_CELL_PX * dpr)),
+    );
     viewWidth = Math.ceil(width / scale);
-    offsetY = Math.round((height - WORLD.height * scale) / 2);
+    // Ground stays near the bottom like the static frame; extra room goes on top,
+    // or is split when a tall screen leaves a lot over.
+    const spare = height - WORLD.height * scale;
+    offsetY = spare > WORLD.height * scale ? Math.round(spare / 2) : spare;
     draw();
   }
 
@@ -136,8 +149,8 @@ export function createEngine(
       const span = viewWidth + 40;
       const x = ((((i * 47 - drift) % span) + span) % span) - 20;
       const y = 8 + ((i * 13) % 22);
-      fill(x + 1, y, 1, 3, colors.dust);
-      fill(x, y + 1, 3, 1, colors.dust);
+      fill(x + 1, y, 1, 3, colors.sand);
+      fill(x, y + 1, 3, 1, colors.sand);
     }
   }
 
