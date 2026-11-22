@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { loadProtectedBody } from "../../src/lib/protected-source.ts";
+import { isMediaFileName, loadProtectedBody } from "../../src/lib/protected-source.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -37,4 +37,23 @@ describe("remote protected source", () => {
     expect(await loadProtectedBody("luminovo", env)).toBe("body");
     expect(seen).toHaveLength(1);
   });
+
+  test("parallel cold reads share one fetch, and a failure is retried", async () => {
+    let calls = 0;
+    globalThis.fetch = mock(async () => {
+      calls += 1;
+      return calls === 1 ? new Response("", { status: 429 }) : new Response("body");
+    }) as unknown as typeof fetch;
+    const env = { PROTECTED_CONTENT_SOURCE: "https://dedupe-test.example.com" };
+    expect(await loadProtectedBody("royc", env)).toBeNull();
+    const reads = await Promise.all([1, 2, 3].map(() => loadProtectedBody("royc", env)));
+    expect(reads).toEqual(["body", "body", "body"]);
+    expect(calls).toBe(2);
+  });
+});
+
+test("gated media is images only", () => {
+  expect(isMediaFileName("hero.webp")).toBe(true);
+  expect(isMediaFileName("demo.mp4")).toBe(false);
+  expect(isMediaFileName("../royc.mdx")).toBe(false);
 });

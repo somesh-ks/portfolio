@@ -15,16 +15,18 @@ export async function GET(
   { params }: { params: Promise<{ slug: string; file: string }> },
 ) {
   const { slug, file } = await params;
-  // Same 401 for unknown slugs and bad names, so the route reveals nothing.
+  const unauthorized = () => new Response("Unauthorized", { status: 401, headers: PRIVATE });
+  // Same 401 for every failure (unknown slug, bad name, no session, missing
+  // file), so the route never reveals which files exist.
   if (
     !isLockedSlug(slug) ||
     !isMediaFileName(file) ||
     !hasAccess(request.cookies.get(SESSION_COOKIE)?.value, slug)
   ) {
-    return new Response("Unauthorized", { status: 401, headers: PRIVATE });
+    return unauthorized();
   }
   const media = await loadProtectedMedia(slug, file);
-  if (!media) return new Response("Not found", { status: 404, headers: PRIVATE });
+  if (!media) return unauthorized();
   return new Response(new Uint8Array(media.body), {
     headers: {
       ...PRIVATE,
