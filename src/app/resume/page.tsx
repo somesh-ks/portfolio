@@ -2,7 +2,7 @@ import { Download } from "lucide-react";
 import type { Metadata } from "next";
 import { PROFILE } from "@content/profile";
 import {
-  BEYOND_WORK,
+  COMMUNITY,
   EDUCATION,
   EXPERIENCE,
   RESUME_PDF_URL,
@@ -16,7 +16,10 @@ import { absoluteUrl } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Resume",
   description: RESUME_SUMMARY.slice(0, 155),
-  alternates: { canonical: "/resume", types: { "text/markdown": "/resume.md" } },
+  alternates: {
+    canonical: "/resume",
+    types: { "text/markdown": "/resume.md" },
+  },
 };
 
 const jsonLd = {
@@ -27,8 +30,14 @@ const jsonLd = {
     "@id": PERSON_ID,
     "@type": "Person",
     name: PROFILE.name,
-    hasOccupation: EXPERIENCE.map((role) => ({ "@type": "Occupation", name: role.title })),
-    alumniOf: EDUCATION.map((item) => ({ "@type": "EducationalOrganization", name: item.school })),
+    hasOccupation: EXPERIENCE.map((role) => ({
+      "@type": "Occupation",
+      name: role.title,
+    })),
+    alumniOf: EDUCATION.map((item) => ({
+      "@type": "EducationalOrganization",
+      name: item.school,
+    })),
   },
 };
 
@@ -64,20 +73,17 @@ export default function ResumePage() {
                 {role.period} · {role.location}
               </p>
             </header>
-            {role.projects.map((project) => (
-              <section key={project.name} className="resume__project" aria-label={project.name}>
-                <h4 className="resume__project-title">
-                  {project.name} <span className="resume__project-context">{project.context}</span>
-                </h4>
-                <ul className="resume__points">
-                  {project.points.map((point) => (
-                    <li key={point.label}>
-                      <strong>{point.label}.</strong> {point.text}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+            <ul className="resume__projects">
+              {role.projects.map((project) => (
+                <li key={project.name}>
+                  <p className="resume__project-title">
+                    {project.name}{" "}
+                    <span className="resume__project-context">{project.context}</span>
+                  </p>
+                  <p className="resume__project-outcome">{project.outcome}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </section>
@@ -89,7 +95,7 @@ export default function ResumePage() {
         <ul className="resume__list">
           {EDUCATION.map((item) => (
             <li key={item.degree}>
-              <span className="resume__strong">{item.degree}</span>
+              <span>{item.degree}</span>
               <span className="resume__muted">{item.school}</span>
             </li>
           ))}
@@ -110,15 +116,13 @@ export default function ResumePage() {
         </dl>
       </section>
 
-      <section aria-labelledby="beyond" className="resume__section">
-        <h2 id="beyond" className="section-title">
-          Beyond work
+      <section aria-labelledby="community" className="resume__section">
+        <h2 id="community" className="section-title">
+          Community
         </h2>
-        <ul className="resume__points">
-          {BEYOND_WORK.map((item) => (
-            <li key={item.label}>
-              <strong>{item.label}.</strong> {item.text}
-            </li>
+        <ul className="resume__list">
+          {COMMUNITY.map((item) => (
+            <li key={item}>{item}</li>
           ))}
         </ul>
       </section>
