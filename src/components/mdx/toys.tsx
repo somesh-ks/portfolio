@@ -59,3 +59,7 @@ export const StableButtonDemo = dynamic(() =>
 export const ThemeSmearDemo = dynamic(() =>
   import("../skills/ThemeSmearDemo").then((m) => m.ThemeSmearDemo),
 );
+/** @public used by MDX through the namespace import */
+export const ClaudeRunner = dynamic(() =>
+  import("../runner/ClaudeRunner").then((m) => m.ClaudeRunner),
+);

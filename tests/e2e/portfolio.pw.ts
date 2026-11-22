@@ -33,6 +33,28 @@ test("home to experiment to case study, with no console errors", async ({ page }
   expect(errors).toEqual([]);
 });
 
+test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  const runner = page.locator(".runner");
+  // Space on the page starts the game in view instead of scrolling past it.
+  await runner.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  const scrolled = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press("Space");
+  await expect(runner.locator(".runner__prompt")).toHaveCount(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+  await expect(runner.locator(".runner__score")).toContainText(/0000[1-9]|000[1-9]\d/);
+  await expect(runner.locator(".runner__over")).toBeVisible({ timeout: 20_000 });
+  await expect(runner.locator(".runner__final")).toHaveText(/^\d{5}$/);
+  // No Redis in tests: the leaderboard stays hidden and nothing errors.
+  await expect(runner.getByLabel("First name")).toHaveCount(0);
+  // Space on the focused game starts the next run after a short beat.
+  await page.waitForTimeout(700);
+  await runner.locator(".runner__screen").press("Space");
+  await expect(runner.locator(".runner__over")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 // Client-side navigation reuses registered custom elements, which full page
 // loads never do. Click in from home and press back for every route.
 test("click into every entry and back, with no console errors", async ({ page }) => {

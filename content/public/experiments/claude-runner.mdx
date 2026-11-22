@@ -1,0 +1,26 @@
+---
+title: Claude Runner
+slug: claude-runner
+kind: experiment
+order: 0
+summary: An endless runner with Claude on a skateboard, scooter, bike or in a car.
+publishedAt: 2026-11-22
+tags: [canvas, game, pixel art]
+stack: [Canvas 2D, Fixed-step simulation, Upstash Redis]
+---
+
+Jump. Space or tap.
+
+<ClaudeRunner />
+
+## How it works
+
+- **claude.dev sprites**, decoded from per-frame pixel deltas.
+- **Pure, seeded sim** at a fixed 60 Hz, so every screen plays at one speed.
+- **Every gap is jumpable.** A test plays 300 courses for two minutes each.
+- **Square pixels**, coloured from the theme tokens.
+- **Loads on play.** The hero is a static frame until the first press.
+
+## Leaderboard
+
+A first name and a score. A signed token per run, and a score must be reachable in the time played. Enough for a toy.

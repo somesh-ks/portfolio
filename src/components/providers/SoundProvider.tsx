@@ -16,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type SoundName = "tap" | "pop" | "tick" | "toggle";
+export type SoundName = "tap" | "pop" | "tick" | "toggle" | "jump" | "milestone" | "crash";
 type Player = () => void;
 
 interface SoundContextValue {
@@ -55,6 +55,21 @@ async function loadPlayers(): Promise<Record<SoundName, Player>> {
       source: { type: "sine", frequency: { start: 520, end: 780 } },
       envelope: { attack: 0.002, decay: 0.06, sustain: 0, release: 0.02 },
       gain: 0.14,
+    }),
+    jump: defineSound({
+      source: { type: "square", frequency: { start: 330, end: 660 } },
+      envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.02 },
+      gain: 0.05,
+    }),
+    milestone: defineSound({
+      source: { type: "square", frequency: { start: 880, end: 1320 } },
+      envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 },
+      gain: 0.045,
+    }),
+    crash: defineSound({
+      source: { type: "square", frequency: { start: 220, end: 70 } },
+      envelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.05 },
+      gain: 0.06,
     }),
   };
 }
