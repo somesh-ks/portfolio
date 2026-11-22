@@ -7,7 +7,6 @@ export function AgenticCard({ mode }: { mode: "naive" | "gated" }) {
   return (
     <div className={`agentic-scene agentic-scene--${mode}`}>
       <article className="agentic-card">
-        <span className="agentic-card__badge">New episode</span>
         <h4 className="agentic-card__title">Design engineering, this week</h4>
         <p className="agentic-card__meta">12 stories · 18 min listen</p>
         <div className="agentic-card__actions">
