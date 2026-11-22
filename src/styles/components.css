@@ -261,6 +261,19 @@ claude-mascot:defined > * {
 .runner__foot .runner__action:last-child {
   padding-right: 0;
 }
+@media (max-width: 39.999rem) {
+  /* Too narrow for one row: wrap, left-aligned, with no spacer. */
+  .runner__foot {
+    flex-wrap: wrap;
+    column-gap: var(--space-5);
+  }
+  .runner__foot .runner__action {
+    padding-inline: 0;
+  }
+  .runner__foot .runner__spacer {
+    display: none;
+  }
+}
 .runner__score {
   display: flex;
   gap: var(--space-3);
