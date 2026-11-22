@@ -85,13 +85,11 @@ export const PROFILE = {
   links: [
     { label: "Email", href: "mailto:k.s.somesh11@gmail.com" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/someshks/" },
-    { label: "X", href: "https://x.com/someshks11" },
     { label: "GitHub", href: "https://github.com/somesh-ks" },
     { label: "Resume", href: "/resume" },
   ],
   sameAs: [
     "https://www.linkedin.com/in/someshks/",
-    "https://x.com/someshks11",
     "https://github.com/somesh-ks",
     "https://someshks.me",
   ],

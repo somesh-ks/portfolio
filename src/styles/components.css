@@ -879,12 +879,17 @@ claude-mascot:defined > * {
   border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
-/* Top bar: SK mark (home) left, "> jump" right, always shown. Clear at the very top;
-   any scroll fades in the canvas fill and hairline (::before, opacity only). */
+.site-footer__toggles {
+  display: flex;
+  flex-shrink: 0;
+}
+/* Top bar: SK mark (home) left, "jump" right. Hidden at the top of the page so the
+   hero stays clean; past the hero (the 10rem sentinel) it slides in with the canvas
+   fill and a hairline. Opacity and transform only. */
 .site-bar__sentinel {
   position: absolute;
   top: 0;
-  height: var(--space-2);
+  height: 10rem;
   pointer-events: none;
 }
 .site-bar {
@@ -892,28 +897,25 @@ claude-mascot:defined > * {
   inset: 0 0 auto;
   z-index: 50;
   padding-top: env(safe-area-inset-top);
-  /* The clear strip must not eat taps on the page under it. */
-  pointer-events: none;
-}
-.site-bar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface-canvas);
   opacity: 0;
-  transition: opacity var(--duration-dropdown) var(--ease-out);
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition:
+    opacity var(--duration-dropdown) var(--ease-out),
+    transform var(--duration-dropdown) var(--ease-out),
+    visibility 0s linear var(--duration-dropdown);
 }
-.site-bar[data-filled] {
-  pointer-events: auto;
-}
-.site-bar[data-filled]::before {
+.site-bar[data-shown] {
   opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .site-bar::before {
-    transition: none;
+  .site-bar {
+    transform: none;
   }
 }
 .site-bar__row {
@@ -923,9 +925,6 @@ claude-mascot:defined > * {
   width: min(100% - 2 * var(--space-4), 40rem);
   height: var(--site-bar-height);
   margin-inline: auto;
-}
-.site-bar__row > * {
-  pointer-events: auto;
 }
 .site-bar__row > .palette-trigger {
   margin-right: calc(var(--space-2) * -1);
@@ -1130,6 +1129,35 @@ claude-mascot:defined > * {
 @media (hover: hover) and (pointer: fine) {
   .contact-links .link:hover {
     color: var(--text-primary);
+  }
+}
+
+/* Tooltip (ui/Tooltip.tsx): one line of mono text above its trigger. */
+.tooltip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  white-space: nowrap;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--duration-tooltip) var(--ease-out),
+    transform var(--duration-tooltip) var(--ease-out);
+}
+.tooltip[data-starting-style],
+.tooltip[data-ending-style] {
+  opacity: 0;
+  transform: translateY(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tooltip[data-starting-style],
+  .tooltip[data-ending-style] {
+    transform: none;
   }
 }
 
@@ -1434,25 +1462,19 @@ claude-mascot:defined > * {
 .toc {
   display: none;
 }
+/* Pinned to the viewport from first paint, mid-screen, left of the 40rem
+   column, so it never scrolls in late. */
 @media (min-width: 80rem) {
   .toc:not([hidden]) {
-    display: block;
-    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: fixed;
     top: 0;
     bottom: 0;
-    right: calc(100% + 4rem + var(--space-6));
+    left: calc(50% - 20rem - 4rem - var(--space-6) - 9rem);
     width: 9rem;
   }
-}
-/* A viewport-tall sticky box with the list centred in it, so the rail sits
-   at mid-screen while you read. */
-.toc__inner {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100dvh;
 }
 .toc__title {
   margin-bottom: var(--space-3);

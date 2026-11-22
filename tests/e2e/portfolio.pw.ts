@@ -156,8 +156,13 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("the footer button opens the palette on touch and desktop", async ({ page }) => {
+test("the top bar hides over the hero, then its jump button opens the palette", async ({
+  page,
+}) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Jump to a page" }).click();
+  const jump = page.getByRole("button", { name: "Jump to a page" });
+  await expect(jump).toBeHidden();
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await jump.click();
   await expect(page.getByRole("searchbox", { name: "Jump to" })).toBeFocused();
 });

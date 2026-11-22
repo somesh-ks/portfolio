@@ -265,6 +265,7 @@ export function ClaudeRunner() {
     // request must not start a second, overlapping run.
     if (starting.current) return;
     starting.current = true;
+    playRef.current("start");
     // What you see is what you ride: the character on screen runs.
     const next = costumeRef.current;
     setPoints(0);

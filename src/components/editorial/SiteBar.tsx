@@ -2,16 +2,17 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-/** The fixed top bar. Clear at the very top; as soon as the page scrolls it gets a
- * canvas fill and a hairline (`data-filled`), so text never slides under it. */
+/** The fixed top bar. Hidden at the top of the page so the hero stays uncluttered;
+ * once a fixed-length sentinel (about the hero's height) scrolls away it slides in
+ * (`data-shown`). Cmd+K / Ctrl+K works either way. */
 export function SiteBar({ children }: { children: ReactNode }) {
   const sentinel = useRef<HTMLDivElement>(null);
-  const [filled, setFilled] = useState(false);
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const node = sentinel.current;
     if (!node) return;
-    const observer = new IntersectionObserver(([entry]) => setFilled(!entry?.isIntersecting));
+    const observer = new IntersectionObserver(([entry]) => setShown(!entry?.isIntersecting));
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
@@ -19,7 +20,7 @@ export function SiteBar({ children }: { children: ReactNode }) {
   return (
     <>
       <div ref={sentinel} className="site-bar__sentinel" aria-hidden="true" />
-      <header className="site-bar" data-filled={filled || undefined}>
+      <header className="site-bar" data-shown={shown || undefined}>
         <div className="site-bar__row">{children}</div>
       </header>
     </>

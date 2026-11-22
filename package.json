@@ -29,7 +29,6 @@
     "@base-ui/react": "1.9.0",
     "@mdx-js/mdx": "3.1.1",
     "@shikijs/rehype": "4.6.0",
-    "@web-kits/audio": "0.2.0",
     "gray-matter": "4.0.3",
     "lucide-react": "1.77.0",
     "next": "16.4.6",
