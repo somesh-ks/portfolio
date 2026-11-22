@@ -222,6 +222,299 @@ claude-mascot:defined > * {
   font-size: var(--step-sm);
 }
 
+/* ---------- Claude runner ----------
+   Terminal feel without a window: no frame, no panels. The ground line and
+   mono uppercase labels carry it. Colour lives only in the pixel art. */
+.runner {
+  margin-block: var(--space-12);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+@media (max-width: 39.999rem) {
+  /* Phones: the ground runs edge to edge; labels stay on the text column. */
+  .runner {
+    margin-inline: calc(-1 * var(--space-4));
+  }
+  .runner__bar,
+  .runner__foot {
+    padding-inline: var(--space-4);
+  }
+}
+.runner__bar,
+.runner__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.25rem;
+}
+.runner__foot {
+  /* The buttons' own padding spaces them, so the row fits a 320px phone. */
+  gap: 0;
+}
+/* Footer buttons keep their hit area but line their text up with the column. */
+.runner__foot .runner__action:first-child {
+  padding-left: 0;
+}
+.runner__foot .runner__action:last-child {
+  padding-right: 0;
+}
+.runner__score {
+  display: flex;
+  gap: var(--space-3);
+  margin-left: auto;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.runner__hi {
+  color: var(--text-secondary);
+}
+.runner__screen {
+  position: relative;
+  /* Multiples of 64px keep the 64-cell world on whole pixels. */
+  height: 12rem;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.runner__screen:focus-visible {
+  outline-offset: -2px;
+}
+/* Mid-game the moving Claude is the focus cue; a ring would box the game in. */
+.runner__screen[data-active]:focus-visible {
+  outline: none;
+}
+.runner__canvas,
+.runner__static {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.runner__prompt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1ch;
+  width: 100%;
+  color: var(--text-primary);
+  font: inherit;
+  letter-spacing: inherit;
+}
+.runner__over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Safe: a tall panel scrolls from the top instead of clipping both ends. */
+  justify-content: safe center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  overflow-y: auto;
+  cursor: default;
+}
+.runner__hint {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+  padding-top: var(--space-6);
+  text-align: center;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+/* Claude walks in place: one frame shown per slot of the cycle. The keyframes
+ * assume the five-frame walk loop (a unit test pins that). */
+.runner__step {
+  opacity: 0;
+  animation: runner-walk var(--walk) steps(1, end) infinite;
+  animation-delay: calc((var(--i) - 5) * var(--walk) / 5);
+}
+.runner__pose {
+  display: none;
+}
+@keyframes runner-walk {
+  0% {
+    opacity: 1;
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner__step {
+    display: none;
+  }
+  .runner__pose {
+    display: inline;
+  }
+}
+/* Text stays readable when a sprite or spark walks behind it. */
+.runner__over,
+.runner__hint {
+  text-shadow:
+    0 0 2px var(--surface-canvas),
+    0 0 6px var(--surface-canvas);
+}
+.runner__final {
+  color: var(--text-primary);
+  font-size: var(--step-lg);
+  font-variant-numeric: tabular-nums;
+}
+.runner__board {
+  display: grid;
+  grid-template-columns: auto minmax(0, 12ch) auto;
+  gap: 0 var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.runner__board li {
+  display: contents;
+}
+.runner__board li:first-child {
+  color: var(--text-primary);
+}
+.runner__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.runner__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.runner__input {
+  width: 14ch;
+  min-height: 2.25rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  /* iOS zooms into inputs under 16px. */
+  font-size: max(16px, var(--step-xs));
+  letter-spacing: inherit;
+  text-transform: uppercase;
+}
+.runner__input::placeholder {
+  color: var(--text-secondary);
+}
+.runner__error {
+  width: 100%;
+  color: var(--text-danger);
+  text-align: center;
+}
+.runner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 1ch;
+  min-height: 2.75rem;
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+.runner__action[aria-pressed="true"],
+.runner__over .runner__action {
+  color: var(--text-primary);
+}
+.runner__action:disabled {
+  opacity: 0.6;
+}
+.runner__key {
+  color: var(--text-primary);
+}
+.runner__spacer {
+  flex: 1;
+}
+/* Key hints with a keyboard, "TAP" on touch. */
+.runner__key[data-input="touch"] {
+  display: none;
+}
+@media (pointer: coarse) {
+  .runner__key[data-input="touch"] {
+    display: inline;
+  }
+  .runner__key[data-input="keys"] {
+    display: none;
+  }
+  /* Footer keys are keyboard shortcuts; on touch the label alone is the button. */
+  .runner__foot .runner__key {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .runner__action {
+    min-height: 2.25rem;
+  }
+  .runner__action:hover {
+    color: var(--text-primary);
+  }
+}
+
+/* Fullscreen (API) and the iPhone fallback overlay share one layout. */
+.runner:fullscreen,
+.runner[data-immersive] {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  background: var(--surface-canvas);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+.runner[data-immersive] {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  height: 100dvh;
+}
+.runner:fullscreen .runner__screen,
+.runner[data-immersive] .runner__screen {
+  flex: 1;
+  height: auto;
+}
+.runner:fullscreen :is(.runner__bar, .runner__foot),
+.runner[data-immersive] :is(.runner__bar, .runner__foot) {
+  padding-inline: var(--space-4);
+}
+:root.runner-lock,
+:root.runner-lock body {
+  overflow: hidden;
+}
+@media (max-width: 639px) {
+  /* Text sits above the walking Claude, not on top of the car. */
+  .runner__over {
+    justify-content: safe flex-start;
+  }
+  /* The short phone screen fits a top 3, and the name field replaces it. */
+  .runner__board li:nth-child(n + 4),
+  .runner__over:has(.runner__form) .runner__board {
+    display: none;
+  }
+}
+@media (min-width: 640px) {
+  .runner__screen {
+    height: 16rem;
+  }
+}
+
 /* ---------- Controls ---------- */
 .icon-button {
   display: inline-grid;

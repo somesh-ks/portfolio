@@ -10,7 +10,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { EntryArticle } from "@/components/editorial/EntryArticle";
 import { Mdx } from "@/components/mdx/Mdx";
-import { hasAccess, SESSION_COOKIE } from "@/lib/auth";
+import { hasAccess, isGateConfigured, SESSION_COOKIE } from "@/lib/auth";
 import { entriesOf, findEntry } from "@/lib/content";
 import { entryMetadata } from "@/lib/metadata";
 import { loadProtectedBody } from "@/lib/protected-source";
@@ -76,7 +76,11 @@ export async function LockedCaseStudy({
   }
 
   const unlock = (await searchParams).unlock;
-  const initialError = unlock === "failed" || unlock === "unavailable" ? unlock : undefined;
+  const initialError = !isGateConfigured(slug)
+    ? "unavailable"
+    : unlock === "failed" || unlock === "unavailable"
+      ? unlock
+      : undefined;
   return (
     <EntryArticle entry={entry} next={next}>
       <Mdx source={entry.body} />

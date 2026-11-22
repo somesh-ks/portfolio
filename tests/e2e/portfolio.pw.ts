@@ -33,6 +33,28 @@ test("home to experiment to case study, with no console errors", async ({ page }
   expect(errors).toEqual([]);
 });
 
+test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  const runner = page.locator(".runner");
+  // Space on the page starts the game in view instead of scrolling past it.
+  await runner.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  const scrolled = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press("Space");
+  await expect(runner.locator(".runner__prompt")).toHaveCount(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+  await expect(runner.locator(".runner__score")).toContainText(/0000[1-9]|000[1-9]\d/);
+  await expect(runner.locator(".runner__over")).toBeVisible({ timeout: 20_000 });
+  await expect(runner.locator(".runner__final")).toHaveText(/^\d{5}$/);
+  // No Redis in tests: the leaderboard stays hidden and nothing errors.
+  await expect(runner.getByLabel("First name")).toHaveCount(0);
+  // Space on the focused game starts the next run after a short beat.
+  await page.waitForTimeout(700);
+  await runner.locator(".runner__screen").press("Space");
+  await expect(runner.locator(".runner__over")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 // Client-side navigation reuses registered custom elements, which full page
 // loads never do. Click in from home and press back for every route.
 test("click into every entry and back, with no console errors", async ({ page }) => {
@@ -91,4 +113,23 @@ test("every public route answers Accept: text/markdown", async ({ request }) => 
   }
   const html = await request.get("/");
   expect(html.headers()["vary"] ?? "").toMatch(/accept/i);
+});
+
+test("favicon follows the browser scheme, then the site toggle", async ({ page }) => {
+  const icons = page.locator('head link[rel="icon"]');
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await expect(icons).toHaveCount(2);
+  await expect(icons.and(page.locator('[media*="dark"]'))).toHaveAttribute(
+    "href",
+    "/favicon-dark.svg",
+  );
+
+  // System → light: one icon, pinned to the site theme rather than the browser's.
+  await page.getByRole("button", { name: /Switch to light theme/ }).click();
+  await expect(icons).toHaveCount(1);
+  await expect(icons).toHaveAttribute("href", "/favicon-light.svg");
+
+  const svg = await page.request.get("/favicon-light.svg");
+  expect(svg.ok()).toBe(true);
 });

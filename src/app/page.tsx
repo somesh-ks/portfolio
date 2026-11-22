@@ -2,7 +2,7 @@ import { PROFILE } from "@content/profile";
 import { Bio } from "@/components/editorial/Bio";
 import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
-import { MascotStage } from "@/components/experiments/MascotStage";
+import { ClaudeRunner } from "@/components/runner/ClaudeRunner";
 import { entriesOf } from "@/lib/content";
 
 export default function HomePage() {
@@ -13,7 +13,7 @@ export default function HomePage() {
         <p className="intro__role">Design engineer</p>
       </header>
       <Bio />
-      <MascotStage />
+      <ClaudeRunner />
       <ListSection id="projects" title="Projects">
         {entriesOf("project").map((entry) => (
           <ListRow

@@ -1,9 +1,8 @@
 /**
  * Resume, transcribed from Somesh's LaTeX source. Phone number, email and
- * home details are left out on purpose; the PDF carries contact details.
+ * home details are left out on purpose; the PDF is built from resume/resume.tex on deploy and has no phone.
  */
-export const RESUME_PDF_URL =
-  "https://drive.google.com/file/d/1zJU15xMX1RM8FDbiBsZB6_ZZngVu2Q1X/view";
+export const RESUME_PDF_URL = "/resume.pdf";
 
 export const RESUME_SUMMARY =
   "Product designer and 0 to 1 specialist with 4+ years shipping products across 10+ domains in high-growth B2B and B2C teams. I've driven $1.5M+ in cost savings, helped win 10+ clients and shipped work used by 3M+ people in 22 countries. I bring an AI-first approach to every product I build, and I'm the Claude Ambassador for Anthropic in Sweden.";

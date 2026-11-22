@@ -34,8 +34,12 @@ function componentsFor(mediaBase?: string): MDXComponents {
   };
 }
 
-export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: string }) {
-  const { default: Content } = await evaluate(source, {
+// Locked pages render per request; compile each body once per instance.
+// Bodies are few and small (two studies plus public teasers), so no eviction.
+const compiled = new Map<string, ReturnType<typeof compile>>();
+
+function compile(source: string) {
+  return evaluate(source, {
     ...runtime,
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
@@ -55,5 +59,15 @@ export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: s
       ],
     ],
   });
+}
+
+export async function Mdx({ source, mediaBase }: { source: string; mediaBase?: string }) {
+  let pending = compiled.get(source);
+  if (!pending) {
+    pending = compile(source);
+    compiled.set(source, pending);
+    pending.catch(() => compiled.delete(source));
+  }
+  const { default: Content } = await pending;
   return <Content components={componentsFor(mediaBase)} />;
 }

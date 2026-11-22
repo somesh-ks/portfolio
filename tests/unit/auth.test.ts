@@ -3,6 +3,7 @@ import {
   createMagicToken,
   createSessionToken,
   hashPassword,
+  isGateConfigured,
   readMagicToken,
   readSession,
   scopeForPassword,
@@ -28,6 +29,12 @@ describe("password hashing (scrypt)", () => {
     expect(await verifyPassword("x", "sha256:abc")).toBe(false);
     expect(await verifyPassword("x", "scrypt:4:8:1:AAAA:BBBB")).toBe(false);
     expect(await verifyPassword("x", "")).toBe(false);
+  });
+
+  test("an out-of-range r or p is rejected, not thrown", async () => {
+    const [, n, , , salt, key] = (await hashPassword("pw", FAST)).split(":");
+    expect(await verifyPassword("pw", ["scrypt", n, 99_999, 1, salt, key].join(":"))).toBe(false);
+    expect(await verifyPassword("pw", ["scrypt", n, 8, 0, salt, key].join(":"))).toBe(false);
   });
 
   test("a per-slug password opens only that slug; the shared one opens all", async () => {
@@ -105,5 +112,17 @@ describe("magic links", () => {
     const wider = [version, exp, "royc+luminovo", sig].join(".");
     expect(readMagicToken(later, { now: NOW, env })).toBeNull();
     expect(readMagicToken(wider, { now: NOW, env })).toBeNull();
+  });
+});
+
+describe("gate configuration", () => {
+  test("is per slug: a ROYC-only hash leaves Luminovo switched off", () => {
+    const only = { ...env, PORTFOLIO_PASSWORD_ROYC_HASH: "scrypt:x" };
+    expect(isGateConfigured("royc", only)).toBe(true);
+    expect(isGateConfigured("luminovo", only)).toBe(false);
+    expect(isGateConfigured("luminovo", { ...env, PORTFOLIO_PASSWORD_HASH: "scrypt:x" })).toBe(
+      true,
+    );
+    expect(isGateConfigured("royc", { PORTFOLIO_PASSWORD_HASH: "scrypt:x" })).toBe(false);
   });
 });

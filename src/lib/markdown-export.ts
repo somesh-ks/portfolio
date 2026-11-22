@@ -17,6 +17,8 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   LuminovoExpressionBuilder: "Builder for machine-time cost formulas with live evaluation.",
   ClaudeMascotStudio:
     "Rect-based pixel mascot with switchable animations and an inspectable rect model.",
+  ClaudeRunner:
+    "Playable endless runner: Claude walks, skates, scoots, bikes, flies a kite or drives, jumping desk obstacles (Space or tap). Fullscreen, a local best and a shared top-10 leaderboard by first name.",
   OklchTokenInspector:
     "Generates an 11-step OKLCH ramp and checks WCAG 2.2 contrast as you change it.",
   AgenticStreamDemo:

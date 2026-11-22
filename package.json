@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bun scripts/build-resume.ts && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --deny-warnings",
@@ -21,7 +21,8 @@
     "test:a11y": "playwright test --grep @a11y",
     "auth:hash": "bun scripts/hash-password.ts",
     "auth:link": "bun scripts/magic-link.ts",
-    "previews": "bun scripts/capture-previews.ts"
+    "previews": "bun scripts/capture-previews.ts",
+    "resume": "bun scripts/build-resume.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
