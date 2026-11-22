@@ -282,30 +282,15 @@
   }
 }
 
-/* Theme switch: switchTheme() snapshots the page and reveals the new theme
-   through a soft-edged circle growing from the click (or the bottom centre).
-   The old snapshot stays opaque underneath, so nothing flashes through. */
-@property --reveal-r {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-@keyframes theme-reveal {
-  from {
-    --reveal-r: -40vmax;
-  }
-  to {
-    --reveal-r: 150vmax;
-  }
-}
-::view-transition-old(root) {
+/* Theme switch: switchTheme() snapshots the page, lays the old snapshot on top
+   and switches it off square by square. The mask layers and the theme-pixels
+   keyframes come from switchTheme(); this sets how they play. */
+::view-transition-new(root) {
   animation: none;
 }
-::view-transition-new(root) {
-  animation: theme-reveal var(--duration-ceiling) var(--ease-in-out) both;
-  mask-image: radial-gradient(
-    circle at var(--reveal-x, 50%) var(--reveal-y, 100%),
-    black var(--reveal-r),
-    transparent calc(var(--reveal-r) + 40vmax)
-  );
+::view-transition-old(root) {
+  z-index: 1;
+  animation: theme-pixels var(--duration-theme) step-end both;
+  mask-size: auto;
+  mask-repeat: no-repeat;
 }
