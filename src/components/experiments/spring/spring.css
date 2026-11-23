@@ -6,7 +6,7 @@
   height: 0.5rem;
   min-height: 0.5rem;
   margin-block: 1.125rem;
-  border-radius: var(--radius-full, 999px);
+  border-radius: 0;
   background: linear-gradient(
     to right in oklch longer hue,
     oklch(65% 0.16 0),
@@ -44,17 +44,31 @@
   display: grid;
   gap: var(--space-2);
 }
+.spring-pairs {
+  gap: 0;
+}
 .spring-pair {
   display: grid;
-  gap: var(--space-1);
+  grid-template-columns: 2.25rem 1fr;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
   width: 100%;
-  padding: var(--space-3);
+  padding: var(--space-3) 0;
   text-align: left;
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-top: 1px solid var(--border-subtle);
 }
-.spring-pair[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px var(--text-primary);
+.spring-pair > :not(.spring-pair__mark) {
+  grid-column: 2;
+}
+.spring-pair__mark {
+  grid-row: 1 / span 3;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+  padding-top: 0.6rem;
+}
+.spring-pair[aria-pressed="true"] .spring-pair__mark {
+  color: var(--text-primary);
 }
 .spring-pair__name {
   font-size: 1.75rem;
@@ -100,16 +114,15 @@
   display: block;
   container-type: inline-size;
   position: relative;
-  height: 2.5rem;
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  height: 1.5rem;
+  border-bottom: 1px solid var(--border-default);
 }
 .spring-ball {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
+  bottom: 0;
+  left: 0;
+  width: 0.75rem;
+  height: 1.25rem;
   background: var(--text-primary);
 }
 .spring-ball[data-run="true"] {
@@ -117,7 +130,7 @@
 }
 @keyframes spring-move {
   to {
-    transform: translateX(calc(100cqi - 2.5rem));
+    transform: translateX(calc(100cqi - 0.75rem));
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -139,8 +152,8 @@
   width: 100%;
   min-height: 14rem;
   padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  border-radius: 0;
+  background: transparent;
   box-shadow: inset 0 0 0 1px var(--border-default);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -396,16 +409,6 @@
   background: var(--color-bg-subtle);
   border-right: 1px solid var(--color-border-subtle);
 }
-.spring-select {
-  width: 100%;
-  min-height: 2.75rem;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-default);
-  color: var(--text-primary);
-  font: inherit;
-}
 .spring-rung {
   display: grid;
   grid-template-columns: 9rem 1fr;
@@ -467,9 +470,117 @@
 }
 .spring-nested__outer {
   display: block;
-  border: 1px solid;
+  border: 1px solid var(--border-strong);
 }
 .spring-nested__inner {
   display: block;
   height: 2.5rem;
+  border: 1px solid var(--text-primary);
+}
+
+/* ——— Terminal chrome, scoped to Spring's toys ——— */
+.spring .field__label {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  text-transform: lowercase;
+}
+.spring .range::-webkit-slider-thumb {
+  border-radius: 0;
+}
+.spring .range::-moz-range-thumb {
+  border-radius: 0;
+}
+.spring .segmented {
+  padding: 0;
+  gap: var(--space-3);
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+.spring .segmented__item {
+  padding: 0;
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 400;
+  text-transform: lowercase;
+}
+.spring .segmented__item[aria-pressed="true"] {
+  background: none;
+  box-shadow: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.spring-cmd {
+  min-height: 2.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+  text-align: left;
+}
+.spring-cmd:hover,
+.spring-cmd[aria-pressed="true"] {
+  color: var(--text-primary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-cmd {
+    min-height: 2rem;
+  }
+}
+.spring-pick {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.spring-pick__list {
+  display: grid;
+  max-height: 11rem;
+  overflow-y: auto;
+  border-block: 1px solid var(--border-subtle);
+}
+.spring-pick__row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 2rem;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.spring-pick__row:has(:checked),
+.spring-pick__row:hover {
+  color: var(--text-primary);
+}
+.spring-pick__row:has(:focus-visible) {
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}
+.spring-tree {
+  display: grid;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-tree dl {
+  margin: 0;
+}
+.spring-tree dl > div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--space-2);
+}
+.spring-tree dt {
+  color: var(--text-secondary);
+}
+.spring-tree dd {
+  margin: 0;
+}
+.spring .spring-grid {
+  column-gap: var(--space-6);
+}
+.spring .toy__actions {
+  column-gap: var(--space-5);
 }

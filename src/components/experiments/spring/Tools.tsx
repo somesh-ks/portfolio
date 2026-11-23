@@ -1,6 +1,5 @@
 "use client";
 
-import { Check, Copy, Download, Link2 } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { audit } from "@/lib/spring/audit";
 import type { Mode } from "@/lib/spring/color";
@@ -11,6 +10,7 @@ import { COMPONENTS, ICONS, iconStroke, recommend } from "@/lib/spring/stack";
 import { inputFromSeed, type System, type SystemInput } from "@/lib/spring/system";
 import { FONT_NAMES, googleFontsUrl, opticalBase, type FontName } from "@/lib/spring/type";
 import { contrast, parseColor } from "@/lib/spring/color";
+import { Command } from "../../code/Command";
 import { Segmented } from "../Segmented";
 import { AppScreen, Components, Homepage, Ladder, Wordmark } from "./Preview";
 import { shareUrl, useSpring } from "./store";
@@ -122,33 +122,36 @@ function Pick<T extends string>({
 }: {
   label: string;
   value: T;
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; tag?: string }[];
   onChange: (v: T) => void;
 }) {
-  const id = useId();
+  const name = useId();
   return (
-    <label className="field" htmlFor={id}>
-      <span className="field__label">{label}</span>
-      <span className="field__input">
-        <select
-          id={id}
-          className="spring-select"
-          value={value}
-          onChange={(e) => onChange(e.target.value as T)}
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+    <fieldset className="field spring-pick">
+      <legend className="field__label">{label}</legend>
+      <span className="spring-pick__list">
+        {options.map((o) => (
+          <label key={o.value} className="spring-pick__row">
+            <input
+              type="radio"
+              className="sr-only"
+              name={name}
+              value={o.value}
+              checked={o.value === value}
+              onChange={() => onChange(o.value)}
+            />
+            <span aria-hidden>{o.value === value ? "[x]" : "[ ]"}</span>
+            <span>{o.label}</span>
+            {o.tag ? <span className="spring-meta">{o.tag}</span> : null}
+          </label>
+        ))}
       </span>
-    </label>
+    </fieldset>
   );
 }
 
 const Toy = ({ children, caption }: { children: ReactNode; caption?: ReactNode }) => (
-  <div className="toy">
+  <div className="toy spring">
     <Fonts />
     {children}
     {caption ? <p className="toy__caption">{caption}</p> : null}
@@ -293,7 +296,7 @@ export function SpringColor() {
 const group = (n: FontName) => FONTS[n].tag;
 const canDo = (n: FontName, job: string) => (FONTS[n].jobs as readonly string[]).includes(job);
 const fontOptions = (job: string) =>
-  FONT_NAMES.filter((n) => canDo(n, job)).map((n) => ({ value: n, label: `${n} · ${group(n)}` }));
+  FONT_NAMES.filter((n) => canDo(n, job)).map((n) => ({ value: n, label: n, tag: group(n) }));
 
 export function SpringType() {
   const { input, system, line, setInput, setLine } = useSpring();
@@ -322,11 +325,11 @@ export function SpringType() {
             <button
               key={k}
               type="button"
-              className="chip pressable"
+              className="spring-cmd"
               aria-pressed={k === mood}
               onClick={() => setMood(k as keyof typeof MOODS)}
             >
-              {m.label}
+              {k === mood ? `[${m.label.toLowerCase()}]` : m.label.toLowerCase()}
             </button>
           ))}
         </span>
@@ -457,7 +460,10 @@ function PairButton({
   onPick: () => void;
 }) {
   return (
-    <button type="button" className="spring-pair pressable" aria-pressed={on} onClick={onPick}>
+    <button type="button" className="spring-pair" aria-pressed={on} onClick={onPick}>
+      <span className="spring-pair__mark" aria-hidden>
+        {on ? "[x]" : "[ ]"}
+      </span>
       <span className="spring-pair__name" style={{ fontFamily: `"${p.heading}", serif` }}>
         {name || "Your name"}
       </span>
@@ -495,28 +501,34 @@ function Facts({ font, job }: { font: FontName; job: string }) {
       ? `One (${d.weights[0]})`
       : d.weights.join(", ");
   return (
-    <div className="field">
-      <span className="field__label">
-        {font} <span className="spring-meta">{job}</span>
+    <div className="spring-tree">
+      <span>
+        {font.toLowerCase()} <span className="spring-meta">{job.toLowerCase()}</span>
       </span>
-      <p className="toy__caption">
+      <span className="spring-meta">
         {d.note}
         {d.popularity <= 10 ? " One of the ten most used fonts on the web." : ""}
-      </p>
-      <dl className="spring-facts">
-        <dt>License</dt>
-        <dd>{d.license === "OFL" ? "Free for logo, web and apps (OFL)" : "Check before use"}</dd>
-        <dt>Weights</dt>
-        <dd>
-          {weights}
-          {d.italic ? ", italics" : ", no italics"}
-        </dd>
-        <dt>Scripts</dt>
-        <dd>{d.scripts.join(", ")}</dd>
-        <dt>Table numbers</dt>
-        <dd>{tnum ? "Yes, they line up" : "No, they won't align"}</dd>
-        <dt>Download</dt>
-        <dd className="tabular">~{d.kb} KB per weight</dd>
+      </span>
+      <dl>
+        {(
+          [
+            [
+              "license",
+              d.license === "OFL" ? "OFL, free for logo, web and apps" : "check before use",
+            ],
+            ["weights", `${weights}${d.italic ? ", italics" : ", no italics"}`],
+            ["scripts", d.scripts.join(", ")],
+            ["numbers", tnum ? "tabular, columns line up" : "proportional, columns won't align"],
+            ["download", `~${d.kb} KB per weight`],
+          ] as const
+        ).map(([k, v], i, all) => (
+          <div key={k}>
+            <dt>
+              {i === all.length - 1 ? "└" : "├"} {k}
+            </dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
       </dl>
     </div>
   );
@@ -561,30 +573,19 @@ function Nested({ system }: { system: System }) {
   const outer = system.shape.radius.lg;
   const pad = system.space.paddingX.sm;
   const inner = Math.max(0, outer - pad);
-  const n = system.scales.neutral.light;
-  const a = system.scales.accent.light;
   return (
     <div className="spring-nested">
       {[
-        { label: `Same radius (${outer}px) inside: the gap bulges`, r: outer },
-        { label: `${outer} − ${pad} padding = ${inner}px: the gap stays even`, r: inner },
+        { label: `inner ${outer}px: gap bulges`, r: outer, bad: true },
+        { label: `${outer} − ${pad} = ${inner}px: gap even`, r: inner, bad: false },
       ].map((x) => (
         <figure key={x.label} className="spring-nested__case">
-          <span
-            className="spring-nested__outer"
-            style={{
-              borderRadius: outer,
-              padding: pad,
-              background: n[2]!.hex,
-              borderColor: n[5]!.hex,
-            }}
-          >
-            <span
-              className="spring-nested__inner"
-              style={{ borderRadius: x.r, background: a[3]!.hex, border: `1px solid ${a[6]!.hex}` }}
-            />
+          <span className="spring-nested__outer" style={{ borderRadius: outer, padding: pad }}>
+            <span className="spring-nested__inner" style={{ borderRadius: x.r }} />
           </span>
-          <figcaption className="spring-meta">{x.label}</figcaption>
+          <figcaption className="spring-meta">
+            {x.bad ? "✕" : "✓"} {x.label}
+          </figcaption>
         </figure>
       ))}
     </div>
@@ -632,8 +633,8 @@ export function SpringMotion() {
         ))}
       </div>
       <div className="toy__actions">
-        <button type="button" className="button pressable" onClick={() => setRun((r) => r + 1)}>
-          Race them
+        <button type="button" className="spring-cmd" onClick={() => setRun((r) => r + 1)}>
+          $ race
         </button>
       </div>
     </Toy>
@@ -687,7 +688,8 @@ export function SpringStack() {
           value={system.stack.components}
           options={Object.values(COMPONENTS).map((c) => ({
             value: c.id,
-            label: c.id === rec.components ? `${c.name} (fits)` : c.name,
+            label: c.name,
+            tag: c.id === rec.components ? "fits" : undefined,
           }))}
           onChange={(v) => set({ components: v })}
         />
@@ -696,7 +698,8 @@ export function SpringStack() {
           value={system.stack.icons}
           options={Object.values(ICONS).map((c) => ({
             value: c.id,
-            label: c.id === rec.icons ? `${c.name} (fits)` : c.name,
+            label: c.name,
+            tag: c.id === rec.icons ? "fits" : undefined,
           }))}
           onChange={(v) => set({ icons: v })}
         />
@@ -708,7 +711,8 @@ export function SpringStack() {
           ? ` Stroke ${iconStroke(body.weight)}px to match your ${body.weight} body weight.`
           : ""}
       </p>
-      <pre className="toy__code">{[comp.install, icon.install].join("\n")}</pre>
+      <Command command={comp.install} />
+      <Command command={icon.install} />
     </Toy>
   );
 }
@@ -753,6 +757,8 @@ export function SpringPreview() {
 
 // ——— Export ———
 
+const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "design-system";
+
 export function SpringExport() {
   const { system } = useSpring();
   const files = useMemo(() => exportAll(system), [system]);
@@ -768,7 +774,7 @@ export function SpringExport() {
     const url = URL.createObjectURL(zip(files.map((f) => ({ path: f.path, content: f.content }))));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${system.input.name.toLowerCase().replace(/\W+/g, "-") || "design-system"}.zip`;
+    a.download = `${slug(system.input.name)}.zip`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -785,18 +791,16 @@ export function SpringExport() {
       <div className="toy__actions">
         <button
           type="button"
-          className="button button--primary pressable"
+          className="spring-cmd"
           onClick={() => copy("prompt", toPrompt(system))}
         >
-          {copied === "prompt" ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{" "}
-          Copy prompt for your agent
+          {copied === "prompt" ? "✓ copied" : "$ copy prompt for your agent"}
         </button>
-        <button type="button" className="button pressable" onClick={download}>
-          <Download size={16} aria-hidden /> All files
+        <button type="button" className="spring-cmd" onClick={download}>
+          $ download {slug(system.input.name)}.zip
         </button>
-        <button type="button" className="button pressable" onClick={() => copy("link", shareUrl())}>
-          {copied === "link" ? <Check size={16} aria-hidden /> : <Link2 size={16} aria-hidden />}{" "}
-          Share link
+        <button type="button" className="spring-cmd" onClick={() => copy("link", shareUrl())}>
+          {copied === "link" ? "✓ copied" : "$ share link"}
         </button>
       </div>
       <div className="toy__bar">
@@ -807,8 +811,8 @@ export function SpringExport() {
           onChange={setTab}
           render={(v) => v.split("/").pop()}
         />
-        <button type="button" className="button pressable" onClick={() => copy(f.path, f.content)}>
-          {copied === f.path ? "Copied" : "Copy"}
+        <button type="button" className="spring-cmd" onClick={() => copy(f.path, f.content)}>
+          {copied === f.path ? "✓ copied" : "[copy]"}
         </button>
       </div>
       <textarea

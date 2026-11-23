@@ -25,7 +25,7 @@ export function SpringAudit() {
   }, [text]);
 
   return (
-    <div className="toy">
+    <div className="toy spring">
       <label className="field" htmlFor={id}>
         <span className="field__label">DESIGN.md, tokens.json or CSS variables</span>
         <textarea
@@ -42,13 +42,8 @@ export function SpringAudit() {
       </label>
       <div className="toy__actions">
         {SAMPLES.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className="chip pressable"
-            onClick={() => setText(s.text)}
-          >
-            {s.label}
+          <button key={s.id} type="button" className="spring-cmd" onClick={() => setText(s.text)}>
+            $ load {s.label.toLowerCase()}
           </button>
         ))}
       </div>
@@ -81,13 +76,13 @@ export function SpringAudit() {
             <div className="toy__actions">
               <button
                 type="button"
-                className="button button--primary pressable"
+                className="spring-cmd"
                 onClick={() => {
                   setInput(report.input);
                   setFixed(true);
                 }}
               >
-                {fixed ? "Loaded into the tools above" : "Fix all in Spring"}
+                {fixed ? "✓ loaded into the tools above" : "$ fix all →"}
               </button>
             </div>
           </>
