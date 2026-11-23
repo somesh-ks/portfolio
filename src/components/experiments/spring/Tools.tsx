@@ -2,7 +2,6 @@
 
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { audit } from "@/lib/spring/audit";
-import type { Mode } from "@/lib/spring/color";
 import { exportAll, toDesignMd, toPrompt } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { MOODS, pairings, type Pairing } from "@/lib/spring/pairing";
@@ -13,7 +12,7 @@ import { contrast, parseColor } from "@/lib/spring/color";
 import { Command } from "../../code/Command";
 import { Segmented } from "../Segmented";
 import { AppScreen, Components, Homepage, Ladder, Wordmark } from "./Preview";
-import { shareUrl, useSpring } from "./store";
+import { shareUrl, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
@@ -170,7 +169,7 @@ const MODES = [
 export function SpringColor() {
   const { input, system, setInput } = useSpring();
   const [hex, setHex] = useState("");
-  const [mode, setMode] = useState<Mode>("light");
+  const [mode, setMode] = useMode();
   const a = input.accent;
   const setAccent = (p: Partial<SystemInput["accent"]>) =>
     setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }));
@@ -302,6 +301,7 @@ const fontOptions = (job: string) =>
 
 export function SpringType() {
   const { input, system, line, setInput, setLine } = useSpring();
+  const [mode] = useMode();
   const t = input.type;
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
@@ -403,7 +403,7 @@ export function SpringType() {
         </p>
       ) : null}
       <p className="toy__caption">{ratioAdvice(input.stack.building, t.ratio)}</p>
-      <Ladder system={system} line={line} />
+      <Ladder system={system} mode={mode} line={line} />
       <div className="spring-grid">
         <Facts font={t.heading} job="Headings" />
         {t.body !== t.heading ? (
@@ -540,6 +540,7 @@ function Facts({ font, job }: { font: FontName; job: string }) {
 
 export function SpringShape() {
   const { input, system, setInput } = useSpring();
+  const [mode] = useMode();
   const r = system.shape.radius;
   const c = system.space.control;
   return (
@@ -565,7 +566,7 @@ export function SpringShape() {
         />
       </div>
       <Nested system={system} />
-      <Components system={system} mode="light" />
+      <Components system={system} mode={mode} />
     </Toy>
   );
 }
@@ -722,7 +723,7 @@ export function SpringStack() {
 
 export function SpringPreview() {
   const { system, line } = useSpring();
-  const [mode, setMode] = useState<Mode>("light");
+  const [mode, setMode] = useMode();
   const [width, setWidth] = useState<"desktop" | "phone">("desktop");
   return (
     <Toy>

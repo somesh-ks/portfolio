@@ -241,9 +241,9 @@ const SAMPLE: Partial<Record<Role, string>> = {
  * phone–desktop size, line height on the 4px grid, weight and tracking,
  * all derived per role rather than one line height for every row.
  */
-export function Ladder({ system, line }: { system: System; line: string }) {
+export function Ladder({ system, mode, line }: { system: System; mode: Mode; line: string }) {
   return (
-    <Scope system={system} mode="light">
+    <Scope system={system} mode={mode}>
       <div className="grid">
         {system.type.tokens.map((t) => {
           const px = t.max;

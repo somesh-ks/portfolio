@@ -6,6 +6,7 @@
  * lives in a tiny module store rather than a React context.
  */
 import { useMemo, useSyncExternalStore } from "react";
+import type { Mode } from "@/lib/spring/color";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/system";
 
@@ -87,4 +88,39 @@ export function shareUrl(): string {
   url.search = `?s=${encodeInput(input)}`;
   url.hash = "";
   return url.toString();
+}
+
+/**
+ * Which theme the previews show. Follows the site's theme until the visitor
+ * picks one in any tool; one choice drives every preview on the page.
+ */
+let modeOverride: Mode | null = null;
+const modeListeners = new Set<() => void>();
+
+function subscribeSite(l: () => void) {
+  const o = new MutationObserver(l);
+  o.observe(document.documentElement, { attributeFilter: ["data-theme"] });
+  return () => o.disconnect();
+}
+
+export function useMode(): [Mode, (m: Mode) => void] {
+  // Read the attribute next-themes sets; the server snapshot keeps hydration stable.
+  const site = useSyncExternalStore<Mode>(
+    subscribeSite,
+    () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
+    () => "light",
+  );
+  const override = useSyncExternalStore(
+    (l) => {
+      modeListeners.add(l);
+      return () => modeListeners.delete(l);
+    },
+    () => modeOverride,
+    () => null,
+  );
+  const set = (m: Mode) => {
+    modeOverride = m === site ? null : m;
+    for (const l of modeListeners) l();
+  };
+  return [override ?? site, set];
 }
