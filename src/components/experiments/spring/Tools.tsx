@@ -15,10 +15,12 @@ import {
   type FontName,
   type TypeInput,
 } from "@/lib/spring/type";
-import { contrast, type Mode } from "@/lib/spring/color";
+import { contrast, DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
+import { formatColor, type ColorFormat } from "@/lib/spring/colormath";
 import { Select } from "@/components/ui/Select";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
+import { CurveEditor } from "./CurveEditor";
 import { SpringAudit } from "./Audit";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, Components, Homepage, Ladder } from "./Preview";
@@ -184,6 +186,7 @@ export function SpringWorkbench() {
   const [view, setView] = useState<"output" | "preview">("output");
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
+  const [format, setFormat] = useState<ColorFormat>("oklch");
   // Starts at 1 so the curves play as soon as the Motion tab opens.
   const [run, setRun] = useState(1);
   const files = useMemo(() => exportAll(system), [system]);
@@ -240,7 +243,9 @@ export function SpringWorkbench() {
           aria-labelledby={`${tabsId}-${tab}`}
           className="spring-wb__panel"
         >
-          {tab === "color" ? <ColorControls {...spring} mode={mode} /> : null}
+          {tab === "color" ? (
+            <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+          ) : null}
           {tab === "type" ? (
             <TypeControls
               {...spring}
@@ -317,7 +322,7 @@ export function SpringWorkbench() {
             </div>
           ) : (
             <>
-              {tab === "color" ? <ColorOutput system={system} mode={mode} /> : null}
+              {tab === "color" ? <ColorOutput system={system} mode={mode} format={format} /> : null}
               {tab === "type" && browse ? (
                 <FontBrowser
                   role={browse}
@@ -334,7 +339,7 @@ export function SpringWorkbench() {
                   onDone={() => setBrowse(null)}
                 />
               ) : tab === "type" ? (
-                <TypeOutput system={system} mode={mode} line={spring.line} />
+                <TypeOutput system={system} mode={mode} />
               ) : null}
               {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
               {tab === "motion" ? (
@@ -361,8 +366,17 @@ type Spring = ReturnType<typeof useSpring>;
 
 // ——— Color ———
 
-function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode }) {
-  const solid = system.scales.accent[mode][8]!;
+function ColorControls({
+  system,
+  input,
+  setInput,
+  mode,
+  format,
+  setFormat,
+}: Spring & { mode: Mode; format: ColorFormat; setFormat: (f: ColorFormat) => void }) {
+  const accent = system.scales.accent;
+  const brand = accent[mode][accent.anchor[mode] - 1]!;
+  const curve = input.curve ?? DEFAULT_CURVE;
   const a = input.accent;
   const grays =
     input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
@@ -371,12 +385,26 @@ function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode 
       <ColorPicker
         hue={a.hue}
         chroma={a.chroma}
-        hex={solid.hex}
-        lightness={solid.oklch.l}
-        onPick={(p) =>
-          setInput((i) => ({ ...i, accent: { ...i.accent, ...p, solidL: undefined } }))
-        }
+        hex={brand.hex}
+        lightness={brand.oklch.l}
+        format={format}
+        setFormat={setFormat}
+        onPick={(p) => setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }))}
         onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
+      />
+      <CurveEditor
+        curve={curve}
+        steps={accent.light}
+        onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
+      />
+      <Slider
+        label="Hue shift"
+        value={curve.hueShift}
+        min={-40}
+        max={40}
+        step={1}
+        show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
+        onChange={(v) => setInput((i) => ({ ...i, curve: { ...curve, hueShift: v } }))}
       />
       <Select
         label="Grays"
@@ -423,7 +451,15 @@ const VISION_LABEL = {
   tritan: "Tritanopia",
 };
 
-function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
+function ColorOutput({
+  system,
+  mode,
+  format,
+}: {
+  system: System;
+  mode: Mode;
+  format: ColorFormat;
+}) {
   const [copied, copy, said] = useCopy();
   const [vision, setVision] = useState<(typeof VISION)[number]>("normal");
   const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -463,7 +499,6 @@ function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
             <span style={{ gridColumn: "1 / 3" }}>bg</span>
             <span style={{ gridColumn: "3 / 6" }}>fill</span>
             <span style={{ gridColumn: "6 / 9" }}>border</span>
-            <span style={{ gridColumn: "9 / 11" }}>solid</span>
             <span style={{ gridColumn: "11 / 13" }}>text</span>
           </span>
         </div>
@@ -478,8 +513,10 @@ function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
                     type="button"
                     key={sw.step}
                     style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
-                    title={`var(--${key}) ${sw.hex}`}
-                    onClick={() => copy(key, sw.hex)}
+                    title={`var(--${key}) ${formatColor(sw.hex, format)}`}
+                    data-brand={sw.step === system.scales[s].anchor[mode] || undefined}
+                    data-solid={(s !== "neutral" && sw.step === system.solid[s][mode]) || undefined}
+                    onClick={() => copy(key, formatColor(sw.hex, format))}
                   >
                     <span className="sr-only">
                       Copy {sw.hex}, {s} step {sw.step}
@@ -498,6 +535,10 @@ function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
           </div>
         ))}
       </div>
+      <p className="spring-meta spring-legend">
+        <span className="spring-legend__brand">your color</span>
+        <span className="spring-legend__solid">button fill</span>
+      </p>
       <output className="sr-only">{said}</output>
       <Contrast checks={system.checks[mode]} mode={mode} />
     </>
@@ -593,11 +634,11 @@ function TypeControls({
   );
 }
 
-function TypeOutput({ system, mode, line }: { system: System; mode: Mode; line: string }) {
+function TypeOutput({ system, mode }: { system: System; mode: Mode }) {
   const t = system.input.type;
   return (
     <>
-      <Ladder system={system} mode={mode} line={line} />
+      <Ladder system={system} mode={mode} />
       <div className="spring-grid">
         <Facts font={t.heading} job="Headings" extra={t.extra} />
         {t.body !== t.heading ? (

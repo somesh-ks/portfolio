@@ -19,6 +19,7 @@ const b64url = {
 };
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
+const r4 = (n: number) => Math.round(n * 10000) / 10000;
 
 export function encodeInput(input: SystemInput): string {
   const i = input;
@@ -26,9 +27,9 @@ export function encodeInput(input: SystemInput): string {
     i.v,
     i.name,
     [
-      Math.round(i.accent.hue),
-      r3(i.accent.chroma),
-      i.accent.solidL === undefined ? null : r3(i.accent.solidL),
+      Math.round(i.accent.hue * 10) / 10,
+      r4(i.accent.chroma),
+      i.accent.solidL === undefined ? null : r4(i.accent.solidL),
       i.accent.label ?? "auto",
     ],
     i.neutralHue === undefined ? r3(i.neutralTint) : [r3(i.neutralTint), Math.round(i.neutralHue)],
@@ -54,6 +55,7 @@ export function encodeInput(input: SystemInput): string {
       i.stack.components ?? null,
       i.stack.icons ?? null,
     ],
+    ...(i.curve ? [[...i.curve.bezier.map(r3), Math.round(i.curve.hueShift)]] : []),
   ];
   return b64url.encode(JSON.stringify(compact));
 }
@@ -124,6 +126,19 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
         components: typeof st?.[3] === "string" ? st[3] : undefined,
         icons: typeof st?.[4] === "string" ? st[4] : undefined,
       },
+      ...(Array.isArray(a[9]) && a[9].length === 5
+        ? {
+            curve: {
+              bezier: [
+                num(a[9][0], 0, 1, 0.4),
+                num(a[9][1], -0.5, 1.5, 0.08),
+                num(a[9][2], 0, 1, 0.9),
+                num(a[9][3], -0.5, 1.5, 0.6),
+              ],
+              hueShift: num(a[9][4], -60, 60, 0),
+            },
+          }
+        : {}),
     };
   } catch {
     return null;

@@ -1,24 +1,41 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
-import { clampChroma, oklchToHex } from "@/lib/spring/colormath";
+import {
+  clampChroma,
+  formatColor,
+  hexToHsl,
+  hslToHex,
+  oklchToHex,
+  type ColorFormat,
+} from "@/lib/spring/colormath";
 import { parseColor } from "@/lib/spring/color";
+import { Segmented } from "../Segmented";
 
 const MAX_C = 0.3;
 const MIN_C = 0.02;
 // Painted small and stretched by CSS: the field is smooth, so 120×40 is plenty.
 const W = 120;
 const H = 40;
+const FORMAT_LABEL: Record<ColorFormat, string> = { oklch: "OKLCH", hsl: "HSL", hex: "Hex" };
 
-/** Every hue across, chroma from vivid (top) to near gray (bottom), at one lightness. */
-function paint(canvas: HTMLCanvasElement, l: number) {
+/**
+ * Every hue across. Down the field: OKLCH chroma (vivid to gray) at the brand's
+ * lightness, or HSL saturation at its HSL lightness. OKLCH keeps lightness even
+ * across hues; HSL is the spectrum most pickers show.
+ */
+function paint(canvas: HTMLCanvasElement, space: "oklch" | "hsl", l: number) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const img = ctx.createImageData(W, H);
   for (let y = 0; y < H; y++) {
-    const c = MAX_C - (y / (H - 1)) * (MAX_C - MIN_C);
+    const v = 1 - y / (H - 1);
     for (let x = 0; x < W; x++) {
-      const hex = oklchToHex(clampChroma({ l, c, h: (x / (W - 1)) * 360 }));
+      const h = (x / (W - 1)) * 360;
+      const hex =
+        space === "oklch"
+          ? oklchToHex(clampChroma({ l, c: MIN_C + v * (MAX_C - MIN_C), h }))
+          : hslToHex(h, v, l);
       const i = (y * W + x) * 4;
       img.data[i] = parseInt(hex.slice(1, 3), 16);
       img.data[i + 1] = parseInt(hex.slice(3, 5), 16);
@@ -30,23 +47,28 @@ function paint(canvas: HTMLCanvasElement, l: number) {
 }
 
 /**
- * Brand color as hue × chroma in OKLCH, plus a hex field. Lightness is left to
- * the scale, which sets it per step. Two native range inputs sit under the field
- * for keyboards and screen readers; the knob shows their focus.
+ * The brand color. OKLCH moves hue and chroma and leaves lightness to the
+ * scale; HSL and Hex move hue and saturation, the field people know from other
+ * pickers. Two native range inputs sit under the field for keyboards and screen
+ * readers; the knob shows their focus.
  */
 export function ColorPicker({
   hue,
   chroma,
   hex,
   lightness,
+  format,
+  setFormat,
   onPick,
   onHex,
 }: {
   hue: number;
   chroma: number;
-  /** The solid step's hex, shown in the field and swatch. */
+  /** The brand step's hex, shown in the field and swatch. */
   hex: string;
   lightness: number;
+  format: ColorFormat;
+  setFormat: (f: ColorFormat) => void;
   onPick: (p: { hue: number; chroma: number }) => void;
   onHex: (hex: string) => void;
 }) {
@@ -55,31 +77,52 @@ export function ColorPicker({
   const hueInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
   const id = useId();
+  const space = format === "oklch" ? "oklch" : "hsl";
+  const [hh, hs, hl] = hexToHsl(hex);
   // Repaint only when lightness moves by a visible amount.
-  const l = Math.round(lightness * 50) / 50;
+  const l = Math.round((space === "oklch" ? lightness : hl) * 50) / 50;
   useEffect(() => {
-    if (canvas.current) paint(canvas.current, l);
-  }, [l]);
+    if (canvas.current) paint(canvas.current, space, l);
+  }, [space, l]);
 
+  // Knob position and the two axes, in the field's space.
+  const x = space === "oklch" ? hue : hh;
+  const y = space === "oklch" ? (chroma - MIN_C) / (MAX_C - MIN_C) : hs;
+  const set = (h: number, v: number) => {
+    if (space === "oklch")
+      onPick({
+        hue: Math.round(h),
+        chroma: Math.round((MIN_C + v * (MAX_C - MIN_C)) * 1000) / 1000,
+      });
+    else onHex(hslToHex(h, v, hl));
+  };
   const fromPointer = (e: PointerEvent<HTMLDivElement>) => {
     const r = frame.current!.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    onPick({
-      hue: Math.round(x * 360),
-      chroma: Math.round((MAX_C - y * (MAX_C - MIN_C)) * 1000) / 1000,
-    });
+    set(
+      Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * 360,
+      1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+    );
   };
   const apply = () => {
     if (draft && parseColor(draft)) onHex(draft);
     setDraft(null);
   };
+  const second = space === "oklch" ? "chroma" : "saturation";
 
   return (
     <div className="field spring-picker">
-      <label className="field__label" htmlFor={`${id}-hex`}>
-        Brand color
-      </label>
+      <span className="spring-picker__head">
+        <label className="field__label" htmlFor={`${id}-hex`}>
+          Brand color
+        </label>
+        <Segmented
+          label="Color format"
+          options={["oklch", "hsl", "hex"] as const}
+          value={format}
+          onChange={setFormat}
+          render={(f) => FORMAT_LABEL[f]}
+        />
+      </span>
       <div
         ref={frame}
         className="spring-picker__field"
@@ -98,11 +141,7 @@ export function ColorPicker({
         <canvas ref={canvas} width={W} height={H} aria-hidden />
         <span
           className="spring-picker__knob"
-          style={{
-            left: `${(hue / 360) * 100}%`,
-            top: `${((MAX_C - chroma) / (MAX_C - MIN_C)) * 100}%`,
-            background: hex,
-          }}
+          style={{ left: `${(x / 360) * 100}%`, top: `${(1 - y) * 100}%`, background: hex }}
           aria-hidden
         />
         <input
@@ -110,30 +149,30 @@ export function ColorPicker({
           type="range"
           className="spring-picker__input"
           aria-label="Brand hue"
-          aria-valuetext={`${Math.round(hue)} degrees`}
+          aria-valuetext={`${Math.round(x)} degrees`}
           min={0}
           max={360}
           step={1}
-          value={hue}
-          onChange={(e) => onPick({ hue: Number(e.target.value), chroma })}
+          value={Math.round(x)}
+          onChange={(e) => set(Number(e.target.value), y)}
         />
         <input
           type="range"
           className="spring-picker__input"
-          aria-label="Brand chroma"
-          aria-valuetext={chroma.toFixed(2)}
-          min={MIN_C}
-          max={MAX_C}
-          step={0.005}
-          value={chroma}
-          onChange={(e) => onPick({ hue, chroma: Number(e.target.value) })}
+          aria-label={`Brand ${second}`}
+          aria-valuetext={`${Math.round(y * 100)}%`}
+          min={0}
+          max={1}
+          step={0.01}
+          value={y}
+          onChange={(e) => set(x, Number(e.target.value))}
         />
       </div>
       <span className="field__input">
         <span className="spring-swatch" style={{ background: hex }} aria-hidden />
         <input
           id={`${id}-hex`}
-          value={draft ?? hex}
+          value={draft ?? formatColor(hex, format)}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={apply}
           onKeyDown={(e) => {

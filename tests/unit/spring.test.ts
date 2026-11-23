@@ -29,6 +29,54 @@ describe("color", () => {
   );
 });
 
+describe("palette curve", () => {
+  const seeds = ["#e11d48", "#f5c400", "#00a37a", "#7c3aed", "#0ea5e9", "#111111", "#ff66cc"];
+  test("every scale runs one way, in both themes, for any brand", () => {
+    for (const seed of seeds) {
+      const sys = buildSystem(inputFromSeed(seed));
+      for (const scale of Object.values(sys.scales))
+        for (const mode of ["light", "dark"] as const) {
+          const l = scale[mode].map((s) => s.oklch.l);
+          for (let i = 1; i < 12; i++)
+            if (mode === "light") expect(l[i]!).toBeLessThan(l[i - 1]!);
+            else expect(l[i]!).toBeGreaterThan(l[i - 1]!);
+        }
+    }
+  });
+  test("the brand color lands on a step exactly", () => {
+    for (const seed of ["#e11d48", "#00a37a", "#7c3aed"]) {
+      const sys = buildSystem(inputFromSeed(seed));
+      const s = sys.scales.accent.light[sys.scales.accent.anchor.light - 1]!;
+      expect(s.hex).toBe(seed);
+    }
+  });
+  test("palette.js rebuilds the same scales without Spring", async () => {
+    const input = {
+      ...inputFromSeed("#7c3aed"),
+      curve: { bezier: [0.3, 0.1, 0.8, 0.5], hueShift: 10 },
+    };
+    const sys = buildSystem(input as SystemInput);
+    const js = exportAll(sys).find((f) => f.path === "palette.js")!.content;
+    const dir = mkdtempSync(join(tmpdir(), "palette-"));
+    writeFileSync(join(dir, "palette.mjs"), js);
+    const mod = await import(join(dir, "palette.mjs"));
+    for (const name of ["accent", "warning"] as const)
+      for (const mode of ["light", "dark"] as const) {
+        const ours = buildSystem({ ...(input as SystemInput) }).scales[name][mode].map(
+          (s) => s.hex,
+        );
+        const theirs = mod.scale(mod.seeds[name], mode) as string[];
+        // Text steps may be nudged for contrast after generation; the curve itself must match.
+        expect(theirs.slice(0, 10)).toEqual(ours.slice(0, 10));
+      }
+  });
+  test("a share link keeps a custom curve", () => {
+    const input = { ...DEFAULT_INPUT, curve: { bezier: [0.3, 0.1, 0.8, 0.5], hueShift: 12 } };
+    const back = decodeInput(encodeInput(input as SystemInput))!;
+    expect(back.curve).toEqual(input.curve as SystemInput["curve"]);
+  });
+});
+
 describe("share link", () => {
   test("round-trips the input", () => {
     const input = { ...inputFromSeed("#e11d48", "Popfizz"), neutralHue: 75 };

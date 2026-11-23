@@ -405,6 +405,11 @@
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
+.spring-rung__sample[data-one-line] {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 @container (max-width: 30rem) {
   .spring-rung {
     grid-template-columns: 1fr;
@@ -893,4 +898,83 @@
 .spring-vision {
   justify-self: start;
   min-width: 12rem;
+}
+
+/* Where the brand color landed, and the step buttons use. */
+.spring-scale__steps > button {
+  position: relative;
+}
+.spring-scale__steps > button[data-brand]::before,
+.spring-legend__brand::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  rotate: 45deg;
+  background: currentColor;
+}
+.spring-scale__steps > button[data-brand]::before {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
+.spring-scale__steps > button[data-solid]::after,
+.spring-legend__solid::before {
+  content: "";
+  height: 2px;
+  background: currentColor;
+}
+.spring-scale__steps > button[data-solid]::after {
+  position: absolute;
+  inset: auto 4px 4px;
+}
+.spring-legend {
+  display: flex;
+  gap: var(--space-4);
+}
+.spring-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-legend__solid::before {
+  width: 12px;
+}
+
+/* ——— Curve editor ——— */
+.spring-curve__plot {
+  width: 100%;
+  max-width: 11rem;
+  aspect-ratio: 1;
+  touch-action: none;
+  overflow: visible;
+}
+.spring-curve__frame {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 0.5;
+}
+.spring-curve__line {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+.spring-curve__arm {
+  stroke: var(--border-default);
+  stroke-width: 0.75;
+}
+.spring-curve__handle {
+  fill: var(--surface-canvas);
+  stroke: var(--text-primary);
+  stroke-width: 1.25;
+  cursor: grab;
+}
+.spring-curve__dot {
+  stroke: var(--text-primary);
+  stroke-width: 0.5;
+}
+.spring-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }

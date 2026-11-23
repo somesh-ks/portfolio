@@ -9,8 +9,9 @@ import {
   contrast,
   parseColor,
   swatch,
+  type BuiltScale,
+  type Curve,
   type Mode,
-  type Scale,
   type Step,
 } from "./color";
 import {
@@ -36,6 +37,8 @@ export interface SystemInput {
   neutralTint: number;
   /** Hue the neutrals lean toward. Defaults to the accent hue; set it for warm or cool grays. */
   neutralHue?: number;
+  /** The palette's lightness curve and hue shift; DEFAULT_CURVE when absent. */
+  curve?: Curve;
   type: TypeInput;
   /** 0 compact, 0.5 default, 1 comfortable. */
   density: number;
@@ -66,6 +69,8 @@ export const DEFAULT_INPUT: SystemInput = {
   stack: { building: "app", ownership: "own", styling: "tailwind" },
 };
 
+const r4 = (n: number) => Math.round(n * 10000) / 10000;
+
 export function inputFromSeed(seed: string, name = "Untitled"): SystemInput {
   const c = parseColor(seed);
   if (!c) return { ...DEFAULT_INPUT, name };
@@ -74,9 +79,10 @@ export function inputFromSeed(seed: string, name = "Untitled"): SystemInput {
     ...DEFAULT_INPUT,
     name,
     accent: {
-      hue: Math.round(c.h || 0),
-      chroma: neutralish ? 0.02 : Math.min(0.3, Math.max(0.06, c.c)),
-      solidL: Math.min(0.9, Math.max(0.35, c.l)),
+      hue: Math.round((c.h || 0) * 10) / 10,
+      // Rounded as the share link stores them, so a link rebuilds the same palette.
+      chroma: r4(neutralish ? 0.02 : Math.min(0.3, Math.max(0.06, c.c))),
+      solidL: r4(Math.min(0.9, Math.max(0.35, c.l))),
     },
   };
 }
@@ -128,7 +134,9 @@ interface Check {
 
 export interface System {
   input: SystemInput;
-  scales: Record<ScaleName, Scale>;
+  scales: Record<ScaleName, BuiltScale>;
+  /** The step each scale's solid fill uses, per mode: the brand step, or the nearest one its label passes on. */
+  solid: Record<ScaleName, Record<Mode, Step>>;
   roles: Record<Mode, Role[]>;
   checks: Record<Mode, Check[]>;
   adjustments: string[];
@@ -141,12 +149,12 @@ export interface System {
   stackReasons: Record<keyof StackPicks, string>;
 }
 
-const get = (scales: Record<ScaleName, Scale>, name: ScaleName, mode: Mode, step: Step) =>
+const get = (scales: Record<ScaleName, BuiltScale>, name: ScaleName, mode: Mode, step: Step) =>
   scales[name][mode][step - 1]!;
 
 /** Move a swatch's lightness away from `against` until it meets `min`. */
 function nudge(
-  scales: Record<ScaleName, Scale>,
+  scales: Record<ScaleName, BuiltScale>,
   name: ScaleName,
   mode: Mode,
   step: Step,
@@ -167,73 +175,63 @@ function nudge(
   return false;
 }
 
-/** How far step 9 must move in lightness for `fg` to pass 4.5:1 on it. */
-function shiftNeeded(base: { l: number; c: number; h: number }, fg: string): number {
-  const dir = fg === "#ffffff" ? -1 : 1;
-  for (let i = 0; i <= 60; i++) {
-    if (contrast(fg, swatch(9, { ...base, l: base.l + dir * i * 0.01 }).hex) >= 4.5)
-      return i * 0.01;
+/** Steps toward more contrast with `fg`: darker for a white label, lighter for ink. */
+const towardContrast = (fg: string, mode: Mode) =>
+  (fg === "#ffffff") === (mode === "light") ? 1 : -1;
+
+/** Steps the solid must move along the scale before `fg` passes 4.5:1 on it and on its hover. */
+function stepsNeeded(scale: BuiltScale, mode: Mode, from: Step, fg: string): number {
+  const dir = towardContrast(fg, mode);
+  for (let n = 0; n < 12; n++) {
+    const s = from + dir * n;
+    const h = s + dir;
+    if (h < 1 || h > 12) return 99;
+    if (
+      contrast(fg, scale[mode][s - 1]!.hex) >= 4.5 &&
+      contrast(fg, scale[mode][h - 1]!.hex) >= 4.5
+    )
+      return n;
   }
-  return 1;
+  return 99;
 }
 
 /**
  * The label on solid fills. White by default; dark ink when the brand color is
- * light enough that white would force a big shift away from it (yellows,
- * emeralds, light blues). "white" and "ink" force the choice.
+ * light enough that white would push the solid far from it (yellows, emeralds,
+ * light blues). "white" and "ink" force the choice.
  */
-function solidLabel(
-  scales: Record<ScaleName, Scale>,
-  name: ScaleName,
-  mode: Mode,
-  pref: Label = "auto",
-): string {
-  const ink = get(scales, name, "light", 12).hex;
+function solidLabel(scale: BuiltScale, mode: Mode, pref: Label = "auto"): string {
+  const ink = scale.light[11]!.hex;
   if (pref === "white") return "#ffffff";
   if (pref === "ink") return ink;
-  const base = get(scales, name, mode, 9).oklch;
-  const w = shiftNeeded(base, "#ffffff");
-  return w <= 0.1 || w <= shiftNeeded(base, ink) ? "#ffffff" : ink;
+  const k = scale.anchor[mode];
+  const w = stepsNeeded(scale, mode, k, "#ffffff");
+  return w === 0 || w <= stepsNeeded(scale, mode, k, ink) ? "#ffffff" : ink;
 }
 
-function fixSolid(
-  scales: Record<ScaleName, Scale>,
-  name: ScaleName,
-  mode: Mode,
-  fg: string,
-): boolean {
-  const dir = fg === "#ffffff" ? -1 : 1;
-  let changed = false;
-  for (const step of [9, 10] as Step[]) {
-    const s = get(scales, name, mode, step);
-    let { l } = s.oklch;
-    for (let i = 0; i < 60 && contrast(fg, swatch(step, { ...s.oklch, l }).hex) < 4.5; i++)
-      l += dir * 0.01;
-    if (l !== s.oklch.l) {
-      scales[name][mode][step - 1] = swatch(step, { ...s.oklch, l });
-      changed = true;
-    }
-  }
-  // Keep hover distinct from rest after fixing.
-  const s9 = get(scales, name, mode, 9);
-  const s10 = get(scales, name, mode, 10);
-  if (Math.abs(s9.oklch.l - s10.oklch.l) < 0.02)
-    scales[name][mode][9] = swatch(10, { ...s10.oklch, l: s9.oklch.l + dir * 0.04 });
-  return changed;
+/** The solid step: the brand step if its label passes, else the nearest step along the curve that does. */
+function solidStep(scale: BuiltScale, mode: Mode, fg: string): Step {
+  const n = stepsNeeded(scale, mode, scale.anchor[mode], fg);
+  const k = scale.anchor[mode] + towardContrast(fg, mode) * (n === 99 ? 0 : n);
+  return Math.min(11, Math.max(2, k)) as Step;
 }
 
 function buildRoles(
-  scales: Record<ScaleName, Scale>,
+  scales: Record<ScaleName, BuiltScale>,
   mode: Mode,
   labels: Record<ScaleName, Record<Mode, string>>,
+  solid: Record<ScaleName, Record<Mode, Step>>,
 ): Role[] {
+  const at = (scale: ScaleName) => solid[scale][mode];
+  const hover = (scale: ScaleName) =>
+    (at(scale) + towardContrast(labels[scale][mode], mode)) as Step;
   const r = (name: string, scale: ScaleName, step: Step, job: string): Role => {
     const s = get(scales, scale, mode, step);
     return { name, hex: s.hex, css: s.css, from: `${scale}.${step}`, job };
   };
   const on = (name: string, scale: ScaleName, job: string): Role => {
     const hex = labels[scale][mode];
-    return { name, hex, css: hex, from: `on ${scale}.9`, job };
+    return { name, hex, css: hex, from: `on ${scale}.${at(scale)}`, job };
   };
   const roles: Role[] = [
     r("bg", "neutral", 1, "Page background"),
@@ -246,18 +244,18 @@ function buildRoles(
     r("border-strong", "neutral", 8, "Hovered borders, emphasis"),
     r("text-muted", "neutral", 11, "Secondary text, placeholders, icons"),
     r("text", "neutral", 12, "Body and heading text"),
-    r("accent", "accent", 9, "Primary action, one per view"),
-    r("accent-hover", "accent", 10, "Hovered primary action"),
+    r("accent", "accent", at("accent"), "Primary action, one per view"),
+    r("accent-hover", "accent", hover("accent"), "Hovered primary action"),
     on("accent-fg", "accent", "Text and icons on accent"),
     r("accent-subtle", "accent", 3, "Selected rows, soft badges"),
     r("accent-subtle-hover", "accent", 4, "Hovered soft accent"),
     r("accent-border", "accent", 7, "Borders of accent-subtle elements"),
     r("accent-text", "accent", 11, "Links and accent text on bg"),
-    r("ring", "accent", 9, "Focus ring"),
+    r("ring", "accent", at("accent"), "Focus ring"),
   ];
   for (const s of Object.keys(STATUS_HUES) as StatusName[]) {
     roles.push(
-      r(s, s, 9, `Solid ${s} fill`),
+      r(s, s, at(s), `Solid ${s} fill`),
       on(`${s}-fg`, s, `Text on ${s}`),
       r(`${s}-subtle`, s, 3, `Soft ${s} background`),
       r(`${s}-text`, s, 11, `${s[0]!.toUpperCase() + s.slice(1)} text on bg`),
@@ -296,28 +294,32 @@ function runChecks(roles: Role[]): Check[] {
 }
 
 export function buildSystem(input: SystemInput): System {
-  const scales: Record<ScaleName, Scale> = {
-    accent: buildScale(input.accent),
-    neutral: buildNeutral(input.neutralHue ?? input.accent.hue, input.neutralTint),
+  const scales: Record<ScaleName, BuiltScale> = {
+    accent: buildScale({ ...input.accent, curve: input.curve }),
+    neutral: buildNeutral(input.neutralHue ?? input.accent.hue, input.neutralTint, input.curve),
     danger: buildScale({
       hue: statusHue("danger", input.accent.hue, input.accent.chroma),
       chroma: 0.2,
       solidL: 0.55,
+      curve: input.curve,
     }),
     warning: buildScale({
       hue: statusHue("warning", input.accent.hue, input.accent.chroma),
       chroma: 0.16,
       solidL: 0.82,
+      curve: input.curve,
     }),
     success: buildScale({
       hue: statusHue("success", input.accent.hue, input.accent.chroma),
       chroma: 0.15,
       solidL: 0.52,
+      curve: input.curve,
     }),
     info: buildScale({
       hue: statusHue("info", input.accent.hue, input.accent.chroma),
       chroma: 0.15,
       solidL: 0.52,
+      curve: input.curve,
     }),
   };
 
@@ -326,6 +328,9 @@ export function buildSystem(input: SystemInput): System {
   const labels = Object.fromEntries(
     Object.keys(scales).map((k) => [k, { light: "#ffffff", dark: "#ffffff" }]),
   ) as Record<ScaleName, Record<Mode, string>>;
+  const solid = Object.fromEntries(
+    Object.keys(scales).map((k) => [k, { light: 9, dark: 9 }]),
+  ) as Record<ScaleName, Record<Mode, Step>>;
   for (const mode of ["light", "dark"] as Mode[]) {
     const n = (s: Step) => get(scales, "neutral", mode, s).hex;
     if (nudge(scales, "neutral", mode, 11, [n(1), n(2), n(3)], 4.5))
@@ -333,28 +338,30 @@ export function buildSystem(input: SystemInput): System {
     if (nudge(scales, "neutral", mode, 12, [n(1), n(2), n(3)], 7))
       adjustments.push(`neutral.12 (${mode}) adjusted to reach 7:1.`);
     for (const name of ["accent", ...Object.keys(STATUS_HUES)] as ScaleName[]) {
+      const scale = scales[name];
       labels[name][mode] = solidLabel(
-        scales,
-        name,
+        scale,
         mode,
         name === "accent" ? (input.accent.label ?? "auto") : "auto",
       );
-      const fixed = fixSolid(scales, name, mode, labels[name][mode]);
-      if (fixed && name === "accent")
-        adjustments.push(`${name}.9 (${mode}) shifted in lightness so its label passes 4.5:1.`);
+      solid[name][mode] = solidStep(scale, mode, labels[name][mode]);
+      if (name === "accent" && solid[name][mode] !== scale.anchor[mode])
+        adjustments.push(
+          `Brand color sits on step ${scale.anchor[mode]} (${mode}); buttons use step ${solid[name][mode]} so their label passes 4.5:1.`,
+        );
       const subtle = get(scales, name, mode, 3).hex;
       if (nudge(scales, name, mode, 11, [n(1), n(2), subtle], 4.5) && name === "accent")
         adjustments.push(`${name}.11 (${mode}) adjusted to pass 4.5:1 as text.`);
-      if (name === "accent" && contrast(get(scales, name, mode, 9).hex, n(1)) < 3)
+      if (name === "accent" && contrast(get(scales, name, mode, solid[name][mode]).hex, n(1)) < 3)
         adjustments.push(
-          `accent.9 (${mode}) is under 3:1 on bg; the focus ring uses accent.11 instead.`,
+          `accent.${solid[name][mode]} (${mode}) is under 3:1 on bg; the focus ring uses accent.11 instead.`,
         );
     }
   }
 
   const roles = {
-    light: buildRoles(scales, "light", labels),
-    dark: buildRoles(scales, "dark", labels),
+    light: buildRoles(scales, "light", labels, solid),
+    dark: buildRoles(scales, "dark", labels, solid),
   };
   for (const mode of ["light", "dark"] as Mode[]) {
     const ring = roles[mode].find((r) => r.name === "ring")!;
@@ -367,6 +374,7 @@ export function buildSystem(input: SystemInput): System {
   return {
     input,
     scales,
+    solid,
     roles,
     checks: { light: runChecks(roles.light), dark: runChecks(roles.dark) },
     adjustments,

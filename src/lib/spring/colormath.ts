@@ -133,3 +133,43 @@ export function wcagContrast(a: string, b: string): number {
   const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p) as [number, number];
   return (x + 0.05) / (y + 0.05);
 }
+
+/** sRGB hex as [hue 0–360, saturation 0–1, lightness 0–1]. */
+export function hexToHsl(hex: string): [number, number, number] {
+  const rgb = hexToRgb(hex) ?? [0, 0, 0];
+  const max = Math.max(...rgb);
+  const min = Math.min(...rgb);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const [r, g, b] = rgb;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+
+const hexByte = (v: number) =>
+  Math.round(Math.min(1, Math.max(0, v)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+
+export function hslToHex(h: number, s: number, l: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return `#${hexByte(f(0))}${hexByte(f(8))}${hexByte(f(4))}`;
+}
+
+export type ColorFormat = "oklch" | "hsl" | "hex";
+
+/** One color written the way the visitor chose to read colors. */
+export function formatColor(hex: string, format: ColorFormat): string {
+  if (format === "hex") return hex;
+  if (format === "hsl") {
+    const [h, s, l] = hexToHsl(hex);
+    return `hsl(${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+  }
+  const c = parseCss(hex)!;
+  return `oklch(${Math.round(c.l * 1000) / 10}% ${Math.round(c.c * 1000) / 1000} ${Math.round(c.h)})`;
+}

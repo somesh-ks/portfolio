@@ -7,6 +7,9 @@ import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
 import { useCopy } from "./store";
 
+/** Display sizes fit about two words on one line, so the ladder shows the name, not the sentence. */
+const displayOf = (name: string) =>
+  name.trim() && name !== "Untitled" ? name.trim() : "Ship calm";
 const lineOf = (l: string) => l.trim() || "A short line about what it does and who it helps.";
 
 /** Buttons, fields, badges and an alert: judge the whole, not swatches. */
@@ -220,7 +223,7 @@ const SAMPLE: Partial<Record<Role, string>> = {
  * phone–desktop size, line height on the 4px grid, weight and tracking,
  * all derived per role rather than one line height for every row.
  */
-export function Ladder({ system, mode, line }: { system: System; mode: Mode; line: string }) {
+export function Ladder({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
   return (
     <Scope system={system} mode={mode}>
@@ -259,6 +262,7 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
               </span>
               <span
                 className="spring-rung__sample"
+                data-one-line={t.role === "display" || undefined}
                 style={{
                   fontFamily: `"${t.family}", var(--font-${t.role === "code" ? "mono" : ["display", "h1", "h2", "h3"].includes(t.role) ? "heading" : "body"})`,
                   fontSize: px,
@@ -267,7 +271,7 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
                   fontWeight: t.weight,
                 }}
               >
-                {t.role === "display" ? lineOf(line) : SAMPLE[t.role]}
+                {t.role === "display" ? displayOf(system.input.name) : SAMPLE[t.role]}
               </span>
             </div>
           );
