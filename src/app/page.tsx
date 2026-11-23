@@ -6,12 +6,20 @@ import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
 import { ClaudeRunner } from "@/components/runner/ClaudeRunner";
 import { entriesOf } from "@/lib/content";
+import type { Kind } from "@/lib/schema";
 
 /** Row thumbnails come from scripts/capture-thumbs.ts; rows without one show none. */
 function thumbFor(slug: string): string | undefined {
   const file = path.join(process.cwd(), "public", "thumbs", `${slug}.webp`);
   return existsSync(file) ? `/thumbs/${slug}.webp` : undefined;
 }
+
+const onHome = (kind: Kind) => entriesOf(kind).filter((entry) => entry.meta.home);
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2026-09-20" to "Sep 2026". Fixed names, since ICU versions disagree on "Sep" vs "Sept". */
+const monthYear = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 
 export default function HomePage() {
   return (
@@ -23,7 +31,7 @@ export default function HomePage() {
       <Bio />
       <ClaudeRunner />
       <ListSection id="projects" title="Projects">
-        {entriesOf("project").map((entry) => (
+        {onHome("project").map((entry) => (
           <ListRow
             key={entry.href}
             href={entry.href}
@@ -34,7 +42,7 @@ export default function HomePage() {
         ))}
       </ListSection>
       <ListSection id="experiments" title="Experiments">
-        {entriesOf("experiment").map((entry) => (
+        {onHome("experiment").map((entry) => (
           <ListRow
             key={entry.href}
             href={entry.href}
@@ -45,12 +53,12 @@ export default function HomePage() {
         ))}
       </ListSection>
       <ListSection id="writing" title="Writing">
-        {entriesOf("case-study").map((entry) => (
+        {onHome("case-study").map((entry) => (
           <ListRow
             key={entry.href}
             href={entry.href}
             title={entry.meta.title}
-            summary={entry.meta.summary}
+            summary={monthYear(entry.meta.publishedAt)}
             thumb={thumbFor(entry.meta.slug)}
             locked={entry.meta.protected}
           />

@@ -20,6 +20,8 @@ export const ContentMetaSchema = z
     metrics: z.array(z.string()).default([]),
     tags: z.array(z.string()).default([]),
     protected: z.boolean().default(false),
+    /** false keeps the page live (URL, Cmd+K, llms.txt) but off the homepage lists. */
+    home: z.boolean().default(true),
     canonicalUrl: z.url().optional(),
     repoUrl: z.url().optional(),
     liveUrl: z.url().optional(),

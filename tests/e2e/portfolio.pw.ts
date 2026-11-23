@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_PASSWORD, NDA_SENTINELS } from "../fixtures/sentinels.ts";
-import { LOCKED, publicRoutes } from "./routes.ts";
+import { homeRoutes, LOCKED, publicRoutes } from "./routes.ts";
 
 function watchConsole(page: import("@playwright/test").Page) {
   const errors: string[] = [];
@@ -59,7 +59,7 @@ test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
 test("click into every entry and back, with no console errors", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
-  for (const route of [...publicRoutes().filter((r) => r !== "/" && r !== "/resume"), ...LOCKED]) {
+  for (const route of homeRoutes()) {
     const link = page.locator(`a[href="${route}"]`).first();
     await expect(link, `home links ${route}`).toHaveCount(1);
     await link.click();
