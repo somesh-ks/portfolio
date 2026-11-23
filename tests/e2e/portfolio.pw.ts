@@ -149,9 +149,12 @@ test("Cmd+K jumps to a page and runs actions", async ({ page }) => {
   const theme = await page.locator("html").getAttribute("data-theme");
   await input.press("Enter");
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", theme ?? "");
+  // Reopening while the close animation runs drops the shortcut, so wait for it to finish.
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 
   // Arrow keys move the highlight, Enter opens it; Escape closes even with a query typed.
   await page.keyboard.press("ControlOrMeta+k");
+  await expect(input).toBeFocused();
   const first = await page.getByRole("option").first().textContent();
   await input.press("ArrowDown");
   await expect(page.getByRole("option").nth(1)).toHaveAttribute("data-highlighted", "");
