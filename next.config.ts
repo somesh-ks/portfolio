@@ -47,22 +47,22 @@ const config: NextConfig = {
       { source: "/spring", destination: "/projects/spring", permanent: false },
       {
         source: "/projects/fun-experiments.md",
-        destination: "/experiments/lull.md",
+        destination: "/experiments/tide.md",
         permanent: true,
       },
       {
         source: "/projects/fun-experiments",
-        destination: "/experiments/lull",
+        destination: "/experiments/tide",
         permanent: true,
       },
       {
         source: "/experiments/fun-experiments.md",
-        destination: "/experiments/lull.md",
+        destination: "/experiments/tide.md",
         permanent: true,
       },
       {
         source: "/experiments/fun-experiments",
-        destination: "/experiments/lull",
+        destination: "/experiments/tide",
         permanent: true,
       },
       {

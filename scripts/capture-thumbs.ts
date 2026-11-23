@@ -31,7 +31,7 @@ const TARGETS: Record<string, { url: string; clip?: string; click?: string; html
   "singularity-podcast": { url: "https://news.someshks.com" },
   // No visual on the page, so a redacted record drawn here.
   traceless: { url: "about:blank", html: REDACTED },
-  lull: { url: "https://studio.someshks.com" },
+  tide: { url: "https://studio.someshks.com" },
   // Experiments
   "claude-runner": { url: `${LOCAL}/experiments/claude-runner`, clip: ".runner__screen" },
   "claude-animated-svgs": {
