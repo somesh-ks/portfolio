@@ -144,9 +144,6 @@
   .spring-ball[data-run="true"] {
     animation: none;
   }
-  .sp-btn:active {
-    transform: none;
-  }
 }
 .spring-files {
   display: flex;
@@ -286,6 +283,11 @@
 }
 .sp-btn:active {
   transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-btn:active {
+    transform: none;
+  }
 }
 .sp-btn--sm {
   height: var(--control-sm);
