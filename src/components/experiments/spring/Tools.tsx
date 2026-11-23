@@ -139,6 +139,8 @@ function Pick<T extends string>({
               value={o.value}
               checked={o.value === value}
               onChange={() => onChange(o.value)}
+              // The input is visually hidden, so keep its row in view for arrow-key users.
+              onFocus={(e) => e.currentTarget.parentElement?.scrollIntoView({ block: "nearest" })}
             />
             <span aria-hidden>{o.value === value ? "[x]" : "[ ]"}</span>
             <span>{o.label}</span>
