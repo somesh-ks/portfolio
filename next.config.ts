@@ -46,6 +46,26 @@ const config: NextConfig = {
     return [
       { source: "/spring", destination: "/projects/spring", permanent: false },
       {
+        source: "/projects/fun-experiments.md",
+        destination: "/experiments/tide.md",
+        permanent: true,
+      },
+      {
+        source: "/projects/fun-experiments",
+        destination: "/experiments/tide",
+        permanent: true,
+      },
+      {
+        source: "/experiments/fun-experiments.md",
+        destination: "/experiments/tide.md",
+        permanent: true,
+      },
+      {
+        source: "/experiments/fun-experiments",
+        destination: "/experiments/tide",
+        permanent: true,
+      },
+      {
         source: "/projects/design-engineering-skill.md",
         destination: "/projects/interface-mechanics.md",
         permanent: true,
