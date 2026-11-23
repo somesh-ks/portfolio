@@ -54,6 +54,35 @@ test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("runner shortcuts C, F and M work with nothing focused and after a click", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "keyboard shortcuts are a desktop feature");
+  await page.goto("/");
+  const runner = page.locator(".runner");
+  const sound = runner.locator(".runner__sound");
+  const announced = runner.locator("p[aria-live]");
+  await runner.evaluate((element) => element.scrollIntoView({ block: "center" }));
+
+  // Nothing focused: the page's own keys reach the game.
+  const muted = (await sound.getAttribute("aria-pressed")) === "true" ? "false" : "true";
+  await page.keyboard.press("m");
+  await expect(sound).toHaveAttribute("aria-pressed", muted);
+  await page.keyboard.press("c");
+  await expect(announced).not.toBeEmpty();
+  const first = await announced.textContent();
+  await page.keyboard.press("f");
+  await expect(runner).toHaveAttribute("data-expanded", "true");
+  await page.keyboard.press("f");
+  await expect(runner).not.toHaveAttribute("data-expanded");
+
+  // After clicking a footer button, focus sits on it and the keys still work.
+  await runner.locator(".runner__costume").click();
+  await expect(announced).not.toHaveText(first ?? "");
+  await page.keyboard.press("m");
+  await expect(sound).toHaveAttribute("aria-pressed", muted === "true" ? "false" : "true");
+});
+
 // Client-side navigation reuses registered custom elements, which full page
 // loads never do. Click in from home and press back for every route.
 test("click into every entry and back, with no console errors", async ({ page }) => {
