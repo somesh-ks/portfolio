@@ -196,11 +196,11 @@ export function SpringColor() {
             />
             <button
               type="button"
-              className="button pressable"
+              className="spring-cmd"
               disabled={!parseColor(hex)}
               onClick={() => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
             >
-              Use
+              [use]
             </button>
           </span>
         </label>
@@ -320,7 +320,7 @@ export function SpringType() {
       />
       <div className="field">
         <span className="field__label">Mood</span>
-        <span className="flex flex-wrap gap-1">
+        <span className="flex flex-wrap gap-x-3">
           {Object.entries(MOODS).map(([k, m]) => (
             <button
               key={k}
@@ -711,8 +711,7 @@ export function SpringStack() {
           ? ` Stroke ${iconStroke(body.weight)}px to match your ${body.weight} body weight.`
           : ""}
       </p>
-      <Command command={comp.install} />
-      <Command command={icon.install} />
+      <Command command={`${comp.install} && ${icon.install}`} />
     </Toy>
   );
 }
