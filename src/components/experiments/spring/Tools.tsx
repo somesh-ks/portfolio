@@ -15,8 +15,10 @@ import {
   type FontName,
   type TypeInput,
 } from "@/lib/spring/type";
-import { contrast, parseColor, type Mode } from "@/lib/spring/color";
+import { contrast, type Mode } from "@/lib/spring/color";
+import { Select } from "@/components/ui/Select";
 import { Segmented } from "../Segmented";
+import { ColorPicker } from "./ColorPicker";
 import { SpringAudit } from "./Audit";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, Components, Homepage, Ladder } from "./Preview";
@@ -59,22 +61,24 @@ function AreaExport({ system, area }: { system: System; area: Area }) {
     <div className="spring-export">
       <span className="field__label">Export {css.label.split(" ")[0]}</span>
       <span className="spring-export__row">
+        <button type="button" className="button" onClick={() => copy(css.path, css.content)}>
+          {copied === css.path ? "Copied" : "Copy CSS"}
+        </button>
         <button
           type="button"
           className="button"
           onClick={() => save(css.path, text(css.content, "text/css"))}
         >
-          Download CSS
+          <span aria-hidden>↓</span>
+          <span className="sr-only">Download</span> .css
         </button>
         <button
           type="button"
           className="button"
           onClick={() => save(json.path, text(json.content, "application/json"))}
         >
-          Download DTCG JSON
-        </button>
-        <button type="button" className="button" onClick={() => copy(css.path, css.content)}>
-          {copied === css.path ? "Copied" : "Copy CSS"}
+          <span aria-hidden>↓</span>
+          <span className="sr-only">Download DTCG</span> .json
         </button>
       </span>
       <output className="sr-only">{said}</output>
@@ -152,68 +156,6 @@ function Text({
         />
       </span>
     </label>
-  );
-}
-
-function Choice<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: readonly { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="field">
-      <span className="field__label">{label}</span>
-      <Segmented
-        label={label}
-        options={options.map((o) => o.value)}
-        value={value}
-        onChange={onChange}
-        render={(v) => options.find((o) => o.value === v)?.label}
-      />
-    </div>
-  );
-}
-
-function Pick<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  all = false,
-}: {
-  label: string;
-  value: T;
-  options: readonly { value: T; label: string; tag?: string }[];
-  onChange: (v: T) => void;
-  /** Show every row instead of a five-row scroller. */
-  all?: boolean;
-}) {
-  const name = useId();
-  return (
-    <fieldset className={all ? "field spring-pick spring-pick--all" : "field spring-pick"}>
-      <legend className="field__label">{label}</legend>
-      <span className="spring-pick__list">
-        {options.map((o) => (
-          <label key={o.value} className="spring-pick__row">
-            <input
-              type="radio"
-              name={name}
-              value={o.value}
-              checked={o.value === value}
-              onChange={() => onChange(o.value)}
-            />
-            <span>{o.label}</span>
-            {o.tag ? <span className="spring-meta">{o.tag}</span> : null}
-          </label>
-        ))}
-      </span>
-    </fieldset>
   );
 }
 
@@ -420,71 +362,27 @@ type Spring = ReturnType<typeof useSpring>;
 // ——— Color ———
 
 function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode }) {
-  const current = system.scales.accent[mode][8]!.hex;
-  const [draft, setDraft] = useState<string | null>(null);
+  const solid = system.scales.accent[mode][8]!;
   const a = input.accent;
-  const setAccent = (p: Partial<SystemInput["accent"]>) =>
-    setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }));
-  const temp = input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
-  const apply = () => {
-    if (draft && parseColor(draft))
-      setInput((i) => ({ ...i, accent: inputFromSeed(draft).accent }));
-    setDraft(null);
-  };
-  const hexId = useId();
+  const grays =
+    input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
   return (
     <>
-      <label className="field" htmlFor={hexId}>
-        <span className="field__label">Brand color</span>
-        <span className="field__input">
-          <span className="spring-swatch" style={{ background: current }} aria-hidden />
-          <input
-            id={hexId}
-            value={draft ?? current}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={apply}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") apply();
-              if (e.key === "Escape") setDraft(null);
-            }}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </span>
-      </label>
-      <Slider
-        label="Hue"
-        value={a.hue}
-        min={0}
-        max={360}
-        step={1}
-        show={`${Math.round(a.hue)}°`}
-        className="range spring-hue"
-        onChange={(v) => setAccent({ hue: v, solidL: undefined })}
+      <ColorPicker
+        hue={a.hue}
+        chroma={a.chroma}
+        hex={solid.hex}
+        lightness={solid.oklch.l}
+        onPick={(p) =>
+          setInput((i) => ({ ...i, accent: { ...i.accent, ...p, solidL: undefined } }))
+        }
+        onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
       />
-      <Slider
-        label="Chroma"
-        value={a.chroma}
-        min={0.02}
-        max={0.3}
-        step={0.005}
-        show={a.chroma.toFixed(3)}
-        onChange={(v) => setAccent({ chroma: v })}
-      />
-      <Slider
-        label="Gray tint"
-        value={input.neutralTint}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`${Math.round(input.neutralTint * 100)}%`}
-        onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
-      />
-      <Choice
-        label="Grays lean"
-        value={temp}
+      <Select
+        label="Grays"
+        value={grays}
         options={[
-          { value: "accent", label: "Accent" },
+          { value: "accent", label: "Brand" },
           { value: "warm", label: "Warm" },
           { value: "cool", label: "Cool" },
         ]}
@@ -494,6 +392,15 @@ function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode 
             neutralHue: v === "accent" ? undefined : v === "warm" ? 75 : 250,
           }))
         }
+      />
+      <Slider
+        label="Gray tint"
+        value={input.neutralTint}
+        min={0}
+        max={1}
+        step={0.01}
+        show={`${Math.round(input.neutralTint * 100)}%`}
+        onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
       />
       {system.adjustments.length ? (
         <p className="toy__caption">{system.adjustments.join(" ")}</p>
@@ -509,7 +416,12 @@ const CVD = {
   tritan: "1.256 -0.077 -0.179 0 0 -0.078 0.931 0.148 0 0 0.005 0.691 0.304 0 0 0 0 0 1 0",
 } as const;
 const VISION = ["normal", ...(Object.keys(CVD) as (keyof typeof CVD)[])] as const;
-const VISION_LABEL = { normal: "Normal", protan: "Protan", deutan: "Deutan", tritan: "Tritan" };
+const VISION_LABEL = {
+  normal: "Normal vision",
+  protan: "Protanopia",
+  deutan: "Deuteranopia",
+  tritan: "Tritanopia",
+};
 
 function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
@@ -524,13 +436,15 @@ function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
           </filter>
         ))}
       </svg>
-      <Segmented
-        label="Color vision"
-        options={VISION}
-        value={vision}
-        onChange={setVision}
-        render={(v) => VISION_LABEL[v]}
-      />
+      <span className="spring-vision">
+        <Select
+          label="Color vision"
+          hideLabel
+          value={vision}
+          options={VISION.map((v) => ({ value: v, label: VISION_LABEL[v] }))}
+          onChange={setVision}
+        />
+      </span>
       <div
         className="spring-scales"
         style={vision === "normal" ? undefined : { filter: `url(#${filterId}-${vision})` }}
@@ -608,6 +522,7 @@ function TypeControls({
   const head = fontInfo(t.heading, t.extra);
   const lo = head.variable?.[0] ?? head.weights[0]!;
   const hi = head.variable?.[1] ?? head.weights[head.weights.length - 1]!;
+  const fontsId = useId();
   return (
     <>
       <Slider
@@ -621,8 +536,7 @@ function TypeControls({
       />
       {fontInfo(t.body, t.extra).measured && Math.abs(ob - t.base) >= 1.5 ? (
         <p className="toy__caption">
-          {t.body} has a {ob > 16 ? "short" : "tall"} x-height, so {t.base}px reads{" "}
-          {ob > 16 ? "small" : "large"}.{" "}
+          {t.body} reads {ob > 16 ? "small" : "large"} here.{" "}
           <button
             type="button"
             className="spring-link"
@@ -632,13 +546,12 @@ function TypeControls({
           </button>
         </p>
       ) : null}
-      <Choice
+      <Select
         label="Scale ratio"
         value={String(t.ratio)}
-        options={ratioOptions(t.ratio)}
+        options={ratioOptions(t.ratio, input.stack.building)}
         onChange={(v) => set({ ratio: Number(v) })}
       />
-      <p className="toy__caption">{ratioAdvice(input.stack.building, t.ratio)}</p>
       {hi > lo ? (
         <Slider
           label="Heading weight"
@@ -650,18 +563,26 @@ function TypeControls({
           onChange={(v) => set({ headingWeight: v })}
         />
       ) : null}
-      <fieldset className="field spring-roles">
-        <legend className="field__label">Fonts</legend>
-        {(["heading", "body", "mono"] as const).map((r) => (
-          <div key={r} className="spring-role">
-            <span className="spring-meta">{ROLE_NAME[r]}</span>
-            <span className="spring-role__name">{t[r]}</span>
-            <button type="button" className="button" onClick={() => onBrowse(r)}>
-              Browse<span className="sr-only"> fonts for {ROLE_NAME[r].toLowerCase()}</span>
-            </button>
-          </div>
-        ))}
-      </fieldset>
+      {(["heading", "body", "mono"] as const).map((r) => (
+        <div key={r} className="field">
+          <span className="field__label" id={`${fontsId}-${r}`}>
+            {ROLE_NAME[r]}
+          </span>
+          <button
+            type="button"
+            className="select__trigger"
+            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
+            onClick={() => onBrowse(r)}
+          >
+            <span id={`${fontsId}-${r}-v`} className="select__value">
+              {t[r]}
+            </span>
+            <span className="select__icon" aria-hidden>
+              ›
+            </span>
+          </button>
+        </div>
+      ))}
       <Text
         label="Sample text"
         value={line}
@@ -879,23 +800,23 @@ function TokensControls({
           </button>
         </span>
       </div>
-      <Pick
-        label="Files"
+      <Select
+        label="File"
         value={f.path}
         options={files.map((x) => ({ value: x.path, label: x.path }))}
         onChange={setFile}
-        all
       />
       <span className="spring-export__row">
+        <button type="button" className="button" onClick={() => copy(f.path, f.content)}>
+          {copied === f.path ? "Copied" : "Copy"}
+        </button>
         <button
           type="button"
           className="button"
           onClick={() => save(name!, text(f.content, "text/plain"))}
         >
-          Download {name}
-        </button>
-        <button type="button" className="button" onClick={() => copy(f.path, f.content)}>
-          {copied === f.path ? "Copied" : "Copy"}
+          <span aria-hidden>↓</span>
+          <span className="sr-only">Download</span> {name}
         </button>
       </span>
       <output className="sr-only">{said}</output>
@@ -997,33 +918,23 @@ function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: s
   );
 }
 
-const RATIOS = [
-  { value: "1.125", label: "1.125" },
-  { value: "1.2", label: "1.2" },
-  { value: "1.25", label: "1.25" },
-  { value: "1.333", label: "1.333" },
-  { value: "1.5", label: "1.5" },
-];
-const ratioOptions = (r: number) =>
-  RATIOS.some((o) => Number(o.value) === r)
-    ? RATIOS
-    : [...RATIOS, { value: String(r), label: r.toFixed(3) }].toSorted(
-        (a, b) => Number(a.value) - Number(b.value),
-      );
-
-/** Why a ratio fits, in a sentence: dense screens need small steps, pages can shout. */
-function ratioAdvice(building: string, r: number): string {
+const RATIOS = [1.125, 1.2, 1.25, 1.333, 1.5];
+/** Dense screens need small steps; pages can shout. */
+const FITS: Record<string, readonly [number, number]> = {
+  site: [1.25, 1.333],
+  dashboard: [1.125, 1.2],
+};
+const ratioOptions = (r: number, building: string) => {
+  const [lo, hi] = FITS[building] ?? [1.2, 1.25];
   const fit =
-    building === "site" ? [1.25, 1.333] : building === "dashboard" ? [1.125, 1.2] : [1.2, 1.25];
-  const what = building === "site" ? "A site" : building === "dashboard" ? "A dashboard" : "An app";
-  const verdict =
-    r >= fit[0]! && r <= fit[1]!
-      ? "Your scale fits."
-      : r > fit[1]!
-        ? "Yours will feel loud here."
-        : "Yours may flatten the hierarchy.";
-  return `${what} fits ${fit[0]}–${fit[1]}. ${verdict}`;
-}
+    building === "site" ? "fits sites" : building === "dashboard" ? "fits dashboards" : "fits apps";
+  const all = RATIOS.includes(r) ? RATIOS : [...RATIOS, r].toSorted((x, y) => x - y);
+  return all.map((v) => ({
+    value: String(v),
+    label: String(v),
+    hint: v >= lo && v <= hi ? fit : undefined,
+  }));
+};
 
 /** What people get wrong when choosing a brand font, on one card. */
 function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {

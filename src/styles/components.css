@@ -2150,6 +2150,100 @@ claude-mascot:defined > * {
   min-height: 2.75rem;
 }
 
+/* Select (ui/Select.tsx): a field-shaped trigger and a hairline popup list. */
+.select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  color: var(--text-primary);
+  font-size: var(--step-sm);
+  text-align: left;
+}
+.select__trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select__value {
+  font-variant-numeric: tabular-nums;
+}
+.select__icon {
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+}
+.select__popup {
+  min-width: var(--anchor-width);
+  max-height: min(var(--available-height), 20rem);
+  overflow-y: auto;
+  padding: var(--space-1);
+  background: var(--surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--border-default),
+    var(--shadow-popover);
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--duration-tooltip) var(--ease-out),
+    transform var(--duration-tooltip) var(--ease-out);
+}
+.select__popup[data-starting-style],
+.select__popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);
+}
+.select__item {
+  display: grid;
+  grid-template-columns: 1rem 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--step-sm);
+  cursor: default;
+  outline: 0;
+}
+.select__item[data-highlighted] {
+  background: var(--surface-hover);
+}
+.select__check {
+  grid-column: 1;
+  font-size: var(--step-xs);
+}
+.select__text {
+  grid-column: 2;
+}
+.select__hint {
+  grid-column: 3;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+@media (hover: hover) and (pointer: fine) {
+  .select__item {
+    min-height: 2.25rem;
+  }
+  .select__trigger:hover {
+    background: var(--surface-hover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .select__popup {
+    transition-property: opacity;
+  }
+}
+
 /* OKLCH inspector */
 .inspector__controls {
   display: grid;

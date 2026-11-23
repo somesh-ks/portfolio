@@ -1,18 +1,6 @@
 /* Spring. Site chrome uses the portfolio's classes; everything inside `.sp`
    is the visitor's own system, read from the variables Scope writes. */
 
-.spring-hue {
-  appearance: none;
-  height: 0.5rem;
-  min-height: 0.5rem;
-  margin-block: 1.125rem;
-  border-radius: 0;
-  background: linear-gradient(
-    to right in oklch longer hue,
-    oklch(65% 0.16 0),
-    oklch(65% 0.16 359.9)
-  );
-}
 .spring-scales {
   display: grid;
   gap: var(--space-1);
@@ -473,37 +461,6 @@
 .spring .range::-moz-range-thumb {
   border-radius: 0;
 }
-.spring-pick {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-}
-.spring-pick__list {
-  display: grid;
-  max-height: 10rem; /* exactly five rows */
-  overflow-y: auto;
-  border-block: 1px solid var(--border-subtle);
-}
-.spring-pick__row {
-  display: grid;
-  grid-template-columns: 2rem 1fr auto;
-  gap: var(--space-2);
-  align-items: center;
-  height: 2rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.spring-pick__row:has(:checked),
-.spring-pick__row:hover {
-  color: var(--text-primary);
-}
-.spring-pick__row:has(:focus-visible) {
-  outline: 2px solid var(--text-primary);
-  outline-offset: -2px;
-}
 .spring-tree {
   display: grid;
   gap: var(--space-1);
@@ -564,24 +521,6 @@
 .spring .range:focus-visible {
   outline: 2px solid var(--text-primary);
   outline-offset: 2px;
-}
-.spring .spring-hue {
-  background: linear-gradient(
-    to right in oklch longer hue,
-    oklch(65% 0.16 0),
-    oklch(65% 0.16 359.9)
-  );
-}
-.spring .spring-hue::-webkit-slider-runnable-track {
-  height: 0.5rem;
-  background: transparent;
-}
-.spring .spring-hue::-moz-range-track {
-  height: 0.5rem;
-  background: transparent;
-}
-.spring .spring-hue::-webkit-slider-thumb {
-  margin-top: -0.375rem;
 }
 .spring .spring-grid {
   align-items: start;
@@ -804,9 +743,6 @@
   display: grid;
   gap: var(--space-3);
 }
-.spring-pick--all .spring-pick__list {
-  max-height: none;
-}
 
 /* ——— Plain controls: exports, font roles, font browser ——— */
 .spring-link {
@@ -839,27 +775,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-.spring-roles {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.spring-role {
-  display: grid;
-  grid-template-columns: 4.5rem 1fr auto;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-role__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .spring-fonts {
   display: grid;
@@ -917,10 +832,6 @@
     display: none;
   }
 }
-.spring-pick input[type="radio"] {
-  margin: 0;
-  accent-color: var(--text-primary);
-}
 .spring-frame {
   width: 100%;
   margin-inline: auto;
@@ -940,4 +851,46 @@
 .spring-audit-trigger {
   gap: 0.3em;
   flex: none;
+}
+
+/* ——— Color picker ——— */
+.spring-picker__field {
+  position: relative;
+  height: 6rem;
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.spring-picker__field canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.spring-picker__knob {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  translate: -50% -50%;
+  box-shadow:
+    0 0 0 2px var(--surface-canvas),
+    0 0 0 3px var(--text-primary);
+  pointer-events: none;
+}
+.spring-picker__field:has(.spring-picker__input:focus-visible) .spring-picker__knob {
+  box-shadow:
+    0 0 0 2px var(--surface-canvas),
+    0 0 0 4px var(--focus-ring);
+}
+.spring-picker__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+.spring-vision {
+  justify-self: start;
+  min-width: 12rem;
 }
