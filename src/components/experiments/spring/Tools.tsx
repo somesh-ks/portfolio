@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { exportAll, toPrompt, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
@@ -122,15 +122,18 @@ function Pick<T extends string>({
   value,
   options,
   onChange,
+  all = false,
 }: {
   label: string;
   value: T;
   options: readonly { value: T; label: string; tag?: string }[];
   onChange: (v: T) => void;
+  /** Show every row instead of a five-row scroller. */
+  all?: boolean;
 }) {
   const name = useId();
   return (
-    <fieldset className="field spring-pick">
+    <fieldset className={all ? "field spring-pick spring-pick--all" : "field spring-pick"}>
       <legend className="field__label">{label}</legend>
       <span className="spring-pick__list">
         {options.map((o) => (
@@ -145,7 +148,7 @@ function Pick<T extends string>({
               // The input is visually hidden, so keep its row in view for arrow-key users.
               onFocus={(e) => e.currentTarget.parentElement?.scrollIntoView({ block: "nearest" })}
             />
-            <span aria-hidden>{o.value === value ? "[x]" : "[ ]"}</span>
+            <span aria-hidden>{o.value === value ? "(•)" : "( )"}</span>
             <span>{o.label}</span>
             {o.tag ? <span className="spring-meta">{o.tag}</span> : null}
           </label>
@@ -161,164 +164,154 @@ type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   color: "Color",
   type: "Type",
-  space: "Space & shape",
+  space: "Space",
   motion: "Motion",
   tokens: "Tokens",
 };
 const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "design-system";
 
 /**
- * Spring as one workbench: every tool's controls on the left, the live preview
- * and that tool's full output on the right. One system, so every tab edits
- * what the preview shows.
+ * Spring as one workbench: a tool's controls on the left; on the right, that
+ * tool's output or a live preview of the whole system. One system, so every
+ * tab edits what the preview shows.
  */
 export function SpringWorkbench() {
   const spring = useSpring();
   const { input, system, setInput } = spring;
   const [mode, setMode] = useMode();
   const [tab, setTab] = useState<Tab>("color");
-  const [width, setWidth] = useState<"desktop" | "phone">("desktop");
-  const [run, setRun] = useState(0);
+  const [view, setView] = useState<"output" | "preview">("output");
+  // Starts at 1 so the curves play as soon as the Motion tab opens.
+  const [run, setRun] = useState(1);
   const files = useMemo(() => exportAll(system), [system]);
   const [file, setFile] = useState(files[0]!.path);
   const f = files.find((x) => x.path === file) ?? files[0]!;
 
-  const required = system.checks[mode].filter((c) => !c.advisory);
-  const passing = required.filter((c) => c.pass).length;
   const building = input.stack.building;
   const tabsId = useId();
-  // The pinned preview spans its whole column so it can stick; the output sits below it.
-  const headRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const head = headRef.current;
-    if (!head) return;
-    const o = new ResizeObserver(() =>
-      head.parentElement?.style.setProperty("--wb-head", `${head.offsetHeight}px`),
-    );
-    o.observe(head);
-    return () => o.disconnect();
-  }, []);
 
   return (
     <div className="spring spring-wb">
       <Fonts />
-      <div className="spring-wb__top">
-        <p className="spring-meta spring-wb__status">
-          <output className={passing === required.length ? undefined : "spring-bad"}>
-            [{passing === required.length ? "ok" : "!!"}] {passing}/{required.length} AA in {mode}
-          </output>
-          <span>
-            · type {input.type.base}/{input.type.ratio}
-          </span>
-          <span>· radius {system.shape.radius.md}</span>
-          <span>· space {system.space.control.md}</span>
-          <span>· motion {system.motion.duration.base}ms</span>
-        </p>
+      <div className="spring-wb__tabs">
+        <div role="tablist" aria-label="Tools" className="spring-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`${tabsId}-${t}`}
+              aria-selected={t === tab}
+              aria-controls={`${tabsId}-panel`}
+              tabIndex={t === tab ? 0 : -1}
+              className="spring-tab"
+              onClick={() => setTab(t)}
+              onKeyDown={(e) => {
+                const i = TABS.indexOf(tab);
+                const next =
+                  e.key === "ArrowRight"
+                    ? TABS[(i + 1) % TABS.length]
+                    : e.key === "ArrowLeft"
+                      ? TABS[(i - 1 + TABS.length) % TABS.length]
+                      : e.key === "Home"
+                        ? TABS[0]
+                        : e.key === "End"
+                          ? TABS[TABS.length - 1]
+                          : undefined;
+                if (!next) return;
+                e.preventDefault();
+                setTab(next);
+                document.getElementById(`${tabsId}-${next}`)?.focus();
+              }}
+            >
+              {TAB_LABEL[t]}
+            </button>
+          ))}
+        </div>
         <AuditDialog />
       </div>
       <div className="spring-wb__grid">
-        <div className="spring-wb__head" ref={headRef}>
+        <div
+          role="tabpanel"
+          id={`${tabsId}-panel`}
+          aria-labelledby={`${tabsId}-${tab}`}
+          className="spring-wb__panel"
+        >
+          {tab === "color" ? <ColorControls {...spring} mode={mode} /> : null}
+          {tab === "type" ? <TypeControls {...spring} /> : null}
+          {tab === "space" ? <ShapeControls {...spring} /> : null}
+          {tab === "motion" ? (
+            <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+          ) : null}
+          {tab === "tokens" ? (
+            <TokensControls {...spring} files={files} file={f.path} setFile={setFile} />
+          ) : null}
+        </div>
+        <section
+          className="spring-wb__stage"
+          aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
+        >
           <div className="spring-wb__bar">
             <Segmented
-              label="Building"
-              options={["site", "app", "dashboard"] as const}
-              value={building}
-              onChange={(v) =>
-                setInput((i) => ({
-                  ...i,
-                  stack: { ...i.stack, building: v, components: undefined, icons: undefined },
-                }))
-              }
+              label="Show"
+              options={["output", "preview"] as const}
+              value={view}
+              onChange={setView}
+              render={(v) => (v === "output" ? TAB_LABEL[tab] : "Preview")}
             />
-            <Segmented label="Theme" options={MODES} value={mode} onChange={setMode} />
-            <Segmented
-              label="Width"
-              options={["desktop", "phone"] as const}
-              value={width}
-              onChange={setWidth}
-            />
+            {view === "preview" ? (
+              <Segmented
+                label="Screen"
+                options={["site", "app"] as const}
+                value={building === "site" ? "site" : "app"}
+                onChange={(v) =>
+                  setInput((i) => ({
+                    ...i,
+                    stack: { ...i.stack, building: v, components: undefined, icons: undefined },
+                  }))
+                }
+                render={(v) => (v === "site" ? "Site" : "App")}
+              />
+            ) : null}
+            {view === "preview" || (tab !== "tokens" && tab !== "motion") ? (
+              <span className="spring-wb__end">
+                <Segmented
+                  label="Theme"
+                  options={MODES}
+                  value={mode}
+                  onChange={setMode}
+                  render={(v) => (v === "light" ? "Light" : "Dark")}
+                />
+              </span>
+            ) : null}
           </div>
-          <section
-            aria-label="Live preview"
-            className={
-              width === "phone" ? "spring-wb__frame spring-wb__frame--phone" : "spring-wb__frame"
-            }
-          >
-            {building === "site" ? (
+          {view === "preview" ? (
+            building === "site" ? (
               <Homepage system={system} mode={mode} line={spring.line} />
             ) : (
               <AppScreen system={system} mode={mode} />
-            )}
-          </section>
-        </div>
-        <div className="spring-wb__controls">
-          <div role="tablist" aria-label="Tools" className="spring-wb__tabs">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                id={`${tabsId}-${t}`}
-                aria-selected={t === tab}
-                aria-controls={`${tabsId}-panel`}
-                tabIndex={t === tab ? 0 : -1}
-                className="spring-cmd"
-                onClick={() => setTab(t)}
-                onKeyDown={(e) => {
-                  const i = TABS.indexOf(tab);
-                  const next =
-                    e.key === "ArrowRight"
-                      ? TABS[(i + 1) % TABS.length]
-                      : e.key === "ArrowLeft"
-                        ? TABS[(i - 1 + TABS.length) % TABS.length]
-                        : e.key === "Home"
-                          ? TABS[0]
-                          : e.key === "End"
-                            ? TABS[TABS.length - 1]
-                            : undefined;
-                  if (!next) return;
-                  e.preventDefault();
-                  setTab(next);
-                  document.getElementById(`${tabsId}-${next}`)?.focus();
-                }}
-              >
-                {t === tab ? `[${TAB_LABEL[t].toLowerCase()}]` : TAB_LABEL[t].toLowerCase()}
-              </button>
-            ))}
-          </div>
-          <div
-            role="tabpanel"
-            id={`${tabsId}-panel`}
-            aria-labelledby={`${tabsId}-${tab}`}
-            className="spring-wb__panel"
-          >
-            {tab === "color" ? <ColorControls {...spring} mode={mode} /> : null}
-            {tab === "type" ? <TypeControls {...spring} /> : null}
-            {tab === "space" ? <ShapeControls {...spring} /> : null}
-            {tab === "motion" ? (
-              <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
-            ) : null}
-            {tab === "tokens" ? (
-              <TokensControls system={system} files={files} file={f.path} setFile={setFile} />
-            ) : null}
-          </div>
-        </div>
-        <section className="spring-wb__output" aria-label={`${TAB_LABEL[tab]} output`}>
-          {tab === "color" ? <ColorOutput system={system} mode={mode} /> : null}
-          {tab === "type" ? <TypeOutput system={system} mode={mode} line={spring.line} /> : null}
-          {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
-          {tab === "motion" ? (
-            <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
-          ) : null}
-          {tab === "tokens" ? (
-            <textarea
-              className="spring-audit-input spring-code"
-              value={f.content}
-              readOnly
-              aria-label={f.path}
-              spellCheck={false}
-            />
-          ) : null}
+            )
+          ) : (
+            <>
+              {tab === "color" ? <ColorOutput system={system} mode={mode} /> : null}
+              {tab === "type" ? (
+                <TypeOutput system={system} mode={mode} line={spring.line} />
+              ) : null}
+              {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
+              {tab === "motion" ? (
+                <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
+              ) : null}
+              {tab === "tokens" ? (
+                <textarea
+                  className="spring-audit-input spring-code"
+                  value={f.content}
+                  readOnly
+                  aria-label={f.path}
+                  spellCheck={false}
+                />
+              ) : null}
+            </>
+          )}
         </section>
       </div>
     </div>
@@ -329,40 +322,37 @@ type Spring = ReturnType<typeof useSpring>;
 
 // ——— Color ———
 
-function ColorControls({ input, system, setInput, mode }: Spring & { mode: Mode }) {
-  const [hex, setHex] = useState("");
+function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode }) {
+  const current = system.scales.accent[mode][8]!.hex;
+  const [draft, setDraft] = useState<string | null>(null);
   const a = input.accent;
   const setAccent = (p: Partial<SystemInput["accent"]>) =>
     setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }));
   const temp = input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
+  const apply = () => {
+    if (draft && parseColor(draft))
+      setInput((i) => ({ ...i, accent: inputFromSeed(draft).accent }));
+    setDraft(null);
+  };
+  const hexId = useId();
   return (
     <>
-      <Text
-        label="Name"
-        value={input.name}
-        onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
-      />
-      <label className="field">
-        <span className="field__label">
-          Start from a hex{" "}
-          <span className="tabular field__value">now {system.scales.accent[mode][8]!.hex}</span>
-        </span>
+      <label className="field" htmlFor={hexId}>
+        <span className="field__label">Brand color</span>
         <span className="field__input">
+          <span className="spring-swatch" style={{ background: current }} aria-hidden />
           <input
-            value={hex}
-            placeholder="#2f7d32"
-            onChange={(e) => setHex(e.target.value)}
+            id={hexId}
+            value={draft ?? current}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={apply}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") apply();
+              if (e.key === "Escape") setDraft(null);
+            }}
             autoComplete="off"
             spellCheck={false}
           />
-          <button
-            type="button"
-            className="spring-cmd"
-            disabled={!parseColor(hex)}
-            onClick={() => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
-          >
-            [use]
-          </button>
         </span>
       </label>
       <Slider
@@ -408,9 +398,9 @@ function ColorControls({ input, system, setInput, mode }: Spring & { mode: Mode 
           }))
         }
       />
-      <p className="toy__caption">
-        Light and dark are generated separately, not inverted. {system.adjustments.join(" ")}
-      </p>
+      {system.adjustments.length ? (
+        <p className="toy__caption">{system.adjustments.join(" ")}</p>
+      ) : null}
     </>
   );
 }
@@ -503,22 +493,15 @@ function TypeControls({ input, line, setInput, setLine }: Spring) {
         onChange={setLine}
         placeholder="A short line about what it does and who it helps."
       />
-      <div className="field">
-        <span className="field__label">Mood</span>
-        <span className="flex flex-wrap gap-x-3">
-          {Object.entries(MOODS).map(([k, m]) => (
-            <button
-              key={k}
-              type="button"
-              className="spring-cmd"
-              aria-pressed={k === mood}
-              onClick={() => setMood(k as keyof typeof MOODS)}
-            >
-              {k === mood ? `[${m.label.toLowerCase()}]` : m.label.toLowerCase()}
-            </button>
-          ))}
-        </span>
-      </div>
+      <Choice
+        label="Mood"
+        value={mood}
+        options={Object.entries(MOODS).map(([k, m]) => ({
+          value: k as keyof typeof MOODS,
+          label: m.label,
+        }))}
+        onChange={setMood}
+      />
       <div className="spring-pairs">
         {pool.map((p) => (
           <PairButton
@@ -628,7 +611,6 @@ function TypeOutput({ system, mode, line }: { system: System; mode: Mode; line: 
 function ShapeControls({ input, system, setInput }: Spring) {
   const r = system.shape.radius;
   const c = system.space.control;
-  const sp = system.space;
   return (
     <>
       <Slider
@@ -650,8 +632,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
         onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
       />
       <p className="toy__caption">
-        Spacing stays on a 4px grid; density moves control heights, gaps, the {sp.gutter}px gutter
-        and {sp.section}px section rhythm together, so a denser system stays aligned.
+        A 4px grid. Density moves control heights, gaps and section rhythm together.
       </p>
       <Nested system={system} />
     </>
@@ -716,9 +697,7 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
         ))}
       </dl>
       <p className="toy__caption">
-        Energy sets every duration at once. The spring (stiffness {m.springConfig.stiffness},
-        damping {m.springConfig.damping}) ships as CSS linear() and runs for its settle time, so it
-        needs no library. Reduced motion turns it off.
+        One setting drives every duration. The spring ships as CSS linear(), so no library.
       </p>
     </>
   );
@@ -777,7 +756,7 @@ function MotionOutput({ system, run, onRun }: { system: System; run: number; onR
       <output className="sr-only">{said}</output>
       <div className="toy__actions">
         <button type="button" className="spring-cmd" onClick={onRun}>
-          $ race
+          [replay]
         </button>
       </div>
     </>
@@ -788,11 +767,12 @@ function MotionOutput({ system, run, onRun }: { system: System; run: number; onR
 
 function TokensControls({
   system,
+  input,
+  setInput,
   files,
   file,
   setFile,
-}: {
-  system: System;
+}: Spring & {
   files: ExportFile[];
   file: string;
   setFile: (p: string) => void;
@@ -809,11 +789,17 @@ function TokensControls({
   };
   return (
     <>
+      <Text
+        label="System name"
+        value={input.name}
+        onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
+      />
       <Pick
         label="File"
         value={f.path}
         options={files.map((x) => ({ value: x.path, label: x.path }))}
         onChange={setFile}
+        all
       />
       <div className="spring-wb__cmds">
         <button type="button" className="spring-cmd" onClick={() => copy(f.path, f.content)}>
@@ -834,10 +820,6 @@ function TokensControls({
         </button>
       </div>
       <output className="sr-only">{said}</output>
-      <p className="toy__caption">
-        DTCG tokens with dark values, CSS variables, a Tailwind theme, DESIGN.md and an agent skill.
-        The zip has them all.
-      </p>
     </>
   );
 }
@@ -846,9 +828,27 @@ function TokensControls({
 
 function AuditDialog() {
   const [open, setOpen] = useState(false);
+  const { setInput } = useSpring();
+  // "fix all" replaces the whole system, so keep the visitor's own until they move on.
+  const [before, setBefore] = useState<SystemInput | null>(null);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className="spring-cmd">$ audit</Dialog.Trigger>
+      <span className="flex items-center gap-3">
+        <output className="spring-meta">{before ? "Loaded the audited system." : ""}</output>
+        {before ? (
+          <button
+            type="button"
+            className="spring-cmd"
+            onClick={() => {
+              setInput(before);
+              setBefore(null);
+            }}
+          >
+            [undo]
+          </button>
+        ) : null}
+        <Dialog.Trigger className="spring-cmd">$ audit</Dialog.Trigger>
+      </span>
       <Dialog.Portal>
         <Dialog.Backdrop className="palette-backdrop" />
         <Dialog.Popup className="palette spring spring-dialog">
@@ -856,7 +856,12 @@ function AuditDialog() {
             <Dialog.Title className="spring-dialog__title">audit a system</Dialog.Title>
             <Dialog.Close className="spring-cmd">[esc] close</Dialog.Close>
           </div>
-          <SpringAudit onFix={() => setOpen(false)} />
+          <SpringAudit
+            onFix={(prev) => {
+              setBefore(prev);
+              setOpen(false);
+            }}
+          />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -868,18 +873,22 @@ function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: s
   const [open, setOpen] = useState(false);
   const shown = open ? checks : checks.filter((c) => !c.pass);
   const required = checks.filter((c) => !c.advisory);
+  const advisory = checks.filter((c) => c.advisory && !c.pass).length;
   return (
     <>
-      <button
-        type="button"
-        className="spring-cmd"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? "[x]" : "[ ]"} {required.filter((c) => c.pass).length} of {required.length} required
-        pairs pass WCAG 2.2 AA in {mode}
-        {open ? "" : shown.length ? "; below the bar:" : "; show all"}
-      </button>
+      <p className="spring-meta">
+        {required.filter((c) => c.pass).length}/{required.length} required pairs pass WCAG 2.2 AA in{" "}
+        {mode}
+        {advisory ? `; ${advisory} advisory pair below 3:1, listed below` : ""}.{" "}
+        <button
+          type="button"
+          className="spring-cmd"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? "[hide pairs]" : "[show all pairs]"}
+        </button>
+      </p>
       {shown.length ? (
         <ul className="spring-contrast">
           {shown.map((c) => (
@@ -925,17 +934,13 @@ function ratioAdvice(building: string, r: number): string {
   const fit =
     building === "site" ? [1.25, 1.333] : building === "dashboard" ? [1.125, 1.2] : [1.2, 1.25];
   const what = building === "site" ? "A site" : building === "dashboard" ? "A dashboard" : "An app";
-  const why =
-    building === "site"
-      ? "can afford big jumps: few headings per page, read top to bottom"
-      : "stacks many titles in little room, so small steps keep them from crowding the content";
   const verdict =
     r >= fit[0]! && r <= fit[1]!
       ? "Your scale fits."
       : r > fit[1]!
         ? "Yours will feel loud here."
         : "Yours may flatten the hierarchy.";
-  return `${what} ${why}: ${fit[0]}–${fit[1]}. ${verdict} Phones use a gentler ratio automatically; sizes show phone–desktop.`;
+  return `${what} fits ${fit[0]}–${fit[1]}. ${verdict}`;
 }
 
 function PairButton({
@@ -954,15 +959,17 @@ function PairButton({
   return (
     <button type="button" className="spring-pair" aria-pressed={on} onClick={onPick}>
       <span className="spring-pair__mark" aria-hidden>
-        {on ? "[x]" : "[ ]"}
+        {on ? "(•)" : "( )"}
       </span>
       <span className="spring-pair__name" style={{ fontFamily: `"${p.heading}", serif` }}>
         {name || "Your name"}
       </span>
-      <span className="spring-pair__line" style={{ fontFamily: `"${p.body}", sans-serif` }}>
-        {line.trim() || "A short line about what it does."} From{" "}
-        <span className="tabular">€24.00</span> a month.
-      </span>
+      {on ? (
+        <span className="spring-pair__line" style={{ fontFamily: `"${p.body}", sans-serif` }}>
+          {line.trim() || "A short line about what it does."} From{" "}
+          <span className="tabular">€24.00</span> a month.
+        </span>
+      ) : null}
       <span className="spring-meta">
         {p.heading} + {p.body === p.heading ? "same family" : p.body}
         {on && p.reasons[0] ? `. ${p.reasons[0]}` : ""}

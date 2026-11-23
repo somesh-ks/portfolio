@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { audit, type Finding } from "@/lib/spring/audit";
 import { SAMPLES } from "@/lib/spring/samples";
+import type { SystemInput } from "@/lib/spring/system";
 import { useSpring } from "./store";
 import "./spring.css";
 
@@ -10,9 +11,9 @@ const ORDER = { fail: 0, warn: 1, pass: 2 };
 const MARK = { fail: "✕", warn: "!", pass: "✓" };
 const sorted = (f: Finding[]) => [...f].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
-export function SpringAudit({ onFix }: { onFix?: () => void }) {
+export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }) {
   const id = useId();
-  const { setInput } = useSpring();
+  const { input, setInput } = useSpring();
   const [text, setText] = useState("");
   const [fixed, setFixed] = useState(false);
   const report = useMemo(() => {
@@ -78,9 +79,10 @@ export function SpringAudit({ onFix }: { onFix?: () => void }) {
                 type="button"
                 className="spring-cmd"
                 onClick={() => {
+                  const before = input;
                   setInput(report.input);
                   setFixed(true);
-                  onFix?.();
+                  onFix?.(before);
                 }}
               >
                 {fixed ? "✓ loaded into the workbench" : "$ fix all →"}
