@@ -144,6 +144,9 @@
   .spring-ball[data-run="true"] {
     animation: none;
   }
+  .sp-btn:active {
+    transform: none;
+  }
 }
 .spring-files {
   display: flex;
