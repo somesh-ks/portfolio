@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import matter from "gray-matter";
 
 const KIND_PATH = { projects: "/projects", experiments: "/experiments", "case-studies": "/work" };
 
@@ -18,7 +19,7 @@ export function homeRoutes(): string[] {
     readdirSync(`content/public/${dir}`)
       .filter((file) => file.endsWith(".mdx"))
       .filter(
-        (file) => !/^home: false$/m.test(readFileSync(`content/public/${dir}/${file}`, "utf8")),
+        (file) => matter(readFileSync(`content/public/${dir}/${file}`, "utf8")).data.home !== false,
       )
       .map((file) => `${base}/${file.replace(/\.mdx$/, "")}`),
   );

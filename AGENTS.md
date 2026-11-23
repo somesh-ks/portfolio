@@ -10,7 +10,7 @@ Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun
 
 ## Domains
 
-DNS for someshks.com is on Cloudflare; the sites run on Vercel. Subdomains (news, tide) are CNAMEs to Vercel and may stay proxied (orange cloud). A new host returns Cloudflare 525 for a few minutes until Vercel issues its certificate; wait, don't switch the proxy off. If a 525 returns later, check that SSL/TLS mode is Full (strict) and `/.well-known/acme-challenge/*` isn't blocked or cached. Renaming a host: add the new domain on Vercel, then 308 the old one to it, and keep the old Cloudflare record so old links still resolve.
+DNS for someshks.com is on Cloudflare; the sites run on Vercel. Subdomains (news, tide) are CNAMEs to Vercel and may stay proxied (orange cloud). A new host returns Cloudflare 525 for a few minutes until Vercel issues its certificate; wait, don't switch the proxy off. If the 525 persists or returns later, check the domain's certificate status in Vercel (a CAA record that excludes Let's Encrypt or a failed challenge won't fix itself), that SSL/TLS mode is Full (strict), and that `/.well-known/acme-challenge/*` isn't blocked or cached. Renaming a host: add a CNAME for the new subdomain in Cloudflare, add the domain on Vercel and wait for its certificate, then 308 the old host to it. Keep the old Cloudflare record so old links still resolve.
 
 ## The one rule that matters
 
