@@ -234,16 +234,18 @@ claude-mascot:defined > * {
     padding-inline: var(--space-4);
   }
 }
-.runner__bar,
-.runner__foot {
-  display: flex;
+/* Arcade top bar: your score left, the high score centred, sound right. */
+.runner__bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-3);
   min-height: 2.25rem;
 }
 .runner__foot {
-  /* The buttons' own padding spaces them; phones wrap the row (below). */
-  gap: 0;
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
 }
 /* Footer buttons keep their hit area but line their text up with the column. */
 .runner__foot .runner__action:first-child {
@@ -253,27 +255,27 @@ claude-mascot:defined > * {
   padding-right: 0;
 }
 @media (max-width: 39.999rem) {
-  /* Too narrow for one row: wrap, left-aligned, with no spacer. */
-  .runner__foot {
-    flex-wrap: wrap;
-    column-gap: var(--space-5);
-  }
   .runner__foot .runner__action {
     padding-inline: 0;
   }
-  .runner__foot .runner__spacer {
-    display: none;
-  }
 }
-.runner__score {
-  display: flex;
-  gap: var(--space-3);
-  margin-left: auto;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
+.runner__score,
 .runner__hi {
-  color: var(--text-secondary);
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.runner__score,
+.runner__best {
+  color: var(--text-primary);
+}
+/* An icon button whose glyph, not its hit area, lines up with the column. */
+.runner__sound {
+  justify-self: end;
+  justify-content: center;
+  width: 2.75rem;
+  margin-right: calc((18px - 2.75rem) / 2);
+  padding: 0;
 }
 .runner__screen {
   position: relative;
@@ -484,8 +486,8 @@ claude-mascot:defined > * {
 .runner[data-input="touch"] .runner__foot .runner__key {
   display: none;
 }
-/* On touch the footer is a row of icon buttons; each label stays for screen
-   readers. Same touch test as the key hints above. */
+/* On touch the footer is a "CHANGE CHARACTER" label left and a fullscreen icon right
+   (its label stays for screen readers). Same touch test as the key hints. */
 .runner__icon {
   display: none;
 }
@@ -493,23 +495,23 @@ claude-mascot:defined > * {
   display: contents;
 }
 @media (pointer: coarse) {
-  .runner:not([data-input="keys"]) .runner__foot {
-    gap: var(--space-1);
-  }
   .runner:not([data-input="keys"]) .runner__foot .runner__action {
-    justify-content: center;
-    width: 2.75rem;
-    padding: 0;
     color: var(--text-primary);
   }
-  /* The icon's left edge lines up with the text column. */
-  .runner:not([data-input="keys"]) .runner__foot .runner__action:first-child {
-    margin-left: calc(-1 * var(--space-3));
+  .runner:not([data-input="keys"]) .runner__costume {
+    padding-inline: 0;
   }
-  .runner:not([data-input="keys"]) .runner__icon {
+  /* Fullscreen is an icon; its glyph lines up with the column's right edge. */
+  .runner:not([data-input="keys"]) .runner__fullscreen {
+    justify-content: center;
+    width: 2.75rem;
+    margin-right: calc((18px - 2.75rem) / 2);
+    padding: 0;
+  }
+  .runner:not([data-input="keys"]) .runner__fullscreen .runner__icon {
     display: block;
   }
-  .runner:not([data-input="keys"]) .runner__label {
+  .runner:not([data-input="keys"]) .runner__fullscreen .runner__label {
     display: block;
     position: absolute;
     width: 1px;
@@ -518,27 +520,29 @@ claude-mascot:defined > * {
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .runner:not([data-input="keys"]) .runner__foot .runner__spacer {
-    display: none;
-  }
-}
-.runner[data-input="touch"] .runner__foot {
-  gap: var(--space-1);
 }
 .runner[data-input="touch"] .runner__foot .runner__action {
-  justify-content: center;
-  width: 2.75rem;
-  padding: 0;
   color: var(--text-primary);
 }
-/* The icon's left edge lines up with the text column. */
-.runner[data-input="touch"] .runner__foot .runner__action:first-child {
-  margin-left: calc(-1 * var(--space-3));
+.runner[data-input="touch"] .runner__costume {
+  padding-inline: 0;
 }
-.runner[data-input="touch"] .runner__icon {
+/* Fullscreen is an icon; its glyph lines up with the column's right edge. */
+.runner[data-input="touch"] .runner__fullscreen {
+  justify-content: center;
+  width: 2.75rem;
+  margin-right: calc((18px - 2.75rem) / 2);
+  padding: 0;
+}
+/* A touch on a hybrid laptop still gets the 44px sound target. */
+.runner[data-input="touch"] .runner__sound {
+  width: 2.75rem;
+  margin-right: calc((18px - 2.75rem) / 2);
+}
+.runner[data-input="touch"] .runner__fullscreen .runner__icon {
   display: block;
 }
-.runner[data-input="touch"] .runner__label {
+.runner[data-input="touch"] .runner__fullscreen .runner__label {
   display: block;
   position: absolute;
   width: 1px;
@@ -547,12 +551,13 @@ claude-mascot:defined > * {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.runner[data-input="touch"] .runner__foot .runner__spacer {
-  display: none;
-}
 @media (hover: hover) and (pointer: fine) {
   .runner__action {
     min-height: 2.25rem;
+  }
+  .runner__sound {
+    width: 2.25rem;
+    margin-right: calc((18px - 2.25rem) / 2);
   }
   .runner__action:hover {
     color: var(--text-primary);

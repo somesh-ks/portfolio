@@ -17,10 +17,11 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { Maximize2, Minimize2, Shuffle, Volume2, VolumeX } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -63,6 +64,7 @@ function writeStorage(key: string, value: string) {
   }
 }
 
+const noSubscribe = () => () => {};
 const pad = (value: number) => String(value).padStart(5, "0");
 
 /** Claude walking in place, as SVG: server-rendered, animated by CSS, no
@@ -182,6 +184,12 @@ export function ClaudeRunner() {
   const nameId = useId();
 
   useEffect(() => () => engine.current?.destroy(), []);
+  // The stored high score shows before the engine loads; server renders 0.
+  const storedBest = useSyncExternalStore(
+    noSubscribe,
+    () => Number(readStorage(BEST_KEY)) || 0,
+    () => 0,
+  );
 
   const loadBoard = useCallback(async () => {
     try {
@@ -414,9 +422,31 @@ export function ClaudeRunner() {
     >
       <div className="runner__bar">
         <span className="runner__score" aria-hidden="true">
-          {best > 0 ? <span className="runner__hi">HI {pad(best)}</span> : null}
           {pad(points)}
         </span>
+        <span className="runner__hi" aria-hidden="true">
+          HI SCORE <span className="runner__best">{pad(Math.max(best, storedBest))}</span>
+        </span>
+        <button
+          type="button"
+          className="runner__action runner__sound"
+          aria-label="Sound"
+          aria-pressed={soundOn}
+          aria-keyshortcuts="M"
+          title={soundOn ? "Mute (M)" : "Unmute (M)"}
+          onClick={(event) => {
+            toggleSound();
+            // A pointer click hands focus back to the game so keys keep working;
+            // a keyboard press keeps focus on the button.
+            if (event.detail > 0) screen.current?.focus({ preventScroll: true });
+          }}
+        >
+          {soundOn ? (
+            <Volume2 aria-hidden="true" size={18} />
+          ) : (
+            <VolumeX aria-hidden="true" size={18} />
+          )}
+        </button>
       </div>
 
       {/* The play surface is a game (role="application"): it takes keys and taps directly. */}
@@ -518,8 +548,7 @@ export function ClaudeRunner() {
       </div>
 
       <div className="runner__foot">
-        <button type="button" className="runner__action" onClick={cycleCostume}>
-          <Shuffle aria-hidden="true" size={18} className="runner__icon" />
+        <button type="button" className="runner__action runner__costume" onClick={cycleCostume}>
           <span className="runner__label">
             <Key keyName="C" /> CHANGE CHARACTER
           </span>
@@ -527,7 +556,7 @@ export function ClaudeRunner() {
         <span className="runner__spacer" />
         <button
           type="button"
-          className="runner__action"
+          className="runner__action runner__fullscreen"
           aria-pressed={expanded}
           onClick={() => void toggleFullscreen()}
         >
@@ -538,21 +567,6 @@ export function ClaudeRunner() {
           )}
           <span className="runner__label">
             <Key keyName="F" /> {expanded ? "EXIT" : "FULLSCREEN"}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="runner__action"
-          aria-pressed={soundOn}
-          onClick={toggleSound}
-        >
-          {soundOn ? (
-            <Volume2 aria-hidden="true" size={18} className="runner__icon" />
-          ) : (
-            <VolumeX aria-hidden="true" size={18} className="runner__icon" />
-          )}
-          <span className="runner__label">
-            <Key keyName="M" /> SOUND {soundOn ? "ON" : "OFF"}
           </span>
         </button>
       </div>
