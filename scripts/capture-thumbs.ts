@@ -27,8 +27,8 @@ const TARGETS: Record<string, { url: string; clip?: string; click?: string; html
     url: `${LOCAL}/projects/interface-mechanics`,
     clip: ".toy, .stage, pre",
   },
-  "singularity-design-system": { url: "https://singularity-design.vercel.app" },
-  "singularity-podcast": { url: "https://news.someshks.com" },
+  "singularity-design-system": { url: "https://design.singularityfm.app" },
+  "singularity-podcast": { url: "https://singularityfm.app" },
   // No visual on the page, so a redacted record drawn here.
   traceless: { url: "about:blank", html: REDACTED },
   tide: { url: "https://tide.someshks.com" },
