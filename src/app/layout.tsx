@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
+import { DevFeedback } from "@/components/dev/DevFeedback";
 import { SiteFooter } from "@/components/editorial/SiteFooter";
 import { SiteHeader } from "@/components/editorial/SiteHeader";
 import { SoundProvider } from "@/components/providers/SoundProvider";
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </SoundProvider>
         </ThemeProvider>
+        <DevFeedback />
       </body>
     </html>
   );
