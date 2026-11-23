@@ -8,8 +8,9 @@
  * The server renders a static frame; the canvas engine loads on the first
  * start, so the page stays light until someone plays.
  * A click or tap starts a run (Space on the page never does: it scrolls).
- * Keys while the game has focus: Enter/Space/ArrowUp start and jump,
- * C character, F fullscreen, M sound. Touch: tap to jump.
+ * Keys: Enter/Space/ArrowUp start and jump while the game has focus;
+ * C character, F fullscreen, M sound whenever the game is on screen.
+ * Touch: tap to jump.
  */
 import {
   useCallback,
@@ -375,6 +376,27 @@ export function ClaudeRunner() {
   }, [immersive]);
   const expanded = fullscreen || immersive;
 
+  // C, F and M work whenever the game is on screen: with nothing focused, or
+  // focus anywhere in the runner. Never while typing, and never Space (it
+  // scrolls the page; jumps stay on the focused game).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement;
+      if (target.closest("input, textarea, select, [contenteditable]")) return;
+      const section = frame.current;
+      if (!section || !(target === document.body || section.contains(target))) return;
+      const box = section.getBoundingClientRect();
+      if (box.bottom <= 0 || box.top >= window.innerHeight) return;
+      const key = event.key.toLowerCase();
+      if (key === "c") cycleCostume();
+      else if (key === "f") void toggleFullscreen();
+      else if (key === "m") toggleSound();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [cycleCostume, toggleFullscreen, toggleSound]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const clean = name.trim().replace(/\s+/g, " ");
@@ -459,7 +481,7 @@ export function ClaudeRunner() {
         tabIndex={0}
         role="application"
         aria-roledescription="game"
-        aria-label="Click or press Enter to play, Space to jump. C changes costume, F fullscreen, M sound."
+        aria-label="Click or press Enter to play, Space to jump. C changes character, F fullscreen, M sound."
         onPointerDown={(event) => {
           if (event.button !== 0 || (event.target as HTMLElement).closest("button, input, form"))
             return;
@@ -473,9 +495,7 @@ export function ClaudeRunner() {
           if (key === " " || key === "arrowup" || key === "enter") {
             event.preventDefault();
             if (!event.repeat) press();
-          } else if (key === "c") cycleCostume();
-          else if (key === "f") void toggleFullscreen();
-          else if (key === "m") toggleSound();
+          }
         }}
       >
         <canvas ref={canvas} className="runner__canvas" aria-hidden="true" />
