@@ -1,8 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, type ReactNode } from "react";
-import { audit } from "@/lib/spring/audit";
-import { exportAll, toDesignMd, toPrompt } from "@/lib/spring/exports";
+import { exportAll, toPrompt } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { MOODS, pairings, type Pairing } from "@/lib/spring/pairing";
 import { COMPONENTS, ICONS, iconStroke, recommend } from "@/lib/spring/stack";
@@ -11,8 +10,8 @@ import { FONT_NAMES, googleFontsUrl, opticalBase, type FontName } from "@/lib/sp
 import { contrast, parseColor } from "@/lib/spring/color";
 import { Command } from "../../code/Command";
 import { Segmented } from "../Segmented";
-import { AppScreen, Components, Homepage, Ladder, Wordmark } from "./Preview";
-import { shareUrl, useMode, useSpring } from "./store";
+import { AppScreen, Components, Homepage, Ladder } from "./Preview";
+import { shareUrl, useCopy, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
@@ -170,15 +169,14 @@ export function SpringColor() {
   const { input, system, setInput } = useSpring();
   const [hex, setHex] = useState("");
   const [mode, setMode] = useMode();
+  const [copied, copy] = useCopy();
   const a = input.accent;
   const setAccent = (p: Partial<SystemInput["accent"]>) =>
     setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }));
   const checks = [...system.checks.light, ...system.checks.dark].filter((c) => !c.advisory);
   const temp = input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
   return (
-    <Toy
-      caption={`${checks.filter((c) => c.pass).length} of ${checks.length} text pairs pass WCAG 2.2 AA in light and dark. ${system.adjustments.join(" ")}`}
-    >
+    <Toy caption={system.adjustments.join(" ") || undefined}>
       <div className="spring-grid">
         <Text
           label="Name"
@@ -190,7 +188,7 @@ export function SpringColor() {
           <span className="field__input">
             <input
               value={hex}
-              placeholder="#2f7d32"
+              placeholder={system.scales.accent[mode][8]!.hex}
               onChange={(e) => setHex(e.target.value)}
               autoComplete="off"
               spellCheck={false}
@@ -261,6 +259,14 @@ export function SpringColor() {
       </div>
       <div className="spring-scales">
         <div className="spring-scale spring-scale--head" aria-hidden>
+          <span>step</span>
+          <span className="spring-bands spring-bands--steps">
+            {Array.from({ length: 12 }, (_, i) => (
+              <span key={i}>{i + 1}</span>
+            ))}
+          </span>
+        </div>
+        <div className="spring-scale spring-scale--head" aria-hidden>
           <span />
           <span className="spring-bands">
             <span style={{ gridColumn: "1 / 3" }}>bg</span>
@@ -274,21 +280,72 @@ export function SpringColor() {
           <div key={s} className="spring-scale">
             <span>{s}</span>
             <span className="spring-scale__steps">
-              {system.scales[s][mode].map((sw, i, all) => (
-                <span
-                  key={sw.step}
-                  style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
-                  title={`${s} ${sw.step} ${sw.hex}`}
-                >
-                  {i >= 10 ? contrast(sw.hex, all[0]!.hex).toFixed(1) : null}
-                </span>
-              ))}
+              {system.scales[s][mode].map((sw, i, all) => {
+                const key = `${s}-${sw.step}`;
+                return (
+                  <button
+                    type="button"
+                    key={sw.step}
+                    style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
+                    title={`var(--${key}) ${sw.hex}`}
+                    aria-label={`Copy ${sw.hex}, ${s} step ${sw.step}`}
+                    onClick={() => copy(key, sw.hex)}
+                  >
+                    {copied === key
+                      ? "✓"
+                      : i >= 10
+                        ? contrast(sw.hex, all[0]!.hex).toFixed(1)
+                        : null}
+                  </button>
+                );
+              })}
             </span>
           </div>
         ))}
       </div>
-      <Wordmark system={system} mode={mode} />
+      <p className="spring-meta">
+        click a step to copy its hex · {checks.filter((c) => c.pass).length} of {checks.length}{" "}
+        pairs pass WCAG 2.2 AA in light and dark
+      </p>
+      <Contrast checks={system.checks[mode]} />
     </Toy>
+  );
+}
+
+/** Every pair the system promises, with its ratio and the bar it has to clear. */
+function Contrast({ checks }: { checks: System["checks"]["light"] }) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? checks : checks.filter((c) => !c.pass);
+  return (
+    <>
+      <button
+        type="button"
+        className="spring-cmd"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? "[x]" : "[ ]"} show all {checks.length} contrast pairs
+      </button>
+      {shown.length ? (
+        <ul className="spring-contrast">
+          {shown.map((c) => (
+            <li key={`${c.fg}-${c.bg}`}>
+              <span aria-label={c.pass ? "passes" : c.advisory ? "advisory" : "fails"}>
+                {c.pass ? "✓" : c.advisory ? "!" : "✕"}
+              </span>
+              <span>
+                {c.fg} <span className="spring-meta">on</span> {c.bg}
+              </span>
+              <span className="tabular">
+                {c.ratio.toFixed(2)}
+                <span className="spring-meta">/{c.min}</span>
+              </span>
+              <span className="spring-meta">{c.why}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </>
   );
 }
 
@@ -306,6 +363,7 @@ export function SpringType() {
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
   const [mood, setMood] = useState<keyof typeof MOODS>("neutral");
+  const [manual, setManual] = useState(false);
   const pool = useMemo(
     () => pairings(MOODS[mood]!.feel, 4, undefined, input.stack.building),
     [mood, input.stack.building],
@@ -318,7 +376,7 @@ export function SpringType() {
         label="Your line"
         value={line}
         onChange={setLine}
-        placeholder="Invoices that pay themselves"
+        placeholder="A short line about what it does and who it helps."
       />
       <div className="field">
         <span className="field__label">Mood</span>
@@ -348,25 +406,37 @@ export function SpringType() {
           />
         ))}
       </div>
+      <button
+        type="button"
+        className="spring-cmd"
+        aria-expanded={manual}
+        onClick={() => setManual((m) => !m)}
+      >
+        {manual ? "[x]" : "[ ]"} pick fonts yourself
+      </button>
       <div className="spring-grid">
-        <Pick
-          label="Headings"
-          value={t.heading}
-          options={fontOptions("heading")}
-          onChange={(v) => set({ heading: v })}
-        />
-        <Pick
-          label="Text"
-          value={t.body}
-          options={fontOptions("body")}
-          onChange={(v) => set({ body: v })}
-        />
-        <Pick
-          label="Code and numbers"
-          value={t.mono}
-          options={fontOptions("mono")}
-          onChange={(v) => set({ mono: v })}
-        />
+        {manual ? (
+          <>
+            <Pick
+              label="Headings"
+              value={t.heading}
+              options={fontOptions("heading")}
+              onChange={(v) => set({ heading: v })}
+            />
+            <Pick
+              label="Text"
+              value={t.body}
+              options={fontOptions("body")}
+              onChange={(v) => set({ body: v })}
+            />
+            <Pick
+              label="Code and numbers"
+              value={t.mono}
+              options={fontOptions("mono")}
+              onChange={(v) => set({ mono: v })}
+            />
+          </>
+        ) : null}
         <Slider
           label="Body size"
           value={t.base}
@@ -396,7 +466,9 @@ export function SpringType() {
       </div>
       {Math.abs(ob - t.base) >= 1.5 ? (
         <p className="toy__caption">
-          {t.body} has a {ob > 16 ? "short" : "tall"} x-height: {ob}px looks like Inter at 16px.{" "}
+          {t.body} has a {ob > 16 ? "short" : "tall"} x-height, so {t.base}px reads{" "}
+          {ob > 16 ? "small" : "large"}. Its size that matches Inter at 16px rounds to{" "}
+          {Math.round(ob)}px.{" "}
           <button type="button" className="link" onClick={() => set({ base: Math.round(ob) })}>
             Use {Math.round(ob)}px
           </button>
@@ -474,7 +546,8 @@ function PairButton({
         <span className="tabular">€24.00</span> a month.
       </span>
       <span className="spring-meta">
-        {p.heading} + {p.body === p.heading ? "same family" : p.body}. {p.reasons[0] ?? ""}
+        {p.heading} + {p.body === p.heading ? "same family" : p.body}
+        {on && p.reasons[0] ? `. ${p.reasons[0]}` : ""}
       </span>
     </button>
   );
@@ -541,10 +614,14 @@ function Facts({ font, job }: { font: FontName; job: string }) {
 export function SpringShape() {
   const { input, system, setInput } = useSpring();
   const [mode] = useMode();
+  const [copied, copy] = useCopy();
   const r = system.shape.radius;
   const c = system.space.control;
+  const sp = system.space;
   return (
-    <Toy caption="Spacing stays on a 4px grid; density moves control heights and gaps together, so a denser system stays aligned.">
+    <Toy
+      caption={`Spacing stays on a 4px grid; density moves control heights, gaps, the ${sp.gutter}px gutter and ${sp.section}px section rhythm together, so a denser system stays aligned.`}
+    >
       <div className="spring-grid">
         <Slider
           label="Density"
@@ -564,6 +641,27 @@ export function SpringShape() {
           show={`${r.sm}/${r.md}/${r.lg}px`}
           onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
         />
+      </div>
+      <div className="spring-ruler">
+        {Object.entries(sp.scale)
+          .filter(([k]) => k !== "0")
+          .toSorted((a, b) => a[1] - b[1])
+          .map(([k, px]) => {
+            const name = `--space-${k.replace(".", "-")}`;
+            return (
+              <button
+                key={k}
+                type="button"
+                className="spring-ruler__row"
+                aria-label={`Copy var(${name}), ${px}px`}
+                onClick={() => copy(name, `var(${name})`)}
+              >
+                <span>{copied === name ? "✓ copied" : name}</span>
+                <span className="tabular">{px}px</span>
+                <span className="spring-ruler__bar" style={{ width: px }} aria-hidden />
+              </button>
+            );
+          })}
       </div>
       <Nested system={system} />
       <Components system={system} mode={mode} />
@@ -598,10 +696,11 @@ function Nested({ system }: { system: System }) {
 export function SpringMotion() {
   const { input, system, setInput } = useSpring();
   const [run, setRun] = useState(0);
+  const [copied, copy] = useCopy();
   const m = system.motion;
   return (
     <Toy
-      caption={`Energy sets every duration at once. The spring (stiffness ${m.springConfig.stiffness}, damping ${m.springConfig.damping}) ships as CSS linear(), so it needs no library.`}
+      caption={`Energy sets every duration at once. The spring (stiffness ${m.springConfig.stiffness}, damping ${m.springConfig.damping}) ships as CSS linear() and runs for its settle time, so it needs no library.`}
     >
       <Slider
         label="Energy"
@@ -610,19 +709,32 @@ export function SpringMotion() {
         max={1}
         step={0.01}
         show={input.motion < 0.34 ? "calm" : input.motion < 0.67 ? "responsive" : "lively"}
-        onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
+        onChange={(v) => {
+          setInput((i) => ({ ...i, motion: v }));
+          setRun((r) => r + 1);
+        }}
       />
       <div className="spring-race">
         {(
           [
             ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI"],
             ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen"],
-            ["spring", m.easing.spring, m.duration.slow * 2, "Drag release, playful moments"],
+            ["spring", m.easing.spring, m.duration.spring, "Drag release, playful moments"],
           ] as const
         ).map(([name, ease, ms, job]) => (
           <div key={name} className="spring-lane">
-            <span className="spring-meta">
-              {name} · {ms}ms · {job}
+            <span className="spring-lane__head">
+              <span className="spring-meta">
+                {name} · {ms}ms · {job}
+              </span>
+              <button
+                type="button"
+                className="spring-cmd"
+                title={ease}
+                onClick={() => copy(name, `${ms}ms ${ease}`)}
+              >
+                {copied === name ? "✓ copied" : "[copy]"}
+              </button>
             </span>
             <span className="spring-track">
               <span
@@ -692,7 +804,7 @@ export function SpringStack() {
           options={Object.values(COMPONENTS).map((c) => ({
             value: c.id,
             label: c.name,
-            tag: c.id === rec.components ? "fits" : undefined,
+            tag: c.id === rec.components && c.id !== system.stack.components ? "fits" : undefined,
           }))}
           onChange={(v) => set({ components: v })}
         />
@@ -702,7 +814,7 @@ export function SpringStack() {
           options={Object.values(ICONS).map((c) => ({
             value: c.id,
             label: c.name,
-            tag: c.id === rec.icons ? "fits" : undefined,
+            tag: c.id === rec.icons && c.id !== system.stack.icons ? "fits" : undefined,
           }))}
           onChange={(v) => set({ icons: v })}
         />
@@ -764,14 +876,8 @@ const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "desig
 export function SpringExport() {
   const { system } = useSpring();
   const files = useMemo(() => exportAll(system), [system]);
-  const report = useMemo(() => audit(toDesignMd(system)), [system]);
   const [tab, setTab] = useState(files[0]!.path);
-  const [copied, setCopied] = useState<string | null>(null);
-  const copy = async (what: string, text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(what);
-    setTimeout(() => setCopied(null), 1500);
-  };
+  const [copied, copy] = useCopy();
   const download = () => {
     const url = URL.createObjectURL(zip(files.map((f) => ({ path: f.path, content: f.content }))));
     const a = document.createElement("a");
@@ -781,15 +887,8 @@ export function SpringExport() {
     URL.revokeObjectURL(url);
   };
   const f = files.find((x) => x.path === tab) ?? files[0]!;
-  const issues = report.findings.filter((x) => x.status !== "pass");
   return (
-    <Toy
-      caption={
-        issues.length
-          ? `Audit ${report.score}/100: ${issues.map((x) => x.title).join("; ")}.`
-          : `Audit ${report.score}/100: every check passes.`
-      }
-    >
+    <Toy>
       <div className="toy__actions">
         <button
           type="button"

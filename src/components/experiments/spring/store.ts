@@ -5,7 +5,7 @@
  * ?s= so any state is a link. Tools are separate MDX blocks, so the state
  * lives in a tiny module store rather than a React context.
  */
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Mode } from "@/lib/spring/color";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/system";
@@ -123,4 +123,19 @@ export function useMode(): [Mode, (m: Mode) => void] {
     for (const l of modeListeners) l();
   };
   return [override ?? site, set];
+}
+
+/** Copy text and remember which thing was copied for 1.5s. A denied clipboard shows nothing. */
+export function useCopy(): [string | null, (key: string, text: string) => void] {
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = (key: string, text: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(key);
+        setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
+      },
+      () => setCopied(null),
+    );
+  };
+  return [copied, copy];
 }

@@ -129,3 +129,14 @@ describe("shadcn export", () => {
     expect(css).toContain("--color-accent: var(--accent);");
   });
 });
+
+describe("motion", () => {
+  test("the spring ships with its settle time, which grows as energy drops", () => {
+    const calm = buildSystem({ ...DEFAULT_INPUT, motion: 0 }).motion.duration.spring;
+    const lively = buildSystem({ ...DEFAULT_INPUT, motion: 1 });
+    expect(calm).toBeGreaterThan(lively.motion.duration.spring);
+    const css = exportAll(lively).find((f) => f.path.endsWith("tokens.css"))!.content;
+    expect(css).toContain(`--duration-spring: ${lively.motion.duration.spring}ms;`);
+    expect(css).toContain("--duration-spring: 0ms;");
+  });
+});

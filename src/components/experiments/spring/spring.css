@@ -145,7 +145,7 @@
 }
 .spring-code {
   height: 22rem;
-  white-space: pre;
+  white-space: pre-wrap;
   resize: none;
 }
 .spring-audit-input {
@@ -360,26 +360,6 @@
 .sp-badge--info {
   background: var(--color-info-subtle);
   color: var(--color-info-text);
-}
-.sp-tile {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 4 / 3;
-  border-radius: var(--radius-lg);
-  padding: var(--space-3);
-  text-align: center;
-}
-.sp-tile--accent {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
-}
-.sp-tile--ink {
-  background: var(--color-text);
-  color: var(--color-bg);
-}
-.sp-tile--subtle {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent-text);
 }
 .sp-text-accent {
   color: var(--color-accent-text);
@@ -643,4 +623,102 @@
 }
 .spring .spring-grid {
   align-items: start;
+}
+
+/* ——— Copyable values ——— */
+.spring-scale__steps > button {
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  cursor: copy;
+}
+.spring-scale__steps > button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}
+@container spring (max-width: 32rem) {
+  /* Two ratios don't fit in a phone-width step; the list below has them all. */
+  .spring-scale__steps > button {
+    font-size: 0;
+  }
+}
+.spring-scales {
+  container: spring / inline-size;
+}
+.spring-bands--steps {
+  border-bottom: 0;
+}
+.spring-contrast {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-contrast li {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 14rem) 5.5rem 1fr;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding-block: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+@media (max-width: 40rem) {
+  .spring-contrast li {
+    grid-template-columns: 1.25rem 1fr auto;
+  }
+  .spring-contrast li > :last-child {
+    grid-column: 2 / -1;
+  }
+}
+.spring-ruler {
+  display: grid;
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-ruler__row {
+  display: grid;
+  grid-template-columns: 7rem 3rem 1fr;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 1.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: copy;
+}
+.spring-ruler__row:hover,
+.spring-ruler__row:focus-visible {
+  color: var(--text-primary);
+}
+.spring-ruler__bar {
+  display: block;
+  max-width: 100%;
+  height: 0.5rem;
+  background: var(--text-primary);
+}
+.spring-rung__copy {
+  justify-self: start;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: copy;
+}
+.spring-rung__copy:hover {
+  color: var(--color-text);
+}
+.spring-lane__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+}
+@media (max-width: 40rem) {
+  .spring-nested {
+    grid-template-columns: 1fr;
+  }
 }

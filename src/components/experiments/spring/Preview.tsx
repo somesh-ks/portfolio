@@ -17,27 +17,9 @@ import type { Mode } from "@/lib/spring/color";
 import type { System } from "@/lib/spring/system";
 import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
+import { useCopy } from "./store";
 
 const lineOf = (l: string) => l.trim() || "A short line about what it does and who it helps.";
-
-/** The name as a wordmark, on the surfaces it will live on. */
-export function Wordmark({ system, mode }: { system: System; mode: Mode }) {
-  const name = system.input.name || "Untitled";
-  return (
-    <Scope system={system} mode={mode}>
-      <div className="grid gap-3 p-4">
-        <div className="sp-sub grid min-h-36 place-items-center rounded-[inherit] p-6">
-          <div className="sp-display text-center">{name}</div>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="sp-tile sp-tile--accent sp-h3">{name}</div>
-          <div className="sp-tile sp-tile--ink sp-h3">{name}</div>
-          <div className="sp-tile sp-tile--subtle sp-h3">{name}</div>
-        </div>
-      </div>
-    </Scope>
-  );
-}
 
 /** Buttons, fields, badges and an alert: judge the whole, not swatches. */
 export function Components({ system, mode }: { system: System; mode: Mode }) {
@@ -130,10 +112,10 @@ export function Homepage({ system, mode, line }: { system: System; mode: Mode; l
       </section>
       <section className="grid gap-3 px-5 pb-8 @md:grid-cols-3">
         {[
-          ["Starter", "0", false],
-          ["Team", "24", true],
-          ["Scale", "89", false],
-        ].map(([name, price, pick]) => (
+          ["Starter", "0", false, "3 projects"],
+          ["Team", "24", true, "Unlimited projects"],
+          ["Scale", "89", false, "SSO and audit log"],
+        ].map(([name, price, pick, perk]) => (
           <div
             key={name as string}
             className={`sp-card grid gap-2 p-4 ${pick ? "sp-card--raised" : ""}`}
@@ -144,7 +126,7 @@ export function Homepage({ system, mode, line }: { system: System; mode: Mode; l
               <span className="sp-caption"> / month</span>
             </span>
             <span className="sp-label flex items-center gap-2" style={{ fontWeight: 400 }}>
-              <Check size={14} className="sp-text-accent" aria-hidden /> Unlimited projects
+              <Check size={14} className="sp-text-accent" aria-hidden /> {perk}
             </span>
           </div>
         ))}
@@ -184,7 +166,7 @@ export function AppScreen({ system, mode }: { system: System; mode: Mode }) {
           ))}
         </aside>
         <div className="grid content-start gap-4 p-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="sp-h3 mr-auto">Invoices</div>
             <span className="sp-field sp-muted hidden w-40 @md:flex">
               <Search size={14} aria-hidden /> Search
@@ -194,7 +176,7 @@ export function AppScreen({ system, mode }: { system: System; mode: Mode }) {
             </span>
             <span className="sp-btn sp-btn--primary sp-btn--sm">New invoice</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid gap-2 @md:grid-cols-3">
             {[
               ["Outstanding", "€12,480"],
               ["Paid", "€48,210"],
@@ -215,7 +197,7 @@ export function AppScreen({ system, mode }: { system: System; mode: Mode }) {
               >
                 <span className="mr-auto">{who}</span>
                 <span className={`sp-badge sp-badge--${tone}`}>{status}</span>
-                <span className="sp-mono w-24 text-right">{amount}</span>
+                <span className="sp-mono text-right @md:w-24">{amount}</span>
               </div>
             ))}
           </div>
@@ -242,6 +224,7 @@ const SAMPLE: Partial<Record<Role, string>> = {
  * all derived per role rather than one line height for every row.
  */
 export function Ladder({ system, mode, line }: { system: System; mode: Mode; line: string }) {
+  const [copied, copy] = useCopy();
   return (
     <Scope system={system} mode={mode}>
       <div className="grid">
@@ -260,6 +243,20 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
                   {t.weight}
                   {t.tracking ? ` · ${t.tracking > 0 ? "+" : ""}${t.tracking}em` : ""}
                 </span>
+                <button
+                  type="button"
+                  className="spring-rung__copy"
+                  title={t.size}
+                  aria-label={`Copy CSS for ${t.role}`}
+                  onClick={() =>
+                    copy(
+                      t.role,
+                      `font-size: ${t.size};\nline-height: ${t.lineHeight};\nletter-spacing: ${t.tracking}em;\nfont-weight: ${t.weight};`,
+                    )
+                  }
+                >
+                  {copied === t.role ? "✓ copied" : "[copy css]"}
+                </button>
               </span>
               <span
                 className="spring-rung__sample"

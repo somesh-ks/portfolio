@@ -112,6 +112,7 @@ function toCss(sys: System): string {
     "    --duration-fast: 0ms;",
     "    --duration-base: 0ms;",
     "    --duration-slow: 0ms;",
+    "    --duration-spring: 0ms;",
     "    --ease-spring: linear;",
     "  }",
     "}",
@@ -585,7 +586,7 @@ Durations: ${Object.entries(sys.motion.duration)
     .map(([k, v]) => `${k} ${v}ms`)
     .join(
       ", ",
-    )}. Enter with \`--ease-out\`, move on screen with \`--ease-in-out\`, use \`--ease-spring\` for things the user drags or toggles. Animate only transform and opacity. Under \`prefers-reduced-motion\`, durations drop to 0.
+    )}. Enter with \`--ease-out\`, move on screen with \`--ease-in-out\`, use \`--ease-spring\` with \`--duration-spring\` for things the user drags or toggles. Animate only transform and opacity. Under \`prefers-reduced-motion\`, durations drop to 0.
 
 ## Do's and Don'ts
 

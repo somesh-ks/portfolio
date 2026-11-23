@@ -98,7 +98,8 @@ export function buildShadows(neutralHue: number, mode: "light" | "dark"): Shadow
 }
 
 export interface Motion {
-  duration: { instant: number; fast: number; base: number; slow: number };
+  /** ms; `spring` is the spring's settle time, the duration `--ease-spring` needs. */
+  duration: { instant: number; fast: number; base: number; slow: number; spring: number };
   easing: { out: string; inOut: string; spring: string };
   /** Spring parameters behind `spring`, for libraries that take them. */
   springConfig: { stiffness: number; damping: number; mass: number };
@@ -147,12 +148,13 @@ export function buildMotion(energy: number): Motion {
   const slow = Math.round(360 - e * 60);
   const stiffness = Math.round(170 + e * 230);
   const damping = round(2 * Math.sqrt(stiffness) * (1 - e * 0.35), 1);
+  const spring = springLinear(stiffness, damping);
   return {
-    duration: { instant: 0, fast, base, slow },
+    duration: { instant: 0, fast, base, slow, spring: spring.duration },
     easing: {
       out: "cubic-bezier(0.22, 1, 0.36, 1)",
       inOut: "cubic-bezier(0.65, 0, 0.35, 1)",
-      spring: springLinear(stiffness, damping).easing,
+      spring: spring.easing,
     },
     springConfig: { stiffness, damping, mass: 1 },
   };
