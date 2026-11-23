@@ -8,9 +8,10 @@ const csp = [
   // Cloudflare Web Analytics (free, cookieless) is injected at the edge.
   "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com" +
     (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
-  "style-src 'self' 'unsafe-inline'",
+  // Google Fonts serves the type choices on /projects/spring, and only there.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob:",
-  "font-src 'self'",
+  "font-src 'self' https://fonts.gstatic.com",
   "connect-src 'self' https://cloudflareinsights.com",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
@@ -43,6 +44,7 @@ const config: NextConfig = {
   },
   async redirects() {
     return [
+      { source: "/spring", destination: "/projects/spring", permanent: false },
       {
         source: "/projects/design-engineering-skill.md",
         destination: "/projects/interface-mechanics.md",
