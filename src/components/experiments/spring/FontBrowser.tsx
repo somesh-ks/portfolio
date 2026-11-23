@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isCurated, type FontMeta, type FontTag } from "@/lib/spring/type";
 import { Segmented } from "../Segmented";
 
@@ -12,7 +12,7 @@ const TAG: Record<string, FontTag> = { s: "sans", r: "serif", d: "display", m: "
 const KINDS = ["picks", "all", "sans", "serif", "display", "mono", "hand"] as const;
 type Kind = (typeof KINDS)[number];
 const KIND_LABEL: Record<Kind, string> = {
-  picks: "Spring picks",
+  picks: "Measured",
   all: "All",
   sans: "Sans",
   serif: "Serif",
@@ -64,6 +64,9 @@ export function FontBrowser({
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<Kind>(role === "mono" ? "mono" : "picks");
   const [count, setCount] = useState(PAGE);
+  // Opening moves focus to the search, which also scrolls the browser into view on phones.
+  const search = useRef<HTMLInputElement>(null);
+  useEffect(() => search.current?.focus(), []);
   useEffect(() => {
     let live = true;
     void load().then((r) => live && setRows(r));
@@ -117,6 +120,7 @@ export function FontBrowser({
           </span>
           <span className="field__input">
             <input
+              ref={search}
               type="search"
               value={q}
               placeholder="Family name"
@@ -143,8 +147,8 @@ export function FontBrowser({
         {!rows
           ? "Loading the catalogue…"
           : kind === "picks"
-            ? `${shown.length} fonts Spring has measured, so fallbacks and size hints are exact.`
-            : `${shown.length.toLocaleString("en")} fonts, most used first.`}
+            ? `${shown.length} fonts with exact fallbacks and size hints`
+            : `${shown.length.toLocaleString("en")} fonts${q ? "" : ", most used first"}`}
       </p>
       {/* Each card loads only the letters of its sample, in that family. */}
       {page.map((r) => (

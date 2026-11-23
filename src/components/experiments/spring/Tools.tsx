@@ -4,7 +4,6 @@ import { useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
-import { MOODS, pairings, type Pairing } from "@/lib/spring/pairing";
 import { inputFromSeed, type System, type SystemInput } from "@/lib/spring/system";
 import {
   FONT_NAMES,
@@ -62,7 +61,7 @@ function AreaExport({ system, area }: { system: System; area: Area }) {
       <span className="spring-export__row">
         <button
           type="button"
-          className="button button--primary"
+          className="button"
           onClick={() => save(css.path, text(css.content, "text/css"))}
         >
           Download CSS
@@ -72,13 +71,12 @@ function AreaExport({ system, area }: { system: System; area: Area }) {
           className="button"
           onClick={() => save(json.path, text(json.content, "application/json"))}
         >
-          Download JSON
+          Download DTCG JSON
         </button>
         <button type="button" className="button" onClick={() => copy(css.path, css.content)}>
           {copied === css.path ? "Copied" : "Copy CSS"}
         </button>
       </span>
-      <span className="spring-meta">JSON is DTCG, for Figma and Style Dictionary.</span>
       <output className="sr-only">{said}</output>
     </div>
   );
@@ -205,15 +203,11 @@ function Pick<T extends string>({
           <label key={o.value} className="spring-pick__row">
             <input
               type="radio"
-              className="sr-only"
               name={name}
               value={o.value}
               checked={o.value === value}
               onChange={() => onChange(o.value)}
-              // The input is visually hidden, so keep its row in view for arrow-key users.
-              onFocus={(e) => e.currentTarget.parentElement?.scrollIntoView({ block: "nearest" })}
             />
-            <span aria-hidden>{o.value === value ? "(•)" : "( )"}</span>
             <span>{o.label}</span>
             {o.tag ? <span className="spring-meta">{o.tag}</span> : null}
           </label>
@@ -247,6 +241,7 @@ export function SpringWorkbench() {
   const [tab, setTab] = useState<Tab>("color");
   const [view, setView] = useState<"output" | "preview">("output");
   const [browse, setBrowse] = useState<FontRole | null>(null);
+  const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   // Starts at 1 so the curves play as soon as the Motion tab opens.
   const [run, setRun] = useState(1);
   const files = useMemo(() => exportAll(system), [system]);
@@ -348,6 +343,15 @@ export function SpringWorkbench() {
                 render={(v) => (v === "site" ? "Site" : "App")}
               />
             ) : null}
+            {view === "preview" ? (
+              <Segmented
+                label="Width"
+                options={["phone", "tablet", "desktop"] as const}
+                value={width}
+                onChange={setWidth}
+                render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
+              />
+            ) : null}
             {view === "preview" || (tab !== "tokens" && tab !== "motion") ? (
               <span className="spring-wb__end">
                 <Segmented
@@ -361,11 +365,14 @@ export function SpringWorkbench() {
             ) : null}
           </div>
           {view === "preview" ? (
-            building === "site" ? (
-              <Homepage system={system} mode={mode} line={spring.line} />
-            ) : (
-              <AppScreen system={system} mode={mode} />
-            )
+            // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
+            <div className="spring-frame" data-width={width}>
+              {building === "site" ? (
+                <Homepage system={system} mode={mode} line={spring.line} />
+              ) : (
+                <AppScreen system={system} mode={mode} />
+              )}
+            </div>
           ) : (
             <>
               {tab === "color" ? <ColorOutput system={system} mode={mode} /> : null}
@@ -375,7 +382,7 @@ export function SpringWorkbench() {
                   setRole={setBrowse}
                   current={input.type}
                   sample={{
-                    heading: input.name || "Your name",
+                    heading: `${input.name || "Your name"} ships calm, quick software`,
                     body: spring.line.trim() || "A short line about what it does and who it helps.",
                     mono: "const total = 5517.60;",
                   }}
@@ -456,7 +463,7 @@ function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode 
         onChange={(v) => setAccent({ hue: v, solidL: undefined })}
       />
       <Slider
-        label="Vividness"
+        label="Chroma"
         value={a.chroma}
         min={0.02}
         max={0.3}
@@ -495,11 +502,39 @@ function ColorControls({ system, input, setInput, mode }: Spring & { mode: Mode 
   );
 }
 
+/** Machado et al. (2009) full-severity simulation matrices, applied in linear RGB. */
+const CVD = {
+  protan: "0.152 1.053 -0.205 0 0 0.115 0.786 0.099 0 0 -0.004 -0.048 1.052 0 0 0 0 0 1 0",
+  deutan: "0.367 0.861 -0.228 0 0 0.280 0.673 0.047 0 0 -0.012 0.043 0.969 0 0 0 0 0 1 0",
+  tritan: "1.256 -0.077 -0.179 0 0 -0.078 0.931 0.148 0 0 0.005 0.691 0.304 0 0 0 0 0 1 0",
+} as const;
+const VISION = ["normal", ...(Object.keys(CVD) as (keyof typeof CVD)[])] as const;
+const VISION_LABEL = { normal: "Normal", protan: "Protan", deutan: "Deutan", tritan: "Tritan" };
+
 function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
+  const [vision, setVision] = useState<(typeof VISION)[number]>("normal");
+  const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
   return (
     <>
-      <div className="spring-scales">
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        {Object.entries(CVD).map(([k, m]) => (
+          <filter key={k} id={`${filterId}-${k}`} colorInterpolationFilters="linearRGB">
+            <feColorMatrix type="matrix" values={m} />
+          </filter>
+        ))}
+      </svg>
+      <Segmented
+        label="Color vision"
+        options={VISION}
+        value={vision}
+        onChange={setVision}
+        render={(v) => VISION_LABEL[v]}
+      />
+      <div
+        className="spring-scales"
+        style={vision === "normal" ? undefined : { filter: `url(#${filterId}-${vision})` }}
+      >
         <div className="spring-scale spring-scale--head" aria-hidden>
           <span>step</span>
           <span className="spring-bands spring-bands--steps">
@@ -549,7 +584,6 @@ function ColorOutput({ system, mode }: { system: System; mode: Mode }) {
           </div>
         ))}
       </div>
-      <p className="spring-meta">click a step to copy its hex</p>
       <output className="sr-only">{said}</output>
       <Contrast checks={system.checks[mode]} mode={mode} />
     </>
@@ -570,12 +604,6 @@ function TypeControls({
   const t = input.type;
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
-  const [mood, setMood] = useState<keyof typeof MOODS>("neutral");
-  const [pairs, setPairs] = useState(false);
-  const pool = useMemo(
-    () => pairings(MOODS[mood]!.feel, 4, undefined, input.stack.building),
-    [mood, input.stack.building],
-  );
   const ob = opticalBase(t.body, t.extra);
   const head = fontInfo(t.heading, t.extra);
   const lo = head.variable?.[0] ?? head.weights[0]!;
@@ -640,48 +668,6 @@ function TypeControls({
         onChange={setLine}
         placeholder="A short line about what it does and who it helps."
       />
-      <button
-        type="button"
-        className="spring-link"
-        aria-expanded={pairs}
-        onClick={() => setPairs((m) => !m)}
-      >
-        {pairs ? "Hide suggested pairs" : "Suggest a pair by mood"}
-      </button>
-      {pairs ? (
-        <>
-          <Choice
-            label="Mood"
-            value={mood}
-            options={Object.entries(MOODS).map(([k, m]) => ({
-              value: k as keyof typeof MOODS,
-              label: m.label,
-            }))}
-            onChange={setMood}
-          />
-          <div className="spring-pairs">
-            {pool.map((p) => (
-              <PairButton
-                key={`${p.heading}-${p.body}`}
-                p={p}
-                name={input.name}
-                line={line}
-                on={p.heading === t.heading && p.body === t.body}
-                onPick={() =>
-                  setInput((i) => ({
-                    ...i,
-                    type: [
-                      ["heading", p.heading],
-                      ["body", p.body],
-                      ["mono", p.mono],
-                    ].reduce((acc, [r, n]) => withFont(acc, r as FontRole, n!), i.type),
-                  }))
-                }
-              />
-            ))}
-          </div>
-        </>
-      ) : null}
     </>
   );
 }
@@ -728,9 +714,6 @@ function ShapeControls({ input, system, setInput }: Spring) {
         show={`${r.sm}/${r.md}/${r.lg}px`}
         onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
       />
-      <p className="toy__caption">
-        A 4px grid. Density moves control heights, gaps and section rhythm together.
-      </p>
       <Nested system={system} />
     </>
   );
@@ -740,10 +723,7 @@ function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
   return (
     <>
-      <p className="spring-meta">
-        click a step to copy its var
-        <output className="sr-only">{said}</output>
-      </p>
+      <output className="sr-only">{said}</output>
       <div className="spring-ruler">
         {Object.entries(system.space.scale)
           .filter(([k]) => k !== "0")
@@ -781,7 +761,7 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
         min={0}
         max={1}
         step={0.01}
-        show={input.motion < 0.34 ? "calm" : input.motion < 0.67 ? "responsive" : "lively"}
+        show={`base ${m.duration.base}ms`}
         onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
         onCommit={onCommit}
       />
@@ -793,9 +773,6 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
           </div>
         ))}
       </dl>
-      <p className="toy__caption">
-        One setting drives every duration. The spring ships as CSS linear(), so no library.
-      </p>
     </>
   );
 }
@@ -890,24 +867,20 @@ function TokensControls({
         onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
       />
       <div className="spring-export">
-        <span className="field__label">Everything</span>
         <button type="button" className="button button--primary" onClick={download}>
           Download all files (.zip)
         </button>
         <span className="spring-export__row">
           <button type="button" className="button" onClick={() => copy("prompt", toPrompt(system))}>
-            {copied === "prompt" ? "Copied" : "Copy setup prompt"}
+            {copied === "prompt" ? "Copied" : "Copy agent prompt"}
           </button>
           <button type="button" className="button" onClick={() => copy("link", shareUrl())}>
             {copied === "link" ? "Copied" : "Copy share link"}
           </button>
         </span>
-        <span className="spring-meta">
-          The prompt tells a coding agent where each file goes. The link reopens this system.
-        </span>
       </div>
       <Pick
-        label="One file"
+        label="Files"
         value={f.path}
         options={files.map((x) => ({ value: x.path, label: x.path }))}
         onChange={setFile}
@@ -953,7 +926,10 @@ function AuditDialog() {
             Undo
           </button>
         ) : null}
-        <Dialog.Trigger className="button">Audit a system</Dialog.Trigger>
+        <Dialog.Trigger className="button spring-audit-trigger">
+          <span>Audit</span>
+          <span className="spring-wide">a system</span>
+        </Dialog.Trigger>
       </span>
       <Dialog.Portal>
         <Dialog.Backdrop className="palette-backdrop" />
@@ -1049,41 +1025,6 @@ function ratioAdvice(building: string, r: number): string {
   return `${what} fits ${fit[0]}–${fit[1]}. ${verdict}`;
 }
 
-function PairButton({
-  p,
-  name,
-  line,
-  on,
-  onPick,
-}: {
-  p: Pairing;
-  name: string;
-  line: string;
-  on: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button type="button" className="spring-pair" aria-pressed={on} onClick={onPick}>
-      <span className="spring-pair__mark" aria-hidden>
-        {on ? "(•)" : "( )"}
-      </span>
-      <span className="spring-pair__name" style={{ fontFamily: `"${p.heading}", serif` }}>
-        {name || "Your name"}
-      </span>
-      {on ? (
-        <span className="spring-pair__line" style={{ fontFamily: `"${p.body}", sans-serif` }}>
-          {line.trim() || "A short line about what it does."} From{" "}
-          <span className="tabular">€24.00</span> a month.
-        </span>
-      ) : null}
-      <span className="spring-meta">
-        {p.heading} + {p.body === p.heading ? "same family" : p.body}
-        {on && p.reasons[0] ? `. ${p.reasons[0]}` : ""}
-      </span>
-    </button>
-  );
-}
-
 /** What people get wrong when choosing a brand font, on one card. */
 function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {
   const info = fontInfo(font, extra);
@@ -1114,7 +1055,7 @@ function Facts({ font, job, extra }: { font: FontName; job: string; extra?: Type
   return (
     <div className="spring-tree">
       <span>
-        {font.toLowerCase()} <span className="spring-meta">{job.toLowerCase()}</span>
+        {font} <span className="spring-meta">{job}</span>
       </span>
       <span className="spring-meta">
         {d
@@ -1122,11 +1063,9 @@ function Facts({ font, job, extra }: { font: FontName; job: string; extra?: Type
           : "From the Google Fonts catalogue."}
       </span>
       <dl>
-        {rows.map(([k, v], i, all) => (
+        {rows.map(([k, v]) => (
           <div key={k}>
-            <dt>
-              {i === all.length - 1 ? "└" : "├"} {k}
-            </dt>
+            <dt>{k}</dt>
             <dd>{v}</dd>
           </div>
         ))}

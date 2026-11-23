@@ -154,7 +154,7 @@
   gap: 2px;
 }
 .spring-audit-input.spring-code {
-  height: 22rem;
+  height: min(70vh, 48rem);
   white-space: pre-wrap;
   resize: none;
 }
@@ -471,27 +471,6 @@
 .spring .range::-moz-range-thumb {
   border-radius: 0;
 }
-.spring .segmented {
-  padding: 0;
-  gap: var(--space-3);
-  background: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-.spring .segmented__item {
-  padding: 0;
-  border-radius: 0;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  font-weight: 400;
-  text-transform: lowercase;
-}
-.spring .segmented__item[aria-pressed="true"] {
-  background: none;
-  box-shadow: none;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
 .spring-pick {
   margin: 0;
   padding: 0;
@@ -716,6 +695,7 @@
 /* ——— Workbench: tool controls left, pinned preview and output right ——— */
 .spring-wb {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .spring .field__input input {
@@ -723,14 +703,20 @@
 }
 /* Plain tabs: sans labels, an underline for the open one, a hairline under the row. */
 .spring-wb__tabs {
+  position: sticky;
+  top: var(--site-bar-height);
+  z-index: 5;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  background: var(--surface-canvas);
   align-items: end;
   justify-content: space-between;
   gap: var(--space-2);
   border-bottom: 1px solid var(--border-subtle);
 }
 .spring-tabs {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
@@ -784,10 +770,6 @@
   margin-left: auto;
 }
 /* The screen picker belongs to the preview, not to the output switch beside it. */
-.spring-wb__bar > .segmented + .segmented {
-  padding-left: var(--space-4);
-  border-left: 1px solid var(--border-subtle);
-}
 .spring-wb__cmds {
   display: grid;
   justify-items: start;
@@ -925,4 +907,35 @@
   display: grid;
   gap: 0;
   font-size: var(--step-sm);
+}
+
+/* Long labels shrink on phones so the tab row stays on one line. */
+@media (max-width: 40rem) {
+  .spring-wide {
+    display: none;
+  }
+}
+.spring-pick input[type="radio"] {
+  margin: 0;
+  accent-color: var(--text-primary);
+}
+.spring-frame {
+  width: 100%;
+  margin-inline: auto;
+  transition: max-width var(--duration-popover) ease;
+}
+.spring-frame[data-width="phone"] {
+  max-width: 390px;
+}
+.spring-frame[data-width="tablet"] {
+  max-width: 768px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-frame {
+    transition: none;
+  }
+}
+.spring-audit-trigger {
+  gap: 0.3em;
+  flex: none;
 }
