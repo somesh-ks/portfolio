@@ -314,6 +314,11 @@ function checkColor(p: Parsed, findings: Finding[]) {
       if (!TEXT.test(bare(c.name)) || isOn(c.name) || isScaleStep(c.name)) continue;
       const r = contrast(c.hex, bg.hex);
       if (r < 4.5) failing.push(`${c.name} ${r.toFixed(2)}:1`);
+      // DTCG dark values from $extensions.mode.dark get the same check on the dark background.
+      if (c.dark && bg.dark) {
+        const d = contrast(c.dark, bg.dark);
+        if (d < 4.5) failing.push(`${c.name} (dark) ${d.toFixed(2)}:1`);
+      }
     }
     // on-X pairs
     for (const c of p.colors) {
@@ -324,6 +329,10 @@ function checkColor(p: Parsed, findings: Finding[]) {
       if (!base) continue;
       const r = contrast(c.hex, base.hex);
       if (r < 4.5) failing.push(`${c.name} on ${base.name} ${r.toFixed(2)}:1`);
+      if (c.dark && base.dark) {
+        const d = contrast(c.dark, base.dark);
+        if (d < 4.5) failing.push(`${c.name} on ${base.name} (dark) ${d.toFixed(2)}:1`);
+      }
     }
     findings.push(
       failing.length

@@ -140,3 +140,16 @@ describe("motion", () => {
     expect(css).toContain("--duration-spring: 0ms;");
   });
 });
+
+test("audit checks DTCG dark values, not only light ones", () => {
+  const tokens = {
+    color: {
+      $type: "color",
+      bg: { $value: "#ffffff", $extensions: { mode: { dark: "#111111" } } },
+      text: { $value: "#111111", $extensions: { mode: { dark: "#333333" } } },
+    },
+  };
+  const f = audit(JSON.stringify(tokens)).findings.find((x) => x.id === "contrast")!;
+  expect(f.status).toBe("fail");
+  expect(f.detail).toContain("(dark)");
+});
