@@ -8,6 +8,10 @@ Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun
 - Skills live in [`.agents/skills/`](.agents/skills/README.md). Use them for tokens, typography, motion, layout, accessibility, mobile and interface review.
 - Before you push, run `bun run check && bun test && bun run build && bun run size && bun run test:e2e`.
 
+## Domains
+
+DNS for someshks.com is on Cloudflare; the sites run on Vercel. Subdomains (news, tide) are CNAMEs to Vercel and may stay proxied (orange cloud). A new host returns Cloudflare 525 for a few minutes until Vercel issues its certificate; wait, don't switch the proxy off. If a 525 returns later, check that SSL/TLS mode is Full (strict) and `/.well-known/acme-challenge/*` isn't blocked or cached. Renaming a host: add the new domain on Vercel, then 308 the old one to it, and keep the old Cloudflare record so old links still resolve.
+
 ## The one rule that matters
 
 This repo is public. ROYC and Luminovo are under NDA. Their bodies and media never enter git, the client bundle, `llms*.txt` or the `.md` mirrors. They load at runtime from `PROTECTED_CONTENT_SOURCE` (see [`docs/protected-content.md`](docs/protected-content.md)). Tests use the sentinel fixtures in `tests/fixtures/protected`, and `bun test`, `bun run size` and the e2e suite fail if a sentinel leaks.
