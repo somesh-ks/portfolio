@@ -126,16 +126,24 @@ export function useMode(): [Mode, (m: Mode) => void] {
 }
 
 /** Copy text and remember which thing was copied for 1.5s. A denied clipboard shows nothing. */
-export function useCopy(): [string | null, (key: string, text: string) => void] {
+export function useCopy(): [string | null, (key: string, text: string) => void, string] {
   const [copied, setCopied] = useState<string | null>(null);
+  const [said, setSaid] = useState("");
   const copy = (key: string, text: string) => {
-    navigator.clipboard.writeText(text).then(
+    let done: Promise<void>;
+    try {
+      done = navigator.clipboard.writeText(text);
+    } catch (e) {
+      done = Promise.reject(e);
+    }
+    done.then(
       () => {
         setCopied(key);
+        setSaid(`Copied ${text.length > 40 ? key : text}`);
         setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
       },
       () => setCopied(null),
     );
   };
-  return [copied, copy];
+  return [copied, copy, said];
 }

@@ -224,9 +224,10 @@ const SAMPLE: Partial<Record<Role, string>> = {
  * all derived per role rather than one line height for every row.
  */
 export function Ladder({ system, mode, line }: { system: System; mode: Mode; line: string }) {
-  const [copied, copy] = useCopy();
+  const [copied, copy, said] = useCopy();
   return (
     <Scope system={system} mode={mode}>
+      <output className="sr-only">{said}</output>
       <div className="grid">
         {system.type.tokens.map((t) => {
           const px = t.max;
@@ -247,7 +248,7 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
                   type="button"
                   className="spring-rung__copy"
                   title={t.size}
-                  aria-label={`Copy CSS for ${t.role}`}
+
                   onClick={() =>
                     copy(
                       t.role,
@@ -256,6 +257,7 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
                   }
                 >
                   {copied === t.role ? "✓ copied" : "[copy css]"}
+                  <span className="sr-only"> for {t.role}</span>
                 </button>
               </span>
               <span

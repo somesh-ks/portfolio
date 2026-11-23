@@ -29,7 +29,7 @@
 .spring-scale__steps {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  height: 1.5rem;
+  height: 1.75rem;
 }
 .spring-grid {
   display: grid;
@@ -143,7 +143,7 @@
   flex-wrap: wrap;
   gap: 2px;
 }
-.spring-code {
+.spring-audit-input.spring-code {
   height: 22rem;
   white-space: pre-wrap;
   resize: none;
@@ -416,11 +416,7 @@
     gap: var(--space-1, 0.25rem);
   }
 }
-.spring-scale__steps > span {
-  display: grid;
-  place-items: center;
-  font-size: 10px;
-}
+
 .spring-bands {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -635,11 +631,20 @@
 .spring-scale__steps > button:focus-visible {
   outline: 2px solid var(--text-primary);
   outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--surface-canvas);
 }
 @container spring (max-width: 32rem) {
   /* Two ratios don't fit in a phone-width step; the list below has them all. */
-  .spring-scale__steps > button {
-    font-size: 0;
+  .spring-step__ratio {
+    display: none;
+  }
+  /* Names above the strip so each step stays a 24px+ target. */
+  .spring-scale {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .spring-scale--head > :first-child:empty {
+    display: none;
   }
 }
 .spring-scales {
