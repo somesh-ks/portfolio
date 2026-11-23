@@ -21,7 +21,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { Maximize2, Minimize2, Shuffle, Volume2, VolumeX } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -549,7 +549,6 @@ export function ClaudeRunner() {
 
       <div className="runner__foot">
         <button type="button" className="runner__action runner__costume" onClick={cycleCostume}>
-          <Shuffle aria-hidden="true" size={18} className="runner__icon" />
           <span className="runner__label">
             <Key keyName="C" /> CHANGE CHARACTER
           </span>

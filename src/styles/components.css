@@ -486,7 +486,7 @@ claude-mascot:defined > * {
 .runner[data-input="touch"] .runner__foot .runner__key {
   display: none;
 }
-/* On touch the footer is "CHANGE CHARACTER" left and a fullscreen icon right
+/* On touch the footer is a "CHANGE CHARACTER" label left and a fullscreen icon right
    (its label stays for screen readers). Same touch test as the key hints. */
 .runner__icon {
   display: none;
@@ -499,7 +499,6 @@ claude-mascot:defined > * {
     color: var(--text-primary);
   }
   .runner:not([data-input="keys"]) .runner__costume {
-    gap: var(--space-2);
     padding-inline: 0;
   }
   /* Fullscreen is an icon; its glyph lines up with the column's right edge. */
@@ -509,7 +508,7 @@ claude-mascot:defined > * {
     margin-right: calc((18px - 2.75rem) / 2);
     padding: 0;
   }
-  .runner:not([data-input="keys"]) .runner__icon {
+  .runner:not([data-input="keys"]) .runner__fullscreen .runner__icon {
     display: block;
   }
   .runner:not([data-input="keys"]) .runner__fullscreen .runner__label {
@@ -526,7 +525,6 @@ claude-mascot:defined > * {
   color: var(--text-primary);
 }
 .runner[data-input="touch"] .runner__costume {
-  gap: var(--space-2);
   padding-inline: 0;
 }
 /* Fullscreen is an icon; its glyph lines up with the column's right edge. */
@@ -541,7 +539,7 @@ claude-mascot:defined > * {
   width: 2.75rem;
   margin-right: calc((18px - 2.75rem) / 2);
 }
-.runner[data-input="touch"] .runner__icon {
+.runner[data-input="touch"] .runner__fullscreen .runner__icon {
   display: block;
 }
 .runner[data-input="touch"] .runner__fullscreen .runner__label {
