@@ -9,9 +9,9 @@ describe("content", () => {
     expect(lockedSlugs().toSorted()).toEqual([...LOCKED_SLUGS].toSorted());
   });
 
-  test("the plan's mix is present: 6 projects, 4 experiments, 5 case studies", () => {
-    expect(entriesOf("project")).toHaveLength(6);
-    expect(entriesOf("experiment")).toHaveLength(4);
+  test("the mix is present: 5 projects, 5 experiments, 5 case studies", () => {
+    expect(entriesOf("project")).toHaveLength(5);
+    expect(entriesOf("experiment")).toHaveLength(5);
     expect(entriesOf("case-study")).toHaveLength(5);
   });
 });
