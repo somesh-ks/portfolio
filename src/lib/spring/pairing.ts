@@ -5,7 +5,7 @@
  */
 import type { Feel, Genre } from "./fonts.curated";
 import { FONTS } from "./fonts.data";
-import type { FontName } from "./type";
+import type { CuratedFont as FontName } from "./type";
 
 export type Building = "site" | "app" | "dashboard";
 

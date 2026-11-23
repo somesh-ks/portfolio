@@ -253,7 +253,7 @@ export function Ladder({ system, mode, line }: { system: System; mode: Mode; lin
                     )
                   }
                 >
-                  {copied === t.role ? "✓ copied" : "[copy css]"}
+                  {copied === t.role ? "Copied" : "Copy CSS"}
                   <span className="sr-only"> for {t.role}</span>
                 </button>
               </span>

@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
 import { MOODS, pairings } from "@/lib/spring/pairing";
-import { exportAll, toDesignMd } from "@/lib/spring/exports";
+import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
+import { withFont } from "@/lib/spring/type";
 import { SAMPLES } from "@/lib/spring/samples";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { DEFAULT_INPUT, buildSystem, inputFromSeed, type SystemInput } from "@/lib/spring/system";
@@ -152,4 +153,58 @@ test("audit checks DTCG dark values, not only light ones", () => {
   const f = audit(JSON.stringify(tokens)).findings.find((x) => x.id === "contrast")!;
   expect(f.status).toBe("fail");
   expect(f.detail).toContain("(dark)");
+});
+
+describe("any Google font", () => {
+  const meta = { tag: "serif" as const, weights: [400, 700], variable: null };
+  const type = withFont(DEFAULT_INPUT.type, "heading", "Playfair Display", meta);
+  const input: SystemInput = { ...DEFAULT_INPUT, type };
+
+  test("round-trips through the share link", () => {
+    const back = decodeInput(encodeInput(input))!;
+    expect(back.type.heading).toBe("Playfair Display");
+    expect(back.type.extra).toEqual({ "Playfair Display": meta });
+  });
+
+  test("rejects unsafe names and unknown fonts from a link", () => {
+    const bad = { ...input, type: { ...type, heading: 'X"}', extra: { 'X"}': meta } } };
+    expect(decodeInput(encodeInput(bad))!.type.heading).toBe(DEFAULT_INPUT.type.heading);
+    const orphan = { ...input, type: { ...type, extra: undefined } };
+    expect(decodeInput(encodeInput(orphan))!.type.heading).toBe(DEFAULT_INPUT.type.heading);
+  });
+
+  test("builds type, loads the font and skips guessed fallbacks", () => {
+    const sys = buildSystem(input);
+    const h1 = sys.type.tokens.find((t) => t.role === "h1")!;
+    expect(h1.family).toBe("Playfair Display");
+    expect([400, 700]).toContain(h1.weight);
+    expect(sys.type.fallbacks.heading.css).toBe("");
+    const css = exportAll(sys).find((f) => f.path === "tokens.css")!.content;
+    expect(css).toContain("family=Playfair+Display:wght@400;700");
+    expect(css).toContain('--font-heading: "Playfair Display", ui-serif');
+  });
+
+  test("drops metadata once no role uses the font", () => {
+    expect(withFont(type, "heading", "Inter").extra).toBeUndefined();
+  });
+});
+
+describe("per-tool exports", () => {
+  const sys = buildSystem(DEFAULT_INPUT);
+  test.each(["color", "type", "space", "motion"] as const)(
+    "%s exports only its own tokens",
+    (a) => {
+      const { css, json } = exportArea(sys, a);
+      const vars = [...css.content.matchAll(/^\s*--([a-z]+)-/gm)].map((m) => m[1]);
+      const own: Record<typeof a, string[]> = {
+        color: ["accent", "neutral", "danger", "warning", "success", "info", "color"],
+        type: ["font", "text"],
+        space: ["space", "control", "pad", "radius", "border", "shadow"],
+        motion: ["duration", "ease"],
+      };
+      expect(vars.length).toBeGreaterThan(0);
+      expect(vars.filter((v) => !own[a].includes(v!))).toEqual([]);
+      expect(() => JSON.parse(json.content)).not.toThrow();
+    },
+  );
 });

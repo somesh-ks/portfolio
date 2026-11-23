@@ -43,8 +43,8 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
       </label>
       <div className="toy__actions">
         {SAMPLES.map((s) => (
-          <button key={s.id} type="button" className="spring-cmd" onClick={() => setText(s.text)}>
-            $ load {s.label.toLowerCase()}
+          <button key={s.id} type="button" className="button" onClick={() => setText(s.text)}>
+            Try {s.label.toLowerCase()}
           </button>
         ))}
       </div>
@@ -77,7 +77,7 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
             <div className="toy__actions">
               <button
                 type="button"
-                className="spring-cmd"
+                className="button button--primary"
                 onClick={() => {
                   const before = input;
                   setInput(report.input);
@@ -85,7 +85,7 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
                   onFix?.(before);
                 }}
               >
-                {fixed ? "✓ loaded into the workbench" : "$ fix all →"}
+                {fixed ? "Loaded into the workbench" : "Fix all and open in Spring"}
               </button>
             </div>
           </>

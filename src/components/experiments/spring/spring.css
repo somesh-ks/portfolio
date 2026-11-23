@@ -489,22 +489,6 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.spring-cmd {
-  min-height: 2.75rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  text-align: left;
-}
-.spring-cmd:hover,
-.spring-cmd[aria-pressed="true"] {
-  color: var(--text-primary);
-}
-@media (hover: hover) and (pointer: fine) {
-  .spring-cmd {
-    min-height: 2rem;
-  }
-}
 .spring-pick {
   margin: 0;
   padding: 0;
@@ -564,10 +548,6 @@
 }
 .spring .field {
   padding-inline: 0;
-}
-.spring-cmd:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 /* Square hairline sliders with a block thumb. */
 .spring .range {
@@ -839,4 +819,107 @@
 }
 .spring-pick--all .spring-pick__list {
   max-height: none;
+}
+
+/* ——— Plain controls: exports, font roles, font browser ——— */
+.spring-link {
+  justify-self: start;
+  min-height: 2.75rem;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.2em;
+}
+.spring-link:hover {
+  text-decoration-color: currentColor;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-link {
+    min-height: 1.5rem;
+  }
+}
+.spring-export {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-export > .button {
+  justify-content: center;
+}
+.spring-export__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.spring-roles {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.spring-role {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-role__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spring-fonts {
+  display: grid;
+  gap: var(--space-3);
+}
+.spring-fonts__head,
+.spring-fonts__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.spring-fonts__search {
+  flex: 1 1 14rem;
+}
+.spring-fonts__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.spring-font {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-3);
+  text-align: left;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.spring-font:hover {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.spring-font[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+.spring-font__sample {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.spring-font__meta {
+  display: grid;
+  gap: 0;
+  font-size: var(--step-sm);
 }
