@@ -61,12 +61,12 @@ export function CommandMenu({ links }: { links: CommandLink[] }) {
           setOpen(true);
         }}
       >
-        jump<span className="sr-only"> to a page</span>
         {mod ? (
           <span className="palette-trigger__keys" aria-hidden="true">
             <Kbd>{mod === "⌘" ? "⌘K" : "Ctrl K"}</Kbd>
           </span>
         ) : null}
+        jump<span className="sr-only"> to a page</span>
       </button>
       {used ? (
         <Suspense fallback={null}>
