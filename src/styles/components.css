@@ -1454,6 +1454,25 @@ claude-mascot:defined > * {
   }
 }
 
+/* ---------- Tool layout: the page is the tool ---------- */
+.page:has(.entry--tool) {
+  width: min(100% - 2 * var(--space-4), 76rem);
+}
+.entry--tool .entry__header {
+  margin-bottom: var(--space-6);
+}
+.entry--tool > .prose {
+  max-width: none;
+}
+.entry--tool .entry__header,
+.entry--tool .prose > :not(.toy, .figure, .spring-wb) {
+  max-width: 40rem;
+}
+.entry--tool .prose > .toy,
+.entry--tool .prose > .figure {
+  margin-right: 0;
+}
+
 /* ---------- Outline rail (.toc: Tailwind owns .outline) ---------- */
 .entry__body {
   position: relative;

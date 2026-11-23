@@ -727,3 +727,142 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ——— Workbench: tool controls left, pinned preview and output right ——— */
+.spring-wb {
+  display: grid;
+  gap: var(--space-3);
+}
+.spring-wb__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border-block: 1px solid var(--border-subtle);
+}
+.spring .field__input input {
+  font-family: var(--font-mono);
+}
+.spring-wb__status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+}
+.spring-bad {
+  color: var(--text-primary);
+}
+.spring-wb__grid {
+  display: grid;
+  gap: var(--space-6);
+}
+/* Preview first in the DOM, so focus order matches what phones show. */
+.spring-wb__head {
+  position: sticky;
+  top: calc(var(--site-bar-height) + env(safe-area-inset-top));
+  z-index: 1;
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  background: var(--surface-canvas);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+.spring-wb__controls {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.spring-wb__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.spring-wb__tabs [aria-selected="true"] {
+  color: var(--text-primary);
+}
+.spring-wb__panel {
+  display: grid;
+  gap: var(--space-3);
+}
+.spring-wb__panel > .toy__caption {
+  padding-top: 0;
+}
+.spring-wb__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-6);
+}
+/* A window onto the preview, clipped rather than scrolled: no scroll inside a scroll. */
+.spring-wb__frame {
+  max-height: 32dvh;
+  overflow: clip;
+}
+.spring-wb__frame--phone {
+  max-width: 24rem;
+  margin-inline: auto;
+  width: 100%;
+}
+.spring-wb__output {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.spring-wb__cmds {
+  display: grid;
+  justify-items: start;
+}
+/* Keep focused controls clear of the pinned preview on phones. */
+@media (max-width: 59.999rem) {
+  html:has(.spring-wb) {
+    scroll-padding-top: calc(var(--site-bar-height) + 32dvh + 8rem);
+  }
+}
+@media (min-width: 60rem) {
+  .spring-wb__grid {
+    grid-template-columns: minmax(20rem, 26rem) 1fr;
+    align-items: start;
+  }
+  /* The head spans the whole right column so it stays pinned; the output starts below it. */
+  .spring-wb__head {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    top: calc(var(--site-bar-height) + var(--space-2));
+  }
+  .spring-wb__frame {
+    max-height: 55dvh;
+  }
+  .spring-wb__controls {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .spring-wb__output {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: calc(var(--wb-head, 30rem) + var(--space-4));
+  }
+}
+
+.spring-dialog {
+  display: grid;
+  gap: var(--space-3);
+  max-height: 90dvh;
+  overflow: auto;
+  padding: var(--space-4);
+}
+.spring-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.spring-dialog__title {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-weight: 500;
+}
+.spring-audit {
+  display: grid;
+  gap: var(--space-3);
+}

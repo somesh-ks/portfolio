@@ -10,7 +10,7 @@ const ORDER = { fail: 0, warn: 1, pass: 2 };
 const MARK = { fail: "✕", warn: "!", pass: "✓" };
 const sorted = (f: Finding[]) => [...f].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
-export function SpringAudit() {
+export function SpringAudit({ onFix }: { onFix?: () => void }) {
   const id = useId();
   const { setInput } = useSpring();
   const [text, setText] = useState("");
@@ -25,7 +25,7 @@ export function SpringAudit() {
   }, [text]);
 
   return (
-    <div className="toy spring">
+    <div className="spring-audit">
       <label className="field" htmlFor={id}>
         <span className="field__label">DESIGN.md, tokens.json or CSS variables</span>
         <textarea
@@ -80,9 +80,10 @@ export function SpringAudit() {
                 onClick={() => {
                   setInput(report.input);
                   setFixed(true);
+                  onFix?.();
                 }}
               >
-                {fixed ? "✓ loaded into the tools above" : "$ fix all →"}
+                {fixed ? "✓ loaded into the workbench" : "$ fix all →"}
               </button>
             </div>
           </>
