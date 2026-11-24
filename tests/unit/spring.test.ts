@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
-import { DEFAULT_CURVE, parseBezier } from "@/lib/spring/color";
+import { DEFAULT_CURVE, parseBezier, parseColor } from "@/lib/spring/color";
 import { apcaContrast } from "@/lib/spring/colormath";
 import { MOODS, pairings } from "@/lib/spring/pairing";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
@@ -42,7 +42,7 @@ describe("palette curve", () => {
   test("every scale runs one way, in both themes, for any brand", () => {
     for (const seed of seeds) {
       const sys = buildSystem(inputFromSeed(seed));
-      for (const scale of Object.values(sys.scales))
+      for (const scale of Object.values(sys.scales).filter((x) => x !== undefined))
         for (const mode of ["light", "dark"] as const) {
           const l = scale[mode].map((s) => s.oklch.l);
           for (let i = 1; i < 12; i++)
@@ -93,11 +93,39 @@ describe("palette curve", () => {
     const apca = buildSystem({ ...inputFromSeed("#7c3aed"), contrast: "apca" });
     expect(apca.checks.light.find((c) => c.fg === "text")!.min).toBe(75);
   });
-  test("a set status hue wins, kept inside its range", () => {
+  test("a set status color wins, its hue kept inside the status range", () => {
     const base = inputFromSeed("#e11d48");
-    expect(buildSystem({ ...base, status: { success: 140 } }).scales.success.seed.hue).toBe(140);
-    expect(buildSystem({ ...base, status: { danger: -5 } }).scales.danger.seed.hue).toBe(355);
-    expect(buildSystem({ ...base, status: { info: 300 } }).scales.info.seed.hue).toBe(265);
+    const set = (status: SystemInput["status"]) => buildSystem({ ...base, status }).scales;
+    expect(Math.round(set({ success: "#22aa44" }).success.seed.hue)).toBe(
+      Math.round(parseColor("#22aa44")!.h),
+    );
+    expect(set({ info: "#cc44ff" }).info.seed.hue).toBe(265);
+  });
+  test("added strips get a scale, roles, checks and exports", () => {
+    const sys = buildSystem({
+      ...inputFromSeed("#7c3aed"),
+      colors: [
+        { name: "Secondary", hex: "#0ea5e9" },
+        { name: "accent", hex: "#ff66cc" },
+        { name: "Secondary", hex: "#00a37a" },
+      ],
+    });
+    expect(sys.custom.map((c) => c.key)).toEqual(["secondary", "accent-custom", "secondary-2"]);
+    expect(sys.scales.secondary!.light).toHaveLength(12);
+    expect(sys.roles.light.some((r) => r.name === "secondary-fg")).toBe(true);
+    for (const mode of ["light", "dark"] as const)
+      expect(sys.checks[mode].filter((c) => !c.pass && !c.advisory)).toEqual([]);
+    const css = exportAll(sys).find((f) => f.path === "tokens.css")!.content;
+    expect(css).toContain("--secondary-2-12:");
+    const back = decodeInput(encodeInput(sys.input))!;
+    expect(back.colors).toEqual(sys.input.colors);
+  });
+  test("hue shift bends the brand, not grays or statuses", () => {
+    const base = inputFromSeed("#7c3aed");
+    const bent = buildSystem({ ...base, curve: { ...DEFAULT_CURVE, hueShift: 40 } }).scales;
+    const flat = buildSystem(base).scales;
+    expect(bent.warning.light.map((s) => s.hex)).toEqual(flat.warning.light.map((s) => s.hex));
+    expect(bent.accent.light[1]!.hex).not.toBe(flat.accent.light[1]!.hex);
   });
   test("dark mode vividness scales only dark chroma", () => {
     const base = inputFromSeed("#7c3aed");
@@ -111,12 +139,12 @@ describe("palette curve", () => {
     const input: SystemInput = {
       ...inputFromSeed("#00a37a"),
       curve: { ...DEFAULT_CURVE, darkChroma: 0.8 },
-      status: { danger: 10, info: 250 },
+      status: { danger: "#dd2222", info: "#2266dd" },
       contrast: "apca",
     };
     const back = decodeInput(encodeInput(input))!;
     expect(back.curve?.darkChroma).toBe(0.8);
-    expect(back.status).toEqual({ danger: 10, info: 250 });
+    expect(back.status).toEqual({ danger: "#dd2222", info: "#2266dd" });
     expect(back.contrast).toBe("apca");
     expect(decodeInput(encodeInput({ ...input, curve: undefined }))!.status).toEqual(input.status);
   });
@@ -297,7 +325,19 @@ describe("per-tool exports", () => {
       const own: Record<typeof a, string[]> = {
         color: ["accent", "neutral", "danger", "warning", "success", "info", "color"],
         type: ["font", "text"],
-        space: ["space", "control", "pad", "radius", "border", "shadow"],
+        space: [
+          "space",
+          "control",
+          "pad",
+          "radius",
+          "border",
+          "shadow",
+          "focus",
+          "icon",
+          "z",
+          "opacity",
+          "breakpoint",
+        ],
         motion: ["duration", "ease"],
       };
       expect(vars.length).toBeGreaterThan(0);

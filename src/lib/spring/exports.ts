@@ -15,14 +15,32 @@ export interface ExportFile {
 }
 
 const SCALES: ScaleName[] = ["accent", "neutral", "danger", "warning", "success", "info"];
+/** Built-in scales, then the strips the user added. */
+const scaleNames = (sys: System) => [...SCALES, ...sys.custom.map((c) => c.key)];
 const px = (n: number) => `${n}px`;
+
+/** Foundations every system needs that no slider changes: layers, states, sizes. */
+const Z = {
+  base: 0,
+  raised: 10,
+  dropdown: 1000,
+  sticky: 1100,
+  overlay: 1300,
+  modal: 1400,
+  toast: 1500,
+  tooltip: 1600,
+};
+const OPACITY = { disabled: 0.5, muted: 0.7, scrim: 0.6 };
+const BREAKPOINT = { sm: 640, md: 768, lg: 1024, xl: 1280 };
+const ICON = { sm: 16, md: 20, lg: 24 };
+const FOCUS = { width: 2, offset: 2 };
 
 // ---------------------------------------------------------------- CSS
 
 function colorVars(sys: System, mode: Mode, indent = "  "): string {
   const lines: string[] = [];
-  for (const name of SCALES)
-    for (const s of sys.scales[name][mode]) lines.push(`${indent}--${name}-${s.step}: ${s.css};`);
+  for (const name of scaleNames(sys))
+    for (const s of sys.scales[name]![mode]) lines.push(`${indent}--${name}-${s.step}: ${s.css};`);
   for (const r of sys.roles[mode]) {
     const ref = r.from.match(/^(\w+)\.(\d+)$/);
     lines.push(`${indent}--color-${r.name}: ${ref ? `var(--${ref[1]}-${ref[2]})` : r.css};`);
@@ -72,7 +90,18 @@ function spaceVars(sys: System, indent: string): string[] {
   );
   for (const [k, v] of Object.entries(sys.shape.radius))
     out.push(`${indent}--radius-${k}: ${px(v)};`);
-  out.push(`${indent}--border-width: ${px(sys.shape.border.default)};`);
+  out.push(
+    `${indent}--border-width: ${px(sys.shape.border.default)};`,
+    `${indent}--border-width-strong: ${px(sys.shape.border.strong)};`,
+    `${indent}--focus-width: ${px(FOCUS.width)};`,
+    `${indent}--focus-offset: ${px(FOCUS.offset)};`,
+    "",
+    ...Object.entries(ICON).map(([k, v]) => `${indent}--icon-${k}: ${px(v)};`),
+    ...Object.entries(Z).map(([k, v]) => `${indent}--z-${k}: ${v};`),
+    ...Object.entries(OPACITY).map(([k, v]) => `${indent}--opacity-${k}: ${v};`),
+    `${indent}/* Breakpoints, for reference: custom properties can't be used inside @media. */`,
+    ...Object.entries(BREAKPOINT).map(([k, v]) => `${indent}--breakpoint-${k}: ${px(v)};`),
+  );
   return out;
 }
 
@@ -140,7 +169,7 @@ export type Area = (typeof AREAS)[number];
 const AREA_JSON: Record<Area, string[]> = {
   color: ["color"],
   type: ["font", "typography"],
-  space: ["space", "radius", "shadow"],
+  space: ["space", "radius", "shadow", "border", "focus", "icon", "breakpoint", "z", "opacity"],
   motion: ["duration", "easing"],
 };
 const AREA_NAME: Record<Area, string> = {
@@ -273,7 +302,7 @@ function toTailwind(sys: System): string {
     "  --color-current: currentColor;",
   ];
   for (const r of sys.roles.light) lines.push(`  --color-${r.name}: var(--color-${r.name});`);
-  for (const name of SCALES)
+  for (const name of scaleNames(sys))
     for (const s of STEPS) lines.push(`  --color-${name}-${s}: var(--${name}-${s});`);
   lines.push(
     "",
@@ -372,10 +401,10 @@ const cubic = (s: string) => s.match(/[\d.]+/g)!.map(Number);
 
 function toDtcg(sys: System): Record<string, unknown> {
   const scale: Record<string, unknown> = {};
-  for (const name of SCALES) {
+  for (const name of scaleNames(sys)) {
     const group: Record<string, unknown> = {};
-    sys.scales[name].light.forEach((s, i) => {
-      const d = sys.scales[name].dark[i]!;
+    sys.scales[name]!.light.forEach((s, i) => {
+      const d = sys.scales[name]!.dark[i]!;
       group[String(s.step)] = {
         $value: dtcgColor(s),
         $description: STEP_JOBS[s.step],
@@ -464,6 +493,32 @@ function toDtcg(sys: System): Record<string, unknown> {
       ),
     },
     shadow: { sm: shadow("sm"), md: shadow("md"), lg: shadow("lg") },
+    border: {
+      $type: "dimension",
+      default: { $value: dim(sys.shape.border.default) },
+      strong: { $value: dim(sys.shape.border.strong) },
+    },
+    focus: {
+      $type: "dimension",
+      width: { $value: dim(FOCUS.width) },
+      offset: { $value: dim(FOCUS.offset) },
+    },
+    icon: {
+      $type: "dimension",
+      ...Object.fromEntries(Object.entries(ICON).map(([k, v]) => [k, { $value: dim(v) }])),
+    },
+    breakpoint: {
+      $type: "dimension",
+      ...Object.fromEntries(Object.entries(BREAKPOINT).map(([k, v]) => [k, { $value: dim(v) }])),
+    },
+    z: {
+      $type: "number",
+      ...Object.fromEntries(Object.entries(Z).map(([k, v]) => [k, { $value: v }])),
+    },
+    opacity: {
+      $type: "number",
+      ...Object.fromEntries(Object.entries(OPACITY).map(([k, v]) => [k, { $value: v }])),
+    },
     duration: {
       $type: "duration",
       ...Object.fromEntries(
@@ -810,7 +865,11 @@ export function exportAll(sys: System): ExportFile[] {
 function toPaletteJs(sys: System): string {
   const i = sys.input;
   const curve = i.curve ?? DEFAULT_CURVE;
-  const scales = Object.fromEntries(Object.entries(sys.scales).map(([k, s]) => [k, s.seed]));
+  // Grays and statuses hold one hue; the brand and added strips bend with the hue shift.
+  const bends = new Set(["accent", ...sys.custom.map((c) => c.key)]);
+  const scales = Object.fromEntries(
+    scaleNames(sys).map((k) => [k, { ...sys.scales[k]!.seed, bend: bends.has(k) }]),
+  );
   return `// ${i.name} palette, generated by Spring (someshks.com/spring).
 // Headless: change a seed or the curve and call scale() to rebuild. No dependencies.
 // Note: the system's contrast fixes (nudged text steps) are applied on top in tokens.css.
@@ -856,7 +915,7 @@ export function hex(c) {
 }
 
 /** 12 steps, page to text, bent through the seed's lightness. mode: "light" | "dark". */
-export function scale({ hue, chroma, l: target }, mode = "light", c = curve) {
+export function scale({ hue, chroma, l: target, bend = true }, mode = "light", c = curve) {
   const [from, to] = ends[mode];
   const e = Array.from({ length: 12 }, (_, i) => ease(c.bezier, i / 11));
   const raw = e.map((y) => from + (to - from) * y);
@@ -870,7 +929,7 @@ export function scale({ hue, chroma, l: target }, mode = "light", c = curve) {
     const l = i < k - 1 ? from + (lb - from) * (ek ? y / ek : 0) : lb + (to - lb) * (ek < 1 ? (y - ek) / (1 - ek) : 0);
     const w = t < tk ? Math.max(tk, 0.35) : 0.55;
     const share = Math.max(0.05, 1 - ((t - tk) / w) ** 2);
-    return hex({ l, c: chroma * share * (mode === "dark" ? (c.darkChroma ?? 1) : 1), h: (((hue + c.hueShift * (t - tk)) % 360) + 360) % 360 });
+    return hex({ l, c: chroma * share * (mode === "dark" ? (c.darkChroma ?? 1) : 1), h: (((hue + (bend ? c.hueShift : 0) * (t - tk)) % 360) + 360) % 360 });
   });
 }
 `;

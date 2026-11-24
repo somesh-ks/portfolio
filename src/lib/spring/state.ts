@@ -3,7 +3,13 @@
  * generated values, so links stay short and always rebuild with the
  * current engine. `v` lets a future engine migrate old links.
  */
-import { DEFAULT_INPUT, STATUS_RANGE, type StatusName, type SystemInput } from "./system";
+import {
+  DEFAULT_INPUT,
+  MAX_STRIPS,
+  STATUS_RANGE,
+  type StatusName,
+  type SystemInput,
+} from "./system";
 import { FONT_NAMES, SAFE_FONT, type FontMeta, type FontTag } from "./type";
 
 const b64url = {
@@ -64,6 +70,7 @@ export function encodeInput(input: SystemInput): string {
       : null,
     i.status ? STATUSES.map((n) => i.status?.[n] ?? null) : null,
     i.contrast ?? null,
+    i.colors?.length ? i.colors.map((c) => [c.name, c.hex]) : null,
   ];
   // Old links end at the curve; keep new ones as short when the extras are unset.
   while (compact.length > 9 && compact.at(-1) === null) compact.pop();
@@ -71,6 +78,7 @@ export function encodeInput(input: SystemInput): string {
 }
 
 const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
+const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
 const num = (v: unknown, lo: number, hi: number, d: number) =>
   typeof v === "number" && v >= lo && v <= hi ? v : d;
@@ -157,13 +165,23 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
             status: Object.fromEntries(
               STATUSES.flatMap((n, k) => {
                 const v = (a[10] as unknown[])[k];
-                const [lo, hi] = STATUS_RANGE[n];
-                return typeof v === "number" && v >= lo && v <= hi ? [[n, v]] : [];
+                return isHex(v) ? [[n, v]] : [];
               }),
             ),
           }
         : {}),
       ...(a[11] === "aaa" || a[11] === "apca" ? { contrast: a[11] } : {}),
+      ...(Array.isArray(a[12])
+        ? {
+            colors: a[12]
+              .slice(0, MAX_STRIPS)
+              .filter(
+                (c): c is [string, string] =>
+                  Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]),
+              )
+              .map(([name, hex]) => ({ name: name.slice(0, 24), hex })),
+          }
+        : {}),
     };
   } catch {
     return null;

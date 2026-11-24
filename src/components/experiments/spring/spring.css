@@ -7,7 +7,7 @@
 }
 .spring-scale {
   display: grid;
-  grid-template-columns: 4.5rem 1fr;
+  grid-template-columns: 11.5rem 1fr;
   align-items: center;
   gap: var(--space-2);
   font-size: var(--step-xs);
@@ -694,8 +694,29 @@
 .spring-wb__panel {
   display: grid;
   align-content: start;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-width: 0;
+}
+/* One control kit in the panel: flush fields, one row height, one fill. */
+.spring-wb__panel .field {
+  padding: 0;
+}
+.spring-wb__panel .field__input input {
+  background: var(--input-bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-wb__panel .select__trigger,
+  .spring-wb__panel .field__input input,
+  .spring-wb__panel .button,
+  .spring-wb__panel .segmented__item {
+    min-height: 1.75rem;
+  }
+  .spring-wb__panel .select__trigger,
+  .spring-wb__panel .field__input input,
+  .spring-wb__panel .segmented__item {
+    padding-inline: var(--space-2);
+    font-size: var(--step-xs);
+  }
 }
 .spring-wb__panel > .toy__caption {
   padding-top: 0;
@@ -882,7 +903,7 @@
 /* ——— Color picker ——— */
 .spring-picker__field {
   position: relative;
-  height: 6rem;
+  height: 4.5rem;
   touch-action: none;
   cursor: crosshair;
   box-shadow: inset 0 0 0 1px var(--border-subtle);
@@ -950,7 +971,8 @@
 }
 .spring-legend {
   display: flex;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
 }
 .spring-legend > span {
   display: inline-flex;
@@ -963,7 +985,7 @@
 
 /* Quiet breaks between the color tab's groups: brand, scale, grays, status, contrast. */
 .spring-rule {
-  margin: 0 var(--space-2);
+  margin: var(--space-2) 0;
   border: 0;
   border-top: 1px solid var(--border-subtle);
 }
@@ -1019,12 +1041,109 @@
 }
 .spring-picker__value .spring-swatch {
   position: absolute;
-  inset-inline-start: var(--space-3);
+  inset-inline-start: var(--space-2);
+  width: 0.875rem;
+  height: 0.875rem;
   top: 50%;
   translate: 0 -50%;
   border-radius: var(--radius-sm);
   pointer-events: none;
 }
 .field__input .spring-picker__value input {
-  padding-inline-start: calc(var(--space-3) * 2 + 1.25rem);
+  padding-inline-start: calc(var(--space-2) * 2 + 0.875rem);
+}
+
+/* ——— Panel groups and rows ——— */
+.spring-group {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-row__label {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-row .segmented {
+  justify-self: start;
+}
+.spring-more {
+  display: grid;
+  gap: var(--space-2);
+}
+.spring-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  cursor: pointer;
+  list-style: none;
+}
+.spring-more > summary::-webkit-details-marker {
+  display: none;
+}
+.spring-more[open] > summary svg {
+  rotate: 90deg;
+}
+
+/* ——— Strips: name, a typed color, the 12 steps ——— */
+.spring-strip {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem 1rem;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.spring-strip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spring-strip__hex {
+  min-width: 0;
+  height: 1.75rem;
+  padding: 0 var(--space-1);
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-strip__hex:hover {
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+.spring-strip__hex:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 0;
+}
+.spring-strip__hex[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px var(--text-danger);
+}
+.spring-strip__remove {
+  color: var(--text-secondary);
+}
+.spring-strip__remove:hover {
+  color: var(--text-primary);
+}
+.spring-strip__add {
+  justify-self: start;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+/* Values show on the steps that carry meaning; hover, focus or "every step" shows the rest. */
+.spring-scales:not([data-all])
+  .spring-scale__steps
+  > button:not([data-key], :hover, :focus-visible)
+  .spring-step__ratio {
+  opacity: 0;
 }

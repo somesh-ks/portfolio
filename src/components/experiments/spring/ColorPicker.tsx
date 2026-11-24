@@ -112,7 +112,7 @@ export function ColorPicker({
   return (
     <div className="field spring-picker">
       <label className="field__label" htmlFor={`${id}-hex`}>
-        Brand color
+        Color
       </label>
       <div
         ref={frame}

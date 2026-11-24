@@ -2150,6 +2150,73 @@ claude-mascot:defined > * {
   min-height: 2.75rem;
 }
 
+/* Dial (ui/Dial.tsx): the row is the track; the fill shows where the value sits. */
+.dial {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  background:
+    linear-gradient(
+      to right,
+      var(--surface-hover) var(--p),
+      var(--text-primary) var(--p) calc(var(--p) + 1px),
+      transparent calc(var(--p) + 1px)
+    ),
+    var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+.dial:has(.dial__range:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.dial__range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+.dial__label {
+  position: relative;
+  pointer-events: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  white-space: nowrap;
+}
+.dial__value {
+  position: relative;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  cursor: text;
+}
+.dial__value:hover,
+.dial__value:focus {
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  outline: 0;
+}
+.dial__value:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dial {
+    min-height: 1.75rem;
+  }
+}
+
 /* Select (ui/Select.tsx): a field-shaped trigger and a hairline popup list. */
 .select__trigger {
   display: flex;

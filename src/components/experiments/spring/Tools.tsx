@@ -6,10 +6,10 @@ import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/l
 import { FONTS } from "@/lib/spring/fonts.data";
 import {
   CONTRAST_LABEL,
+  DEFAULT_INPUT,
   inputFromSeed,
-  STATUS_RANGE,
+  MAX_STRIPS,
   type ContrastTarget,
-  type StatusName,
   type System,
   type SystemInput,
 } from "@/lib/spring/system";
@@ -23,9 +23,10 @@ import {
   type FontName,
   type TypeInput,
 } from "@/lib/spring/type";
-import { contrast, DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
-import { apcaContrast, formatColor, type ColorFormat } from "@/lib/spring/colormath";
+import { contrast, DEFAULT_CURVE, parseColor, type Mode } from "@/lib/spring/color";
+import { apcaContrast, formatColor, oklchToHex, type ColorFormat } from "@/lib/spring/colormath";
 import { Chevron, Select } from "@/components/ui/Select";
+import { Dial } from "@/components/ui/Dial";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
 import { CurveEditor } from "./CurveEditor";
@@ -93,50 +94,6 @@ function AreaExport({ system, area }: { system: System; area: Area }) {
       </span>
       <output className="sr-only">{said}</output>
     </div>
-  );
-}
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  show,
-  className = "range",
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  show: string;
-  className?: string;
-  /** Fires when a drag or key press ends, for work too noisy to run on every tick. */
-  onCommit?: () => void;
-}) {
-  const id = useId();
-  return (
-    <label className="field" htmlFor={id}>
-      <span className="field__label">
-        {label} <span className="tabular field__value">{show}</span>
-      </span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        onPointerUp={onCommit}
-        onKeyUp={onCommit}
-        className={className}
-      />
-    </label>
   );
 }
 
@@ -319,7 +276,15 @@ export function SpringWorkbench() {
             </div>
           ) : (
             <>
-              {tab === "color" ? <ColorOutput system={system} mode={mode} format={format} /> : null}
+              {tab === "color" ? (
+                <ColorOutput
+                  system={system}
+                  input={input}
+                  setInput={setInput}
+                  mode={mode}
+                  format={format}
+                />
+              ) : null}
               {tab === "type" && browse ? (
                 <FontBrowser
                   role={browse}
@@ -363,6 +328,21 @@ type Spring = ReturnType<typeof useSpring>;
 
 // ——— Color ———
 
+/** A labelled row in the panel: mono label on the left, the control on the right. */
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="spring-row">
+      <span className="spring-row__label" aria-hidden>
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+const GRAY_SNAP = { warm: 75, cool: 250 } as const;
+const deg = (v: number) => `${Math.round(v)}°`;
+
 function ColorControls({
   system,
   input,
@@ -377,10 +357,18 @@ function ColorControls({
   const a = input.accent;
   const setCurve = (p: Partial<typeof curve>) =>
     setInput((i) => ({ ...i, curve: { ...(i.curve ?? DEFAULT_CURVE), ...p } }));
+  const grayHue = input.neutralHue ?? a.hue;
   const grays =
-    input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
+    input.neutralHue === undefined
+      ? "brand"
+      : input.neutralHue === GRAY_SNAP.warm
+        ? "warm"
+        : input.neutralHue === GRAY_SNAP.cool
+          ? "cool"
+          : null;
   return (
     <>
+      <p className="spring-group">brand</p>
       <ColorPicker
         hue={a.hue}
         chroma={a.chroma}
@@ -391,14 +379,35 @@ function ColorControls({
         onPick={(p) => setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }))}
         onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
       />
+      <Dial
+        label="hue"
+        value={a.hue}
+        min={0}
+        max={360}
+        step={1}
+        show={deg(a.hue)}
+        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, hue: v } }))}
+      />
+      <Dial
+        label="chroma"
+        value={a.chroma}
+        min={0.02}
+        max={0.3}
+        step={0.001}
+        show={a.chroma.toFixed(3)}
+        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, chroma: v } }))}
+      />
       <hr className="spring-rule" />
+      <p className="spring-group">scale</p>
       <CurveEditor
         curve={curve}
-        steps={accent.light}
+        mode={mode}
+        steps={accent[mode]}
         onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
       />
-      <Slider
-        label="Hue shift"
+      <Dial
+        label="hue shift"
+        reset={0}
         value={curve.hueShift}
         min={-40}
         max={40}
@@ -406,33 +415,32 @@ function ColorControls({
         show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
         onChange={(v) => setCurve({ hueShift: v })}
       />
-      <Slider
-        label="Dark mode vividness"
-        value={curve.darkChroma ?? 1}
-        min={0.4}
-        max={1.2}
-        step={0.05}
-        show={`${Math.round((curve.darkChroma ?? 1) * 100)}%`}
-        onChange={(v) => setCurve({ darkChroma: v })}
-      />
       <hr className="spring-rule" />
-      <Select
-        label="Grays"
-        value={grays}
-        options={[
-          { value: "accent", label: "Brand" },
-          { value: "warm", label: "Warm" },
-          { value: "cool", label: "Cool" },
-        ]}
-        onChange={(v) =>
-          setInput((i) => ({
-            ...i,
-            neutralHue: v === "accent" ? undefined : v === "warm" ? 75 : 250,
-          }))
-        }
+      <p className="spring-group">grays</p>
+      <Row label="lean">
+        <Segmented
+          label="Gray hue"
+          options={["brand", "warm", "cool"] as const}
+          value={grays ?? ("" as "brand")}
+          onChange={(v) =>
+            setInput((i) => ({ ...i, neutralHue: v === "brand" ? undefined : GRAY_SNAP[v] }))
+          }
+          render={(v) => v[0]!.toUpperCase() + v.slice(1)}
+        />
+      </Row>
+      <Dial
+        label="gray hue"
+        value={grayHue}
+        min={0}
+        max={360}
+        step={1}
+        show={deg(grayHue)}
+        onChange={(v) => setInput((i) => ({ ...i, neutralHue: v }))}
       />
-      <Slider
-        label="Gray tint"
+      <Dial
+        label="tint"
+        scale={100}
+        reset={DEFAULT_INPUT.neutralTint}
         value={input.neutralTint}
         min={0}
         max={1}
@@ -441,72 +449,41 @@ function ColorControls({
         onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
       />
       <hr className="spring-rule" />
-      <StatusHue system={system} input={input} setInput={setInput} />
-      <hr className="spring-rule" />
-      <Select
-        label="Contrast target"
-        value={input.contrast ?? "aa"}
-        options={(["aa", "aaa", "apca"] as const).map((t) => ({
-          value: t,
-          label: CONTRAST_LABEL[t],
-          hint: TARGET_HINT[t],
-        }))}
-        onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
-      />
-      <Select
-        label="Button label"
-        value={a.label ?? "auto"}
-        options={[
-          { value: "auto", label: "Auto", hint: "fewest step changes" },
-          { value: "white", label: "White" },
-          { value: "ink", label: "Dark" },
-        ]}
-        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, label: v } }))}
-      />
-    </>
-  );
-}
-
-const TARGET_HINT: Record<ContrastTarget, string> = {
-  aa: "the legal bar",
-  aaa: "text at 7:1",
-  apca: "reads polarity",
-};
-const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
-const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
-
-/**
- * One status at a time: pick it, then move its hue within the range where it
- * still reads as itself. Untouched statuses keep steering clear of the brand.
- */
-function StatusHue({ system, input, setInput }: Pick<Spring, "system" | "input" | "setInput">) {
-  const [name, setName] = useState<StatusName>("danger");
-  const [lo, hi] = STATUS_RANGE[name];
-  const raw = system.scales[name].seed.hue;
-  // Danger's range wraps past 0°, so read 355 as -5.
-  const hue = raw > hi ? raw - 360 : raw;
-  const set = input.status?.[name] !== undefined;
-  return (
-    <>
-      <Select
-        label="Status color"
-        value={name}
-        options={STATUSES.map((n) => ({
-          value: n,
-          label: cap(n),
-          hint: input.status?.[n] === undefined ? "auto" : "set",
-        }))}
-        onChange={setName}
-      />
-      <Slider
-        label={`${cap(name)} hue`}
-        value={Math.round(hue)}
-        min={lo}
-        max={hi}
-        step={1}
-        show={`${Math.round((hue + 360) % 360)}°${set ? "" : " auto"}`}
-        onChange={(v) => setInput((i) => ({ ...i, status: { ...i.status, [name]: v } }))}
-      />
+      <p className="spring-group">rules</p>
+      <Row label="contrast">
+        <Segmented
+          label="Contrast target"
+          options={["aa", "aaa", "apca"] as const}
+          value={input.contrast ?? "aa"}
+          onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
+          render={(v) => v.toUpperCase()}
+        />
+      </Row>
+      <Row label="button text">
+        <Segmented
+          label="Button label"
+          options={["auto", "white", "ink"] as const}
+          value={a.label ?? "auto"}
+          onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, label: v } }))}
+          render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
+        />
+      </Row>
+      <details className="spring-more">
+        <summary>
+          <Chevron dir="right" /> Advanced
+        </summary>
+        <Dial
+          label="dark chroma"
+          scale={100}
+          reset={1}
+          value={curve.darkChroma ?? 1}
+          min={0.4}
+          max={1.2}
+          step={0.05}
+          show={`${Math.round((curve.darkChroma ?? 1) * 100)}%`}
+          onChange={(v) => setCurve({ darkChroma: v })}
+        />
+      </details>
     </>
   );
 }
@@ -525,17 +502,125 @@ const VISION_LABEL = {
   tritan: "Tritanopia",
 };
 
+/** A color typed into a strip: any CSS color, stored as hex. Empty clears it when `onClear` is given. */
+function HexField({
+  label,
+  value,
+  placeholder,
+  onHex,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onHex: (hex: string) => void;
+  onClear?: () => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const apply = () => {
+    if (draft !== null) {
+      const c = parseColor(draft.trim());
+      if (c) onHex(oklchToHex(c));
+      else if (!draft.trim() && onClear) onClear();
+    }
+    setDraft(null);
+  };
+  return (
+    <input
+      className="spring-strip__hex"
+      aria-label={label}
+      value={draft ?? value}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={apply}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") apply();
+        if (e.key === "Escape") setDraft(null);
+      }}
+      aria-invalid={draft !== null && draft.trim() !== "" && !parseColor(draft.trim())}
+      autoComplete="off"
+      spellCheck={false}
+    />
+  );
+}
+
+const STATUS_NAMES = ["danger", "warning", "success", "info"] as const;
+
 function ColorOutput({
   system,
+  input,
+  setInput,
   mode,
   format,
-}: {
-  system: System;
+}: Pick<Spring, "system" | "input" | "setInput"> & {
   mode: Mode;
   format: ColorFormat;
 }) {
   const [copied, copy, said] = useCopy();
   const [vision, setVision] = useState<(typeof VISION)[number]>("normal");
+  const [allValues, setAllValues] = useState(false);
+  const apca = system.input.contrast === "apca";
+  const page = system.scales.neutral[mode][0]!.hex;
+  const colors = input.colors ?? [];
+  const setColors = (f: (c: NonNullable<SystemInput["colors"]>) => SystemInput["colors"]) =>
+    setInput((i) => {
+      const next = f(i.colors ?? []);
+      return { ...i, colors: next?.length ? next : undefined };
+    });
+  const setStatus = (name: (typeof STATUS_NAMES)[number], hex: string | undefined) =>
+    setInput((i) => {
+      const status = { ...i.status, [name]: hex };
+      if (!hex) delete status[name];
+      return { ...i, status: Object.keys(status).length ? status : undefined };
+    });
+  const rows: { key: string; name: string; head: React.ReactNode }[] = [
+    {
+      key: "accent",
+      name: "accent",
+      head: (
+        <HexField
+          label="Accent color"
+          value={system.scales.accent.light[system.scales.accent.anchor.light - 1]!.hex}
+          onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
+        />
+      ),
+    },
+    { key: "neutral", name: "neutral", head: null },
+    ...STATUS_NAMES.map((n) => ({
+      key: n,
+      name: n,
+      head: (
+        <HexField
+          label={`${n} color, blank for auto`}
+          value={input.status?.[n] ?? ""}
+          placeholder="auto"
+          onHex={(hex) => setStatus(n, hex)}
+          onClear={() => setStatus(n, undefined)}
+        />
+      ),
+    })),
+    ...system.custom.map((c, k) => ({
+      key: c.key,
+      name: c.name,
+      head: (
+        <>
+          <HexField
+            label={`${c.name} color`}
+            value={c.hex}
+            onHex={(hex) => setColors((cs) => cs.map((x, j) => (j === k ? { ...x, hex } : x)))}
+          />
+          <button
+            type="button"
+            className="spring-strip__remove"
+            aria-label={`Remove ${c.name}`}
+            onClick={() => setColors((cs) => cs.filter((_, j) => j !== k))}
+          >
+            ×
+          </button>
+        </>
+      ),
+    })),
+  ];
   const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
   return (
     <>
@@ -557,6 +642,7 @@ function ColorOutput({
       </span>
       <div
         className="spring-scales"
+        data-all={allValues || undefined}
         style={vision === "normal" ? undefined : { filter: `url(#${filterId}-${vision})` }}
       >
         <div className="spring-scale spring-scale--head" aria-hidden>
@@ -576,44 +662,88 @@ function ColorOutput({
             <span style={{ gridColumn: "11 / 13" }}>text</span>
           </span>
         </div>
-        {(["accent", "neutral", "danger", "warning", "success", "info"] as const).map((s) => (
-          <div key={s} className="spring-scale">
-            <span>{s}</span>
-            <span className="spring-scale__steps">
-              {system.scales[s][mode].map((sw, i, all) => {
-                const key = `${s}-${sw.step}`;
-                return (
-                  <button
-                    type="button"
-                    key={sw.step}
-                    style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
-                    title={`var(--${key}) ${formatColor(sw.hex, format)}`}
-                    data-brand={sw.step === system.scales[s].anchor[mode] || undefined}
-                    data-solid={(s !== "neutral" && sw.step === system.solid[s][mode]) || undefined}
-                    onClick={() => copy(key, formatColor(sw.hex, format))}
-                  >
-                    <span className="sr-only">
-                      Copy {sw.hex}, {s} step {sw.step}
-                    </span>
-                    {copied === key ? (
-                      <span aria-hidden>✓</span>
-                    ) : i >= 10 ? (
-                      <span aria-hidden className="spring-step__ratio">
-                        {system.input.contrast === "apca"
-                          ? Math.round(apcaContrast(sw.hex, all[0]!.hex))
-                          : contrast(sw.hex, all[0]!.hex).toFixed(1)}
+        {rows.map(({ key: s, name, head }) => {
+          const scale = system.scales[s]!;
+          const solid = s === "neutral" ? 0 : system.solid[s]![mode];
+          return (
+            <div key={s} className="spring-scale">
+              <span className="spring-strip">
+                <span className="spring-strip__name">{name}</span>
+                {head}
+              </span>
+              <span className="spring-scale__steps">
+                {scale[mode].map((sw, i, all) => {
+                  const key = `${s}-${sw.step}`;
+                  const wcag = contrast(sw.hex, page);
+                  const lc = apcaContrast(sw.hex, page);
+                  const keyStep = sw.step === scale.anchor[mode] || sw.step === solid || i >= 10;
+                  return (
+                    <button
+                      type="button"
+                      key={sw.step}
+                      style={{
+                        backgroundColor: sw.hex,
+                        // Whichever end of the strip reads better on this step.
+                        color:
+                          contrast(all[0]!.hex, sw.hex) > contrast(all[11]!.hex, sw.hex)
+                            ? all[0]!.hex
+                            : all[11]!.hex,
+                      }}
+                      title={`var(--${key}) ${formatColor(sw.hex, format)} · ${wcag.toFixed(2)}:1 WCAG · Lc ${Math.round(lc)} APCA on bg${sw.clipped ? " · clipped to sRGB" : ""}`}
+                      data-brand={(s !== "neutral" && sw.step === scale.anchor[mode]) || undefined}
+                      data-solid={(s !== "neutral" && sw.step === solid) || undefined}
+                      data-key={keyStep || undefined}
+                      onClick={() => copy(key, formatColor(sw.hex, format))}
+                    >
+                      <span className="sr-only">
+                        Copy {sw.hex}, {name} step {sw.step}
                       </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </span>
-          </div>
-        ))}
+                      {copied === key ? (
+                        <span aria-hidden>✓</span>
+                      ) : (
+                        <span aria-hidden className="spring-step__ratio">
+                          {apca ? Math.round(lc) : wcag.toFixed(1)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </span>
+            </div>
+          );
+        })}
       </div>
+      {colors.length < MAX_STRIPS ? (
+        <button
+          type="button"
+          className="spring-link spring-strip__add"
+          onClick={() =>
+            setColors((cs) => [
+              ...cs,
+              {
+                name: cs.length ? `Color ${cs.length + 1}` : "Secondary",
+                hex: oklchToHex({ l: 0.6, c: 0.14, h: (input.accent.hue + 150) % 360 }),
+              },
+            ])
+          }
+        >
+          + Add color
+        </button>
+      ) : null}
       <p className="spring-meta spring-legend">
         <span className="spring-legend__brand">your color</span>
         <span className="spring-legend__solid">button fill</span>
+        <span>
+          {apca ? "Lc" : "WCAG ratio"} on bg ·{" "}
+          <button
+            type="button"
+            className="spring-link"
+            aria-pressed={allValues}
+            onClick={() => setAllValues((v) => !v)}
+          >
+            {allValues ? "key steps only" : "show every step"}
+          </button>
+        </span>
       </p>
       {system.adjustments.length ? (
         <p className="toy__caption">{system.adjustments.join(" ")}</p>
@@ -645,8 +775,9 @@ function TypeControls({
   const fontsId = useId();
   return (
     <>
-      <Slider
+      <Dial
         label="Body size"
+        reset={16}
         value={t.base}
         min={12}
         max={20}
@@ -673,7 +804,7 @@ function TypeControls({
         onChange={(v) => set({ ratio: Number(v) })}
       />
       {hi > lo ? (
-        <Slider
+        <Dial
           label="Heading weight"
           value={t.headingWeight}
           min={lo}
@@ -737,8 +868,10 @@ function ShapeControls({ input, system, setInput }: Spring) {
   const c = system.space.control;
   return (
     <>
-      <Slider
+      <Dial
         label="Density"
+        scale={100}
+        reset={DEFAULT_INPUT.density}
         value={input.density}
         min={0}
         max={1}
@@ -746,8 +879,10 @@ function ShapeControls({ input, system, setInput }: Spring) {
         show={`controls ${c.sm}/${c.md}/${c.lg}px`}
         onChange={(v) => setInput((i) => ({ ...i, density: v }))}
       />
-      <Slider
+      <Dial
         label="Roundness"
+        scale={100}
+        reset={DEFAULT_INPUT.roundness}
         value={input.roundness}
         min={0}
         max={1}
@@ -796,8 +931,10 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
   const m = system.motion;
   return (
     <>
-      <Slider
+      <Dial
         label="Energy"
+        scale={100}
+        reset={DEFAULT_INPUT.motion}
         value={input.motion}
         min={0}
         max={1}
