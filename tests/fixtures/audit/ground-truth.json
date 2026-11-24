@@ -1,0 +1,129 @@
+{
+  "_note": "Ratios: WCAG 2.x via colorjs.io, alpha composited over the surface. Tag rubric = an existing sk-design-sys rubric line; proposed = a check the rubric lacks. Decoys must not be reported as failing. Neutral items score neither way.",
+  "css-mix.css": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "dark: --text-muted (#5b6170) fails on dark --bg (3.14:1) and/or dark --surface (2.86:1)"},
+      {"id": "m2", "tag": "proposed", "what": "--text-placeholder rgb(0 0 0 / 0.4) fails on --surface in light (2.85:1 after compositing)"},
+      {"id": "m3", "tag": "proposed", "what": "--text-placeholder is not redefined for dark, so black 40% on the dark surface is nearly invisible (about 1.1:1)"},
+      {"id": "m4", "tag": "proposed", "what": "white label on --danger #ef4444 fails (3.76:1) in .btn-danger"},
+      {"id": "m5", "tag": "proposed", "what": "--danger used as .error-text fails on surface in light (3.76:1)"},
+      {"id": "m6", "tag": "proposed", "what": "dark: white --primary-fg on dark --primary #3b82f6 fails (3.68:1)"},
+      {"id": "m7", "tag": "proposed", "what": "dark: white label on dark --danger #f87171 fails (2.77:1)"},
+      {"id": "m8", "tag": "rubric", "what": "off-scale spacing: .card padding 14px and/or .btn-primary padding 10px are not on the --space scale"},
+      {"id": "m9", "tag": "rubric", "what": "hover colors are per-variant hard-coded (--blue-700, #dc2626) rather than one rule"},
+      {"id": "m10", "tag": "rubric", "what": "the accent/primary is reused for a second meaning (badge-new also used for info notices)"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "--text-muted #6b7280 on light --bg passes (4.62:1) and on --surface (4.83:1); reporting it as failing 4.5:1 is wrong"},
+      {"id": "d2", "what": "white on light --primary #2563eb passes 4.5:1 (5.17:1); calling it a 4.5:1 failure is wrong (citing the 7:1 brand-text target is fine)"},
+      {"id": "d3", "what": "dark --danger #f87171 as text on dark surface passes (6.41:1)"},
+      {"id": "d4", "what": "the dark theme exists; saying there is no dark theme is wrong"}
+    ]
+  },
+  "tokens.json": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "dark: color.text-subtle (gray.600 #52525b) fails on dark bg (2.57:1) and/or dark bg-subtle (2.29:1)"},
+      {"id": "m2", "tag": "proposed", "what": "near-duplicate colors: bg-subtle #fafafa vs surface-raised #f9f9f9 (identical in dark), or border #e4e4e7 vs divider #e5e5e6"},
+      {"id": "m3", "tag": "rubric", "what": "caption typography uses fontWeight 300 at 12px (no weight under 400 below about 28px)"},
+      {"id": "m4", "tag": "rubric", "what": "body typography lineHeight 1.2 is too tight for wrapped text (needs about 1.4 or more)"},
+      {"id": "m5", "tag": "rubric", "what": "color.action-purple is named by its value (purple), not its role"},
+      {"id": "m6", "tag": "proposed", "what": "no error/danger color role"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "light text-subtle #71717a passes on bg (4.83:1) and bg-subtle (4.63:1)"},
+      {"id": "d2", "what": "focus violet.500 passes 3:1 on bg in light (4.23:1)"},
+      {"id": "d3", "what": "a dark mode exists (via $extensions.mode.dark); saying there is none is wrong"}
+    ]
+  },
+  "DESIGN.md": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "on-primary white on primary #f59e0b fails (2.15:1)"},
+      {"id": "m2", "tag": "proposed", "what": "captions #9ca3af on surface (stated only in the prose) fail (2.54:1)"},
+      {"id": "m3", "tag": "rubric", "what": "focus indicator is 1px and the outline color #d1d5db is 1.47:1 on surface (needs at least 2px and 3:1)"},
+      {"id": "m4", "tag": "rubric", "what": "dark mode is a plain inversion / not designed (dark must be tuned, not inverted)"},
+      {"id": "m5", "tag": "rubric", "what": "cards use 20px padding, which is not on the spacing scale (4, 8, 16, 24, 40)"},
+      {"id": "m6", "tag": "rubric", "what": "hover is per-color darkening by 10% rather than one overlay rule"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "on-surface-variant #6b7280 passes on surface (4.83:1)"},
+      {"id": "d2", "what": "error #dc2626 text passes on surface (4.83:1)"}
+    ]
+  },
+  "tailwind.config.js": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "white brand-fg on brand #0ea5e9 fails (2.77:1)"},
+      {"id": "m2", "tag": "proposed", "what": "ink-muted #64748b fails on panel #f1f5f9 (4.34:1)"},
+      {"id": "m3", "tag": "proposed", "what": "ink-faint #94a3b8 timestamps fail on canvas (2.56:1)"},
+      {"id": "m4", "tag": "proposed", "what": "success #22c55e as text fails on canvas (2.28:1)"},
+      {"id": "m5", "tag": "rubric", "what": "focus ring in brand #0ea5e9 is under 3:1 on canvas (2.77:1)"},
+      {"id": "m6", "tag": "rubric", "what": "fontSize xs is 11px, under the 12px web minimum"},
+      {"id": "m7", "tag": "rubric", "what": "no dark mode"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "ink-muted #64748b passes on canvas white (4.76:1)"},
+      {"id": "d2", "what": "danger #e11d48 text passes on canvas (4.70:1)"},
+      {"id": "d3", "what": "white on brand-dark #0369a1 (hover) passes (5.93:1)"}
+    ]
+  },
+  "dark.css": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "--text-muted dimgray fails on bg black (3.83:1) and/or surface #121212 (3.41:1)"},
+      {"id": "m2", "tag": "proposed", "what": "--link royalblue fails on bg black (4.33:1) and/or surface (3.86:1)"},
+      {"id": "m3", "tag": "rubric", "what": "pure white text on pure black: dark body text should be dimmer (dark is tuned, not inverted)"},
+      {"id": "m4", "tag": "proposed", "what": "no error/danger role token; the error toast hard-codes #7f1d1d / #fca5a5"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "--text-secondary darkgray passes on bg (8.94:1) and surface (7.97:1)"},
+      {"id": "d2", "what": "gold focus outline passes on black (14.97:1)"},
+      {"id": "d3", "what": "having no light theme is a product choice here; treating it as a contrast failure is wrong (noting it is fine)"}
+    ]
+  },
+  "clean.css": {
+    "must": [],
+    "decoys": [
+      {"id": "d1", "what": "any text pair reported as failing 4.5:1: every listed pair passes in both modes (lowest: light success-text on bg-subtle 4.64:1, light text-muted on bg-subtle 4.96:1)"},
+      {"id": "d2", "what": "focus ring reported under 3:1 (it is 5.82:1 light, 6.99:1 dark)"},
+      {"id": "d3", "what": "spacing reported as off-scale (all on 4px scale)"},
+      {"id": "d4", "what": "dark theme reported as missing or inverted (it is tuned: text #e4e4e7, lighter raised surface)"},
+      {"id": "d5", "what": "missing reduced-motion handling (it exists)"}
+    ]
+  },
+  "broken.tokens.json": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "says the file is malformed / invalid / truncated JSON"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "reports values or tokens that do not appear in the file (anything after accent), or presents a complete audit as if the file were whole"}
+    ],
+    "neutral": ["text-muted #8a8a8a on #ffffff is 3.45:1, flagging it is fine"]
+  },
+  "large.css": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "light: --tooltip-muted (gray-9) on --tooltip-bg fails (3.40:1)"},
+      {"id": "m2", "tag": "proposed", "what": "light: --table-header-muted (gray-9) on --table-header-bg fails (3.40:1)"},
+      {"id": "m3", "tag": "proposed", "what": "light: --badge-warning-fg (amber-9) on --badge-warning-bg fails (3.35:1)"},
+      {"id": "m4", "tag": "proposed", "what": "dark: --toast-muted (gray-7 in dark) on --toast-bg fails (2.14:1)"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "the dark versions of tooltip-muted, table-header-muted, badge-warning-fg pass (4.87 to 4.96:1)"},
+      {"id": "d2", "what": "badge-success-solid-fg on badge-success-solid passes in light (4.97:1)"},
+      {"id": "d3", "what": "any other component -fg, -muted or -solid-fg pair reported as failing (all others pass in both modes)"}
+    ]
+  },
+  "shadcn.css": {
+    "must": [
+      {"id": "m1", "tag": "proposed", "what": "light: muted-foreground on muted fails (4.34:1)"},
+      {"id": "m2", "tag": "proposed", "what": "light: destructive-foreground on destructive fails, narrowly (4.49:1)"},
+      {"id": "m3", "tag": "proposed", "what": "light: code-number on code fails (4.39:1)"},
+      {"id": "m4", "tag": "rubric", "what": "light: ring oklch(0.708 0 0) on background is under 3:1 (2.59:1), and/or sidebar-ring on sidebar (2.48:1)"},
+      {"id": "m5", "tag": "rubric", "what": "dark: sidebar-ring oklch(0.439 0 0) on sidebar is under 3:1 (2.30:1)"},
+      {"id": "m6", "tag": "proposed", "what": "dark: destructive-foreground on destructive fails badly (1.67:1)"}
+    ],
+    "decoys": [
+      {"id": "d1", "what": "light muted-foreground on background passes (4.73:1)"},
+      {"id": "d2", "what": "dark ring on background passes 3:1 (4.18:1)"},
+      {"id": "d3", "what": "dark muted-foreground on muted passes (5.83:1); dark surface-foreground on surface passes (6.98:1)"}
+    ],
+    "neutral": ["border/input at 1.25:1 (WCAG 1.4.11 only if the border alone identifies the control)", "chart colors reference undefined --color-blue-*"]
+  }
+}

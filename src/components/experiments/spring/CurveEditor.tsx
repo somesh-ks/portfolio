@@ -13,18 +13,19 @@ import {
 import { Chevron, Select } from "@/components/ui/Select";
 
 type Bezier = Curve["bezier"];
-/** Named for what each curve is for, not its shape. */
+/**
+ * Named for the curve's shape, as in CSS, so the name matches the plot. The
+ * hint says what the shape does to the palette.
+ */
 const PRESETS: { value: string; label: string; hint: string; bezier: Bezier }[] = [
-  { value: "product", label: "Product UI", hint: "apps", bezier: DEFAULT_CURVE.bezier },
-  { value: "uniform", label: "Uniform", hint: "charts, data", bezier: [0, 0, 1, 1] },
+  { value: "ease-in", label: "Ease in", hint: "quiet borders", bezier: DEFAULT_CURVE.bezier },
   {
-    value: "layered",
-    label: "Layered surfaces",
-    hint: "cards on cards",
-    bezier: [0.6, 0, 0.95, 0.5],
+    value: "ease-in-out",
+    label: "Ease in-out",
+    hint: "strong borders",
+    bezier: [0.42, 0, 0.58, 1],
   },
-  { value: "borders", label: "Strong borders", hint: "no shadows", bezier: [0.2, 0.2, 0.6, 0.7] },
-  { value: "editorial", label: "Editorial", hint: "pale pages", bezier: [0.75, 0, 0.85, 0.35] },
+  { value: "linear", label: "Linear", hint: "even steps", bezier: [0, 0, 1, 1] },
 ];
 const same = (a: Bezier, b: Bezier) => a.every((v, i) => Math.abs(v - b[i]!) < 0.005);
 const r2 = (n: number) => Math.round(n * 100) / 100;

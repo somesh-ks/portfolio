@@ -49,13 +49,14 @@ export interface Curve {
 }
 
 /** Slow through the backgrounds, faster through borders and solids, a long reach to text. */
-export const DEFAULT_CURVE: Curve = { bezier: [0.4, 0.08, 0.9, 0.6], hueShift: 0 };
+/** CSS ease-in: pale surfaces and quiet borders, with the contrast spent on text. */
+export const DEFAULT_CURVE: Curve = { bezier: [0.42, 0, 1, 1], hueShift: 0 };
 
 // Where each mode's scale starts (page) and ends (strongest text).
 export const ENDS: Record<Mode, [number, number]> = { light: [0.993, 0.24], dark: [0.165, 0.95] };
 
 /**
- * Reads typed curve values: "cubic-bezier(0.4, 0.08, 0.9, 0.6)" or just the four
+ * Reads typed curve values: "cubic-bezier(0.42, 0, 1, 1)" or just the four
  * numbers. Values clamp to 0–1 so lightness keeps running one way. Null if unreadable.
  */
 export function parseBezier(text: string): Curve["bezier"] | null {
@@ -167,7 +168,8 @@ export function buildScale({ hue, chroma, solidL, curve = DEFAULT_CURVE }: Scale
       const t = i / 11;
       // Chroma peaks at the brand step; text keeps some hue, backgrounds almost none.
       const w = t < tk ? Math.max(tk, 0.35) : 0.55;
-      const share = Math.max(0.05, 1 - ((t - tk) / w) ** 2);
+      // Text steps keep at least 40% of the hue, so a pale brand still has colored links.
+      const share = Math.max(t > tk ? 0.4 : 0.05, 1 - ((t - tk) / w) ** 2);
       return swatch(step, {
         l: l[i]!,
         c: chroma * share * (mode === "dark" ? (curve.darkChroma ?? 1) : 1),

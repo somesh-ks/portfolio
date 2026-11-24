@@ -19,15 +19,17 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
     if (!text.trim()) return null;
     try {
       return audit(text);
-    } catch {
-      return "error" as const;
+    } catch (e) {
+      return { error: (e as Error).message };
     }
   }, [text]);
 
   return (
     <div className="spring-audit">
       <label className="field" htmlFor={id}>
-        <span className="field__label">DESIGN.md, tokens.json or CSS variables</span>
+        <span className="field__label">
+          DESIGN.md, tokens.json, CSS variables or a Tailwind config
+        </span>
         <textarea
           id={id}
           className="spring-audit-input"
@@ -41,10 +43,8 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
         />
       </label>
       <div aria-live="polite" className="grid gap-4">
-        {report === "error" ? (
-          <p className="toy__caption">
-            Couldn't read that. Paste DESIGN.md, tokens.json or CSS custom properties.
-          </p>
+        {report && "error" in report ? (
+          <p className="toy__caption">{report.error}</p>
         ) : report ? (
           <>
             <div className="flex items-center gap-4">

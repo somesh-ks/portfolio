@@ -1,0 +1,21 @@
+/* dark.css: the app is dark only. This is the whole design system. */
+:root {
+  color-scheme: dark;
+  --bg: black;
+  --surface: #121212;
+  --text: white;
+  --text-secondary: darkgray;
+  --text-muted: dimgray;
+  --link: royalblue;
+  --accent: gold;
+  --accent-fg: black;
+  --border: #333;
+  --space: 8px;
+}
+
+body { background: var(--bg); color: var(--text); }
+.card { background: var(--surface); padding: calc(var(--space) * 2); }
+/* text, text-secondary, text-muted and link all appear on bg and on surface */
+.btn { background: var(--accent); color: var(--accent-fg); }
+.btn:focus-visible { outline: 2px solid var(--accent); }
+.toast-error { background: #7f1d1d; color: #fca5a5; }

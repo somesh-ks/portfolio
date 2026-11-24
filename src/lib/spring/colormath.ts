@@ -123,9 +123,8 @@ function luminance(color: string): number {
   const rgb = color.trim().startsWith("#") ? hexToRgb(color.trim()) : null;
   const c = rgb ? null : parseCss(color);
   if (!rgb && !c) return 0;
-  const [r, g, b] = (rgb ? rgb.map(toLinear) : oklchToLinear(c!)).map((v) =>
-    Math.min(1, Math.max(0, v)),
-  ) as Rgb;
+  // OKLCH outside sRGB keeps its true luminance (what WCAG tools such as colorjs report).
+  const [r, g, b] = rgb ? (rgb.map(toLinear) as Rgb) : oklchToLinear(c!);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
@@ -196,4 +195,40 @@ export function formatColor(hex: string, format: ColorFormat): string {
   }
   const c = parseCss(hex)!;
   return `oklch(${Math.round(c.l * 1000) / 10}% ${Math.round(c.c * 1000) / 1000} ${Math.round(c.h)})`;
+}
+
+/** The alpha of a CSS color, 1 when it has none. */
+function alphaOf(input: string): number {
+  const s = input.trim().toLowerCase();
+  if (s === "transparent") return 0;
+  const hex = s.match(/^#([0-9a-f]{4}|[0-9a-f]{8})$/);
+  if (hex) {
+    const a = hex[1]!.length === 4 ? hex[1]!.slice(3).repeat(2) : hex[1]!.slice(6);
+    return parseInt(a, 16) / 255;
+  }
+  const fn = s.match(/^(?:rgba?|hsla?|oklch)\(([^)]+)\)$/);
+  if (!fn) return 1;
+  const slash = fn[1]!.split("/")[1];
+  const commas = fn[1]!.split(",");
+  const a = slash ?? (commas.length === 4 ? commas[3] : undefined);
+  if (a === undefined) return 1;
+  const n = num(a.trim(), 1);
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+}
+
+const gamma = (c: Lch) => oklchToLinear(c).map((v) => toGamma(Math.min(1, Math.max(0, v))));
+
+/**
+ * `fg` painted over `bg`, as the opaque color the eye sees. Browsers blend in
+ * gamma-encoded sRGB, so this does too. Unreadable input comes back unchanged.
+ */
+export function over(fg: string, bg: string): string {
+  const a = alphaOf(fg);
+  const f = parseCss(fg);
+  const b = parseCss(bg);
+  if (a >= 1 || !f || !b) return fg;
+  const [fr, fgr, fb] = gamma(f);
+  const [br, bgr, bb] = gamma(b);
+  const mix = (x: number, y: number) => ((x * a + y * (1 - a)) * 255).toFixed(3);
+  return `rgb(${mix(fr!, br!)} ${mix(fgr!, bgr!)} ${mix(fb!, bb!)})`;
 }

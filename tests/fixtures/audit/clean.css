@@ -1,0 +1,69 @@
+/* theme.css: the whole design system. Components read only the semantic tokens below. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f6f6f7;
+  --text: #18181b;
+  --text-muted: #6a6a73;
+  --border: #d4d4d8;
+  --accent: #1d5fd1;
+  --accent-hover: #174fb0;
+  --accent-fg: #ffffff;
+  --accent-text: #1a56c0;
+  --ring: #1d5fd1;
+  --danger: #c62828;
+  --danger-fg: #ffffff;
+  --danger-text: #b91c1c;
+  --success-text: #15803d;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --text-sm: 0.875rem;   /* 14px, line-height 1.43 */
+  --text-base: 1rem;     /* 16px, line-height 1.5 */
+  --text-lg: 1.25rem;    /* 20px, line-height 1.4 */
+  --text-2xl: 2rem;      /* 32px, line-height 1.2, tracking -0.02em */
+  --leading-sm: 1.43;
+  --leading-base: 1.5;
+  --leading-lg: 1.4;
+  --leading-2xl: 1.2;
+  --tracking-2xl: -0.02em;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme="dark"] {
+  --bg: #111113;
+  --bg-subtle: #1b1b1e;
+  --text: #e4e4e7;
+  --text-muted: #9b9ba4;
+  --border: #3f3f46;
+  --accent: #6d9eef;
+  --accent-hover: #8ab2f3;
+  --accent-fg: #111113;
+  --accent-text: #8ab2f3;
+  --ring: #6d9eef;
+  --danger: #f07070;
+  --danger-fg: #111113;
+  --danger-text: #f28b8b;
+  --success-text: #4ade80;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; }
+}
+
+/* Usage: text, text-muted, accent-text, danger-text and success-text sit on bg and bg-subtle.
+   accent-fg sits on accent and accent-hover; danger-fg on danger. ring is a 2px outline on bg. */
+.btn { padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); }
+.btn-primary { background: var(--accent); color: var(--accent-fg); }
+.btn-primary:hover { background: var(--accent-hover); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

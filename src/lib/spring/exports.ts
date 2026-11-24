@@ -928,7 +928,7 @@ export function scale({ hue, chroma, l: target, bend = true }, mode = "light", c
     const t = i / 11;
     const l = i < k - 1 ? from + (lb - from) * (ek ? y / ek : 0) : lb + (to - lb) * (ek < 1 ? (y - ek) / (1 - ek) : 0);
     const w = t < tk ? Math.max(tk, 0.35) : 0.55;
-    const share = Math.max(0.05, 1 - ((t - tk) / w) ** 2);
+    const share = Math.max(t > tk ? 0.4 : 0.05, 1 - ((t - tk) / w) ** 2);
     return hex({ l, c: chroma * share * (mode === "dark" ? (c.darkChroma ?? 1) : 1), h: (((hue + (bend ? c.hueShift : 0) * (t - tk)) % 360) + 360) % 360 });
   });
 }

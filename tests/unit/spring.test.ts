@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
@@ -345,4 +345,79 @@ describe("per-tool exports", () => {
       expect(() => JSON.parse(json.content)).not.toThrow();
     },
   );
+});
+
+// Samples and answer key from the 2026-11-24 audit eval; ratios checked against colorjs.
+const readSample = (f: string) =>
+  audit(readFileSync(join(import.meta.dir, "../fixtures/audit", f), "utf8"));
+
+describe("audit reads real systems", () => {
+  const read = readSample;
+  const said = (f: string) =>
+    read(f)
+      .findings.map((x) => `${x.title}: ${x.detail}`)
+      .join("\n");
+
+  test("CSS dark blocks are checked, and alpha is composited", () => {
+    const s = said("css-mix.css");
+    expect(s).toContain("text-muted on bg (dark) 3.14:1");
+    expect(s).toContain("text-placeholder on surface 2.85:1");
+    expect(s).toContain("text-placeholder on surface (dark) 1.09:1");
+    expect(s).toContain("primary-fg on primary (dark) 3.68:1");
+    expect(s).not.toContain("No dark theme");
+    expect(s).not.toMatch(/text-muted on (bg|surface) \d/);
+  });
+
+  test("ratios come from the value as written, not a rounded hex", () => {
+    const s = said("shadcn.css");
+    expect(s).toContain("destructive-foreground on destructive 4.49:1");
+    expect(s).toContain("ring on background 2.59:1");
+    expect(s).toContain("sidebar-ring on sidebar (dark) 2.30:1");
+    expect(s).not.toContain("muted-foreground on background");
+  });
+
+  test("component text is checked on its own background", () => {
+    const s = said("large.css");
+    for (const pair of [
+      "tooltip-muted on tooltip-bg 3.40:1",
+      "table-header-muted on table-header-bg 3.40:1",
+      "badge-warning-fg on badge-warning-bg 3.35:1",
+      "toast-muted on toast-bg (dark) 2.14:1",
+    ])
+      expect(s).toContain(pair);
+    expect(s).not.toContain("tooltip-muted on tooltip-bg (dark)");
+  });
+
+  test("a dark-only system isn't told it lacks a dark theme", () => {
+    const s = said("dark.css");
+    expect(s).not.toContain("No dark theme");
+    expect(s).toContain("text-muted on bg 3.83:1");
+    expect(s).toContain("link on bg 4.33:1");
+  });
+
+  test("Tailwind configs are read", () => {
+    const r = read("tailwind.config.js");
+    expect(r.parsed.format).toBe("tailwind");
+    const s = said("tailwind.config.js");
+    expect(s).toContain("brand-fg on brand 2.77:1");
+    expect(s).toContain("ink-muted on panel 4.34:1");
+    expect(s).toContain("xs 11px");
+    expect(s).toContain("No dark theme");
+    expect(s).not.toContain("ink-muted on canvas");
+  });
+
+  test("DTCG dark aliases, type aliases and weights are read", () => {
+    const s = said("tokens.json");
+    expect(s).toContain("color-text-subtle on color-bg (dark) 2.57:1");
+    expect(s).toContain("typography-body 14px at 1.2");
+    expect(s).toContain("typography-caption 12px at 300");
+    expect(s).not.toContain("off the grid");
+    expect(s).not.toContain("No dark theme");
+    expect(s).not.toContain("text-disabled");
+  });
+
+  test("a clean system scores 100, and broken JSON says so", () => {
+    expect(read("clean.css").score).toBe(100);
+    expect(() => read("broken.tokens.json")).toThrow(/Not valid JSON/);
+  });
 });
