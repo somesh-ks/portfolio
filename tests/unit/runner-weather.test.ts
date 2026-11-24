@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/runner/weather/route";
-import { RESKINS, makeParticles, stepParticles } from "@/lib/runner/scene";
+import { RESKINS, accessoryFor, findFace, makeParticles, stepParticles } from "@/lib/runner/scene";
+import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
+import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES, type ObstacleKind } from "@/lib/runner/sprites";
 import { localNight, roundCoord, skyFromCode } from "@/lib/runner/weather";
 
@@ -87,5 +89,27 @@ describe("scene", () => {
       expect(x).toBeGreaterThanOrEqual(0);
       expect(x).toBeLessThan(200);
     }
+  });
+});
+
+describe("accessories", () => {
+  test("every frame of every ride has a face to dress", () => {
+    for (const costume of COSTUMES) {
+      const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
+      const sprite = buildSprite(raw, costume);
+      for (const frame of [sprite.idle, ...sprite.frames]) {
+        const face = findFace(frame);
+        expect(face, costume).not.toBeNull();
+        expect(face!.right - face!.left, costume).toBeGreaterThanOrEqual(9);
+      }
+    }
+  });
+
+  test("weather picks the accessory", () => {
+    expect(accessoryFor({ sky: "rain", night: true, temp: null })).toBe("umbrella");
+    expect(accessoryFor({ sky: "snow", night: false, temp: null })).toBe("beanie");
+    expect(accessoryFor({ sky: "clear", night: false, temp: null })).toBe("shades");
+    expect(accessoryFor({ sky: "clear", night: true, temp: null })).toBe("nightcap");
+    expect(accessoryFor({ sky: "cloudy", night: false, temp: null })).toBeNull();
   });
 });

@@ -26,7 +26,11 @@ import {
   type Tone,
 } from "@/lib/runner/sprites";
 import {
+  accessoryFor,
   cloudCount,
+  dress,
+  findFace,
+  type Face,
   DEFAULT_WEATHER,
   makeParticles,
   MOON,
@@ -127,6 +131,7 @@ export function createEngine(
   let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "fog", string>;
   let weather = initialWeather;
   const particles = makeParticles();
+  const faces = new WeakMap<object, Face | null>();
   /** Weather moves on its own clock, so rain falls between runs too. */
   let weatherLast: number | null = null;
 
@@ -273,6 +278,15 @@ export function createEngine(
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
     drawFog();
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
+    const accessory = accessoryFor(weather);
+    const face = accessory ? faceOf(rects) : null;
+    if (accessory && face) drawCells(dress(face, accessory, costume), WORLD.mascotX, lift);
+  }
+
+  /** Faces are found once per frame of art and kept. */
+  function faceOf(rects: Sprite["idle"]): Face | null {
+    if (!faces.has(rects)) faces.set(rects, findFace(rects));
+    return faces.get(rects) ?? null;
   }
 
   /** Between runs: hold the crash pose, then clear the desk and walk in place.
