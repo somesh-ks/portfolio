@@ -25,7 +25,12 @@ export type Tone =
 export type Cell = readonly [number, number, number, number, Tone];
 
 /** Turns ASCII rows into merged horizontal runs. '.' and ' ' are empty. */
-function art(rows: readonly string[], x0: number, y0: number, tones: Record<string, Tone>): Cell[] {
+export function art(
+  rows: readonly string[],
+  x0: number,
+  y0: number,
+  tones: Record<string, Tone>,
+): Cell[] {
   const out: Cell[] = [];
   rows.forEach((row, y) => {
     let x = 0;

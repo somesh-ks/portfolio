@@ -25,6 +25,18 @@ import {
   type Cell,
   type Tone,
 } from "@/lib/runner/sprites";
+import {
+  cloudCount,
+  DEFAULT_WEATHER,
+  makeParticles,
+  MOON,
+  particleSpeed,
+  RESKINS,
+  STARS,
+  stepParticles,
+  SUN,
+} from "@/lib/runner/scene";
+import type { Weather } from "@/lib/runner/weather";
 
 /** Rides arrive as /runner/rides.json (static, outside the JS bundle). */
 function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite> {
@@ -74,6 +86,7 @@ export interface Engine {
   start: (seed: number, costume: Costume) => void;
   jump: () => void;
   setCostume: (costume: Costume) => void;
+  setWeather: (weather: Weather) => void;
   destroy: () => void;
 }
 
@@ -82,6 +95,7 @@ export function createEngine(
   initialCostume: Costume,
   rides: Record<string, RawSprite>,
   callbacks: EngineCallbacks,
+  initialWeather: Weather = DEFAULT_WEATHER,
 ): Engine {
   const SPRITES = buildSprites(rides);
   const context = canvas.getContext("2d");
@@ -110,7 +124,11 @@ export function createEngine(
     ? 0
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
-  let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
+  let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "fog", string>;
+  let weather = initialWeather;
+  const particles = makeParticles();
+  /** Weather moves on its own clock, so rain falls between runs too. */
+  let weatherLast: number | null = null;
 
   function readColors() {
     const style = getComputedStyle(canvas);
@@ -122,6 +140,7 @@ export function createEngine(
       ground: read("--border-strong"),
       cloud: read("--border-default"),
       dust: read("--illustration-grid"),
+      fog: read("--surface-canvas"),
     };
   }
 
@@ -185,22 +204,60 @@ export function createEngine(
     const span = Math.ceil((viewWidth + 14) / CLOUD_STRIP) * CLOUD_STRIP;
     const shift = Math.floor(cloudShift);
     for (let copy = 0; copy < span / CLOUD_STRIP; copy += 1)
-      for (const [spotX, y] of CLOUD_SPOTS) {
+      for (const [spotX, y] of CLOUD_SPOTS.slice(0, cloudCount(weather.sky))) {
         // Wrap 14 cells (a cloud's width) early so clouds slide off the left edge.
         const x = ((((spotX + copy * CLOUD_STRIP - shift + 14) % span) + span) % span) - 14;
         for (const [cx, cy, w] of CLOUD) fill(x + cx, y + cy, w, 1, colors.cloud);
       }
   }
 
+  /** Sun by day in a clear sky, moon and stars at night; they hold still. */
+  function drawLights() {
+    if (weather.night) {
+      for (const [x, y] of STARS) if (x < viewWidth) fill(x, y, 1, 1, colors.muted);
+      if (weather.sky !== "fog") drawCells(MOON, viewWidth - 22, 5);
+    } else if (weather.sky === "clear") drawCells(SUN, viewWidth - 22, 5);
+  }
+
+  function drawParticles() {
+    if (!particleSpeed(weather.sky)) return;
+    const snow = weather.sky === "snow";
+    const color = snow ? colors.muted : colors.sky;
+    for (const { x, y } of particles)
+      for (let copy = x; copy < viewWidth; copy += 200)
+        fill(copy, Math.floor(y), 1, snow ? 1 : 3, color);
+  }
+
+  /** Fog thickens toward the right edge, over the sky and the desk. */
+  function drawFog() {
+    if (weather.sky !== "fog") return;
+    const bands = 4;
+    for (let band = 0; band < bands; band += 1) {
+      ctx.globalAlpha = 0.14 * (band + 1);
+      const x = Math.floor(viewWidth * (0.4 + band * 0.15));
+      fill(x, 0, viewWidth - x, WORLD.height, colors.fog);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Advance the weather by real time; under reduced motion it holds still. */
+  function tickWeather(now: number) {
+    const dt = weatherLast === null ? 0 : Math.min(now - weatherLast, 100) / 1000;
+    weatherLast = now;
+    if (!motion.matches) stepParticles(particles, weather.sky, dt, WORLD.ground);
+  }
+
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const state = run;
     const distance = state?.distance ?? 0;
+    drawLights();
     drawSky();
+    drawParticles();
     drawGround(distance);
 
     for (const obstacle of state?.obstacles ?? []) {
-      const sprite = OBSTACLE_SPRITES[obstacle.kind];
+      const sprite = RESKINS[weather.sky]?.[obstacle.kind] ?? OBSTACLE_SPRITES[obstacle.kind];
       drawCells(sprite.cells, Math.round(obstacle.x), WORLD.ground - sprite.h);
     }
 
@@ -214,6 +271,7 @@ export function createEngine(
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
+    drawFog();
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
   }
 
@@ -232,7 +290,9 @@ export function createEngine(
     if (!motion.matches && idleLast !== null)
       cloudShift += (Math.min(now - idleLast, 100) / 1000) * CLOUD_IDLE_SPEED;
     idleLast = now;
-    if (next !== walkFrame || Math.floor(cloudShift) !== before) {
+    tickWeather(now);
+    const falling = !motion.matches && particleSpeed(weather.sky) !== null;
+    if (falling || next !== walkFrame || Math.floor(cloudShift) !== before) {
       walkFrame = next;
       draw();
     }
@@ -259,6 +319,7 @@ export function createEngine(
       if (Math.floor(score(state) / MILESTONE) > milestoneBefore) callbacks.onMilestone();
     }
 
+    tickWeather(now);
     const points = score(state);
     if (points !== lastPoints) {
       lastPoints = points;
@@ -332,6 +393,10 @@ export function createEngine(
     setCostume(next) {
       costume = next;
       if (run) run.hitbox = SPRITES[next].hitbox;
+      draw();
+    },
+    setWeather(next) {
+      weather = next;
       draw();
     },
     destroy() {

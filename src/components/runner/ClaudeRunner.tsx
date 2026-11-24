@@ -34,7 +34,36 @@ import {
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
 import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
+import { isSky, localNight, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
+
+/** `?weather=snow` or `?weather=rain-night` shows any sky, for QA and the curious. */
+function weatherOverride(): Weather | null {
+  const value = new URLSearchParams(window.location.search).get("weather");
+  if (!value) return null;
+  const [sky, time] = value.split("-");
+  return isSky(sky) ? { sky, night: time === "night", temp: null } : null;
+}
+
+let weatherRequest: Promise<Weather> | null = null;
+/** The visitor's sky, asked once per page load. Any failure is a plain sky. */
+function loadWeather(): Promise<Weather> {
+  weatherRequest ??= (async () => {
+    const override = weatherOverride();
+    if (override) return override;
+    const fallback: Weather = { sky: "cloudy", night: localNight(), temp: null };
+    try {
+      const response = await fetch("/api/runner/weather");
+      const body = (await response.json()) as Weather | null;
+      return body && isSky(body.sky) ? body : fallback;
+    } catch {
+      return fallback;
+    }
+  })();
+  return weatherRequest;
+}
+
+const isPlainSky = (weather: Weather) => weather.sky === "cloudy" && !weather.night;
 
 type Phase = "idle" | "loading" | "running" | "over";
 interface Entry {
@@ -215,33 +244,40 @@ export function ClaudeRunner() {
     loading.current ??= (async () => {
       setBest(Number(readStorage(BEST_KEY)) || 0);
       setName(readStorage(NAME_KEY) ?? "");
-      const [{ createEngine }, rides] = await Promise.all([
+      const [{ createEngine }, rides, , weather] = await Promise.all([
         import("./engine"),
         fetch("/runner/rides.json")
           .then((response) => (response.ok ? response.json() : {}))
           .catch(() => ({})) as Promise<Record<string, RawSprite>>,
         loadBoard(),
+        loadWeather(),
       ]);
       if (!canvas.current) return null;
-      engine.current = createEngine(canvas.current, costumeRef.current, rides, {
-        onScore: setPoints,
-        onJump: () => {
-          setJumped(true);
-          playRef.current("jump");
+      engine.current = createEngine(
+        canvas.current,
+        costumeRef.current,
+        rides,
+        {
+          onScore: setPoints,
+          onJump: () => {
+            setJumped(true);
+            playRef.current("jump");
+          },
+          onMilestone: () => playRef.current("milestone"),
+          onOver: (final) => {
+            playRef.current("crash");
+            setPhase("over");
+            if (leaderboardOn.current) void loadBoard();
+            setBest((previous) => {
+              if (final <= previous) return previous;
+              writeStorage(BEST_KEY, String(final));
+              return final;
+            });
+            setAnnouncement(`Game over. ${final} points.`);
+          },
         },
-        onMilestone: () => playRef.current("milestone"),
-        onOver: (final) => {
-          playRef.current("crash");
-          setPhase("over");
-          if (leaderboardOn.current) void loadBoard();
-          setBest((previous) => {
-            if (final <= previous) return previous;
-            writeStorage(BEST_KEY, String(final));
-            return final;
-          });
-          setAnnouncement(`Game over. ${final} points.`);
-        },
-      });
+        weather,
+      );
       setEngineReady(true);
       return engine.current;
     })().catch(() => {
@@ -256,9 +292,13 @@ export function ClaudeRunner() {
   // any other loads the engine once the page is idle, not on the critical path.
   useEffect(() => {
     const pick = COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
-    if (pick === "walk") return;
-    costumeRef.current = pick;
-    const load = () => void ensureEngine();
+    if (pick !== "walk") costumeRef.current = pick;
+    // The weather is asked once idle too; a plain sky with the classic Claude
+    // needs no engine until someone plays.
+    const load = () =>
+      void loadWeather().then((weather) => {
+        if (pick !== "walk" || !isPlainSky(weather)) void ensureEngine();
+      });
     // Safari has no requestIdleCallback; a short timeout stands in.
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(load, { timeout: 3000 });
