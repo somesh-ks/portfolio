@@ -6,7 +6,7 @@
  */
 import { FALLBACKS, FONTS } from "./fonts.data";
 
-/** A curated font: measured metrics, jobs and feel. */
+/** A curated font: measured metrics and a note. */
 export type CuratedFont = keyof typeof FONTS;
 export const FONT_NAMES = Object.keys(FONTS) as CuratedFont[];
 /** Any Google font. Curated ones carry metrics; the rest carry a FontMeta in TypeInput.extra. */

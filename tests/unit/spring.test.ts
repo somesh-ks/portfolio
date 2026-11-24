@@ -6,13 +6,11 @@ import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
 import { DEFAULT_CURVE, parseBezier, parseColor } from "@/lib/spring/color";
 import { apcaContrast } from "@/lib/spring/colormath";
-import { MOODS, pairings } from "@/lib/spring/pairing";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
 import { SAMPLES } from "../fixtures/spring-samples";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { DEFAULT_INPUT, buildSystem, inputFromSeed, type SystemInput } from "@/lib/spring/system";
-import { FONTS } from "@/lib/spring/fonts.data";
 import { crc32, zip } from "@/components/experiments/spring/zip";
 
 const SEEDS = ["#3f8f3a", "#e11d48", "#f5c400", "#2563eb", "#111111", "#7c3aed", "#14b8a6"];
@@ -167,21 +165,6 @@ describe("share link", () => {
     expect(decodeInput("nope")).toBeNull();
     expect(decodeInput(null)).toBeNull();
   });
-});
-
-describe("pairing", () => {
-  test.each(Object.keys(MOODS))("suggests varied pairings for %s", (m) => {
-    const ps = pairings(MOODS[m]!.feel, 4);
-    expect(ps).toHaveLength(4);
-    expect(new Set(ps.map((p) => p.heading)).size).toBeGreaterThanOrEqual(2);
-  });
-  test("interfaces get a sans body", () => {
-    for (const m of Object.values(MOODS))
-      for (const p of pairings(m.feel, 4, undefined, "app"))
-        expect(["serif"]).not.toContain(FONTS[p.body].tag);
-  });
-  test("is deterministic", () =>
-    expect(pairings(MOODS.warm!.feel)).toEqual(pairings(MOODS.warm!.feel)));
 });
 
 describe("audit", () => {

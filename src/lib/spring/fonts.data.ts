@@ -2,13 +2,6 @@
 export const FONTS = {
   Inter: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.4,
-      energy: -0.6,
-      era: 0.2,
-      formality: 0.4,
-    },
     note: "The neutral workhorse. Clear at any size, but it reads as the default.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -35,13 +28,6 @@ export const FONTS = {
   },
   Geist: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.6,
-      energy: -0.4,
-      era: 0.8,
-      formality: 0.3,
-    },
     note: "Precise and technical, drawn for developer tools.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -60,13 +46,6 @@ export const FONTS = {
   },
   "Instrument Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.1,
-      energy: 0,
-      era: 0.6,
-      formality: 0,
-    },
     note: "A friendly grotesk with a width axis; modern without being cold.",
     weights: [400, 500, 600, 700],
     variable: [400, 700],
@@ -85,13 +64,6 @@ export const FONTS = {
   },
   "Hanken Grotesk": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0,
-      energy: -0.3,
-      era: 0.2,
-      formality: 0.2,
-    },
     note: "Balanced and unfussy, a quieter Inter alternative.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -110,13 +82,6 @@ export const FONTS = {
   },
   "Schibsted Grotesk": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.1,
-      energy: 0.3,
-      era: 0.3,
-      formality: 0.3,
-    },
     note: "A newspaper grotesk: confident headlines, sturdy text.",
     weights: [400, 500, 600, 700, 800, 900],
     variable: [400, 900],
@@ -135,13 +100,6 @@ export const FONTS = {
   },
   Manrope: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.2,
-      energy: -0.2,
-      era: 0.6,
-      formality: 0,
-    },
     note: "Semi-geometric and modern; common in fintech.",
     weights: [200, 300, 400, 500, 600, 700, 800],
     variable: [200, 800],
@@ -160,13 +118,6 @@ export const FONTS = {
   },
   "Plus Jakarta Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.3,
-      energy: 0,
-      era: 0.5,
-      formality: -0.1,
-    },
     note: "Rounded geometric, upbeat and startup-friendly.",
     weights: [200, 300, 400, 500, 600, 700, 800],
     variable: [200, 800],
@@ -185,13 +136,6 @@ export const FONTS = {
   },
   Figtree: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.5,
-      energy: -0.2,
-      era: 0.4,
-      formality: -0.3,
-    },
     note: "Warm geometric that stays easy to read; approachable.",
     weights: [300, 400, 500, 600, 700, 800, 900],
     variable: [300, 900],
@@ -210,13 +154,6 @@ export const FONTS = {
   },
   "DM Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.3,
-      energy: -0.3,
-      era: 0.3,
-      formality: -0.1,
-    },
     note: "Low-contrast geometric, soft and friendly at small sizes.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
     variable: [100, 1000],
@@ -235,13 +172,6 @@ export const FONTS = {
   },
   "Albert Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.1,
-      energy: -0.1,
-      era: 0.4,
-      formality: 0.1,
-    },
     note: "Scandinavian geometric; clean with a little character.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -260,13 +190,6 @@ export const FONTS = {
   },
   Onest: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0,
-      energy: -0.3,
-      era: 0.5,
-      formality: 0.1,
-    },
     note: "Calm and legible, with strong Cyrillic.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -285,13 +208,6 @@ export const FONTS = {
   },
   "Public Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.5,
-      energy: -0.7,
-      era: -0.2,
-      formality: 0.7,
-    },
     note: "Made for US government sites: neutral, trustworthy, plain.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -310,13 +226,6 @@ export const FONTS = {
   },
   "IBM Plex Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.4,
-      energy: -0.2,
-      era: 0,
-      formality: 0.6,
-    },
     note: "Engineered and corporate, with a human edge in the curves.",
     weights: [100, 200, 300, 400, 500, 600, 700],
     variable: [100, 700],
@@ -335,13 +244,6 @@ export const FONTS = {
   },
   "Work Sans": {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.2,
-      energy: 0,
-      era: 0,
-      formality: -0.1,
-    },
     note: "Slightly grotesque and open; good for screens.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -360,13 +262,6 @@ export const FONTS = {
   },
   Sora: {
     tag: "sans",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.2,
-      energy: 0.2,
-      era: 0.8,
-      formality: 0,
-    },
     note: "Wide and futuristic; reads as web3 and tech.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800],
     variable: [100, 800],
@@ -385,13 +280,6 @@ export const FONTS = {
   },
   Outfit: {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.3,
-      energy: 0.3,
-      era: 0.6,
-      formality: -0.4,
-    },
     note: "Pure geometric headlines; playful and round.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -410,13 +298,6 @@ export const FONTS = {
   },
   "Space Grotesk": {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: -0.3,
-      energy: 0.5,
-      era: 0.7,
-      formality: -0.2,
-    },
     note: "Quirky tech grotesk with odd details; nerdy and fun.",
     weights: [300, 400, 500, 600, 700],
     variable: [300, 700],
@@ -435,13 +316,6 @@ export const FONTS = {
   },
   "Bricolage Grotesque": {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.6,
-      energy: 0.8,
-      era: 0.6,
-      formality: -0.6,
-    },
     note: "Expressive and inky at large sizes; editorial with attitude.",
     weights: [200, 300, 400, 500, 600, 700, 800],
     variable: [200, 800],
@@ -460,13 +334,6 @@ export const FONTS = {
   },
   "Familjen Grotesk": {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.3,
-      energy: 0.4,
-      era: 0.3,
-      formality: -0.2,
-    },
     note: "Chunky Swedish grotesk; warm and a bit cheeky.",
     weights: [400, 500, 600, 700],
     variable: [400, 700],
@@ -485,13 +352,6 @@ export const FONTS = {
   },
   Syne: {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0,
-      energy: 0.9,
-      era: 0.9,
-      formality: -0.3,
-    },
     note: "Art-gallery loud; stretches wide at heavy weights.",
     weights: [400, 500, 600, 700, 800],
     variable: [400, 800],
@@ -510,13 +370,6 @@ export const FONTS = {
   },
   Unbounded: {
     tag: "display",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.2,
-      energy: 0.9,
-      era: 0.9,
-      formality: -0.5,
-    },
     note: "Wide, round and playful; big personality, use short words.",
     weights: [200, 300, 400, 500, 600, 700, 800, 900],
     variable: [200, 900],
@@ -535,13 +388,6 @@ export const FONTS = {
   },
   "Source Serif 4": {
     tag: "serif",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: -0.1,
-      energy: -0.5,
-      era: -0.4,
-      formality: 0.7,
-    },
     note: "A readable editorial serif with optical sizes.",
     weights: [200, 300, 400, 500, 600, 700, 800, 900],
     variable: [200, 900],
@@ -560,13 +406,6 @@ export const FONTS = {
   },
   Newsreader: {
     tag: "serif",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.2,
-      energy: -0.4,
-      era: -0.5,
-      formality: 0.6,
-    },
     note: "Made for news and long reads; calm authority.",
     weights: [200, 300, 400, 500, 600, 700, 800],
     variable: [200, 800],
@@ -585,13 +424,6 @@ export const FONTS = {
   },
   Literata: {
     tag: "serif",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.3,
-      energy: -0.5,
-      era: -0.3,
-      formality: 0.4,
-    },
     note: "Designed for e-books; warm and very readable.",
     weights: [200, 300, 400, 500, 600, 700, 800, 900],
     variable: [200, 900],
@@ -618,13 +450,6 @@ export const FONTS = {
   },
   Lora: {
     tag: "serif",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.6,
-      energy: -0.3,
-      era: -0.4,
-      formality: 0.2,
-    },
     note: "Calligraphic and warm; gentle storytelling.",
     weights: [400, 500, 600, 700],
     variable: [400, 700],
@@ -643,13 +468,6 @@ export const FONTS = {
   },
   "EB Garamond": {
     tag: "serif",
-    jobs: ["heading", "body"],
-    feel: {
-      warmth: 0.3,
-      energy: -0.4,
-      era: -1,
-      formality: 0.8,
-    },
     note: "Classical and literary; best large and in print-like layouts.",
     weights: [400, 500, 600, 700, 800],
     variable: [400, 800],
@@ -676,13 +494,6 @@ export const FONTS = {
   },
   Fraunces: {
     tag: "serif",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.8,
-      energy: 0.5,
-      era: -0.2,
-      formality: -0.2,
-    },
     note: "Soft, wonky old-style; warm and handmade.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -701,13 +512,6 @@ export const FONTS = {
   },
   "Young Serif": {
     tag: "serif",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.7,
-      energy: 0.4,
-      era: -0.3,
-      formality: -0.3,
-    },
     note: "Chunky and friendly; a cookbook on a sunny day.",
     weights: [400],
     variable: null,
@@ -726,13 +530,6 @@ export const FONTS = {
   },
   "Instrument Serif": {
     tag: "serif",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.3,
-      energy: 0.4,
-      era: 0.3,
-      formality: 0.3,
-    },
     note: "Condensed display serif; fashion-editorial, one weight.",
     weights: [400],
     variable: null,
@@ -751,13 +548,6 @@ export const FONTS = {
   },
   "DM Serif Display": {
     tag: "serif",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.2,
-      energy: 0.6,
-      era: -0.6,
-      formality: 0.5,
-    },
     note: "High-contrast headlines; premium and dramatic.",
     weights: [400],
     variable: null,
@@ -776,13 +566,6 @@ export const FONTS = {
   },
   Gloock: {
     tag: "serif",
-    jobs: ["heading"],
-    feel: {
-      warmth: 0.4,
-      energy: 0.7,
-      era: -0.2,
-      formality: 0.2,
-    },
     note: "Bold, sharp serif headlines with a sculpted feel.",
     weights: [400],
     variable: null,
@@ -801,13 +584,6 @@ export const FONTS = {
   },
   "Geist Mono": {
     tag: "mono",
-    jobs: ["mono"],
-    feel: {
-      warmth: -0.6,
-      energy: -0.3,
-      era: 0.8,
-      formality: 0.2,
-    },
     note: "Clean and technical; pairs with Geist.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     variable: [100, 900],
@@ -826,13 +602,6 @@ export const FONTS = {
   },
   "JetBrains Mono": {
     tag: "mono",
-    jobs: ["mono"],
-    feel: {
-      warmth: -0.4,
-      energy: -0.2,
-      era: 0.5,
-      formality: 0.1,
-    },
     note: "Tall x-height, made for reading code all day.",
     weights: [100, 200, 300, 400, 500, 600, 700, 800],
     variable: [100, 800],
@@ -851,13 +620,6 @@ export const FONTS = {
   },
   "IBM Plex Mono": {
     tag: "mono",
-    jobs: ["mono"],
-    feel: {
-      warmth: -0.3,
-      energy: -0.2,
-      era: 0,
-      formality: 0.4,
-    },
     note: "Engineered with warm italics; pairs with Plex Sans.",
     weights: [100, 200, 300, 400, 500, 600, 700],
     variable: null,
@@ -876,13 +638,6 @@ export const FONTS = {
   },
   "DM Mono": {
     tag: "mono",
-    jobs: ["mono"],
-    feel: {
-      warmth: 0.2,
-      energy: -0.3,
-      era: 0.3,
-      formality: 0,
-    },
     note: "Soft and friendly, for numbers and labels more than code.",
     weights: [300, 400, 500],
     variable: null,
@@ -901,13 +656,6 @@ export const FONTS = {
   },
   "Space Mono": {
     tag: "mono",
-    jobs: ["mono"],
-    feel: {
-      warmth: 0,
-      energy: 0.5,
-      era: 0.4,
-      formality: -0.3,
-    },
     note: "Retro, characterful mono; great for labels, tiring for code.",
     weights: [400, 700],
     variable: null,
