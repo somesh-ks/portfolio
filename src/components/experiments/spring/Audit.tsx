@@ -2,7 +2,6 @@
 
 import { useId, useMemo, useState } from "react";
 import { audit, type Finding } from "@/lib/spring/audit";
-import { SAMPLES } from "@/lib/spring/samples";
 import type { SystemInput } from "@/lib/spring/system";
 import { useSpring } from "./store";
 import "./spring.css";
@@ -41,13 +40,6 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
           spellCheck={false}
         />
       </label>
-      <div className="toy__actions">
-        {SAMPLES.map((s) => (
-          <button key={s.id} type="button" className="button" onClick={() => setText(s.text)}>
-            Try {s.label.toLowerCase()}
-          </button>
-        ))}
-      </div>
       <div aria-live="polite" className="grid gap-4">
         {report === "error" ? (
           <p className="toy__caption">

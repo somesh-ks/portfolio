@@ -9,7 +9,7 @@ import { apcaContrast } from "@/lib/spring/colormath";
 import { MOODS, pairings } from "@/lib/spring/pairing";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
-import { SAMPLES } from "@/lib/spring/samples";
+import { SAMPLES } from "../fixtures/spring-samples";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { DEFAULT_INPUT, buildSystem, inputFromSeed, type SystemInput } from "@/lib/spring/system";
 import { FONTS } from "@/lib/spring/fonts.data";
