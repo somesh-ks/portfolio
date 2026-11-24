@@ -90,39 +90,20 @@ export function shareUrl(): string {
   return url.toString();
 }
 
-/**
- * Which theme the previews show. Follows the site's theme until the visitor
- * picks one in any tool; one choice drives every preview on the page.
- */
-let modeOverride: Mode | null = null;
-const modeListeners = new Set<() => void>();
-
 function subscribeSite(l: () => void) {
   const o = new MutationObserver(l);
   o.observe(document.documentElement, { attributeFilter: ["data-theme"] });
   return () => o.disconnect();
 }
 
-export function useMode(): [Mode, (m: Mode) => void] {
+/** Which theme the tools show: the site's own, so the page toggle is the only one. */
+export function useMode(): Mode {
   // Read the attribute next-themes sets; the server snapshot keeps hydration stable.
-  const site = useSyncExternalStore<Mode>(
+  return useSyncExternalStore<Mode>(
     subscribeSite,
     () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
     () => "light",
   );
-  const override = useSyncExternalStore(
-    (l) => {
-      modeListeners.add(l);
-      return () => modeListeners.delete(l);
-    },
-    () => modeOverride,
-    () => null,
-  );
-  const set = (m: Mode) => {
-    modeOverride = m === site ? null : m;
-    for (const l of modeListeners) l();
-  };
-  return [override ?? site, set];
 }
 
 /** Copy text and remember which thing was copied for 1.5s. A denied clipboard shows nothing. */

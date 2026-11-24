@@ -4,7 +4,15 @@ import { useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
-import { inputFromSeed, type System, type SystemInput } from "@/lib/spring/system";
+import {
+  CONTRAST_LABEL,
+  inputFromSeed,
+  STATUS_RANGE,
+  type ContrastTarget,
+  type StatusName,
+  type System,
+  type SystemInput,
+} from "@/lib/spring/system";
 import {
   FONT_NAMES,
   fontInfo,
@@ -16,7 +24,7 @@ import {
   type TypeInput,
 } from "@/lib/spring/type";
 import { contrast, DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
-import { formatColor, type ColorFormat } from "@/lib/spring/colormath";
+import { apcaContrast, formatColor, type ColorFormat } from "@/lib/spring/colormath";
 import { Chevron, Select } from "@/components/ui/Select";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
@@ -161,7 +169,6 @@ function Text({
   );
 }
 
-const MODES = ["light", "dark"] as const;
 const TABS = ["color", "type", "space", "motion", "tokens"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
@@ -181,7 +188,7 @@ const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "desig
 export function SpringWorkbench() {
   const spring = useSpring();
   const { input, system, setInput } = spring;
-  const [mode, setMode] = useMode();
+  const mode = useMode();
   const [tab, setTab] = useState<Tab>("color");
   const [view, setView] = useState<"output" | "preview">("output");
   const [browse, setBrowse] = useState<FontRole | null>(null);
@@ -299,17 +306,6 @@ export function SpringWorkbench() {
                 render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
               />
             ) : null}
-            {view === "preview" || (tab !== "tokens" && tab !== "motion") ? (
-              <span className="spring-wb__end">
-                <Segmented
-                  label="Theme"
-                  options={MODES}
-                  value={mode}
-                  onChange={setMode}
-                  render={(v) => (v === "light" ? "Light" : "Dark")}
-                />
-              </span>
-            ) : null}
           </div>
           {view === "preview" ? (
             // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
@@ -378,6 +374,8 @@ function ColorControls({
   const brand = accent[mode][accent.anchor[mode] - 1]!;
   const curve = input.curve ?? DEFAULT_CURVE;
   const a = input.accent;
+  const setCurve = (p: Partial<typeof curve>) =>
+    setInput((i) => ({ ...i, curve: { ...(i.curve ?? DEFAULT_CURVE), ...p } }));
   const grays =
     input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
   return (
@@ -392,6 +390,7 @@ function ColorControls({
         onPick={(p) => setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }))}
         onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
       />
+      <hr className="spring-rule" />
       <CurveEditor
         curve={curve}
         steps={accent.light}
@@ -404,8 +403,18 @@ function ColorControls({
         max={40}
         step={1}
         show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
-        onChange={(v) => setInput((i) => ({ ...i, curve: { ...curve, hueShift: v } }))}
+        onChange={(v) => setCurve({ hueShift: v })}
       />
+      <Slider
+        label="Dark mode vividness"
+        value={curve.darkChroma ?? 1}
+        min={0.4}
+        max={1.2}
+        step={0.05}
+        show={`${Math.round((curve.darkChroma ?? 1) * 100)}%`}
+        onChange={(v) => setCurve({ darkChroma: v })}
+      />
+      <hr className="spring-rule" />
       <Select
         label="Grays"
         value={grays}
@@ -430,9 +439,73 @@ function ColorControls({
         show={`${Math.round(input.neutralTint * 100)}%`}
         onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
       />
-      {system.adjustments.length ? (
-        <p className="toy__caption">{system.adjustments.join(" ")}</p>
-      ) : null}
+      <hr className="spring-rule" />
+      <StatusHue system={system} input={input} setInput={setInput} />
+      <hr className="spring-rule" />
+      <Select
+        label="Contrast target"
+        value={input.contrast ?? "aa"}
+        options={(["aa", "aaa", "apca"] as const).map((t) => ({
+          value: t,
+          label: CONTRAST_LABEL[t],
+          hint: TARGET_HINT[t],
+        }))}
+        onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
+      />
+      <Select
+        label="Button label"
+        value={a.label ?? "auto"}
+        options={[
+          { value: "auto", label: "Auto", hint: "fewest step changes" },
+          { value: "white", label: "White" },
+          { value: "ink", label: "Dark" },
+        ]}
+        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, label: v } }))}
+      />
+    </>
+  );
+}
+
+const TARGET_HINT: Record<ContrastTarget, string> = {
+  aa: "the legal bar",
+  aaa: "text at 7:1",
+  apca: "reads polarity",
+};
+const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
+const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
+
+/**
+ * One status at a time: pick it, then move its hue within the range where it
+ * still reads as itself. Untouched statuses keep steering clear of the brand.
+ */
+function StatusHue({ system, input, setInput }: Pick<Spring, "system" | "input" | "setInput">) {
+  const [name, setName] = useState<StatusName>("danger");
+  const [lo, hi] = STATUS_RANGE[name];
+  const raw = system.scales[name].seed.hue;
+  // Danger's range wraps past 0°, so read 355 as -5.
+  const hue = raw > hi ? raw - 360 : raw;
+  const set = input.status?.[name] !== undefined;
+  return (
+    <>
+      <Select
+        label="Status color"
+        value={name}
+        options={STATUSES.map((n) => ({
+          value: n,
+          label: cap(n),
+          hint: input.status?.[n] === undefined ? "auto" : "set",
+        }))}
+        onChange={setName}
+      />
+      <Slider
+        label={`${cap(name)} hue`}
+        value={Math.round(hue)}
+        min={lo}
+        max={hi}
+        step={1}
+        show={`${Math.round((hue + 360) % 360)}°${set ? "" : " auto"}`}
+        onChange={(v) => setInput((i) => ({ ...i, status: { ...i.status, [name]: v } }))}
+      />
     </>
   );
 }
@@ -525,7 +598,9 @@ function ColorOutput({
                       <span aria-hidden>✓</span>
                     ) : i >= 10 ? (
                       <span aria-hidden className="spring-step__ratio">
-                        {contrast(sw.hex, all[0]!.hex).toFixed(1)}
+                        {system.input.contrast === "apca"
+                          ? Math.round(apcaContrast(sw.hex, all[0]!.hex))
+                          : contrast(sw.hex, all[0]!.hex).toFixed(1)}
                       </span>
                     ) : null}
                   </button>
@@ -539,8 +614,11 @@ function ColorOutput({
         <span className="spring-legend__brand">your color</span>
         <span className="spring-legend__solid">button fill</span>
       </p>
+      {system.adjustments.length ? (
+        <p className="toy__caption">{system.adjustments.join(" ")}</p>
+      ) : null}
       <output className="sr-only">{said}</output>
-      <Contrast checks={system.checks[mode]} mode={mode} />
+      <Contrast checks={system.checks[mode]} mode={mode} target={system.input.contrast ?? "aa"} />
     </>
   );
 }
@@ -913,7 +991,15 @@ function AuditDialog() {
 }
 
 /** Every pair the system promises, with its ratio and the bar it has to clear. */
-function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: string }) {
+function Contrast({
+  checks,
+  mode,
+  target,
+}: {
+  checks: System["checks"]["light"];
+  mode: string;
+  target: ContrastTarget;
+}) {
   const [open, setOpen] = useState(false);
   const shown = open ? checks : checks.filter((c) => !c.pass);
   const required = checks.filter((c) => !c.advisory);
@@ -921,9 +1007,9 @@ function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: s
   return (
     <>
       <p className="spring-meta">
-        {required.filter((c) => c.pass).length}/{required.length} required pairs pass WCAG 2.2 AA in{" "}
-        {mode}
-        {advisory ? `; ${advisory} advisory pair below 3:1, listed below` : ""}.{" "}
+        {required.filter((c) => c.pass).length}/{required.length} required pairs pass{" "}
+        {CONTRAST_LABEL[target]} in {mode}
+        {advisory ? `; ${advisory} advisory pair below the UI bar, listed below` : ""}.{" "}
         <button
           type="button"
           className="spring-link"
@@ -947,7 +1033,7 @@ function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: s
                 {c.fg} <span className="spring-meta">on</span> {c.bg}
               </span>
               <span className="tabular">
-                {c.ratio.toFixed(2)}
+                {target === "apca" ? `Lc ${Math.round(c.ratio)}` : c.ratio.toFixed(2)}
                 <span className="spring-meta">/{c.min}</span>
               </span>
               <span className="spring-meta">{c.why}</span>

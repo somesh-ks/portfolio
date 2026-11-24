@@ -44,6 +44,8 @@ export interface Curve {
   bezier: [number, number, number, number];
   /** Degrees the hue turns from step 1 to step 12, centred on the brand step. */
   hueShift: number;
+  /** Chroma in dark mode relative to light; dark scales often read louder. 1 when absent. */
+  darkChroma?: number;
 }
 
 /** Slow through the backgrounds, faster through borders and solids, a long reach to text. */
@@ -168,7 +170,7 @@ export function buildScale({ hue, chroma, solidL, curve = DEFAULT_CURVE }: Scale
       const share = Math.max(0.05, 1 - ((t - tk) / w) ** 2);
       return swatch(step, {
         l: l[i]!,
-        c: chroma * share,
+        c: chroma * share * (mode === "dark" ? (curve.darkChroma ?? 1) : 1),
         h: (((hue + curve.hueShift * (t - tk)) % 360) + 360) % 360,
       });
     });

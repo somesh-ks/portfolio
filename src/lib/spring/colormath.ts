@@ -134,6 +134,30 @@ export function wcagContrast(a: string, b: string): number {
   return (x + 0.05) / (y + 0.05);
 }
 
+// APCA's soft clamp for near-black: its own constant, not √2.
+const APCA_BLACK_CLAMP = 1414 / 1000;
+/** APCA screen luminance, with near-black lifted. */
+function apcaY(color: string): number {
+  const rgb = hexToRgb(color);
+  if (!rgb) return 0;
+  const v = 0.2126729 * rgb[0] ** 2.4 + 0.7151522 * rgb[1] ** 2.4 + 0.072175 * rgb[2] ** 2.4;
+  return v < 0.022 ? v + (0.022 - v) ** APCA_BLACK_CLAMP : v;
+}
+
+/**
+ * APCA (0.0.98G-4g) lightness contrast of text `fg` on `bg`, as an absolute Lc
+ * from 0 to about 106. Unlike the WCAG ratio, it knows dark text on light reads
+ * differently from light text on dark.
+ */
+export function apcaContrast(fg: string, bg: string): number {
+  const t = apcaY(fg);
+  const b = apcaY(bg);
+  if (Math.abs(b - t) < 0.0005) return 0;
+  const sapc = b > t ? (b ** 0.56 - t ** 0.57) * 1.14 : (b ** 0.65 - t ** 0.62) * 1.14;
+  if (Math.abs(sapc) < 0.1) return 0;
+  return Math.abs((sapc > 0 ? sapc - 0.027 : sapc + 0.027) * 100);
+}
+
 /** sRGB hex as [hue 0–360, saturation 0–1, lightness 0–1]. */
 export function hexToHsl(hex: string): [number, number, number] {
   const rgb = hexToRgb(hex) ?? [0, 0, 0];

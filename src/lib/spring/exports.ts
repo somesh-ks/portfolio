@@ -5,7 +5,7 @@
 import { stringifyYaml as stringify } from "./yaml";
 import { DEFAULT_CURVE, ENDS, STEP_JOBS, STEPS, type Mode } from "./color";
 import { COMPONENTS, ICONS, STYLING, iconStroke } from "./stack";
-import { slug, type ScaleName, type System } from "./system";
+import { CONTRAST_LABEL, slug, type ScaleName, type System } from "./system";
 import { fontStack, googleFontsUrl, ROLE_JOBS } from "./type";
 
 export interface ExportFile {
@@ -651,7 +651,7 @@ Source files: \`tokens.css\` (all values, both themes), \`tokens.json\` (DTCG), 
 
 ## Colors
 
-The accent is **${l.accent!.hex}** (light) / **${d.accent!.hex}** (dark). Neutrals are tinted toward the accent hue so surfaces and brand feel related. Every text pair below passes WCAG 2.2 AA in both themes.
+The accent is **${l.accent!.hex}** (light) / **${d.accent!.hex}** (dark). Neutrals are tinted toward the accent hue so surfaces and brand feel related. Every text pair below passes ${CONTRAST_LABEL[sys.input.contrast ?? "aa"]} in both themes.
 
 | Role | Light | Dark | Use for |
 |---|---|---|---|
@@ -870,7 +870,7 @@ export function scale({ hue, chroma, l: target }, mode = "light", c = curve) {
     const l = i < k - 1 ? from + (lb - from) * (ek ? y / ek : 0) : lb + (to - lb) * (ek < 1 ? (y - ek) / (1 - ek) : 0);
     const w = t < tk ? Math.max(tk, 0.35) : 0.55;
     const share = Math.max(0.05, 1 - ((t - tk) / w) ** 2);
-    return hex({ l, c: chroma * share, h: (((hue + c.hueShift * (t - tk)) % 360) + 360) % 360 });
+    return hex({ l, c: chroma * share * (mode === "dark" ? (c.darkChroma ?? 1) : 1), h: (((hue + c.hueShift * (t - tk)) % 360) + 360) % 360 });
   });
 }
 `;

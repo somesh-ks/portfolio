@@ -3,7 +3,7 @@
  * generated values, so links stay short and always rebuild with the
  * current engine. `v` lets a future engine migrate old links.
  */
-import { DEFAULT_INPUT, type SystemInput } from "./system";
+import { DEFAULT_INPUT, STATUS_RANGE, type StatusName, type SystemInput } from "./system";
 import { FONT_NAMES, SAFE_FONT, type FontMeta, type FontTag } from "./type";
 
 const b64url = {
@@ -55,10 +55,22 @@ export function encodeInput(input: SystemInput): string {
       i.stack.components ?? null,
       i.stack.icons ?? null,
     ],
-    ...(i.curve ? [[...i.curve.bezier.map(r3), Math.round(i.curve.hueShift)]] : []),
+    i.curve
+      ? [
+          ...i.curve.bezier.map(r3),
+          Math.round(i.curve.hueShift),
+          ...(i.curve.darkChroma === undefined ? [] : [r3(i.curve.darkChroma)]),
+        ]
+      : null,
+    i.status ? STATUSES.map((n) => i.status?.[n] ?? null) : null,
+    i.contrast ?? null,
   ];
+  // Old links end at the curve; keep new ones as short when the extras are unset.
+  while (compact.length > 9 && compact.at(-1) === null) compact.pop();
   return b64url.encode(JSON.stringify(compact));
 }
+
+const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
 
 const num = (v: unknown, lo: number, hi: number, d: number) =>
   typeof v === "number" && v >= lo && v <= hi ? v : d;
@@ -126,7 +138,7 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
         components: typeof st?.[3] === "string" ? st[3] : undefined,
         icons: typeof st?.[4] === "string" ? st[4] : undefined,
       },
-      ...(Array.isArray(a[9]) && a[9].length === 5
+      ...(Array.isArray(a[9]) && (a[9].length === 5 || a[9].length === 6)
         ? {
             curve: {
               bezier: [
@@ -136,9 +148,22 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
                 num(a[9][3], -0.5, 1.5, 0.6),
               ],
               hueShift: num(a[9][4], -60, 60, 0),
+              ...(typeof a[9][5] === "number" ? { darkChroma: num(a[9][5], 0.4, 1.2, 1) } : {}),
             },
           }
         : {}),
+      ...(Array.isArray(a[10])
+        ? {
+            status: Object.fromEntries(
+              STATUSES.flatMap((n, k) => {
+                const v = (a[10] as unknown[])[k];
+                const [lo, hi] = STATUS_RANGE[n];
+                return typeof v === "number" && v >= lo && v <= hi ? [[n, v]] : [];
+              }),
+            ),
+          }
+        : {}),
+      ...(a[11] === "aaa" || a[11] === "apca" ? { contrast: a[11] } : {}),
     };
   } catch {
     return null;

@@ -24,10 +24,13 @@ import {
   type Shape,
   type Space,
 } from "./scales";
+import { apcaContrast } from "./colormath";
 import { recommend, type StackAnswers, type StackPicks } from "./stack";
 import { buildType, type TypeInput, type TypeSystem } from "./type";
 
 type Label = "auto" | "white" | "ink";
+/** The contrast bar every pair is held to. */
+export type ContrastTarget = "aa" | "aaa" | "apca";
 
 export interface SystemInput {
   v: 1;
@@ -39,6 +42,10 @@ export interface SystemInput {
   neutralHue?: number;
   /** The palette's lightness curve and hue shift; DEFAULT_CURVE when absent. */
   curve?: Curve;
+  /** Status hues the user set; the rest stay clear of the accent on their own. */
+  status?: Partial<Record<StatusName, number>>;
+  /** "aa" when absent. */
+  contrast?: ContrastTarget;
   type: TypeInput;
   /** 0 compact, 0.5 default, 1 comfortable. */
   density: number;
@@ -88,10 +95,10 @@ export function inputFromSeed(seed: string, name = "Untitled"): SystemInput {
 }
 
 const STATUS_HUES = { danger: 25, warning: 70, success: 150, info: 245 } as const;
-type StatusName = keyof typeof STATUS_HUES;
+export type StatusName = keyof typeof STATUS_HUES;
 
 /** Hues each status may move within and still read as itself. */
-const STATUS_RANGE: Record<StatusName, [number, number]> = {
+export const STATUS_RANGE: Record<StatusName, [number, number]> = {
   danger: [-5, 40],
   warning: [55, 85],
   success: [130, 165],
@@ -103,7 +110,14 @@ const hueGap = (a: number, b: number) => Math.abs(((((a - b) % 360) + 540) % 360
  * A status hue that stays clear of the accent: a red brand still gets a
  * danger color you can tell apart from it, a green brand a distinct success.
  */
-function statusHue(name: StatusName, accentHue: number, accentChroma: number): number {
+function statusHue(
+  name: StatusName,
+  accentHue: number,
+  accentChroma: number,
+  set?: number,
+): number {
+  const [lo0, hi0] = STATUS_RANGE[name];
+  if (set !== undefined) return (Math.min(hi0, Math.max(lo0, set)) + 360) % 360;
   const base = STATUS_HUES[name];
   if (accentChroma < 0.05 || hueGap(base, accentHue) >= 25) return base;
   const [lo, hi] = STATUS_RANGE[name];
@@ -149,6 +163,37 @@ export interface System {
   stackReasons: Record<keyof StackPicks, string>;
 }
 
+/**
+ * How a pair is scored and the bar it must clear. A pair names its job and the
+ * target sets the number: WCAG ratios for AA and AAA, Lc levels for APCA (75 for
+ * body text, 60 for labels and short text, 45 for UI edges).
+ */
+type Level = "ui" | "text" | "body" | "strong";
+interface Meter {
+  score: (fg: string, bg: string) => number;
+  bar: (level: Level) => number;
+  unit: string;
+}
+const BARS: Record<ContrastTarget, Record<Level, number>> = {
+  aa: { ui: 3, text: 4.5, body: 4.5, strong: 7 },
+  aaa: { ui: 3, text: 7, body: 7, strong: 7 },
+  apca: { ui: 45, text: 60, body: 75, strong: 75 },
+};
+export const CONTRAST_LABEL: Record<ContrastTarget, string> = {
+  aa: "WCAG 2.2 AA",
+  aaa: "WCAG 2.2 AAA",
+  apca: "APCA",
+};
+function meter(target: ContrastTarget): Meter {
+  return {
+    score: target === "apca" ? apcaContrast : contrast,
+    bar: (level) => BARS[target][level],
+    unit: target === "apca" ? "Lc" : ":1",
+  };
+}
+const said = (m: Meter, level: Level) =>
+  m.unit === "Lc" ? `Lc ${m.bar(level)}` : `${m.bar(level)}:1`;
+
 const get = (scales: Record<ScaleName, BuiltScale>, name: ScaleName, mode: Mode, step: Step) =>
   scales[name][mode][step - 1]!;
 
@@ -159,14 +204,15 @@ function nudge(
   mode: Mode,
   step: Step,
   against: string[],
-  min: number,
+  min: Level,
+  m: Meter,
 ): boolean {
   const s = get(scales, name, mode, step);
   const dir = mode === "light" ? -1 : 1;
   let { l } = s.oklch;
   for (let i = 0; i < 60; i++) {
     const cur = swatch(step, { ...s.oklch, l });
-    if (against.every((bg) => contrast(cur.hex, bg) >= min)) {
+    if (against.every((bg) => m.score(cur.hex, bg) >= m.bar(min))) {
       scales[name][mode][step - 1] = cur;
       return i > 0;
     }
@@ -179,16 +225,16 @@ function nudge(
 const towardContrast = (fg: string, mode: Mode) =>
   (fg === "#ffffff") === (mode === "light") ? 1 : -1;
 
-/** Steps the solid must move along the scale before `fg` passes 4.5:1 on it and on its hover. */
-function stepsNeeded(scale: BuiltScale, mode: Mode, from: Step, fg: string): number {
+/** Steps the solid must move along the scale before `fg` clears the label bar on it and on its hover. */
+function stepsNeeded(scale: BuiltScale, mode: Mode, from: Step, fg: string, m: Meter): number {
   const dir = towardContrast(fg, mode);
   for (let n = 0; n < 12; n++) {
     const s = from + dir * n;
     const h = s + dir;
     if (h < 1 || h > 12) return 99;
     if (
-      contrast(fg, scale[mode][s - 1]!.hex) >= 4.5 &&
-      contrast(fg, scale[mode][h - 1]!.hex) >= 4.5
+      m.score(fg, scale[mode][s - 1]!.hex) >= m.bar("text") &&
+      m.score(fg, scale[mode][h - 1]!.hex) >= m.bar("text")
     )
       return n;
   }
@@ -200,18 +246,18 @@ function stepsNeeded(scale: BuiltScale, mode: Mode, from: Step, fg: string): num
  * light enough that white would push the solid far from it (yellows, emeralds,
  * light blues). "white" and "ink" force the choice.
  */
-function solidLabel(scale: BuiltScale, mode: Mode, pref: Label = "auto"): string {
+function solidLabel(scale: BuiltScale, mode: Mode, m: Meter, pref: Label = "auto"): string {
   const ink = scale.light[11]!.hex;
   if (pref === "white") return "#ffffff";
   if (pref === "ink") return ink;
   const k = scale.anchor[mode];
-  const w = stepsNeeded(scale, mode, k, "#ffffff");
-  return w === 0 || w <= stepsNeeded(scale, mode, k, ink) ? "#ffffff" : ink;
+  const w = stepsNeeded(scale, mode, k, "#ffffff", m);
+  return w === 0 || w <= stepsNeeded(scale, mode, k, ink, m) ? "#ffffff" : ink;
 }
 
 /** The solid step: the brand step if its label passes, else the nearest step along the curve that does. */
-function solidStep(scale: BuiltScale, mode: Mode, fg: string): Step {
-  const n = stepsNeeded(scale, mode, scale.anchor[mode], fg);
+function solidStep(scale: BuiltScale, mode: Mode, fg: string, m: Meter): Step {
+  const n = stepsNeeded(scale, mode, scale.anchor[mode], fg, m);
   const k = scale.anchor[mode] + towardContrast(fg, mode) * (n === 99 ? 0 : n);
   return Math.min(11, Math.max(2, k)) as Step;
 }
@@ -264,31 +310,32 @@ function buildRoles(
   return roles;
 }
 
-const PAIRS: Array<[fg: string, bg: string, min: number, why: string, advisory?: boolean]> = [
-  ["text", "bg", 4.5, "Body text"],
-  ["text", "bg-subtle", 4.5, "Text on cards and sidebars"],
-  ["text", "fill", 4.5, "Text in inputs and secondary buttons"],
-  ["text-muted", "bg", 4.5, "Secondary text"],
-  ["text-muted", "bg-subtle", 4.5, "Secondary text on cards"],
-  ["text-muted", "fill", 4.5, "Placeholders in inputs"],
-  ["accent-fg", "accent", 4.5, "Primary button label"],
-  ["accent-fg", "accent-hover", 4.5, "Hovered primary button label"],
-  ["accent-text", "bg", 4.5, "Links"],
-  ["accent-text", "accent-subtle", 4.5, "Text in soft accent badges"],
-  ["ring", "bg", 3, "Focus ring is visible (WCAG 2.4.13)"],
-  ["border-strong", "bg", 3, "Control edges alone identify the control (WCAG 1.4.11)", true],
+const PAIRS: Array<[fg: string, bg: string, min: Level, why: string, advisory?: boolean]> = [
+  ["text", "bg", "body", "Body text"],
+  ["text", "bg-subtle", "body", "Text on cards and sidebars"],
+  ["text", "fill", "text", "Text in inputs and secondary buttons"],
+  ["text-muted", "bg", "text", "Secondary text"],
+  ["text-muted", "bg-subtle", "text", "Secondary text on cards"],
+  ["text-muted", "fill", "text", "Placeholders in inputs"],
+  ["accent-fg", "accent", "text", "Primary button label"],
+  ["accent-fg", "accent-hover", "text", "Hovered primary button label"],
+  ["accent-text", "bg", "text", "Links"],
+  ["accent-text", "accent-subtle", "text", "Text in soft accent badges"],
+  ["ring", "bg", "ui", "Focus ring is visible (WCAG 2.4.13)"],
+  ["border-strong", "bg", "ui", "Control edges alone identify the control (WCAG 1.4.11)", true],
   ...(Object.keys(STATUS_HUES) as StatusName[]).flatMap(
-    (s): Array<[string, string, number, string]> => [
-      [`${s}-text`, "bg", 4.5, `${s} messages`],
-      [`${s}-fg`, s, 4.5, `Label on solid ${s}`],
+    (s): Array<[string, string, Level, string]> => [
+      [`${s}-text`, "bg", "text", `${s} messages`],
+      [`${s}-fg`, s, "text", `Label on solid ${s}`],
     ],
   ),
 ];
 
-function runChecks(roles: Role[]): Check[] {
+function runChecks(roles: Role[], m: Meter): Check[] {
   const by = Object.fromEntries(roles.map((r) => [r.name, r]));
-  return PAIRS.map(([fg, bg, min, why, advisory]) => {
-    const ratio = contrast(by[fg]!.hex, by[bg]!.hex);
+  return PAIRS.map(([fg, bg, level, why, advisory]) => {
+    const ratio = m.score(by[fg]!.hex, by[bg]!.hex);
+    const min = m.bar(level);
     return { fg, bg, ratio: Math.round(ratio * 100) / 100, min, pass: ratio >= min, advisory, why };
   });
 }
@@ -298,25 +345,25 @@ export function buildSystem(input: SystemInput): System {
     accent: buildScale({ ...input.accent, curve: input.curve }),
     neutral: buildNeutral(input.neutralHue ?? input.accent.hue, input.neutralTint, input.curve),
     danger: buildScale({
-      hue: statusHue("danger", input.accent.hue, input.accent.chroma),
+      hue: statusHue("danger", input.accent.hue, input.accent.chroma, input.status?.danger),
       chroma: 0.2,
       solidL: 0.55,
       curve: input.curve,
     }),
     warning: buildScale({
-      hue: statusHue("warning", input.accent.hue, input.accent.chroma),
+      hue: statusHue("warning", input.accent.hue, input.accent.chroma, input.status?.warning),
       chroma: 0.16,
       solidL: 0.82,
       curve: input.curve,
     }),
     success: buildScale({
-      hue: statusHue("success", input.accent.hue, input.accent.chroma),
+      hue: statusHue("success", input.accent.hue, input.accent.chroma, input.status?.success),
       chroma: 0.15,
       solidL: 0.52,
       curve: input.curve,
     }),
     info: buildScale({
-      hue: statusHue("info", input.accent.hue, input.accent.chroma),
+      hue: statusHue("info", input.accent.hue, input.accent.chroma, input.status?.info),
       chroma: 0.15,
       solidL: 0.52,
       curve: input.curve,
@@ -324,6 +371,7 @@ export function buildSystem(input: SystemInput): System {
   };
 
   // Fix contrast at the source, so every export inherits passing pairs.
+  const m = meter(input.contrast ?? "aa");
   const adjustments: string[] = [];
   const labels = Object.fromEntries(
     Object.keys(scales).map((k) => [k, { light: "#ffffff", dark: "#ffffff" }]),
@@ -333,28 +381,34 @@ export function buildSystem(input: SystemInput): System {
   ) as Record<ScaleName, Record<Mode, Step>>;
   for (const mode of ["light", "dark"] as Mode[]) {
     const n = (s: Step) => get(scales, "neutral", mode, s).hex;
-    if (nudge(scales, "neutral", mode, 11, [n(1), n(2), n(3)], 4.5))
-      adjustments.push(`neutral.11 (${mode}) adjusted so secondary text passes 4.5:1 on inputs.`);
-    if (nudge(scales, "neutral", mode, 12, [n(1), n(2), n(3)], 7))
-      adjustments.push(`neutral.12 (${mode}) adjusted to reach 7:1.`);
+    if (nudge(scales, "neutral", mode, 11, [n(1), n(2), n(3)], "text", m))
+      adjustments.push(
+        `neutral.11 (${mode}) adjusted so secondary text reaches ${said(m, "text")} on inputs.`,
+      );
+    if (nudge(scales, "neutral", mode, 12, [n(1), n(2), n(3)], "strong", m))
+      adjustments.push(`neutral.12 (${mode}) adjusted to reach ${said(m, "strong")}.`);
     for (const name of ["accent", ...Object.keys(STATUS_HUES)] as ScaleName[]) {
       const scale = scales[name];
       labels[name][mode] = solidLabel(
         scale,
         mode,
+        m,
         name === "accent" ? (input.accent.label ?? "auto") : "auto",
       );
-      solid[name][mode] = solidStep(scale, mode, labels[name][mode]);
+      solid[name][mode] = solidStep(scale, mode, labels[name][mode], m);
       if (name === "accent" && solid[name][mode] !== scale.anchor[mode])
         adjustments.push(
-          `Brand color sits on step ${scale.anchor[mode]} (${mode}); buttons use step ${solid[name][mode]} so their label passes 4.5:1.`,
+          `Brand color sits on step ${scale.anchor[mode]} (${mode}); buttons use step ${solid[name][mode]} so their label reaches ${said(m, "text")}.`,
         );
       const subtle = get(scales, name, mode, 3).hex;
-      if (nudge(scales, name, mode, 11, [n(1), n(2), subtle], 4.5) && name === "accent")
-        adjustments.push(`${name}.11 (${mode}) adjusted to pass 4.5:1 as text.`);
-      if (name === "accent" && contrast(get(scales, name, mode, solid[name][mode]).hex, n(1)) < 3)
+      if (nudge(scales, name, mode, 11, [n(1), n(2), subtle], "text", m) && name === "accent")
+        adjustments.push(`${name}.11 (${mode}) adjusted to reach ${said(m, "text")} as text.`);
+      if (
+        name === "accent" &&
+        m.score(get(scales, name, mode, solid[name][mode]).hex, n(1)) < m.bar("ui")
+      )
         adjustments.push(
-          `accent.${solid[name][mode]} (${mode}) is under 3:1 on bg; the focus ring uses accent.11 instead.`,
+          `accent.${solid[name][mode]} (${mode}) is under ${said(m, "ui")} on bg; the focus ring uses accent.11 instead.`,
         );
     }
   }
@@ -365,7 +419,7 @@ export function buildSystem(input: SystemInput): System {
   };
   for (const mode of ["light", "dark"] as Mode[]) {
     const ring = roles[mode].find((r) => r.name === "ring")!;
-    if (contrast(ring.hex, roles[mode][0]!.hex) < 3) {
+    if (m.score(ring.hex, roles[mode][0]!.hex) < m.bar("ui")) {
       const alt = get(scales, "accent", mode, 11);
       Object.assign(ring, { hex: alt.hex, css: alt.css, from: "accent.11" });
     }
@@ -376,7 +430,7 @@ export function buildSystem(input: SystemInput): System {
     scales,
     solid,
     roles,
-    checks: { light: runChecks(roles.light), dark: runChecks(roles.dark) },
+    checks: { light: runChecks(roles.light, m), dark: runChecks(roles.dark, m) },
     adjustments,
     type: buildType(input.type),
     space: buildSpace(input.density),

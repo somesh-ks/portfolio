@@ -712,9 +712,6 @@
   align-items: center;
   gap: var(--space-2) var(--space-4);
 }
-.spring-wb__end {
-  margin-left: auto;
-}
 /* The screen picker belongs to the preview, not to the output switch beside it. */
 .spring-wb__cmds {
   display: grid;
@@ -938,6 +935,13 @@
 }
 .spring-legend__solid::before {
   width: 12px;
+}
+
+/* Quiet breaks between the color tab's groups: brand, scale, grays, status, contrast. */
+.spring-rule {
+  margin: 0 var(--space-2);
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ——— Curve editor ——— */

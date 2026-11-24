@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
-import { parseBezier } from "@/lib/spring/color";
+import { DEFAULT_CURVE, parseBezier } from "@/lib/spring/color";
+import { apcaContrast } from "@/lib/spring/colormath";
 import { MOODS, pairings } from "@/lib/spring/pairing";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
@@ -60,7 +61,7 @@ describe("palette curve", () => {
   test("palette.js rebuilds the same scales without Spring", async () => {
     const input = {
       ...inputFromSeed("#7c3aed"),
-      curve: { bezier: [0.3, 0.1, 0.8, 0.5], hueShift: 10 },
+      curve: { bezier: [0.3, 0.1, 0.8, 0.5], hueShift: 10, darkChroma: 0.7 },
     };
     const sys = buildSystem(input as SystemInput);
     const js = exportAll(sys).find((f) => f.path === "palette.js")!.content;
@@ -76,6 +77,48 @@ describe("palette curve", () => {
         // Text steps may be nudged for contrast after generation; the curve itself must match.
         expect(theirs.slice(0, 10)).toEqual(ours.slice(0, 10));
       }
+  });
+  test("APCA matches the reference values", () => {
+    expect(apcaContrast("#000000", "#ffffff")).toBeCloseTo(106.04, 1);
+    expect(apcaContrast("#ffffff", "#000000")).toBeCloseTo(107.88, 1);
+    expect(apcaContrast("#888888", "#ffffff")).toBeCloseTo(63.06, 1);
+  });
+  test("every contrast target holds for any brand", () => {
+    for (const contrast of ["aa", "aaa", "apca"] as const)
+      for (const seed of seeds) {
+        const sys = buildSystem({ ...inputFromSeed(seed), contrast });
+        for (const mode of ["light", "dark"] as const)
+          expect(sys.checks[mode].filter((c) => !c.pass && !c.advisory)).toEqual([]);
+      }
+    const apca = buildSystem({ ...inputFromSeed("#7c3aed"), contrast: "apca" });
+    expect(apca.checks.light.find((c) => c.fg === "text")!.min).toBe(75);
+  });
+  test("a set status hue wins, kept inside its range", () => {
+    const base = inputFromSeed("#e11d48");
+    expect(buildSystem({ ...base, status: { success: 140 } }).scales.success.seed.hue).toBe(140);
+    expect(buildSystem({ ...base, status: { danger: -5 } }).scales.danger.seed.hue).toBe(355);
+    expect(buildSystem({ ...base, status: { info: 300 } }).scales.info.seed.hue).toBe(265);
+  });
+  test("dark mode vividness scales only dark chroma", () => {
+    const base = inputFromSeed("#7c3aed");
+    const calm = buildSystem({ ...base, curve: { ...DEFAULT_CURVE, darkChroma: 0.5 } });
+    const full = buildSystem(base);
+    const k = full.scales.accent.anchor.dark - 1;
+    expect(calm.scales.accent.light[k]!.hex).toBe(full.scales.accent.light[k]!.hex);
+    expect(calm.scales.accent.dark[k]!.oklch.c).toBeLessThan(full.scales.accent.dark[k]!.oklch.c);
+  });
+  test("a share link keeps status hues, contrast target and dark vividness", () => {
+    const input: SystemInput = {
+      ...inputFromSeed("#00a37a"),
+      curve: { ...DEFAULT_CURVE, darkChroma: 0.8 },
+      status: { danger: 10, info: 250 },
+      contrast: "apca",
+    };
+    const back = decodeInput(encodeInput(input))!;
+    expect(back.curve?.darkChroma).toBe(0.8);
+    expect(back.status).toEqual({ danger: 10, info: 250 });
+    expect(back.contrast).toBe("apca");
+    expect(decodeInput(encodeInput({ ...input, curve: undefined }))!.status).toEqual(input.status);
   });
   test("a share link keeps a custom curve", () => {
     const input = { ...DEFAULT_INPUT, curve: { bezier: [0.3, 0.1, 0.8, 0.5], hueShift: 12 } };
