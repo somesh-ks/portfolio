@@ -49,7 +49,7 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
-function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput)) {
+export function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput)) {
   input = typeof next === "function" ? next(input) : next;
   emit();
   clearTimeout(timer);
@@ -81,6 +81,11 @@ export function useSpring() {
   );
   const system = useMemo(() => buildSystem(i), [i]);
   return { input: i, system, line: l, setInput, setLine };
+}
+
+/** The current input, read on demand (no subscription, no rebuild). */
+export function getInput(): SystemInput {
+  return input;
 }
 
 export function shareUrl(): string {

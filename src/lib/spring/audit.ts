@@ -5,7 +5,7 @@
  * rebuild it.
  */
 import { parseYaml } from "./yaml";
-import { contrast, distance, parseColor } from "./color";
+import { contrast, parseColor } from "./color";
 import { FONT_NAMES, opticalBase, type FontName } from "./type";
 import { DEFAULT_INPUT, type SystemInput } from "./system";
 import { oklchToHex, over } from "./colormath";
@@ -44,7 +44,7 @@ interface Parsed {
 
 type Status = "pass" | "warn" | "fail";
 
-export interface Finding {
+interface Finding {
   id: string;
   area: "Color" | "Type" | "Space" | "Shape" | "Coverage";
   status: Status;
@@ -307,8 +307,7 @@ function parseCss(text: string): Parsed {
     darkOnly,
   };
   const vars = new Map([...light].map(([k, v]) => [k, resolveVars(v, light)]));
-  for (const [name, raw] of vars) {
-    const v = resolveVars(raw, light);
+  for (const [name, v] of vars) {
     if (/(radius|rounded)/i.test(name)) {
       const px = toPx(v);
       if (px !== undefined) out.radii.push({ name, px });
@@ -570,11 +569,18 @@ function dupesAndSprawl(p: Parsed, findings: Finding[]) {
   // Scale steps and on-colors are excluded: they're meant to be close or white.
   const roles = p.colors.filter((c) => !isScaleStep(c.name) && !isOn(c.name));
   const dupes: string[] = [];
+  // OKLab once per color, so the pairwise check stays fast on 400-variable pastes.
+  const lab = roles.map((c) => {
+    const o = parseColor(c.hex)!;
+    const r = (o.h * Math.PI) / 180;
+    return [o.l, o.c * Math.cos(r), o.c * Math.sin(r)] as const;
+  });
   for (let i = 0; i < roles.length; i++)
     for (let j = i + 1; j < roles.length; j++) {
-      const a = roles[i]!;
-      const b = roles[j]!;
-      if (a.hex !== b.hex && distance(a.hex, b.hex) < 0.005) dupes.push(`${a.name} ≈ ${b.name}`);
+      const [a, b] = [roles[i]!, roles[j]!];
+      const [x, y] = [lab[i]!, lab[j]!];
+      if (a.hex !== b.hex && Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 0.005)
+        dupes.push(`${a.name} ≈ ${b.name}`);
     }
   if (dupes.length)
     findings.push({

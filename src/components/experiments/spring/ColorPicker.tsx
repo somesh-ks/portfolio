@@ -24,9 +24,15 @@ const FORMAT_LABEL: Record<ColorFormat, string> = { oklch: "OKLCH", hsl: "HSL", 
  * lightness, or HSL saturation at its HSL lightness. OKLCH keeps lightness even
  * across hues; HSL is the spectrum most pickers show.
  */
+const painted = new Map<string, ImageData>();
+
 function paint(canvas: HTMLCanvasElement, space: "oklch" | "hsl", l: number) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
+  // The OKLCH field costs ~10ms (a gamut search per pixel); reuse it across tab switches.
+  const key = `${space}:${l}`;
+  const hit = painted.get(key);
+  if (hit) return ctx.putImageData(hit, 0, 0);
   const img = ctx.createImageData(W, H);
   for (let y = 0; y < H; y++) {
     const v = 1 - y / (H - 1);
@@ -43,6 +49,8 @@ function paint(canvas: HTMLCanvasElement, space: "oklch" | "hsl", l: number) {
       img.data[i + 3] = 255;
     }
   }
+  if (painted.size > 24) painted.clear();
+  painted.set(key, img);
   ctx.putImageData(img, 0, 0);
 }
 

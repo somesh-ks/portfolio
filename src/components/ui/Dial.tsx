@@ -80,7 +80,10 @@ export function Dial({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         onPointerUp={onCommit}
-        onKeyUp={onCommit}
+        onKeyUp={(e) => {
+          // Only keys that move the slider end an edit; Tab onto it shouldn't.
+          if (/^(Arrow|Page|Home|End)/.test(e.key)) onCommit?.();
+        }}
         onDoubleClick={reset === undefined ? undefined : () => onChange(reset)}
       />
       <span className="dial__label" aria-hidden>

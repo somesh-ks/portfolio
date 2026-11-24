@@ -9,6 +9,7 @@ import {
   DEFAULT_INPUT,
   inputFromSeed,
   MAX_STRIPS,
+  slug,
   type ContrastTarget,
   type System,
   type SystemInput,
@@ -30,12 +31,15 @@ import { Dial } from "@/components/ui/Dial";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
 import { CurveEditor } from "./CurveEditor";
-import { SpringAudit } from "./Audit";
+import dynamic from "next/dynamic";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, Components, Homepage, Ladder } from "./Preview";
-import { shareUrl, useCopy, useMode, useSpring } from "./store";
+import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
+
+// The audit engine only runs once its dialog opens, so it loads then.
+const SpringAudit = dynamic(() => import("./Audit").then((m) => m.SpringAudit));
 
 type TypeExtra = TypeInput["extra"];
 
@@ -67,18 +71,29 @@ const text = (s: string, type: string) => new Blob([s], { type });
 /** Each tool's own slice of the system, as CSS or DTCG JSON. */
 function AreaExport({ system, area }: { system: System; area: Area }) {
   const [copied, copy, said] = useCopy();
-  const { css, json } = useMemo(() => exportArea(system, area), [system, area]);
+  // Built on click, not on every change: the files are only needed when copied or saved.
+  const build = () => exportArea(system, area);
   return (
     <div className="spring-export">
-      <span className="field__label">Export {css.label.split(" ")[0]}</span>
+      <span className="field__label">Export {area === "color" ? "colors" : area}</span>
       <span className="spring-export__row">
-        <button type="button" className="button" onClick={() => copy(css.path, css.content)}>
-          {copied === css.path ? "Copied" : "Copy CSS"}
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            const { css } = build();
+            copy("css", css.content);
+          }}
+        >
+          {copied === "css" ? "Copied" : "Copy CSS"}
         </button>
         <button
           type="button"
           className="button"
-          onClick={() => save(css.path, text(css.content, "text/css"))}
+          onClick={() => {
+            const { css } = build();
+            save(css.path, text(css.content, "text/css"));
+          }}
         >
           <span aria-hidden>↓</span>
           <span className="sr-only">Download</span> .css
@@ -86,7 +101,10 @@ function AreaExport({ system, area }: { system: System; area: Area }) {
         <button
           type="button"
           className="button"
-          onClick={() => save(json.path, text(json.content, "application/json"))}
+          onClick={() => {
+            const { json } = build();
+            save(json.path, text(json.content, "application/json"));
+          }}
         >
           <span aria-hidden>↓</span>
           <span className="sr-only">Download DTCG</span> .json
@@ -135,7 +153,6 @@ const TAB_LABEL: Record<Tab, string> = {
   motion: "Motion",
   tokens: "Tokens",
 };
-const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "design-system";
 
 /**
  * Spring as one workbench: a tool's controls on the left; on the right, that
@@ -153,9 +170,11 @@ export function SpringWorkbench() {
   const [format, setFormat] = useState<ColorFormat>("oklch");
   // Starts at 1 so the curves play as soon as the Motion tab opens.
   const [run, setRun] = useState(1);
-  const files = useMemo(() => exportAll(system), [system]);
-  const [file, setFile] = useState(files[0]!.path);
-  const f = files.find((x) => x.path === file) ?? files[0]!;
+  // Only the Tokens tab shows every file; other tabs skip the work on each change.
+  const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
+  // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
+  const [file, setFile] = useState("");
+  const f = files.find((x) => x.label === file) ?? files[0];
 
   const building = input.stack.building;
   const tabsId = useId();
@@ -234,9 +253,7 @@ export function SpringWorkbench() {
             <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
           ) : null}
           {tab !== "tokens" ? <AreaExport system={system} area={tab} /> : null}
-          {tab === "tokens" ? (
-            <TokensControls {...spring} files={files} file={f.path} setFile={setFile} />
-          ) : null}
+          {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
         </div>
         <section
           className="spring-wb__stage"
@@ -307,7 +324,7 @@ export function SpringWorkbench() {
               {tab === "motion" ? (
                 <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
               ) : null}
-              {tab === "tokens" ? (
+              {f ? (
                 <textarea
                   className="spring-audit-input spring-code"
                   value={f.content}
@@ -377,7 +394,9 @@ function ColorControls({
         format={format}
         setFormat={setFormat}
         onPick={(p) => setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }))}
-        onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
+        onHex={(hex) =>
+          setInput((i) => ({ ...i, accent: { ...i.accent, ...inputFromSeed(hex).accent } }))
+        }
       />
       <Dial
         label="hue"
@@ -581,7 +600,9 @@ function ColorOutput({
         <HexField
           label="Accent color"
           value={system.scales.accent.light[system.scales.accent.anchor.light - 1]!.hex}
-          onHex={(hex) => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
+          onHex={(hex) =>
+            setInput((i) => ({ ...i, accent: { ...i.accent, ...inputFromSeed(hex).accent } }))
+          }
         />
       ),
     },
@@ -1022,15 +1043,14 @@ function TokensControls({
   input,
   setInput,
   files,
-  file,
+  f,
   setFile,
 }: Spring & {
   files: ExportFile[];
-  file: string;
-  setFile: (p: string) => void;
+  f: ExportFile;
+  setFile: (label: string) => void;
 }) {
   const [copied, copy, said] = useCopy();
-  const f = files.find((x) => x.path === file) ?? files[0]!;
   const download = () =>
     save(
       `${slug(system.input.name)}.zip`,
@@ -1059,8 +1079,8 @@ function TokensControls({
       </div>
       <Select
         label="File"
-        value={f.path}
-        options={files.map((x) => ({ value: x.path, label: x.path }))}
+        value={f.label}
+        options={files.map((x) => ({ value: x.label, label: x.path }))}
         onChange={setFile}
       />
       <span className="spring-export__row">
@@ -1085,7 +1105,6 @@ function TokensControls({
 
 function AuditDialog() {
   const [open, setOpen] = useState(false);
-  const { setInput } = useSpring();
   // "fix all" replaces the whole system, so keep the visitor's own until they move on.
   const [before, setBefore] = useState<SystemInput | null>(null);
   return (
@@ -1097,7 +1116,7 @@ function AuditDialog() {
             type="button"
             className="spring-link"
             onClick={() => {
-              setInput(before);
+              loadInput(before);
               setBefore(null);
             }}
           >

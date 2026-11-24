@@ -1,28 +1,27 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import { audit, type Finding } from "@/lib/spring/audit";
+import { useDeferredValue, useId, useMemo, useState } from "react";
+import { audit } from "@/lib/spring/audit";
 import type { SystemInput } from "@/lib/spring/system";
-import { useSpring } from "./store";
+import { getInput, setInput } from "./store";
 import "./spring.css";
 
-const ORDER = { fail: 0, warn: 1, pass: 2 };
 const MARK = { fail: "✕", warn: "!", pass: "✓" };
-const sorted = (f: Finding[]) => [...f].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
 export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }) {
   const id = useId();
-  const { input, setInput } = useSpring();
   const [text, setText] = useState("");
   const [fixed, setFixed] = useState(false);
+  // Typing stays responsive on big pastes: the audit catches up after the keystroke.
+  const pasted = useDeferredValue(text);
   const report = useMemo(() => {
-    if (!text.trim()) return null;
+    if (!pasted.trim()) return null;
     try {
-      return audit(text);
+      return audit(pasted);
     } catch (e) {
       return { error: (e as Error).message };
     }
-  }, [text]);
+  }, [pasted]);
 
   return (
     <div className="spring-audit">
@@ -55,7 +54,7 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
               </span>
             </div>
             <ul className="spring-findings">
-              {sorted(report.findings).map((f) => (
+              {report.findings.map((f) => (
                 <li key={f.id}>
                   <span className="spring-meta" aria-label={f.status}>
                     {MARK[f.status]}
@@ -71,7 +70,7 @@ export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }
                 type="button"
                 className="button button--primary"
                 onClick={() => {
-                  const before = input;
+                  const before = getInput();
                   setInput(report.input);
                   setFixed(true);
                   onFix?.(before);

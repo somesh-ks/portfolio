@@ -28,47 +28,6 @@
     grid-template-columns: 1fr 1fr;
   }
 }
-.spring-pairs {
-  display: grid;
-  gap: var(--space-2);
-}
-.spring-pairs {
-  gap: 0;
-}
-.spring-pair {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  column-gap: var(--space-2);
-  row-gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-3) 0;
-  text-align: left;
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-pair > :not(.spring-pair__mark) {
-  grid-column: 2;
-}
-.spring-pair__mark {
-  grid-row: 1 / span 3;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  padding-top: 0.6rem;
-}
-.spring-pair[aria-pressed="true"] .spring-pair__mark {
-  color: var(--text-primary);
-}
-.spring-pair__name {
-  font-size: 1.375rem;
-  line-height: 1.15;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.spring-pair__line {
-  font-size: 0.9375rem;
-  line-height: 1.4;
-  color: var(--text-primary);
-}
 .spring-meta {
   font-family: var(--font-mono);
   font-size: var(--step-xs);
@@ -92,18 +51,6 @@
 }
 .spring-facts dd {
   margin: 0;
-}
-.spring-radii {
-  display: flex;
-  gap: var(--space-3);
-  align-items: end;
-}
-.spring-radii span {
-  display: block;
-  width: 3rem;
-  height: 3rem;
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  background: var(--surface-sunken);
 }
 .spring-track {
   display: block;
@@ -132,11 +79,6 @@
   .spring-ball[data-run="true"] {
     animation: none;
   }
-}
-.spring-files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
 }
 .spring-audit-input.spring-code {
   height: min(70vh, 48rem);
@@ -732,11 +674,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-4);
-}
-/* The screen picker belongs to the preview, not to the output switch beside it. */
-.spring-wb__cmds {
-  display: grid;
-  justify-items: start;
 }
 @media (min-width: 60rem) {
   .spring-wb__grid {

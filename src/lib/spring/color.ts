@@ -188,15 +188,3 @@ export function buildNeutral(hue: number, tint: number, curve?: Curve): BuiltSca
 export function contrast(a: string, b: string): number {
   return wcagContrast(a, b);
 }
-
-/** OKLab distance; below ~0.02 two colors are hard to tell apart. */
-export function distance(a: string, b: string): number {
-  const x = parseColor(a);
-  const y = parseColor(b);
-  if (!x || !y) return Infinity;
-  const ax = x.c * Math.cos((x.h * Math.PI) / 180);
-  const ay = x.c * Math.sin((x.h * Math.PI) / 180);
-  const bx = y.c * Math.cos((y.h * Math.PI) / 180);
-  const by = y.c * Math.sin((y.h * Math.PI) / 180);
-  return Math.hypot(x.l - y.l, ax - bx, ay - by);
-}
