@@ -3,6 +3,7 @@
  * generated values, so links stay short and always rebuild with the
  * current engine. `v` lets a future engine migrate old links.
  */
+import { CHART_MAX } from "./charts";
 import {
   DEFAULT_INPUT,
   MAX_STRIPS,
@@ -71,11 +72,19 @@ export function encodeInput(input: SystemInput): string {
     i.status ? STATUSES.map((n) => i.status?.[n] ?? null) : null,
     i.contrast ?? null,
     i.colors?.length ? i.colors.map((c) => [c.name, c.hex]) : null,
+    i.charts ? [i.charts.count ?? null, i.charts.diverge ?? null] : null,
   ];
   // Old links end at the curve; keep new ones as short when the extras are unset.
   while (compact.length > 9 && compact.at(-1) === null) compact.pop();
   return b64url.encode(JSON.stringify(compact));
 }
+
+const finite = (v: unknown, lo: number, hi: number) =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
+const charts = ([count, diverge]: unknown[]) => ({
+  count: finite(count, 4, CHART_MAX),
+  diverge: finite(diverge, -1, 359),
+});
 
 const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
 const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
@@ -182,6 +191,7 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
               .map(([name, hex]) => ({ name: name.slice(0, 24), hex })),
           }
         : {}),
+      ...(Array.isArray(a[13]) ? { charts: charts(a[13]) } : {}),
     };
   } catch {
     return null;

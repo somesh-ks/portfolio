@@ -14,7 +14,7 @@ type Rgb = [number, number, number];
 const toLinear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const toGamma = (v: number) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
 
-function oklchToLinear({ l, c, h }: Lch): Rgb {
+export function oklchToLinear({ l, c, h }: Lch): Rgb {
   const r = (h * Math.PI) / 180;
   const a = c * Math.cos(r);
   const b = c * Math.sin(r);
@@ -28,7 +28,7 @@ function oklchToLinear({ l, c, h }: Lch): Rgb {
   ];
 }
 
-function linearToOklch([r, g, b]: Rgb): Lch {
+export function linearToOklch([r, g, b]: Rgb): Lch {
   const l_ = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m_ = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s_ = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);

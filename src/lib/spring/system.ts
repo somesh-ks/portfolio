@@ -3,6 +3,7 @@
  * exports, audit fixes, the share link) goes through buildSystem, so the
  * input is the only state the app keeps.
  */
+import { buildCharts, type ChartInput, type Charts } from "./charts";
 import {
   buildNeutral,
   buildScale,
@@ -48,6 +49,8 @@ export interface SystemInput {
   colors?: { name: string; hex: string }[];
   /** "aa" when absent. */
   contrast?: ContrastTarget;
+  /** Chart palettes: how many series to grade, and the diverging scale's other hue. */
+  charts?: ChartInput;
   type: TypeInput;
   /** 0 compact, 0.5 default, 1 comfortable. */
   density: number;
@@ -201,6 +204,8 @@ export interface System {
   shape: Shape;
   shadows: Record<Mode, Shadow>;
   motion: Motion;
+  /** Categorical, sequential and diverging palettes for data, from the same brand. */
+  charts: Charts;
   stack: StackPicks;
   stackReasons: Record<keyof StackPicks, string>;
 }
@@ -506,6 +511,21 @@ export function buildSystem(input: SystemInput): System {
       dark: buildShadows(input.neutralHue ?? input.accent.hue, "dark"),
     },
     motion: buildMotion(input.motion),
+    charts: {
+      ...buildCharts(
+        input.accent,
+        {
+          light: get(scales, "neutral", "light", 1).hex,
+          dark: get(scales, "neutral", "dark", 1).hex,
+        },
+        input.charts,
+      ),
+      // "Other" is the neutral solid: quiet, but still 3:1 on the page.
+      other: {
+        light: get(scales, "neutral", "light", 9).hex,
+        dark: get(scales, "neutral", "dark", 9).hex,
+      },
+    },
     stack: {
       components: input.stack.components ?? rec.components,
       icons: input.stack.icons ?? rec.icons,

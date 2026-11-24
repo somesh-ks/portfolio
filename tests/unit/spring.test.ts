@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
-import { DEFAULT_CURVE, parseBezier, parseColor } from "@/lib/spring/color";
+import { contrast as ratio, DEFAULT_CURVE, parseBezier, parseColor } from "@/lib/spring/color";
 import { apcaContrast } from "@/lib/spring/colormath";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
@@ -306,7 +306,7 @@ describe("per-tool exports", () => {
       const { css, json } = exportArea(sys, a);
       const vars = [...css.content.matchAll(/^\s*--([a-z]+)-/gm)].map((m) => m[1]);
       const own: Record<typeof a, string[]> = {
-        color: ["accent", "neutral", "danger", "warning", "success", "info", "color"],
+        color: ["accent", "neutral", "danger", "warning", "success", "info", "color", "chart"],
         type: ["font", "text"],
         space: [
           "space",
@@ -402,5 +402,66 @@ describe("audit reads real systems", () => {
   test("a clean system scores 100, and broken JSON says so", () => {
     expect(read("clean.css").score).toBe(100);
     expect(() => read("broken.tokens.json")).toThrow(/Not valid JSON/);
+  });
+});
+
+describe("chart palettes", () => {
+  test.each(inputs.map((i, n) => [n, i] as const))(
+    "every series mark reaches 3:1 on the page, in both themes (%i)",
+    (_, input) => {
+      const sys = buildSystem(input);
+      for (const mode of ["light", "dark"] as const) {
+        const page = sys.scales.neutral[mode][0]!.hex;
+        for (const hex of sys.charts.categorical[mode])
+          expect(ratio(hex, page)).toBeGreaterThanOrEqual(3);
+      }
+    },
+  );
+
+  test.each(inputs.map((i, n) => [n, i] as const))(
+    "8 series stay apart for every color-blindness type (%i)",
+    (_, input) => {
+      const c = buildSystem(input).charts;
+      for (const mode of ["light", "dark"] as const)
+        for (const v of ["protan", "deutan", "tritan"] as const)
+          expect(c.closest[mode][v].d).toBeGreaterThanOrEqual(0.06);
+    },
+  );
+
+  test("series keep their hue across themes, and the order is prefix-stable", () => {
+    const a = buildSystem(DEFAULT_INPUT).charts;
+    const b = buildSystem({ ...DEFAULT_INPUT, charts: { count: 4 } }).charts;
+    expect(b.categorical.light).toEqual(a.categorical.light);
+    for (let i = 0; i < 10; i++) {
+      const l = parseColor(a.categorical.light[i]!)!;
+      const d = parseColor(a.categorical.dark[i]!)!;
+      expect(Math.abs(((l.h - d.h + 540) % 360) - 180)).toBeLessThan(6);
+    }
+  });
+
+  test("sequential lightness moves one way; diverging is symmetric around a neutral middle", () => {
+    const c = buildSystem(DEFAULT_INPUT).charts;
+    for (const mode of ["light", "dark"] as const) {
+      const ls = c.sequential[mode].map((h) => parseColor(h)!.l);
+      const dir = mode === "light" ? -1 : 1;
+      for (let i = 1; i < ls.length; i++) expect((ls[i]! - ls[i - 1]!) * dir).toBeGreaterThan(0);
+      const d = c.diverging[mode].map((h) => parseColor(h)!);
+      expect(d[4]!.c).toBeLessThan(0.02);
+      expect(Math.abs(d[0]!.l - d[8]!.l)).toBeLessThan(0.03);
+    }
+  });
+
+  test("chart tokens are in every export and survive the share link", () => {
+    const input = { ...DEFAULT_INPUT, charts: { count: 6, diverge: 40 } };
+    const sys = buildSystem(input);
+    const files = Object.fromEntries(exportAll(sys).map((f) => [f.path, f.content]));
+    expect(files["tokens.css"]).toContain(`--chart-1: ${sys.charts.categorical.light[0]};`);
+    expect(files["tokens.css"]).toContain("--chart-div-9:");
+    expect(files["tokens.css"]).toContain("--chart-gap: var(--color-bg);");
+    expect(files["theme.css"]).toContain("--color-chart-seq-1: var(--chart-seq-1);");
+    expect(JSON.parse(files["tokens.json"]!).color.chart["10"]).toBeDefined();
+    expect(files["DESIGN.md"]).toContain("### Charts");
+    expect(decodeInput(encodeInput(input))!.charts).toEqual({ count: 6, diverge: 40 });
+    expect(sys.charts.divergeHue).toBe(40);
   });
 });

@@ -25,6 +25,7 @@ import {
   type TypeInput,
 } from "@/lib/spring/type";
 import { contrast, DEFAULT_CURVE, parseColor, type Mode } from "@/lib/spring/color";
+import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import { apcaContrast, formatColor, oklchToHex, type ColorFormat } from "@/lib/spring/colormath";
 import { Chevron, Select } from "@/components/ui/Select";
 import { Dial } from "@/components/ui/Dial";
@@ -32,6 +33,7 @@ import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
 import { CurveEditor } from "./CurveEditor";
 import dynamic from "next/dynamic";
+import { ChartControls, ChartOutput } from "./Charts";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, Components, Homepage, Ladder } from "./Preview";
 import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
@@ -168,6 +170,7 @@ export function SpringWorkbench() {
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
+  const [colorView, setColorView] = useState<"interface" | "charts">("interface");
   // Starts at 1 so the curves play as soon as the Motion tab opens.
   const [run, setRun] = useState(1);
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
@@ -237,8 +240,18 @@ export function SpringWorkbench() {
           className="spring-wb__panel"
         >
           {tab === "color" ? (
+            <Segmented
+              label="Color system"
+              options={["interface", "charts"] as const}
+              value={colorView}
+              onChange={setColorView}
+              render={(v) => (v === "interface" ? "Interface" : "Charts")}
+            />
+          ) : null}
+          {tab === "color" && colorView === "interface" ? (
             <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
           ) : null}
+          {tab === "color" && colorView === "charts" ? <ChartControls {...spring} /> : null}
           {tab === "type" ? (
             <TypeControls
               {...spring}
@@ -293,7 +306,10 @@ export function SpringWorkbench() {
             </div>
           ) : (
             <>
-              {tab === "color" ? (
+              {tab === "color" && colorView === "charts" ? (
+                <ChartOutput system={system} mode={mode} format={format} />
+              ) : null}
+              {tab === "color" && colorView === "interface" ? (
                 <ColorOutput
                   system={system}
                   input={input}
@@ -507,19 +523,8 @@ function ColorControls({
   );
 }
 
-/** Machado et al. (2009) full-severity simulation matrices, applied in linear RGB. */
-const CVD = {
-  protan: "0.152 1.053 -0.205 0 0 0.115 0.786 0.099 0 0 -0.004 -0.048 1.052 0 0 0 0 0 1 0",
-  deutan: "0.367 0.861 -0.228 0 0 0.280 0.673 0.047 0 0 -0.012 0.043 0.969 0 0 0 0 0 1 0",
-  tritan: "1.256 -0.077 -0.179 0 0 -0.078 0.931 0.148 0 0 0.005 0.691 0.304 0 0 0 0 0 1 0",
-} as const;
-const VISION = ["normal", ...(Object.keys(CVD) as (keyof typeof CVD)[])] as const;
-const VISION_LABEL = {
-  normal: "Normal vision",
-  protan: "Protanopia",
-  deutan: "Deuteranopia",
-  tritan: "Tritanopia",
-};
+const CVD = CVD_FILTER;
+const VISION = VISIONS;
 
 /** A color typed into a strip: any CSS color, stored as hex. Empty clears it when `onClear` is given. */
 function HexField({
