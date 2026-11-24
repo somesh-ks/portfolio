@@ -241,7 +241,17 @@ export function SpringWorkbench() {
             </button>
           ))}
         </div>
-        <AuditDialog />
+        <span className="spring-wb__actions">
+          <button
+            type="button"
+            className="button spring-audit-trigger"
+            aria-pressed={view === "preview"}
+            onClick={() => setView((v) => (v === "preview" ? "output" : "preview"))}
+          >
+            Preview
+          </button>
+          <AuditDialog />
+        </span>
       </div>
       <div className="spring-wb__grid">
         <div
@@ -275,15 +285,8 @@ export function SpringWorkbench() {
           className="spring-wb__stage"
           aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
         >
-          <div className="spring-wb__bar">
-            <Segmented
-              label="Show"
-              options={["output", "preview"] as const}
-              value={view}
-              onChange={setView}
-              render={(v) => (v === "output" ? TAB_LABEL[tab] : "Preview")}
-            />
-            {view === "preview" ? (
+          {view === "preview" ? (
+            <div className="spring-wb__bar">
               <Segmented
                 label="Screen"
                 options={["site", "app"] as const}
@@ -296,8 +299,6 @@ export function SpringWorkbench() {
                 }
                 render={(v) => (v === "site" ? "Site" : "App")}
               />
-            ) : null}
-            {view === "preview" ? (
               <Segmented
                 label="Width"
                 options={["phone", "tablet", "desktop"] as const}
@@ -305,8 +306,8 @@ export function SpringWorkbench() {
                 onChange={setWidth}
                 render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           {view === "preview" ? (
             // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
             <div className="spring-frame" data-width={width}>

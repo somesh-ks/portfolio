@@ -854,6 +854,30 @@
   gap: 0.3em;
   flex: none;
 }
+.spring-wb__actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+/* Phones: the buttons take a row above the tabs, so every tab stays in view. */
+@media (max-width: 40rem) {
+  .spring-wb__tabs {
+    flex-wrap: wrap;
+  }
+  .spring-wb__actions {
+    order: -1;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .spring-tabs {
+    flex-basis: 100%;
+  }
+}
+/* Preview on: the button reads as held down. */
+.spring-audit-trigger[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--surface-canvas);
+}
 
 /* ——— Color picker ——— */
 .spring-picker__field {
