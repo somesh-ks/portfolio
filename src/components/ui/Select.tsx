@@ -7,6 +7,24 @@
  */
 import { Select as Base } from "@base-ui/react/select";
 
+/** A drawn chevron: a text "▾" sits off-centre and changes weight with the font. */
+export function Chevron({ dir = "down" }: { dir?: "down" | "right" }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="square"
+      style={dir === "right" ? { rotate: "-90deg" } : undefined}
+    >
+      <path d="M2.5 4.5 6 8l3.5-3.5" />
+    </svg>
+  );
+}
+
 export interface SelectOption<T extends string> {
   value: T;
   label: string;
@@ -40,7 +58,7 @@ export function Select<T extends string>({
         <Base.Trigger className="select__trigger">
           <Base.Value className="select__value" />
           <Base.Icon className="select__icon" aria-hidden>
-            ▾
+            <Chevron />
           </Base.Icon>
         </Base.Trigger>
       </div>

@@ -10,7 +10,7 @@ import {
   type ColorFormat,
 } from "@/lib/spring/colormath";
 import { parseColor } from "@/lib/spring/color";
-import { Segmented } from "../Segmented";
+import { Select } from "@/components/ui/Select";
 
 const MAX_C = 0.3;
 const MIN_C = 0.02;
@@ -111,18 +111,9 @@ export function ColorPicker({
 
   return (
     <div className="field spring-picker">
-      <span className="spring-picker__head">
-        <label className="field__label" htmlFor={`${id}-hex`}>
-          Brand color
-        </label>
-        <Segmented
-          label="Color format"
-          options={["oklch", "hsl", "hex"] as const}
-          value={format}
-          onChange={setFormat}
-          render={(f) => FORMAT_LABEL[f]}
-        />
-      </span>
+      <label className="field__label" htmlFor={`${id}-hex`}>
+        Brand color
+      </label>
       <div
         ref={frame}
         className="spring-picker__field"
@@ -170,6 +161,18 @@ export function ColorPicker({
       </div>
       <span className="field__input">
         <span className="spring-swatch" style={{ background: hex }} aria-hidden />
+        <span className="spring-picker__format">
+          <Select
+            label="Color format"
+            hideLabel
+            value={format}
+            options={(["oklch", "hsl", "hex"] as const).map((f) => ({
+              value: f,
+              label: FORMAT_LABEL[f],
+            }))}
+            onChange={setFormat}
+          />
+        </span>
         <input
           id={`${id}-hex`}
           value={draft ?? formatColor(hex, format)}

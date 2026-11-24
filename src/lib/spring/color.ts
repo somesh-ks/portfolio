@@ -52,6 +52,20 @@ export const DEFAULT_CURVE: Curve = { bezier: [0.4, 0.08, 0.9, 0.6], hueShift: 0
 // Where each mode's scale starts (page) and ends (strongest text).
 export const ENDS: Record<Mode, [number, number]> = { light: [0.993, 0.24], dark: [0.165, 0.95] };
 
+/**
+ * Reads typed curve values: "cubic-bezier(0.4, 0.08, 0.9, 0.6)" or just the four
+ * numbers. Values clamp to 0–1 so lightness keeps running one way. Null if unreadable.
+ */
+export function parseBezier(text: string): Curve["bezier"] | null {
+  const nums = text
+    .replace(/cubic-bezier|[()]/gi, "")
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map(Number);
+  if (nums.length !== 4 || nums.some((n) => !Number.isFinite(n))) return null;
+  return nums.map((n) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100) as Curve["bezier"];
+}
+
 /** y for a given x on a CSS cubic-bezier from (0,0) to (1,1). */
 const cubic = (a: number, b: number, t: number) =>
   3 * a * t * (1 - t) ** 2 + 3 * b * t ** 2 * (1 - t) + t ** 3;

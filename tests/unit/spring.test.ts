@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
+import { parseBezier } from "@/lib/spring/color";
 import { MOODS, pairings } from "@/lib/spring/pairing";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
@@ -30,6 +31,12 @@ describe("color", () => {
 });
 
 describe("palette curve", () => {
+  test("typed curve values read in either form and clamp to 0-1", () => {
+    expect(parseBezier("cubic-bezier(0.4, 0.08, 0.9, 0.6)")).toEqual([0.4, 0.08, 0.9, 0.6]);
+    expect(parseBezier(".2 .3 1.4 -0.5")).toEqual([0.2, 0.3, 1, 0]);
+    expect(parseBezier("0.1, 0.2, 0.3")).toBeNull();
+    expect(parseBezier("a, b, c, d")).toBeNull();
+  });
   const seeds = ["#e11d48", "#f5c400", "#00a37a", "#7c3aed", "#0ea5e9", "#111111", "#ff66cc"];
   test("every scale runs one way, in both themes, for any brand", () => {
     for (const seed of seeds) {

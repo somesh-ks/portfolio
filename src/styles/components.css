@@ -2180,8 +2180,12 @@ claude-mascot:defined > * {
   font-variant-numeric: tabular-nums;
 }
 .select__icon {
+  display: flex;
+  flex: none;
   color: var(--text-secondary);
-  font-size: var(--step-xs);
+}
+.select__trigger[data-popup-open] .select__icon {
+  rotate: 180deg;
 }
 .select__popup {
   min-width: var(--anchor-width);

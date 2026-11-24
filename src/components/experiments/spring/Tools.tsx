@@ -17,7 +17,7 @@ import {
 } from "@/lib/spring/type";
 import { contrast, DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
 import { formatColor, type ColorFormat } from "@/lib/spring/colormath";
-import { Select } from "@/components/ui/Select";
+import { Chevron, Select } from "@/components/ui/Select";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
 import { CurveEditor } from "./CurveEditor";
@@ -619,7 +619,7 @@ function TypeControls({
               {t[r]}
             </span>
             <span className="select__icon" aria-hidden>
-              ›
+              <Chevron dir="right" />
             </span>
           </button>
         </div>

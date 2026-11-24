@@ -1,7 +1,14 @@
 "use client";
 
-import { useRef, type PointerEvent } from "react";
-import { bezierAt, DEFAULT_CURVE, ENDS, type Curve, type Swatch } from "@/lib/spring/color";
+import { useId, useRef, useState, type PointerEvent } from "react";
+import {
+  bezierAt,
+  DEFAULT_CURVE,
+  ENDS,
+  parseBezier,
+  type Curve,
+  type Swatch,
+} from "@/lib/spring/color";
 import { Select } from "@/components/ui/Select";
 
 type Bezier = Curve["bezier"];
@@ -17,7 +24,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 /**
  * The palette's lightness curve, drawn like an easing curve: across is the step,
  * up is how far toward the text end it has gone. The dots are the real steps.
- * Drag the two handles, or pick a preset (the keyboard path).
+ * Drag the two handles, pick a preset, or type the four values.
  */
 export function CurveEditor({
   curve,
@@ -31,6 +38,8 @@ export function CurveEditor({
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<0 | 1 | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const id = useId();
   const b = curve.bezier;
   const [from, to] = ENDS.light;
   const preset = PRESETS.find((p) => same(p.bezier, b))?.value ?? "custom";
@@ -47,6 +56,11 @@ export function CurveEditor({
     next[drag.current * 2] = x;
     next[drag.current * 2 + 1] = y;
     onChange({ ...curve, bezier: next });
+  };
+  const apply = () => {
+    const next = draft === null ? null : parseBezier(draft);
+    if (next) onChange({ ...curve, bezier: next });
+    setDraft(null);
   };
   const handle = (i: 0 | 1, x: number, y: number, ax: number, ay: number) => (
     <g key={i}>
@@ -104,7 +118,25 @@ export function CurveEditor({
           />
         ))}
       </svg>
-      <span className="field__unit tabular">cubic-bezier({b.join(", ")})</span>
+      <span className="field__input spring-curve__values">
+        <label className="field__unit" htmlFor={`${id}-bezier`}>
+          cubic-bezier
+        </label>
+        <input
+          id={`${id}-bezier`}
+          value={draft ?? b.join(", ")}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={apply}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") apply();
+            if (e.key === "Escape") setDraft(null);
+          }}
+          aria-invalid={draft !== null && !parseBezier(draft)}
+          inputMode="decimal"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </span>
     </div>
   );
 }
