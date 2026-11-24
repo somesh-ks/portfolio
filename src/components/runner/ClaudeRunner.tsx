@@ -34,7 +34,7 @@ import {
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
 import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
-import { isSky, localNight, type Weather } from "@/lib/runner/weather";
+import { isSky, localNight, weatherLabel, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
 
 /** `?weather=snow` or `?weather=rain-night` shows any sky, for QA and the curious. */
@@ -206,6 +206,8 @@ export function ClaudeRunner() {
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
+  /** Set once the visitor's real weather arrives; overrides and misses get none. */
+  const [weatherCaption, setWeatherCaption] = useState<string | null>(null);
   const [jumped, setJumped] = useState(false);
   /** The last input used, so hints say TAP or [SPACE] to match. */
   const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
@@ -297,6 +299,7 @@ export function ClaudeRunner() {
     // needs no engine until someone plays.
     const load = () =>
       void loadWeather().then((weather) => {
+        setWeatherCaption(weatherOverride() ? null : weatherLabel(weather));
         if (pick !== "walk" || !isPlainSky(weather)) void ensureEngine();
       });
     // Safari has no requestIdleCallback; a short timeout stands in.
@@ -550,6 +553,10 @@ export function ClaudeRunner() {
           >
             <Key click="CLICK TO" touch="TAP TO" /> PLAY
           </button>
+        ) : null}
+
+        {phase === "idle" && weatherCaption ? (
+          <p className="runner__weather">{weatherCaption}</p>
         ) : null}
 
         {phase === "running" && !jumped ? (

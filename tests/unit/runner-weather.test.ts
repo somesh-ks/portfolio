@@ -5,7 +5,7 @@ import { RESKINS, accessoryFor, findFace, makeParticles, stepParticles } from "@
 import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES, type ObstacleKind } from "@/lib/runner/sprites";
-import { localNight, roundCoord, skyFromCode } from "@/lib/runner/weather";
+import { localNight, roundCoord, skyFromCode, weatherLabel } from "@/lib/runner/weather";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -53,7 +53,7 @@ describe("weather route", () => {
         headers: { "x-vercel-ip-latitude": "48.13743", "x-vercel-ip-longitude": "11.57549" },
       }),
     );
-    expect(await response.json()).toEqual({ sky: "snow", night: true, temp: -2 });
+    expect(await response.json()).toEqual({ sky: "snow", night: true, temp: -2, unit: "C" });
     expect(response.headers.get("cache-control")).toBe("private, max-age=900");
     expect(asked).toContain("latitude=48.1");
     expect(asked).toContain("longitude=11.6");
@@ -111,5 +111,40 @@ describe("accessories", () => {
     expect(accessoryFor({ sky: "clear", night: false, temp: null })).toBe("shades");
     expect(accessoryFor({ sky: "clear", night: true, temp: null })).toBe("nightcap");
     expect(accessoryFor({ sky: "cloudy", night: false, temp: null })).toBeNull();
+  });
+});
+
+describe("weather label", () => {
+  test("condition and temperature, no city", () => {
+    expect(weatherLabel({ sky: "rain", night: false, temp: 12, unit: "C", city: "Munich" })).toBe(
+      "LOCAL WEATHER · RAIN · 12°C",
+    );
+    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe(
+      "LOCAL WEATHER · SNOW · 27°F",
+    );
+  });
+
+  test("no temperature, no label", () => {
+    expect(weatherLabel({ sky: "cloudy", night: false, temp: null })).toBeNull();
+  });
+
+  test("US visitors get Fahrenheit", async () => {
+    let asked = "";
+    globalThis.fetch = (async (url: URL) => {
+      asked = String(url);
+      return Response.json({ current: { weather_code: 0, is_day: 1, temperature_2m: 70.4 } });
+    }) as unknown as typeof fetch;
+    const response = await GET(
+      new NextRequest("http://localhost/api/runner/weather", {
+        headers: {
+          "x-vercel-ip-latitude": "40.7",
+          "x-vercel-ip-longitude": "-74",
+          "x-vercel-ip-country": "US",
+          "x-vercel-ip-city": "New%20York",
+        },
+      }),
+    );
+    expect(await response.json()).toEqual({ sky: "clear", night: false, temp: 70, unit: "F" });
+    expect(asked).toContain("temperature_unit=fahrenheit");
   });
 });

@@ -9,8 +9,22 @@ export type Sky = (typeof SKIES)[number];
 export interface Weather {
   sky: Sky;
   night: boolean;
-  /** Whole degrees Celsius, or null when unknown. */
+  /** Whole degrees in `unit`, or null when unknown. */
   temp: number | null;
+  unit?: "C" | "F";
+  /** The visitor's city, only while SHOW_CITY is on. */
+  city?: string | null;
+}
+
+/** Off: IP cities are often wrong (VPNs, carriers) and feel creepy on a
+ * screen-share. The condition and temperature can be checked out the window. */
+export const SHOW_CITY = false;
+
+/** The caption under the play prompt, e.g. `LOCAL WEATHER · RAIN · 12°C`. */
+export function weatherLabel(weather: Weather): string | null {
+  if (weather.temp === null) return null;
+  const place = SHOW_CITY && weather.city ? weather.city : "LOCAL WEATHER";
+  return `${place} · ${weather.sky} · ${weather.temp}°${weather.unit ?? "C"}`.toUpperCase();
 }
 
 /** WMO weather interpretation codes, as Open-Meteo reports them. */
@@ -43,11 +57,16 @@ interface OpenMeteoCurrent {
 }
 
 /** One rounded cell asks Open-Meteo at most every 15 minutes. */
-export async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
+export async function fetchWeather(
+  lat: number,
+  lon: number,
+  unit: "C" | "F" = "C",
+): Promise<Weather | null> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(roundCoord(lat)));
   url.searchParams.set("longitude", String(roundCoord(lon)));
   url.searchParams.set("current", "weather_code,is_day,temperature_2m");
+  if (unit === "F") url.searchParams.set("temperature_unit", "fahrenheit");
   try {
     const response = await fetch(url, {
       next: { revalidate: 900 },
@@ -60,6 +79,7 @@ export async function fetchWeather(lat: number, lon: number): Promise<Weather | 
       sky: skyFromCode(current.weather_code),
       night: current.is_day === 0,
       temp: typeof current.temperature_2m === "number" ? Math.round(current.temperature_2m) : null,
+      unit,
     };
   } catch {
     return null;
