@@ -160,7 +160,6 @@ export function ColorPicker({
         />
       </div>
       <span className="field__input">
-        <span className="spring-swatch" style={{ background: hex }} aria-hidden />
         <span className="spring-picker__format">
           <Select
             label="Color format"
@@ -173,18 +172,21 @@ export function ColorPicker({
             onChange={setFormat}
           />
         </span>
-        <input
-          id={`${id}-hex`}
-          value={draft ?? formatColor(hex, format)}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={apply}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") apply();
-            if (e.key === "Escape") setDraft(null);
-          }}
-          autoComplete="off"
-          spellCheck={false}
-        />
+        <span className="spring-picker__value">
+          <span className="spring-swatch" style={{ background: hex }} aria-hidden />
+          <input
+            id={`${id}-hex`}
+            value={draft ?? formatColor(hex, format)}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={apply}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") apply();
+              if (e.key === "Escape") setDraft(null);
+            }}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </span>
       </span>
     </div>
   );

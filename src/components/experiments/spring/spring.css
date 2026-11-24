@@ -983,3 +983,20 @@
   flex: none;
   width: 6.5rem;
 }
+/* The swatch sits inside the value field, like a leading icon. */
+.spring-picker__value {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.spring-picker__value .spring-swatch {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  top: 50%;
+  translate: 0 -50%;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.field__input .spring-picker__value input {
+  padding-inline-start: calc(var(--space-3) * 2 + 1.25rem);
+}
