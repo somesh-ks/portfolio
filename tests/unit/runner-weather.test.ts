@@ -101,6 +101,9 @@ describe("accessories", () => {
         const face = findFace(frame);
         expect(face, costume).not.toBeNull();
         expect(face!.right - face!.left, costume).toBeGreaterThanOrEqual(9);
+        // No wheel or trim taken for an eye: eyes share (about) one row.
+        const rows = face!.eyes.map(([, y]) => y);
+        expect(Math.max(...rows) - Math.min(...rows), costume).toBeLessThanOrEqual(2);
       }
     }
   });

@@ -67,6 +67,14 @@ const TONE_VARS: Record<Tone, string> = {
   cream: "--illustration-cream",
   steel: "--illustration-steel",
 };
+/** Mist rows for fog: [y, streak length, gap], all in cells. */
+const MIST: readonly (readonly [number, number, number])[] = [
+  [26, 30, 22],
+  [34, 18, 40],
+  [41, 40, 16],
+  [47, 24, 30],
+  [52, 46, 12],
+];
 const MAX_STEPS = 5;
 const MILESTONE = 100;
 /** Largest cell, in CSS pixels. */
@@ -128,7 +136,7 @@ export function createEngine(
     ? 0
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
-  let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "fog", string>;
+  let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
   let weather = initialWeather;
   const particles = makeParticles();
   const faces = new WeakMap<object, Face | null>();
@@ -145,7 +153,6 @@ export function createEngine(
       ground: read("--border-strong"),
       cloud: read("--border-default"),
       dust: read("--illustration-grid"),
-      fog: read("--surface-canvas"),
     };
   }
 
@@ -230,19 +237,19 @@ export function createEngine(
     const color = snow ? colors.muted : colors.sky;
     for (const { x, y } of particles)
       for (let copy = x; copy < viewWidth; copy += 200)
-        fill(copy, Math.floor(y), 1, snow ? 1 : 3, color);
+        fill(copy, Math.floor(y), 1, Math.min(snow ? 1 : 3, WORLD.ground - Math.floor(y)), color);
   }
 
-  /** Fog thickens toward the right edge, over the sky and the desk. */
+  /** Fog: long mist streaks drifting low over the desk, behind the
+   * obstacles so it never makes a run harder. */
   function drawFog() {
     if (weather.sky !== "fog") return;
-    const bands = 4;
-    for (let band = 0; band < bands; band += 1) {
-      ctx.globalAlpha = 0.14 * (band + 1);
-      const x = Math.floor(viewWidth * (0.4 + band * 0.15));
-      fill(x, 0, viewWidth - x, WORLD.height, colors.fog);
+    const shift = Math.floor(cloudShift * 2);
+    for (const [row, length, gap] of MIST) {
+      const period = length + gap;
+      for (let x = -((shift + row * 7) % period); x < viewWidth; x += period)
+        fill(x, row, length, 1, colors.cloud);
     }
-    ctx.globalAlpha = 1;
   }
 
   /** Advance the weather by real time; under reduced motion it holds still. */
@@ -259,6 +266,8 @@ export function createEngine(
     drawLights();
     drawSky();
     drawParticles();
+    // Sky only: obstacles stay crisp, so fog never makes a run harder.
+    drawFog();
     drawGround(distance);
 
     for (const obstacle of state?.obstacles ?? []) {
@@ -276,7 +285,6 @@ export function createEngine(
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
-    drawFog();
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
     const accessory = accessoryFor(weather);
     const face = accessory ? faceOf(rects) : null;

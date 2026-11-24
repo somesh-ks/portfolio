@@ -323,7 +323,7 @@ claude-mascot:defined > * {
   color: var(--text-secondary);
   text-align: center;
   pointer-events: none;
-  animation: runner-weather-in 400ms ease-out;
+  animation: runner-weather-in var(--duration-ceiling) var(--ease-out);
 }
 @keyframes runner-weather-in {
   from {

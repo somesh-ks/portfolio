@@ -123,7 +123,7 @@ export const RESKINS: Partial<Record<Sky, Partial<Record<ObstacleKind, ObstacleS
   },
 };
 
-export interface Particle {
+interface Particle {
   x: number;
   y: number;
 }
@@ -207,6 +207,9 @@ export function findFace(rects: readonly Rect[]): Face | null {
     if (clay(x - 1, y) || clay(x + 2, y)) eyes.push([x, y]);
   }
   if (!eyes.length) return null;
+  // Eyes sit within a row or two of the top-most one; lower dark blocks are wheels or trim.
+  const row = Math.min(...eyes.map(([, y]) => y));
+  eyes.splice(0, eyes.length, ...eyes.filter(([, y]) => y - row <= 2));
   eyes.sort((a, b) => a[0] - b[0]);
 
   // Up from each eye through solid pixels: the highest point is the crown.
@@ -260,7 +263,7 @@ export function dress(face: Face, accessory: Accessory, costume: string): Cell[]
     }
     const first = eyes[0];
     const last = eyes.at(-1);
-    if (first && last && last[0] > first[0])
+    if (first && last && last[0] - first[0] > 3)
       cells.push([first[0] + 3, first[1], last[0] - first[0] - 3, 1, "ink"]);
     return cells;
   }

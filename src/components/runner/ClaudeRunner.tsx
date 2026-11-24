@@ -53,7 +53,7 @@ function loadWeather(): Promise<Weather> {
     if (override) return override;
     const fallback: Weather = { sky: "cloudy", night: localNight(), temp: null };
     try {
-      const response = await fetch("/api/runner/weather");
+      const response = await fetch("/api/runner/weather", { signal: AbortSignal.timeout(3000) });
       const body = (await response.json()) as Weather | null;
       return body && isSky(body.sky) ? body : fallback;
     } catch {
@@ -246,40 +246,35 @@ export function ClaudeRunner() {
     loading.current ??= (async () => {
       setBest(Number(readStorage(BEST_KEY)) || 0);
       setName(readStorage(NAME_KEY) ?? "");
-      const [{ createEngine }, rides, , weather] = await Promise.all([
+      const [{ createEngine }, rides] = await Promise.all([
         import("./engine"),
         fetch("/runner/rides.json")
           .then((response) => (response.ok ? response.json() : {}))
           .catch(() => ({})) as Promise<Record<string, RawSprite>>,
         loadBoard(),
-        loadWeather(),
       ]);
       if (!canvas.current) return null;
-      engine.current = createEngine(
-        canvas.current,
-        costumeRef.current,
-        rides,
-        {
-          onScore: setPoints,
-          onJump: () => {
-            setJumped(true);
-            playRef.current("jump");
-          },
-          onMilestone: () => playRef.current("milestone"),
-          onOver: (final) => {
-            playRef.current("crash");
-            setPhase("over");
-            if (leaderboardOn.current) void loadBoard();
-            setBest((previous) => {
-              if (final <= previous) return previous;
-              writeStorage(BEST_KEY, String(final));
-              return final;
-            });
-            setAnnouncement(`Game over. ${final} points.`);
-          },
+      engine.current = createEngine(canvas.current, costumeRef.current, rides, {
+        onScore: setPoints,
+        onJump: () => {
+          setJumped(true);
+          playRef.current("jump");
         },
-        weather,
-      );
+        onMilestone: () => playRef.current("milestone"),
+        onOver: (final) => {
+          playRef.current("crash");
+          setPhase("over");
+          if (leaderboardOn.current) void loadBoard();
+          setBest((previous) => {
+            if (final <= previous) return previous;
+            writeStorage(BEST_KEY, String(final));
+            return final;
+          });
+          setAnnouncement(`Game over. ${final} points.`);
+        },
+      });
+      // Play never waits on the weather: the scene changes when it lands.
+      void loadWeather().then((weather) => engine.current?.setWeather(weather));
       setEngineReady(true);
       return engine.current;
     })().catch(() => {
