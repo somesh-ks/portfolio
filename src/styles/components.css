@@ -151,6 +151,96 @@ main:focus {
   font-weight: 500;
 }
 
+/* Footer previews (ContactPreview): the company card, sized for the contribution grid. */
+.contact-card {
+  width: auto;
+}
+.contact-card__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+}
+.contact-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--step-sm);
+  font-weight: 500;
+}
+.contact-card__line {
+  color: var(--text-secondary);
+}
+.contact-card__mark {
+  flex-shrink: 0;
+}
+.contrib {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.contrib [data-level="0"] {
+  fill: color-mix(in oklch, var(--text-primary) 8%, var(--surface-raised));
+}
+.contrib [data-level="1"] {
+  fill: color-mix(in oklch, var(--text-success) 45%, var(--surface-raised));
+}
+.contrib [data-level="2"] {
+  fill: color-mix(in oklch, var(--text-success) 65%, var(--surface-raised));
+}
+.contrib [data-level="3"] {
+  fill: color-mix(in oklch, var(--text-success) 82%, var(--surface-raised));
+}
+.contrib [data-level="4"] {
+  fill: var(--text-success);
+}
+
+/* Easter egg (EasterEggs): the Konami code toggles a CRT look. Scanlines sit
+   over the page and never take a click; text keeps its colours, so contrast holds. */
+html[data-egg="crt"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    color-mix(in oklch, var(--text-primary) var(--crt-line, 4%), transparent) 2px 3px
+  );
+}
+/* Dark only (next-themes always sets the resolved theme): stronger lines and a faint phosphor glow, invisible on white. */
+html[data-egg="crt"][data-theme="dark"] body {
+  --crt-line: 7%;
+  text-shadow: 0 0 0.35em color-mix(in oklch, var(--text-success) 45%, transparent);
+}
+.egg-status {
+  position: fixed;
+  left: max(var(--space-6), env(safe-area-inset-left));
+  bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  z-index: 101;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-popover) var(--ease-out);
+}
+.egg-status[data-on] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .egg-status {
+    transition: none;
+  }
+}
+
 /* ---------- Mascot stage ---------- */
 /* Frames are flat: hairlines top and bottom, full column width, one box at most. */
 .stage {
@@ -315,11 +405,44 @@ claude-mascot:defined > * {
   font: inherit;
   letter-spacing: inherit;
 }
+/* The whole screen starts a run; the outline only shows where to press. It
+   sits on the page colour so rain and scenery don't run through it. */
+.runner__play {
+  display: inline-flex;
+  gap: 1ch;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-link);
+  background: var(--surface-canvas);
+  transition: border-color var(--duration-press) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner__play,
+  .runner__over .runner__save {
+    transition: none;
+  }
+}
+@media (hover: hover) {
+  .runner__prompt:hover .runner__play {
+    border-color: var(--text-primary);
+  }
+}
+.runner__prompt:focus-visible {
+  outline: none;
+}
+.runner__prompt:focus-visible .runner__play {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 /* A caption under the play prompt, placed absolutely so it lands without a shift. */
 .runner__weather {
   position: absolute;
   inset-inline: 0;
-  top: calc(50% + 1.75em);
+  top: calc(50% + 2.25em);
+  width: fit-content;
+  margin-inline: auto;
+  padding-inline: 1ch;
+  /* On the page colour, so the horizon's palms don't run through the words. */
+  background: var(--surface-canvas);
   color: var(--text-secondary);
   text-align: center;
   pointer-events: none;
@@ -417,6 +540,9 @@ claude-mascot:defined > * {
 }
 .runner__board {
   display: grid;
+  /* On the page colour, so clouds and snow don't run through the rows. */
+  padding-inline: 1ch;
+  background: var(--surface-canvas);
   grid-template-columns: auto minmax(0, 12ch) auto;
   gap: 0 var(--space-4);
   margin: 0;
@@ -442,14 +568,19 @@ claude-mascot:defined > * {
   justify-content: center;
   gap: var(--space-2);
 }
+/* The name field and SAVE are one control: same height, same outline. */
+.runner__input,
+.runner__save {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-height: 0;
+  border: 1px solid var(--border-link);
+  border-radius: 0;
+  background: var(--surface-canvas);
+}
 .runner__input {
   width: 14ch;
-  min-height: 2.25rem;
   padding: 0 var(--space-2);
-  border: 0;
-  border-bottom: 1px solid var(--border-strong);
-  border-radius: 0;
-  background: none;
   color: var(--text-primary);
   font: inherit;
   /* iOS zooms into inputs under 16px. */
@@ -483,6 +614,33 @@ claude-mascot:defined > * {
 }
 .runner__action:disabled {
   opacity: 0.6;
+}
+/* Beats the touch and coarse-pointer action sizes, so SAVE always matches
+   the field's height. */
+.runner__over .runner__save {
+  height: 2.5rem;
+  min-height: 0;
+  padding-inline: var(--space-3);
+  transition: border-color var(--duration-press) var(--ease-out);
+}
+@media (hover: hover) {
+  .runner__save:hover:not(:disabled),
+  .runner__input:hover {
+    border-color: var(--text-primary);
+  }
+}
+/* A finger gets the full 44px target; field and SAVE grow together. */
+@media (pointer: coarse) {
+  .runner__input,
+  .runner__over .runner__save {
+    height: 2.75rem;
+  }
+}
+/* Focus thickens the field's own outline instead of stacking a ring on it. */
+.runner__input:focus-visible {
+  outline: none;
+  border-color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--text-primary);
 }
 .runner__key {
   color: var(--text-primary);
@@ -881,6 +1039,11 @@ claude-mascot:defined > * {
   .list-row:focus-visible .list-row__thumb {
     opacity: 1;
     transition-delay: var(--duration-tooltip);
+  }
+  /* Light and dark stills: show the one for the page's theme. */
+  [data-theme="dark"] .list-row__thumb--light,
+  :root:not([data-theme="dark"]) .list-row__thumb--dark {
+    display: none;
   }
 }
 
@@ -2188,18 +2351,41 @@ claude-mascot:defined > * {
   background:
     linear-gradient(
       to right,
-      var(--surface-hover) var(--p),
-      var(--text-primary) var(--p) calc(var(--p) + var(--dial-line, 1px)),
-      transparent calc(var(--p) + var(--dial-line, 1px))
+      var(--surface-hover) var(--p-line),
+      var(--text-primary) var(--p-line) calc(var(--p-line) + var(--dial-line, 1px)),
+      transparent calc(var(--p-line) + var(--dial-line, 1px))
     ),
     var(--input-bg);
   box-shadow: inset 0 0 0 1px var(--border-default);
+  /* At the maximum the line would sit outside the box; keep it inside. */
+  --p-line: min(var(--p), calc(100% - var(--dial-line, 1px)));
+  transition: transform 120ms var(--ease-out, ease-out);
 }
-/* The value line thickens under the pointer and while dragging, so the grab point is obvious. */
-.dial:hover,
-.dial:has(.dial__range:active) {
-  --dial-line: 2px;
+/* The value line thickens under the pointer and more on press, so the grab point is obvious. */
+@media (hover: hover) {
+  .dial:hover {
+    --dial-line: 2px;
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+}
+/* Pressed (click or scrub): ink line at its thickest and a slight scale, as picked for press feedback. */
+.dial[data-pressed] {
+  --dial-line: 3px;
   box-shadow: inset 0 0 0 1px var(--border-strong);
+  transform: scale(0.985);
+}
+/* Typing: the field stays seamless; the row's ink frame says it's in edit mode. */
+.dial[data-editing] {
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dial {
+    transition: none;
+  }
+  .dial[data-pressed] {
+    transform: none;
+  }
 }
 /* Changed by something other than the visitor (a theme switch): one pulse to review it. */
 .dial[data-flash] {
@@ -2221,6 +2407,14 @@ claude-mascot:defined > * {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+/* The row takes the pointer (Dial.tsx scrubs from the current value); the
+   hidden range is only for keyboards and screen readers. */
+.dial {
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .dial__range {
   position: absolute;
   inset: 0;
@@ -2228,7 +2422,7 @@ claude-mascot:defined > * {
   height: 100%;
   margin: 0;
   opacity: 0;
-  cursor: ew-resize;
+  pointer-events: none;
 }
 .dial__label {
   position: relative;
@@ -2250,14 +2444,30 @@ claude-mascot:defined > * {
   text-align: right;
   cursor: text;
 }
-/* Seamless: no box, just a hint that the number is editable. */
-.dial__value:hover {
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
+/* Seamless: no box or underline at rest or while typing; the caret and the selection show the edit. */
 .dial__value:focus {
   outline: 0;
-  box-shadow: inset 0 -1px 0 var(--text-primary);
+}
+.dial[data-editing] .dial__value {
+  margin-left: auto;
+  padding-right: 0;
+}
+/* 16px on touch so iOS doesn't zoom when the field takes focus. */
+@media (pointer: coarse) {
+  .dial__value,
+  .dial__unit {
+    font-size: 1rem;
+  }
+}
+/* The unit sits after the typed number, so a keystroke can't land behind it. */
+.dial__unit {
+  position: relative;
+  margin-left: calc(-1 * var(--space-2));
+  padding-right: var(--space-1);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  pointer-events: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .dial {
