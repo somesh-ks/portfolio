@@ -16,13 +16,7 @@ import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/
 import { createRun, GRAVITY, step, STEP } from "@/lib/runner/sim";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES, type Cell, type ObstacleKind } from "@/lib/runner/sprites";
-import {
-  localNight,
-  roundCoord,
-  skyFromCode,
-  skyFromCurrent,
-  weatherLabel,
-} from "@/lib/runner/weather";
+import { localNight, roundCoord, skyFromCode, skyFromCurrent } from "@/lib/runner/weather";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -84,7 +78,7 @@ describe("weather route", () => {
         headers: { "x-vercel-ip-latitude": "48.13743", "x-vercel-ip-longitude": "11.57549" },
       }),
     );
-    expect(await response.json()).toEqual({ sky: "snow", night: true, temp: -2, unit: "C" });
+    expect(await response.json()).toEqual({ sky: "snow", night: true });
     expect(response.headers.get("cache-control")).toBe("private, max-age=900");
     expect(asked).toContain("latitude=48.1");
     expect(asked).toContain("longitude=11.6");
@@ -126,10 +120,7 @@ describe("scene", () => {
 describe("accessories", () => {
   test("every frame of every ride has a face to dress", () => {
     for (const costume of COSTUMES) {
-      const raw =
-        costume === "walk" || costume === "car"
-          ? walkSprite
-          : (rides as Record<string, RawSprite>)[costume]!;
+      const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
       const sprite = buildSprite(raw, costume);
       for (const frame of [sprite.idle, ...sprite.frames]) {
         const face = findFace(frame);
@@ -143,33 +134,16 @@ describe("accessories", () => {
   });
 
   test("weather picks the accessory", () => {
-    expect(accessoryFor({ sky: "rain", night: true, temp: null })).toBe("umbrella");
-    expect(accessoryFor({ sky: "snow", night: false, temp: null })).toBe("beanie");
-    expect(accessoryFor({ sky: "clear", night: false, temp: null })).toBeNull();
-    expect(accessoryFor({ sky: "clear", night: true, temp: null })).toBe("nightcap");
-    expect(accessoryFor({ sky: "cloudy", night: false, temp: null })).toBeNull();
+    expect(accessoryFor({ sky: "rain", night: true })).toBe("umbrella");
+    expect(accessoryFor({ sky: "snow", night: false })).toBe("beanie");
+    expect(accessoryFor({ sky: "clear", night: false })).toBeNull();
+    expect(accessoryFor({ sky: "clear", night: true })).toBe("nightcap");
+    expect(accessoryFor({ sky: "cloudy", night: false })).toBeNull();
   });
 });
 
-describe("weather label", () => {
-  test("condition and temperature, no city", () => {
-    expect(weatherLabel({ sky: "rain", night: false, temp: 12, unit: "C", city: "Munich" })).toBe(
-      "RAINY, 12°C",
-    );
-    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe("SNOWY, 27°F");
-  });
-
-  test("a clear sky is sunny by day, clear at night", () => {
-    expect(weatherLabel({ sky: "clear", night: false, temp: 20 })).toBe("SUNNY, 20°C");
-    expect(weatherLabel({ sky: "clear", night: true, temp: 3 })).toBe("CLEAR, 3°C");
-    expect(weatherLabel({ sky: "fog", night: true, temp: 3 })).toBe("FOGGY, 3°C");
-  });
-
-  test("no temperature, no label", () => {
-    expect(weatherLabel({ sky: "cloudy", night: false, temp: null })).toBeNull();
-  });
-
-  test("US visitors get Fahrenheit", async () => {
+describe("no place or temperature leaves the server", () => {
+  test("the route answers with the sky alone, even with city headers", async () => {
     let asked = "";
     globalThis.fetch = (async (url: URL) => {
       asked = String(url);
@@ -185,8 +159,8 @@ describe("weather label", () => {
         },
       }),
     );
-    expect(await response.json()).toEqual({ sky: "clear", night: false, temp: 70, unit: "F" });
-    expect(asked).toContain("temperature_unit=fahrenheit");
+    expect(await response.json()).toEqual({ sky: "clear", night: false });
+    expect(asked).not.toContain("temperature");
   });
 });
 
