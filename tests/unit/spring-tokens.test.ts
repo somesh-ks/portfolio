@@ -684,6 +684,23 @@ describe("pairs", () => {
       for (const bg of ["bg", "surface", "bg-subtle"]) expect(p).toContainEqual({ fg, bg });
     expect(p.some((x) => x.fg === "text-sm")).toBe(false);
   });
+  test("x-muted and x-subtle stay fills when they read as a tint ramp", () => {
+    const p = pairs(["accent-bg", "accent-muted", "accent-subtle", "accent-fg"]);
+    expect(p).toEqual([{ fg: "accent-fg", bg: "accent-bg" }]);
+  });
+  test("component text with a second role suffix", () => {
+    expect(pairs(["tooltip-bg", "tooltip-text", "tooltip-text-muted"])).toContainEqual({
+      fg: "tooltip-text-muted",
+      bg: "tooltip-bg",
+    });
+  });
+  test("page text skips fills and surfaces that carry their own text", () => {
+    const p = pairs(["text", "bg", "bg-secondary", "card", "card-foreground"]);
+    expect(p).toContainEqual({ fg: "text", bg: "bg" });
+    expect(p.some((x) => x.bg === "bg-secondary" || (x.fg === "text" && x.bg === "card"))).toBe(
+      false,
+    );
+  });
   test("no partner, no pair; never pairs a token with itself", () => {
     expect(pairs(["primary-foreground", "secondary"])).toEqual([]);
     expect(pairs(["text"])).toEqual([]);

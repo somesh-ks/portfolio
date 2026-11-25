@@ -751,19 +751,31 @@ export function pairs(names: string[]): { fg: string; bg: string }[] {
       } else if (m[2] !== "text") add(n, base);
     }
   }
-  // Component pairs: tooltip-fg / tooltip-muted / tooltip-text on tooltip-bg.
+  // Component pairs: tooltip-fg, tooltip-text-muted on tooltip-bg. A bare tooltip-muted counts as
+  // text only beside a tooltip-fg and with no tooltip-subtle, since x-muted / x-subtle are usually
+  // tinted fills (Primer, Radix).
+  const textOf = (n: string) => {
+    const m = n.match(/^(.+?)-(fg|foreground|text)(-(muted|subtle|secondary|placeholder))?$/);
+    if (m) return m[1]!;
+    const b = n.match(/^(.+)-muted$/)?.[1];
+    const sib = (s: string) => has.has(`${b}-${s}`);
+    return b && (sib("fg") || sib("text") || sib("foreground")) && !sib("subtle") ? b : undefined;
+  };
   for (const n of names) {
-    const m = n.match(/^(.+)-(fg|foreground|text|muted|subtle)$/);
-    if (!m || /^(color-)?(bg|background|surface|text|fg)$/.test(m[1]!)) continue;
-    for (const bg of ["bg", "background", "surface"]) add(n, `${m[1]}-${bg}`);
+    const base = textOf(n);
+    if (!base || /^(color-)?(bg|background|surface|text|fg)$/.test(base)) continue;
+    for (const bg of ["bg", "background", "surface"]) add(n, `${base}-${bg}`);
   }
-  // Page text sits on every page surface: text-muted on bg-subtle and on card, not only on bg.
+  // Page text on every page surface: text-muted on bg-subtle, not only on bg. A surface with its
+  // own foreground (card + card-foreground) carries that text instead, so it's skipped.
   const TEXT =
     /^(color-)?((text|fg|ink|foreground)(-(muted|subtle|secondary|tertiary|placeholder|faint|soft))?|(muted|secondary|subtle)-(text|foreground|fg))$/;
-  const PAGE =
-    /^(color-)?(bg|background|surface|canvas|page|card|panel)(-(subtle|muted|raised|alt|secondary))?$/;
+  const PAGE = /^(color-)?(bg|background|surface|canvas|page|card|panel)(-(subtle|raised|alt))?$/;
+  const ownText = (bg: string) =>
+    ["foreground", "fg"].some((s) => has.has(`${bg}-${s}`)) ||
+    has.has(bg.replace(/^(color-)?/, "$1on-"));
   const texts = names.filter((n) => TEXT.test(n));
-  const pages = names.filter((n) => PAGE.test(n));
+  const pages = names.filter((n) => PAGE.test(n) && !ownText(n));
   for (const fg of texts)
     for (const bg of pages) if (fg.startsWith("color-") === bg.startsWith("color-")) add(fg, bg);
   // Tailwind v4's @theme inline repeats each shadcn pair as color-x; keep one.
