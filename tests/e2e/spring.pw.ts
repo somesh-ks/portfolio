@@ -90,14 +90,23 @@ test("the audit stays reachable at #audit", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Audit a system" })).toBeVisible();
 });
 
-test("the color page opens its charts in Preview", async ({ page }) => {
+test("Preview shows its state and opens the charts screen", async ({ page }) => {
   await page.goto("/spring/app");
-  await page.getByRole("button", { name: "see in charts" }).click();
-  await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  const preview = page.getByRole("button", { name: "Preview" });
+  await expect(preview).toHaveAttribute("aria-pressed", "false");
+  await preview.click();
+  await expect(preview).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Charts", exact: true }).click();
   await expect(page.getByText("Change vs last month")).toBeVisible();
+  await expect(page.getByText("Monthly report")).toBeVisible();
+});
+
+test("the ratios control shows every step", async ({ page }) => {
+  await page.goto("/spring/app");
+  const scales = page.locator(".spring-scales").first();
+  await expect(scales).not.toHaveAttribute("data-all");
+  await page.getByRole("button", { name: "Every step", exact: true }).click();
+  await expect(scales).toHaveAttribute("data-all", "true");
 });
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
@@ -105,8 +114,16 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
-  await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
+  // The page can still be hydrating, so retry the move until it lands, then
+  // wait for the debounced save to reach this browser's storage.
+  const saved = () => page.evaluate(() => localStorage.getItem("spring-state"));
+  const before = await saved();
+  await expect(async () => {
+    await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
+    await expect(names.nth(0)).toHaveValue(second, { timeout: 1000 });
+  }).toPass();
   await expect(page).toHaveURL(/\?s=/);
+  await expect.poll(saved).not.toBe(before);
   await page.goto("/spring/app");
   await expect(names.nth(0)).toHaveValue(second);
   await page.getByRole("button", { name: "Export, import and reset" }).click();

@@ -453,6 +453,8 @@ export function SpringApp() {
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
+  // Ratio numbers on every step, or only the steps that carry meaning.
+  const [allSteps, setAllSteps] = useState(false);
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
   const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
   // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
@@ -542,7 +544,14 @@ export function SpringApp() {
         className="spring-app__side"
       >
         {tab === "color" ? (
-          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+          <ColorControls
+            {...spring}
+            mode={mode}
+            format={format}
+            setFormat={setFormat}
+            allSteps={allSteps}
+            setAllSteps={setAllSteps}
+          />
         ) : null}
         {tab === "type" ? (
           <TypeControls
@@ -605,10 +614,7 @@ export function SpringApp() {
                 mode={mode}
                 format={format}
                 setFormat={setFormat}
-                onPreview={() => {
-                  setView("preview");
-                  setCharts(true);
-                }}
+                allSteps={allSteps}
               />
             ) : null}
             {tab === "type" && browse ? (
@@ -671,7 +677,15 @@ function ColorControls({
   mode,
   format,
   setFormat,
-}: Spring & { mode: Mode; format: ColorFormat; setFormat: (f: ColorFormat) => void }) {
+  allSteps,
+  setAllSteps,
+}: Spring & {
+  mode: Mode;
+  format: ColorFormat;
+  setFormat: (f: ColorFormat) => void;
+  allSteps: boolean;
+  setAllSteps: (v: boolean) => void;
+}) {
   const primary = system.scales.primary;
   const brand = primary[mode][primary.anchor[mode] - 1]!;
   const curve = input.curve ?? DEFAULT_CURVE;
@@ -840,6 +854,15 @@ function ColorControls({
             render={(v) => v.toUpperCase()}
           />
         </Row>
+        <Row label="show ratios">
+          <Segmented
+            label="Contrast ratios on the strips"
+            options={["key", "all"] as const}
+            value={allSteps ? "all" : "key"}
+            onChange={(v) => setAllSteps(v === "all")}
+            render={(v) => (v === "key" ? "Key steps" : "Every step")}
+          />
+        </Row>
         <Row label="button text">
           <Segmented
             label="Text on primary buttons"
@@ -849,18 +872,6 @@ function ColorControls({
             render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
           />
         </Row>
-        {system.adjustments.length ? (
-          <div className="spring-changed">
-            <p className="spring-group">what the rules changed</p>
-            <ul>
-              {system.adjustments.map((t) => (
-                <li key={t} className="spring-meta">
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </Group>
     </>
   );

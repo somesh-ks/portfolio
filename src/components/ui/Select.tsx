@@ -58,7 +58,11 @@ export function Select<T extends string>({
     >
       <div className={hideLabel ? "select" : "field select"}>
         <Base.Label className={hideLabel ? "sr-only" : "field__label"}>{label}</Base.Label>
-        <Base.Trigger className="select__trigger">
+        {/* Named at render: Base UI links the label after hydration, and axe can run before that. */}
+        <Base.Trigger
+          className="select__trigger"
+          aria-label={`${label}: ${options.find((o) => o.value === value)?.label ?? value}`}
+        >
           <Base.Value className="select__value">
             {(v: T) => {
               const o = options.find((x) => x.value === v);
