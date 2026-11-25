@@ -1,23 +1,43 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
-// next/og renders outside the page's CSS, so the canvas and ink mirror
-// surface.canvas / text.primary / text.secondary / illustration.mascot from tokens.
-const PAPER = "#fcfbf8";
-const INK = "#1c1b19";
-const MUTED = "#6f6c66";
-const CLAY = "#d4774f";
+// next/og renders outside the page's CSS, so these mirror the dark theme's
+// surface.canvas, text.primary, text.secondary and border tokens.
+const CANVAS = "#0c0c0c";
+const INK = "#ededed";
+const MUTED = "#a1a1a1";
+const RULE = "#2a2a2a";
 
-export function ogCard({
-  eyebrow,
+const fonts = Promise.all([
+  readFile(join(process.cwd(), "src/assets/og/geist-600.ttf")),
+  readFile(join(process.cwd(), "src/assets/og/geist-mono-400.ttf")),
+]).then(([sans, mono]) => [
+  { name: "Geist", data: sans, weight: 600 as const, style: "normal" as const },
+  { name: "Geist Mono", data: mono, weight: 400 as const, style: "normal" as const },
+]);
+
+/**
+ * The share card: title and one line on a dark terminal canvas, then a
+ * hairline and a mono footer with the page's address and what it is.
+ * No label above the title, the same rule as the site.
+ */
+export async function ogCard({
   title,
   summary,
+  path = "/",
+  meta,
 }: {
-  eyebrow: string;
   title: string;
   summary?: string;
+  /** The page's path, shown as its address. */
+  path?: string;
+  /** A short mono note on the right of the footer, e.g. "case study". */
+  meta?: string;
 }) {
+  const address = `someshks.com${path === "/" ? "" : path}`;
   return new ImageResponse(
     <div
       style={{
@@ -26,35 +46,45 @@ export function ogCard({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        padding: 80,
-        background: PAPER,
+        background: CANVAS,
         color: INK,
+        fontFamily: "Geist Mono",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 28, color: MUTED }}>
-        <div style={{ width: 20, height: 20, background: CLAY }} />
-        {eyebrow}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "88px 80px 0" }}>
         <div
           style={{
-            fontSize: 76,
+            fontFamily: "Geist",
+            fontSize: 88,
             lineHeight: 1.05,
             letterSpacing: -2,
-            fontWeight: 600,
-            maxWidth: 980,
+            maxWidth: 1000,
           }}
         >
           {title}
         </div>
         {summary ? (
-          <div style={{ fontSize: 32, lineHeight: 1.35, color: MUTED, maxWidth: 960 }}>
+          <div style={{ fontSize: 36, lineHeight: 1.35, color: MUTED, maxWidth: 960 }}>
             {summary}
           </div>
         ) : null}
       </div>
-      <div style={{ display: "flex", fontSize: 26, color: MUTED }}>someshks.com</div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          borderTop: `1px solid ${RULE}`,
+          padding: "32px 80px 40px",
+          fontSize: 26,
+          color: MUTED,
+        }}
+      >
+        <div style={{ display: "flex" }}>
+          <span style={{ color: INK }}>$</span>&nbsp;{address}
+        </div>
+        {meta ? <div style={{ display: "flex" }}>{meta}</div> : null}
+      </div>
     </div>,
-    OG_SIZE,
+    { ...OG_SIZE, fonts: await fonts },
   );
 }

@@ -7,8 +7,7 @@ export const contentType = "image/png";
 
 export default function Image() {
   return ogCard({
-    eyebrow: "Design engineer · Stockholm",
     title: PROFILE.name,
-    summary: "Claude Ambassador, Sweden. Products from zero to one, designed and built.",
+    summary: "Design engineer in Stockholm. Claude Ambassador, Sweden.",
   });
 }
