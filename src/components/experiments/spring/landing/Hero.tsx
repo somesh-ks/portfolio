@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import { buildScale, parseColor } from "@/lib/spring/color";
 import { CopyButton } from "@/components/code/CopyButton";
 import { useLandingMotion } from "./Motion";
@@ -177,7 +177,14 @@ export function Hero() {
         <p className="spring-hero__line">See the system you have. Make the one you want.</p>
         <div className="spring-hero__cta">
           <div className="spring-hero__install" data-copy-root>
-            <code>{INSTALL}</code>
+            <code>
+              {/* Wrap between words, never inside a flag or the repo name. */}
+              {INSTALL.split(" ").map((w) => (
+                <Fragment key={w}>
+                  <span>{w}</span>{" "}
+                </Fragment>
+              ))}
+            </code>
             <CopyButton text={INSTALL} label="install command" />
           </div>
           <Link href="/spring/app" className="link spring-hero__open">

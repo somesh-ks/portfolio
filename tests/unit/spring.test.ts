@@ -675,6 +675,14 @@ describe("primary rename and formats", () => {
   });
 });
 
+const dupes = (ring: string) =>
+  audit(`:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --primary: #1d4ed8;
+  --ring: ${ring};
+}`).findings.some((f) => f.id === "near-dupes");
+
 describe("audit: edges and rings are not text", () => {
   test("a border named like a link and an illustration ink are not text pairs", () => {
     const css = `:root {
@@ -695,5 +703,11 @@ describe("audit: edges and rings are not text", () => {
   --focus-ring: #111111;
 }`;
     expect(audit(css).findings.some((f) => f.id === "ring")).toBe(false);
+  });
+
+  test("a translucent copy of a color is derived, not a near-duplicate", () => {
+    expect(dupes("#1d4ed880")).toBe(false);
+    expect(dupes("oklch(48.8% 0.241 264 / 50%)")).toBe(false);
+    expect(dupes("#1d4ed9")).toBe(true);
   });
 });

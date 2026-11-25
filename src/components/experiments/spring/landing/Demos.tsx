@@ -163,9 +163,9 @@ export function MakeFlow() {
             Save
           </span>
           <span className="spring-tiers__pass">
-            <span>white {m.white.toFixed(2)}</span>{" "}
+            <span>label {m.ours.toFixed(2)}</span> <b data-v="pass">{verdict(m.ours)}</b>
+            <span> · white {m.white.toFixed(2)}</span>{" "}
             <b data-v={verdict(m.white) === "fail" ? "fail" : "pass"}>{verdict(m.white)}</b>
-            <span> · label {m.ours.toFixed(2)}</span> <b data-v="pass">{verdict(m.ours)}</b>
           </span>
         </div>
       </div>

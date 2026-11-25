@@ -1633,3 +1633,7 @@
 .spring-states > :first-child {
   min-width: 4.5rem;
 }
+.spring-states .spring-pair__dot {
+  width: 1rem;
+  height: 1rem;
+}

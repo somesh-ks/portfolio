@@ -852,8 +852,7 @@ function Findings({ view }: { view: View }) {
               Clean up in Spring
             </button>
             <p id="spring-view-cleanup" className="spring-meta">
-              Opens the closest Spring system to these values, rebuilt clean. Your files are not
-              changed; migrate them with the path:line lists below.
+              Opens a clean system in Spring. Your files are not changed.
             </p>
           </div>
         </>
@@ -1007,7 +1006,10 @@ function Contrast({ names, m, mode }: { names: string[]; m: Measured; mode: stri
         {list.map(({ fg, bg }) => {
           const b = over(css(m.colors.get(bg)!), page);
           const f = over(css(m.colors.get(fg)!), b);
-          const r = Math.floor(wcagContrast(f, b) * 100) / 100;
+          // Same rule as the audit: round, but never up to the bar a pair misses.
+          const x = wcagContrast(f, b);
+          const n = Math.round(x * 100) / 100;
+          const r = x < 4.5 && n >= 4.5 ? Math.floor(x * 100) / 100 : n;
           return (
             <li key={`${fg}/${bg}`} className="spring-view__pair" data-fail={r < 4.5 || undefined}>
               {/* Drawn by CSS: the visitor's own pair may fail, and it's a sample, not page text. */}
