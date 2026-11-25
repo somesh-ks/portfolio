@@ -3035,7 +3035,8 @@ claude-mascot:defined > * {
   }
 }
 @media (min-width: 60rem) {
-  .prose > .before-after {
+  .prose > .before-after,
+  .prose > .skill-heading {
     margin-right: -8rem;
   }
 }
@@ -3075,6 +3076,7 @@ claude-mascot:defined > * {
 .before-after__panel figcaption::before {
   content: var(--mark);
   color: var(--side);
+  font-size: var(--step-sm);
   font-weight: 700;
 }
 
