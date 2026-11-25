@@ -321,7 +321,7 @@ claude-mascot:defined > * {
   display: inline-flex;
   gap: 1ch;
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-link);
   background: var(--surface-canvas);
   transition: border-color var(--duration-press) var(--ease-out);
 }
@@ -342,6 +342,11 @@ claude-mascot:defined > * {
   position: absolute;
   inset-inline: 0;
   top: calc(50% + 2.25em);
+  width: fit-content;
+  margin-inline: auto;
+  padding-inline: 1ch;
+  /* On the page colour, so the horizon's palms don't run through the words. */
+  background: var(--surface-canvas);
   color: var(--text-secondary);
   text-align: center;
   pointer-events: none;
