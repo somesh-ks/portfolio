@@ -715,14 +715,13 @@ function ColorControls({
   }
   const ch = CHANNELS[format];
   const vals = channelsOf(brand.hex, format);
-  const grays =
-    input.neutralHue === undefined
-      ? "primary"
-      : input.neutralHue === GRAY_SNAP.warm
-        ? "warm"
-        : input.neutralHue === GRAY_SNAP.cool
-          ? "cool"
-          : null;
+  // Temperature is one signed axis: cool (-1) to warm (+1), its size the tint.
+  // Auto tints toward the primary hue instead; turning it off keeps the nearer side.
+  const autoGrays = input.neutralHue === undefined;
+  const leanHue = input.neutralHue ?? input.primary.hue;
+  const side = Math.cos(((leanHue - GRAY_SNAP.warm) * Math.PI) / 180) >= 0 ? 1 : -1;
+  // Auto is a hue source, not a point on the axis: the dial rests at the middle.
+  const temp = autoGrays ? 0 : side * input.neutralTint;
   return (
     <>
       <ColorPicker
@@ -816,32 +815,59 @@ function ColorControls({
         />
       </Group>
       <Group label="grays">
-        <Row label="lean">
-          <Segmented
-            label="Gray hue"
-            options={["primary", "warm", "cool"] as const}
-            value={grays ?? ("" as "primary")}
-            onChange={(v) =>
-              setInput((i) => ({ ...i, neutralHue: v === "primary" ? undefined : GRAY_SNAP[v] }))
+        <div className="spring-temp">
+          <Dial
+            label="temperature"
+            className="spring-temp__dial"
+            reset={0}
+            value={temp}
+            min={-1}
+            max={1}
+            step={0.01}
+            scale={100}
+            show={
+              autoGrays
+                ? "brand"
+                : temp === 0
+                  ? "0%"
+                  : `${temp < 0 ? "cool" : "warm"} ${Math.round(Math.abs(temp) * 100)}%`
             }
-            render={(v) => v[0]!.toUpperCase() + v.slice(1)}
+            onChange={(v) =>
+              setInput((i) => ({
+                ...i,
+                neutralHue: v < 0 ? GRAY_SNAP.cool : GRAY_SNAP.warm,
+                neutralTint: Math.abs(v),
+              }))
+            }
           />
-        </Row>
-        <Dial
-          label="tint"
-          scale={100}
-          reset={DEFAULT_INPUT.neutralTint}
-          value={input.neutralTint}
-          min={0}
-          max={1}
-          step={0.01}
-          show={`${Math.round(input.neutralTint * 100)}%`}
-          onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
-        />
+          <button
+            type="button"
+            className="button spring-temp__auto"
+            aria-pressed={autoGrays}
+            aria-label="Auto: tint the grays toward the brand color"
+            onClick={() =>
+              setInput((i) =>
+                i.neutralHue === undefined
+                  ? { ...i, neutralHue: side < 0 ? GRAY_SNAP.cool : GRAY_SNAP.warm }
+                  : {
+                      ...i,
+                      neutralHue: undefined,
+                      neutralTint: i.neutralTint || DEFAULT_INPUT.neutralTint,
+                    },
+              )
+            }
+          >
+            Auto
+          </button>
+          <span className="spring-temp__ends" aria-hidden>
+            <span>cool</span>
+            <span>warm</span>
+          </span>
+        </div>
       </Group>
       {system.data.length ? (
         <Group label="data viz">
-          <DataRamps system={system} setInput={setInput} />
+          <DataRamps system={system} setInput={setInput} mode={mode} />
         </Group>
       ) : null}
       <Group label="rules">
@@ -900,15 +926,33 @@ function Group({
   );
 }
 
+/** A ramp as one gradient bar, so a picker shows what it makes. */
+const ramp = (colors: string[]) => (
+  <span
+    className="spring-ramp"
+    aria-hidden
+    style={{ background: `linear-gradient(to right, ${colors.join(", ")})` }}
+  />
+);
+
 /**
- * Which data colors the two ramps use. "amounts" runs one color light to dark;
- * "above / below" meets two colors at a neutral middle.
+ * Which data colors the two chart ramps use, named by the chart that shows
+ * them: a heatmap runs one color light to dark; negative and positive meet at a
+ * neutral middle, as in change-vs-last-month bars. Each ramp is drawn under its pickers.
  */
-function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
+function DataRamps({
+  system,
+  setInput,
+  mode,
+}: Pick<Spring, "system" | "setInput"> & { mode: Mode }) {
   const keys = system.data.map((d) => d.key);
-  const options = system.data.map((d, n) => ({ value: String(n), label: d.name }));
-  const at = (key?: string) => String(Math.max(0, keys.indexOf(key ?? "")));
   const c = system.charts;
+  const options = system.data.map((d, n) => ({
+    value: String(n),
+    label: d.name,
+    icon: <span className="spring-ramp__dot" style={{ background: c.marks[mode][n] }} />,
+  }));
+  const at = (key?: string) => String(Math.max(0, keys.indexOf(key ?? "")));
   const setRamps = (r: Partial<NonNullable<Spring["input"]["ramps"]>>) =>
     setInput((i) => ({ ...i, ramps: { ...i.ramps, ...r } }));
   const div: [number, number] = [Number(at(c.div?.[0])), Number(at(c.div?.[1] ?? keys[1]))];
@@ -917,35 +961,37 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
     a !== b ? [a, b] : a === div[0] ? [was, b] : [a, was];
   return (
     <>
-      <Row label="amounts">
+      <Row label="heatmap">
         <Select
-          label="Color for amounts, light to dark"
+          label="Heatmap color, light to dark"
           hideLabel
           value={at(c.seq)}
           options={options}
           onChange={(v) => setRamps({ seq: Number(v) })}
         />
       </Row>
+      {ramp(c.sequential[mode])}
       {keys.length > 1 ? (
         <>
-          <Row label="below">
+          <Row label="negative">
             <Select
-              label="Color for values below the middle"
+              label="Color for negative values"
               hideLabel
               value={String(div[0])}
               options={options}
               onChange={(v) => setRamps({ div: pair(Number(v), div[1], div[0]) })}
             />
           </Row>
-          <Row label="above">
+          <Row label="positive">
             <Select
-              label="Color for values above the middle"
+              label="Color for positive values"
               hideLabel
               value={String(div[1])}
               options={options}
               onChange={(v) => setRamps({ div: pair(div[0], Number(v), div[1]) })}
             />
           </Row>
+          {ramp(c.diverging[mode])}
         </>
       ) : null}
     </>
