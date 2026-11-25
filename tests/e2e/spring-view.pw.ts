@@ -65,10 +65,10 @@ test("hostile values render without page errors", async ({ page }) => {
   expect(errors.map((e) => e.message)).toEqual([]);
 });
 
-test("Rebuild in Spring lands on /spring/app?s=", async ({ page }) => {
+test("Clean up in Spring lands on /spring/app?s=", async ({ page }) => {
   await page.goto("/spring/view");
   await page.getByRole("button", { name: "Try a sample" }).click();
-  await page.getByRole("button", { name: "Rebuild in Spring" }).click();
+  await page.getByRole("button", { name: "Clean up in Spring" }).click();
   await page.waitForURL(/\/spring\/app\?s=/);
 });
 
