@@ -180,7 +180,7 @@ export function recommend(
       : icons === "phosphor"
         ? "Sites benefit from icons that match the font weight; Phosphor has six weights."
         : "A neutral, stroke-adjustable set that matches most product type.";
-  const sr = a.styling === "tailwind" ? STYLING.tailwind.why : STYLING.css.why;
+  const sr = STYLING[a.styling].why;
   return {
     components,
     icons,

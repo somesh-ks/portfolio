@@ -2,7 +2,7 @@
  * The token formats Spring writes, and how each one names a token. The
  * format picker sets the stack: shadcn/ui is Tailwind plus shadcn's names.
  */
-import type { Styling } from "./stack";
+import { recommend, type Styling } from "./stack";
 import type { SystemInput } from "./system";
 
 export type Format = "css" | "tailwind" | "shadcn" | "dtcg";
@@ -14,14 +14,24 @@ export const FORMAT_LABEL: Record<Format, string> = {
   dtcg: "DTCG JSON",
 };
 
+/** The component library the stack resolves to: the pick, else the recommendation. */
+const componentsOf = (stack: SystemInput["stack"]) =>
+  stack.components ?? recommend(stack).components;
+
 export const formatOf = (stack: SystemInput["stack"]): Format =>
-  stack.styling === "tailwind" && stack.components === "shadcn" ? "shadcn" : stack.styling;
+  stack.styling === "tailwind" && componentsOf(stack) === "shadcn" ? "shadcn" : stack.styling;
 
 export function withFormat(stack: SystemInput["stack"], f: Format): SystemInput["stack"] {
-  const styling: Styling = f === "shadcn" ? "tailwind" : f;
-  const components =
-    f === "shadcn" ? "shadcn" : stack.components === "shadcn" ? undefined : stack.components;
-  return { ...stack, styling, components };
+  if (f === "shadcn") return { ...stack, styling: "tailwind", components: "shadcn" };
+  const next = {
+    ...stack,
+    styling: f satisfies Styling,
+    components: stack.components === "shadcn" ? undefined : stack.components,
+  };
+  // Plain Tailwind must not fall back to shadcn, or the picker and the export disagree.
+  return f === "tailwind" && componentsOf(next) === "shadcn"
+    ? { ...next, components: "base-ui" }
+    : next;
 }
 
 /** A type role's token as the format writes it: `--text-h1`, `text-h1`, `typography.h1`. */

@@ -187,8 +187,14 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
                   className="sp-label spring-rung__copy"
                   onClick={() => copy(t.role, typeSnippet(t.role, format))}
                 >
-                  {copied === t.role ? "copied" : typeName(t.role, format)}
-                  <span className="sr-only"> copy</span>
+                  {copied === t.role ? (
+                    "copied"
+                  ) : (
+                    <>
+                      {typeName(t.role, format)}
+                      <span className="sr-only"> copy</span>
+                    </>
+                  )}
                 </button>
                 <span>
                   {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx} · {t.weight}

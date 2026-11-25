@@ -19,3 +19,11 @@ test("shadcn/ui is Tailwind plus shadcn components, and leaving it drops shadcn"
   expect(css.components).toBeUndefined();
   expect(formatOf(css)).toBe("css");
 });
+
+test("plain Tailwind never exports shadcn, so the picker and the export agree", () => {
+  const tw = withFormat(withFormat(DEFAULT_INPUT.stack, "shadcn"), "tailwind");
+  expect(tw.components).not.toBe("shadcn");
+  expect(formatOf(tw)).toBe("tailwind");
+  expect(formatOf(withFormat(DEFAULT_INPUT.stack, "tailwind"))).toBe("tailwind");
+  expect(formatOf(DEFAULT_INPUT.stack)).toBe("shadcn");
+});
