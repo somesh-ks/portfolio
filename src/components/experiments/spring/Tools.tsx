@@ -35,7 +35,7 @@ import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
-import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
+import { setInput as loadInput, resetInput, shareUrl, useCopy, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
@@ -116,6 +116,15 @@ function ExportMenu({ system }: { system: System }) {
               ))}
               <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
                 <span className="select__text">Copy share link</span>
+              </Menu.Item>
+              <Menu.Item
+                className="select__item"
+                onClick={() => {
+                  if (confirm("Start over? This clears the system saved in this browser."))
+                    resetInput();
+                }}
+              >
+                <span className="select__text">Start over</span>
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>

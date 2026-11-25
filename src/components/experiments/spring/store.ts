@@ -2,8 +2,10 @@
 
 /**
  * One SystemInput shared by every Spring tool on the page, mirrored into
- * ?s= so any state is a link. Tools are separate MDX blocks, so the state
- * lives in a tiny module store rather than a React context.
+ * ?s= so any state is a link, and into this browser's localStorage so a
+ * return visit picks up where it left off. Nothing leaves the browser.
+ * Tools are separate MDX blocks, so the state lives in a tiny module store
+ * rather than a React context.
  */
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Mode } from "@/lib/spring/color";
@@ -23,6 +25,9 @@ const STARTER: SystemInput = {
   },
 };
 
+/** Same encoding as ?s=, so decodeInput's checks cover corrupt or old values. */
+const KEY = "spring-state";
+
 let input = STARTER;
 let line = "";
 let loaded = false;
@@ -32,10 +37,14 @@ const listeners = new Set<() => void>();
 function load() {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
-  input = decodeInput(new URLSearchParams(location.search).get("s")) ?? STARTER;
+  let saved: string | null = null;
   try {
+    saved = localStorage.getItem(KEY);
     line = localStorage.getItem("spring-line") ?? "";
   } catch {}
+  // A share link wins; a broken one falls back to this browser's last system.
+  input =
+    decodeInput(new URLSearchParams(location.search).get("s")) ?? decodeInput(saved) ?? STARTER;
 }
 
 function emit() {
@@ -54,10 +63,27 @@ export function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput
   emit();
   clearTimeout(timer);
   timer = setTimeout(() => {
+    const s = encodeInput(input);
     const url = new URL(location.href);
-    url.searchParams.set("s", encodeInput(input));
+    url.searchParams.set("s", s);
     history.replaceState(history.state, "", url);
+    try {
+      localStorage.setItem(KEY, s);
+    } catch {}
   }, 250);
+}
+
+/** Back to the starter system: clears the saved copy and the link. */
+export function resetInput() {
+  clearTimeout(timer);
+  input = STARTER;
+  emit();
+  try {
+    localStorage.removeItem(KEY);
+  } catch {}
+  const url = new URL(location.href);
+  url.searchParams.delete("s");
+  history.replaceState(history.state, "", url);
 }
 
 function setLine(v: string) {

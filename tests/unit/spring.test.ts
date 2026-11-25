@@ -173,6 +173,63 @@ describe("share link", () => {
     expect(decodeInput("nope")).toBeNull();
     expect(decodeInput(null)).toBeNull();
   });
+  test("rejects other versions, so old saved state falls back", () => {
+    const a = JSON.parse(atob(encodeInput(DEFAULT_INPUT).replace(/-/g, "+").replace(/_/g, "/")));
+    expect(decodeInput(edited(a, 0, 2))).toBeNull();
+  });
+});
+
+/** A share link someone edited by hand: index k of the compact array set to v. */
+function edited(base: unknown[] | SystemInput, k: number, v: unknown): string {
+  const a = Array.isArray(base)
+    ? [...base]
+    : JSON.parse(atob(encodeInput(base).replace(/-/g, "+").replace(/_/g, "/")));
+  while (a.length <= k) a.push(null);
+  a[k] = v;
+  return btoa(JSON.stringify(a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+const strip = (h: string) => ["c", h];
+
+describe("hand-edited links", () => {
+  test("one bad data strip drops the list instead of shifting the ramps", () => {
+    const base = edited(DEFAULT_INPUT, 14, [strip("#ff0000"), "junk", strip("#0000ff")]);
+    const a = JSON.parse(atob(base.replace(/-/g, "+").replace(/_/g, "/")));
+    const back = decodeInput(edited(a, 15, [2, [0, 2]]))!;
+    expect(back.data).toBeUndefined();
+    expect(back.ramps).toBeUndefined();
+  });
+  test("ramps must point at a strip that exists", () => {
+    const a = JSON.parse(
+      atob(
+        edited(DEFAULT_INPUT, 14, [strip("#ff0000"), strip("#00ff00")])
+          .replace(/-/g, "+")
+          .replace(/_/g, "/"),
+      ),
+    );
+    expect(decodeInput(edited(a, 15, [1, [0, 1]]))!.ramps).toEqual({ seq: 1, div: [0, 1] });
+    expect(decodeInput(edited(a, 15, [5, [0, 9]]))!.ramps).toEqual({
+      seq: undefined,
+      div: undefined,
+    });
+    expect(decodeInput(edited(a, 15, [0.5, null]))!.ramps!.seq).toBeUndefined();
+  });
+  test("a ramp past the last strip falls back to the first", () => {
+    const sys = buildSystem(decodeInput(edited(DEFAULT_INPUT, 15, [9, [8, 9]]))!);
+    expect(sys.charts.seq).toBe(sys.charts.keys[0]);
+    expect(sys.charts.div).toEqual(sys.charts.keys.slice(0, 2) as [string, string]);
+  });
+  test("ramps on the suggested strips survive without a[14]", () => {
+    expect(decodeInput(edited(DEFAULT_INPUT, 15, [3, null]))!.ramps!.seq).toBe(3);
+  });
+  test("unknown component or icon library falls back and exports still build", () => {
+    const st = ["app", "own", "tailwind", "nope", "__proto__"];
+    const back = decodeInput(edited(DEFAULT_INPUT, 8, st))!;
+    expect(back.stack.components).toBeUndefined();
+    expect(back.stack.icons).toBeUndefined();
+    expect(() => toDesignMd(buildSystem(back))).not.toThrow();
+    expect(() => exportAll(buildSystem(back))).not.toThrow();
+  });
 });
 
 describe("audit", () => {

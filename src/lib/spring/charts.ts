@@ -213,9 +213,10 @@ export function buildCharts(
   ramps: Ramps = {},
 ): Omit<Charts, "other"> {
   const at = (i: number | undefined) => (i !== undefined && keys[i] ? keys[i] : undefined);
-  const seq = at(ramps.seq ?? 0);
-  const a = at(ramps.div?.[0] ?? 0);
-  const b = at(ramps.div?.[1] ?? 1);
+  // A ramp whose strip is missing falls back to the first strips.
+  const seq = at(ramps.seq) ?? at(0);
+  const a = at(ramps.div?.[0]) ?? at(0);
+  const b = at(ramps.div?.[1]) ?? at(1);
   const div: [string, string] | undefined = a && b && a !== b ? [a, b] : undefined;
   const out = {
     keys,
