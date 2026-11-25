@@ -605,9 +605,17 @@ function DataSection({
       (ds) => ds.filter((_, j) => j !== k),
       (i) => (i === k ? undefined : i > k ? i - 1 : i),
     );
+  const checks = c.checks[mode];
+  const passed = checks.filter((x) => x.status === "pass").length;
+  // Folded on first load: the UI strips are the main job, series colors come second.
   return (
-    <>
-      <h2 className="spring-section">data viz</h2>
+    <details className="spring-reveal">
+      <summary>
+        <h2 className="spring-section">data viz</h2>
+        <span className="spring-meta">
+          {data.length} colors{checks.length ? ` · ${passed}/${checks.length} checks pass` : ""}
+        </span>
+      </summary>
       <p className="spring-meta">
         Series colors are strips on the same curve. A chart draws each one&apos;s mark (the outlined
         step): its own color, moved darker until it reaches 3:1 on the page.
@@ -700,12 +708,12 @@ function DataSection({
             </button>{" "}
             : bars, a heatmap from the amounts ramp, and above / below from the diverging one.
           </p>
-          <Checks checks={c.checks[mode]} />
+          <Checks checks={checks} />
         </>
       ) : (
         <p className="spring-meta">No data colors. Suggest some, or add your own.</p>
       )}
-    </>
+    </details>
   );
 }
 

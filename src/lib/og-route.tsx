@@ -1,11 +1,11 @@
-import { findEntry, entriesOf } from "./content";
+import { findEntry, pagesOf } from "./content";
 import { ogCard } from "./og";
 import type { Kind } from "./schema";
 
 export function entryOgRoute(kind: Kind) {
   return {
     generateStaticParams: () =>
-      entriesOf(kind)
+      pagesOf(kind)
         .filter((entry) => !entry.meta.protected)
         .map((entry) => ({ slug: entry.meta.slug })),
     async Image({ params }: { params: Promise<{ slug: string }> }) {

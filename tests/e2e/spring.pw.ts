@@ -10,17 +10,16 @@ test("Spring runs as its own app, without the site frame", async ({ page }) => {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring$/);
 });
 
-test("the project page opens Spring in a new tab, and old share links follow", async ({
-  page,
-  request,
-}) => {
-  await page.goto("/projects/spring");
-  const open = page.getByRole("link", { name: /Open Spring/ });
-  await expect(open).toHaveAttribute("href", "/spring");
-  await expect(open).toHaveAttribute("target", "_blank");
-  const old = await request.get("/projects/spring?s=abc", { maxRedirects: 0 });
-  expect(old.status()).toBe(308);
-  expect(old.headers().location).toMatch(/\/spring\?s=abc$/);
+test("the old project page and share links 308 to Spring", async ({ request }) => {
+  for (const [from, to] of [
+    ["/projects/spring", /\/spring$/],
+    ["/projects/spring?s=abc", /\/spring\?s=abc$/],
+    ["/projects/spring.md", /\/spring\.md$/],
+  ] as const) {
+    const old = await request.get(from, { maxRedirects: 0 });
+    expect(old.status()).toBe(308);
+    expect(old.headers().location).toMatch(to);
+  }
 });
 
 test("Export downloads everything, or one area from its menu", async ({ page }) => {
@@ -36,6 +35,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
 
 test("data colors reorder with their move buttons", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
@@ -52,6 +52,7 @@ test("the audit stays reachable at #audit", async ({ page }) => {
 
 test("the color page opens its charts in Preview", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   await page.getByRole("button", { name: "See them in charts" }).click();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
     "aria-pressed",
@@ -62,6 +63,7 @@ test("the color page opens its charts in Preview", async ({ page }) => {
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
@@ -172,6 +174,7 @@ test("Start over drops seed params from the URL", async ({ page }) => {
 
 test("a curve handle follows the pointer", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "scale" }).click();
   const plot = page.locator(".spring-curve__plot");
   await plot.scrollIntoViewIfNeeded();
   const field = page.getByLabel("cubic-bezier");
@@ -206,6 +209,30 @@ test("a Dial's value field takes typed digits after Enter without appending", as
   await expect(page.getByLabel("hue", { exact: true })).toHaveValue("5");
 });
 
+test("a Dial scrubs from its value on drag and sets the point on a plain click", async ({
+  page,
+}) => {
+  await page.goto("/spring?primary=%232563eb");
+  const slider = page.getByLabel("hue", { exact: true });
+  const row = page.locator(".dial").filter({ has: slider });
+  await row.scrollIntoViewIfNeeded();
+  const box = (await row.boundingBox())!;
+  const y = box.y + box.height / 2;
+  const start = Number(await slider.inputValue());
+  // Pressing near the left edge doesn't jump; dragging moves from the current value.
+  await page.mouse.move(box.x + 10, y);
+  await page.mouse.down();
+  await expect(slider).toHaveValue(String(start));
+  await page.mouse.move(box.x + 10 + box.width / 4, y, { steps: 5 });
+  await page.mouse.up();
+  const scrubbed = Number(await slider.inputValue());
+  expect(scrubbed).toBeGreaterThan(start);
+  await expect(slider).toBeFocused();
+  // A click without a drag sets the value at that point.
+  await page.mouse.click(box.x + 2, y);
+  expect(Number(await slider.inputValue())).toBeLessThan(scrubbed);
+});
+
 test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   const errors: Error[] = [];
   page.on("pageerror", (e) => errors.push(e));
@@ -233,8 +260,5 @@ test("the share link comes first and the Export button confirms it", async ({ pa
   await page.getByRole("menuitem", { name: "Copy share link" }).click();
   await expect(page.getByText("Link copied")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
-  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute(
-    "href",
-    "/projects/spring",
-  );
+  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute("href", "/spring");
 });
