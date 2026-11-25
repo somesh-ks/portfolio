@@ -69,9 +69,9 @@ function Demo({
 const SEEDS = [
   { name: "Tailwind", hex: "#3b82f6", note: "blue-500" },
   { name: "Radix", hex: "#6e56cf", note: "violet 9" },
-  { name: "Carbon", hex: "#0f62fe", note: "blue 60" },
-  { name: "Material", hex: "#6750a4", note: "M3 primary" },
-  { name: "Primer", hex: "#0969da", note: "accent" },
+  { name: "Polaris", hex: "#008060", note: "primary" },
+  { name: "Bootstrap", hex: "#dc3545", note: "danger" },
+  { name: "Bulma", hex: "#00d1b2", note: "primary" },
   { name: "shadcn", hex: "#171717", note: "primary" },
 ] as const;
 
@@ -101,7 +101,7 @@ export function PaletteDemo() {
   return (
     <Demo
       title="Palette"
-      caption="Any brand color becomes 12 steps for light and dark, on one curve."
+      caption="One brand color, 12 steps, light and dark."
       auto={auto}
       frameRef={ref}
     >
@@ -135,6 +135,7 @@ export function PaletteDemo() {
                     key={step}
                     className="spring-palette__step"
                     style={{ background: sw.hex, transitionDelay: `${n * 28}ms` }}
+                    data-anchor={scale.anchor[mode] === step || undefined}
                     title={`${step} ${sw.hex}`}
                   >
                     <span className="sr-only">
@@ -170,7 +171,9 @@ const FONTS = ["Inter", "Geist", "IBM Plex Sans", "Fraunces"] as const;
 const ROLES = ["h1", "h2", "h3", "body", "caption"] as const;
 const LOW = 1.067;
 const HIGH = 1.618;
-const ratioName = (r: number) => RATIOS.find(([v]) => Math.abs(v - r) < 0.006)?.[1] ?? "";
+/** The named ratio nearest to r. */
+const ratioName = (r: number) =>
+  RATIOS.reduce((a, b) => (Math.abs(b[0] - r) < Math.abs(a[0] - r) ? b : a))[1];
 
 export function TypeDemo() {
   const ref = useRef<HTMLElement>(null);
@@ -214,7 +217,7 @@ export function TypeDemo() {
   return (
     <Demo
       title="Type scale"
-      caption="Drag the ratio. Line height and tracking follow each size."
+      caption="Drag the ratio. Line height and tracking follow."
       auto={auto}
       frameRef={ref}
     >
@@ -235,7 +238,7 @@ export function TypeDemo() {
       </fieldset>
       <label className="spring-scrub">
         <span className="spring-demo__readout tabular">
-          ratio {ratio.toFixed(3)} {name}
+          ratio {ratio.toFixed(3)} ≈ {name}
         </span>
         <input
           type="range"
@@ -243,7 +246,7 @@ export function TypeDemo() {
           max={HIGH}
           step={0.001}
           value={ratio}
-          aria-valuetext={`${ratio.toFixed(3)}${name ? `, ${name}` : ""}`}
+          aria-valuetext={`${ratio.toFixed(3)}, near ${name}`}
           onPointerDown={() => auto.setPaused(true)}
           onKeyDown={() => auto.setPaused(true)}
           onChange={(e) => {
@@ -272,7 +275,7 @@ export function TypeDemo() {
                 fontWeight: t.weight,
               }}
             >
-              {t.role === "body" || t.role === "caption" ? "Things grow back in spring." : "Spring"}
+              Things grow back in spring.
             </span>
           </li>
         ))}
@@ -286,7 +289,7 @@ export function TypeDemo() {
 export function MotionDemo() {
   const ref = useRef<HTMLElement>(null);
   const auto = useAutoplay(ref);
-  const [energy, setEnergy] = useState(0.6);
+  const [energy, setEnergy] = useState(0.9);
   const [right, setRight] = useState(false);
   const motion = useMemo(() => buildMotion(energy), [energy]);
   const { playing } = auto;
@@ -307,14 +310,14 @@ export function MotionDemo() {
   return (
     <Demo
       title="Motion"
-      caption="A real spring, sampled into CSS linear(). No animation library."
+      caption="A real spring in CSS linear(). No library."
       auto={auto}
       frameRef={ref}
     >
       <label className="spring-scrub">
         <span className="spring-demo__readout tabular">
-          {energy < 0.34 ? "calm" : energy < 0.67 ? "steady" : "lively"} · stiffness {stiffness} ·
-          damping {damping} · {ms}ms
+          {energy < 0.34 ? "calm" : energy < 0.67 ? "steady" : "lively"} · {stiffness}/{damping} ·{" "}
+          {ms}ms
         </span>
         <input
           type="range"

@@ -28,7 +28,7 @@ export default function SpringLanding() {
       <header className="spring-landing__bar">
         <BackLink />
         <span className="spring-landing__actions">
-          <Link href="/spring/app" className="button button--primary pressable">
+          <Link href="/spring/app" className="button pressable">
             Open app
           </Link>
           <ThemeToggle />
