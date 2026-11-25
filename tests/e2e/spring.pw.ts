@@ -14,12 +14,19 @@ test("the landing page leads with the skill and opens the app", async ({ page })
   await page.goto("/spring");
   await expect(page).toHaveTitle("Spring");
   await expect(page.getByText("npx skills add somesh-ks/skills --skill spring")).toBeVisible();
-  for (const name of ["spring type --ratio", "spring motion --feel"])
+  for (const name of ["Read what you have", "Make the one you want"])
     await expect(page.getByRole("heading", { name })).toBeVisible();
-  // A color typed in the terminal builds a real scale.
-  await page.getByLabel("spring build --primary").fill("#e11d48");
-  await page.keyboard.press("Enter");
-  await expect(page.getByLabel("#e11d48, 12 steps")).toBeVisible();
+  // The Make tile runs on the real engine: Spring's label passes on the brand.
+  await expect(page.getByText("Spring's label")).toBeVisible();
+  // Pause stops everything that moves (WCAG 2.2.2).
+  const pause = page.getByRole("button", { name: "Pause" });
+  if (await pause.isVisible()) {
+    await pause.click();
+    await expect(page.getByRole("button", { name: "Play" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  }
   await page.getByRole("link", { name: "Open app" }).first().click();
   await page.waitForURL(/\/spring\/app$/);
 });

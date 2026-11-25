@@ -1,266 +1,195 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { contrast, hueName, parseColor, type BuiltScale } from "@/lib/spring/color";
-import { buildMotion } from "@/lib/spring/scales";
+import { Geist_Pixel } from "next/font/google";
+import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
+import { buildScale, parseColor } from "@/lib/spring/color";
 import { CopyButton } from "@/components/code/CopyButton";
-import { useSound } from "@/components/providers/SoundProvider";
-import { SEEDS, scaleFor, useAutoplay } from "./Demos";
+import { useLandingMotion } from "./Motion";
 
 const INSTALL = "npx skills add somesh-ks/skills --skill spring";
-/** Opens on a gray (shadcn), then color arrives. */
-const ORDER = [5, 0, 1, 2, 3, 4];
-const SWAY = buildMotion(0.8).springConfig;
 
-interface Blade {
-  x: number;
-  h: number;
-  lean: number;
-  v: number;
-  /** Which step the tip reaches, so tips vary. */
-  tip: number;
-  /** 0..1 across the width: the regrow wave passes left to right. */
-  at: number;
+/** Same seed rules as the app: a near-gray stays a gray, a color keeps its own lightness. */
+export function scaleFor(hex: string) {
+  const c = parseColor(hex)!;
+  const gray = c.c < 0.03;
+  return buildScale({
+    hue: c.h || 0,
+    chroma: gray ? 0.005 : Math.min(0.3, Math.max(0.06, c.c)),
+    solidL: Math.min(0.9, Math.max(0.35, c.l)),
+  });
 }
 
+type Lab = [number, number, number];
+const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const gam = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+function toLab(hex: string): Lab {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [lin((n >> 16) / 255), lin(((n >> 8) & 255) / 255), lin((n & 255) / 255)];
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+}
+function toRgb([L, A, B]: Lab) {
+  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+  const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+  const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ].map((v) => Math.round(Math.max(0, Math.min(1, gam(v))) * 255)) as Lab;
+}
+
+// prettier-ignore
+const BAYER = [0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21];
+const BLEND_MS = 2200;
+
 /**
- * The meadow: every blade is one strip of the real 12-step scale (dark root,
- * light tip), swaying on the engine's spring. A new scale regrows as a wave.
+ * A calm horizon in the brand's 12 dark steps, ordered-dithered at cell size and
+ * scaled up pixelated. Draws at 12fps while on screen; a new brand blends in OKLab.
  */
-function Meadow({ scale, live, reduced }: { scale: BuiltScale; live: boolean; reduced: boolean }) {
+function Horizon({ steps, still }: { steps: string[]; still: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const state = useRef<{ scale: BuiltScale; from: BuiltScale; wave: number; kick?: () => void }>({
-    scale,
-    from: scale,
-    wave: 1,
-  });
+  const state = useRef({ from: steps.map(toLab), to: steps.map(toLab), t0: -1e4, kick: () => {} });
   useEffect(() => {
     const s = state.current;
-    if (s.scale === scale) return;
-    s.from = s.scale;
-    s.scale = scale;
-    s.wave = reduced ? 1 : 0;
-    // A paused or reduced-motion meadow still repaints once in the new scale.
-    s.kick?.();
-  }, [scale, reduced]);
+    const now = performance.now();
+    const e = Math.min(1, (now - s.t0) / BLEND_MS);
+    s.from = s.to.map(
+      (b, i) => s.from[i]!.map((a, j) => a + (b[j]! - a) * (1 - (1 - e) ** 3)) as Lab,
+    );
+    s.to = steps.map(toLab);
+    s.t0 = still ? -1e4 : now;
+    if (still) s.from = s.to;
+    s.kick();
+  }, [steps, still]);
 
   useEffect(() => {
+    const st = state.current;
     const cv = ref.current;
     const ctx = cv?.getContext("2d");
     if (!cv || !ctx) return;
-    let W = 0;
-    let H = 0;
-    let blades: Blade[] = [];
-    let seed = 7;
-    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    let w = 0;
+    let h = 0;
+    let img: ImageData | null = null;
+    let seen = true;
+    let nx = 0;
+    let time = 0;
+    let last = 0;
+    let acc = 0;
+    let raf = 0;
     const size = () => {
       const r = cv.getBoundingClientRect();
-      const d = Math.min(2, devicePixelRatio || 1);
-      W = r.width;
-      H = r.height;
-      cv.width = Math.round(W * d);
-      cv.height = Math.round(H * d);
-      ctx.setTransform(d, 0, 0, d, 0, 0);
-      seed = 7;
-      // About 160 blades on a laptop, 70 on a phone: enough to read as grass, few enough for 60fps.
-      const px = W < 600 ? 5 : 7;
-      blades = Array.from({ length: Math.ceil(W / px) }, (_, i) => ({
-        x: i * px,
-        // Rolling tufts, not a bar code: a slow swell times a random height, short blades most common.
-        h: H * (0.34 + 0.66 * rnd() ** 1.8) * (0.8 + 0.2 * Math.sin(i / 17) * Math.sin(i / 41 + 1)),
-        lean: 0,
-        v: 0,
-        tip: Math.floor(rnd() * 3),
-        at: i / Math.ceil(W / px),
-      }));
+      if (!r.width) return;
+      const px = r.width < 600 ? 4 : 6;
+      w = Math.max(1, Math.round(r.width / px));
+      h = Math.max(1, Math.round(r.height / px));
+      cv.width = w;
+      cv.height = h;
+      img = ctx.createImageData(w, h);
+      paint(performance.now());
     };
-    size();
+    const paint = (now: number) => {
+      if (!img) return;
+      const s = state.current;
+      const e = Math.min(1, (now - s.t0) / BLEND_MS);
+      const k = 1 - (1 - e) ** 3;
+      const pal = s.to.map((b, i) => toRgb(s.from[i]!.map((a, j) => a + (b[j]! - a) * k) as Lab));
+      const d = img.data;
+      const t = time / 1000;
+      // The light sits centred under the box and drifts a little; the pointer nudges it.
+      const sx = 0.5 + 0.06 * Math.sin(t * 0.2) + 0.06 * nx;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+          const u = x / w;
+          const v = y / h;
+          const rip = 0.04 * Math.sin(x / 6 + t * 0.6) * Math.sin(y / 5);
+          const dx = (u - sx) * (w / h) * 0.5;
+          const dy = v - 1.15;
+          const f =
+            Math.max(
+              0,
+              Math.min(0.999, Math.min(0.92, 1 - Math.sqrt(dx * dx + dy * dy) * 0.9 + rip)),
+            ) * 11;
+          const lo = Math.floor(f);
+          const c = pal[Math.min(11, lo + (f - lo > BAYER[(y & 7) * 8 + (x & 7)]! / 64 ? 1 : 0))]!;
+          const i = (y * w + x) * 4;
+          d[i] = c[0];
+          d[i + 1] = c[1];
+          d[i + 2] = c[2];
+          d[i + 3] = 255;
+        }
+      ctx.putImageData(img, 0, 0);
+    };
+    const loop = (now: number) => {
+      const dt = Math.min(100, now - last || 16);
+      last = now;
+      const blending = now - state.current.t0 < BLEND_MS + 100;
+      if (!still) time += dt;
+      acc += dt;
+      if (seen && (acc >= 83 || blending)) {
+        acc = 0;
+        paint(now);
+      }
+      raf = still && !blending ? 0 : requestAnimationFrame(loop);
+    };
+    st.kick = () => {
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
     const ro = new ResizeObserver(size);
     ro.observe(cv);
-    const pointer = { x: -1e4, vx: 0 };
+    const io = new IntersectionObserver(([e]) => (seen = Boolean(e?.isIntersecting)));
+    io.observe(cv);
     const move = (e: PointerEvent) => {
-      const x = e.clientX - cv.getBoundingClientRect().left;
-      pointer.vx = x - pointer.x;
-      pointer.x = x;
+      const r = cv.getBoundingClientRect();
+      nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
     };
-    const leave = () => (pointer.x = -1e4);
-    cv.addEventListener("pointermove", move);
-    cv.addEventListener("pointerleave", leave);
-
-    let raf = 0;
-    let last = 0;
-    const draw = (t: number) => {
-      const dt = Math.min(0.033, (t - last) / 1000 || 0.016);
-      last = t;
-      const s = state.current;
-      s.wave = Math.min(1.4, s.wave + dt * 0.9);
-      ctx.clearRect(0, 0, W, H);
-      for (const b of blades) {
-        const near = Math.max(0, 1 - Math.abs(b.x - pointer.x) / 80);
-        const wind = reduced
-          ? 0
-          : Math.sin(t / 1100 + b.x / 160) * 0.06 +
-            near * Math.max(-1, Math.min(1, pointer.vx / 14)) * 0.8;
-        // Semi-implicit Euler on the engine's spring.
-        b.v += (-SWAY.stiffness * (b.lean - wind) - SWAY.damping * b.v) * dt * 0.25;
-        b.lean += b.v * dt * 4;
-        // Behind the wave a blade has regrown in the new scale; ahead of it, the old one.
-        const grown = s.wave - b.at * 0.6;
-        const shown = grown > 0 ? s.scale : s.from;
-        const g = grown > 0 ? Math.min(1, grown * 2.5) : 1;
-        const h = b.h * (1 - (1 - g) ** 3);
-        const steps = shown.dark;
-        const seg = h / 12;
-        for (let k = 0; k < 12; k++) {
-          // Roots sit in the dark steps and fade into the page; tips stop at step 10 so they stay visible against the wordmark.
-          const step = Math.min(9, 1 + k - (k > 8 ? b.tip : 0));
-          const y = H - (k + 1) * seg;
-          const lean = b.lean * (k / 12) ** 2 * h;
-          ctx.fillStyle = steps[step]!.hex;
-          ctx.fillRect(Math.round(b.x + lean), Math.round(y), W < 600 ? 4 : 5, Math.ceil(seg) + 1);
-        }
-      }
-      raf = live || s.wave < 1.4 ? requestAnimationFrame(draw) : 0;
-    };
-    raf = requestAnimationFrame(draw);
-    state.current.kick = () => {
-      if (!raf) raf = requestAnimationFrame(draw);
-    };
+    const box = cv.parentElement!;
+    box.addEventListener("pointermove", move);
+    raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      cv.removeEventListener("pointermove", move);
-      cv.removeEventListener("pointerleave", leave);
+      io.disconnect();
+      box.removeEventListener("pointermove", move);
+      st.kick = () => {};
     };
-  }, [live, reduced]);
+  }, [still]);
 
-  return <canvas ref={ref} className="spring-hero__meadow" aria-hidden="true" />;
+  return <canvas ref={ref} className="spring-hero__horizon" aria-hidden="true" />;
 }
 
-interface Build {
-  id: number;
-  hex: string;
-  name?: string;
-  scale: BuiltScale;
-}
+const pixel = Geist_Pixel({ weight: "400", subsets: ["latin"], display: "swap" });
 
-function stats(b: Build) {
-  const c = parseColor(b.hex)!;
-  const solid = b.scale.light[8]!.hex;
-  const white = contrast(solid, "#ffffff");
-  const ink = contrast(solid, b.scale.light[11]!.hex);
-  return `${hueName(c)} · lands on step ${b.scale.anchor.light} · button text ${white >= ink ? "white" : "ink"} ${Math.max(white, ink).toFixed(1)}:1`;
-}
-
-/** The hero: the meadow grows out of a terminal; a color typed there regrows it. */
+/** One centred box: the name, the pitch, the two ways in, and the horizon as its base. */
 export function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const auto = useAutoplay(ref);
-  const { play } = useSound();
-  const first = SEEDS[ORDER[0]!]!;
-  const [builds, setBuilds] = useState<Build[]>([
-    { id: 0, hex: first.hex, name: first.name, scale: scaleFor(first.hex) },
-  ]);
-  const [value, setValue] = useState("");
-  const [error, setError] = useState("");
-  const n = useRef(1);
-  const current = builds[builds.length - 1]!;
-
-  const build = (hex: string, name?: string) => {
-    if (!parseColor(hex)) {
-      setError(`not a color: ${hex}`);
-      return false;
-    }
-    setError("");
-    setBuilds((b) => [...b.slice(-2), { id: n.current++, hex, name, scale: scaleFor(hex) }]);
-    return true;
-  };
-
-  const { playing } = auto;
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => {
-      const seed = SEEDS[ORDER[n.current % ORDER.length]!]!;
-      build(seed.hex, seed.name);
-    }, 3200);
-    return () => clearInterval(t);
-    // build only appends; restart the timer on play state alone.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing]);
-
+  const { seed, paused } = useLandingMotion();
+  const steps = useMemo(() => scaleFor(seed).dark.map((s) => s.hex), [seed]);
   return (
-    <section ref={ref} className="spring-hero" data-theme="dark" aria-label="Spring">
-      <div className="spring-hero__top">
-        <h1 className="spring-hero__name">Spring</h1>
+    <section className="spring-hero" data-theme="dark" aria-labelledby="spring-hero-name">
+      <div className="spring-hero__copy">
+        <h1 id="spring-hero-name" className={`spring-hero__name ${pixel.className}`}>
+          Spring
+        </h1>
+        <p className="spring-hero__line">See the system you have. Make the one you want.</p>
+        <div className="spring-hero__cta">
+          <div className="spring-hero__install" data-copy-root>
+            <code>{INSTALL}</code>
+            <CopyButton text={INSTALL} label="install command" />
+          </div>
+          <Link href="/spring/app" className="button pressable">
+            Open app
+          </Link>
+        </div>
       </div>
-      <Meadow scale={current.scale} live={auto.seen && !auto.reduced} reduced={auto.reduced} />
-      <div className="spring-term">
-        <div className="spring-term__bar">
-          <span>~/acme</span>
-          {auto.reduced ? null : (
-            <button
-              type="button"
-              className="spring-term__pause pressable"
-              aria-pressed={auto.paused}
-              onClick={() => auto.setPaused((p) => !p)}
-            >
-              {auto.paused ? "▶ Play" : "❚❚ Pause"}
-            </button>
-          )}
-        </div>
-        <p className="spring-term__note">
-          # A design system skill for your agent. It reads yours, or grows a new one.
-        </p>
-        <div className="spring-term__line" data-copy-root>
-          <code className="spring-term__cmd">
-            {INSTALL.replace(" --skill spring", " ")}
-            <span className="nowrap">--skill spring</span>
-          </code>
-          <CopyButton text={INSTALL} />
-        </div>
-        <div className="spring-term__log" aria-live="polite">
-          {builds.map((b) => (
-            <div key={b.id} className="spring-term__build">
-              <code className="spring-term__cmd">
-                spring build --primary {b.hex}
-                {b.name ? ` --name ${b.name.toLowerCase()}` : ""}
-              </code>
-              <figure className="spring-term__scale" aria-label={`${b.hex}, 12 steps`}>
-                {b.scale.light.map((s) => (
-                  <span key={s.step} style={{ background: s.hex }} />
-                ))}
-              </figure>
-              <p className="spring-term__out">{stats(b)}</p>
-            </div>
-          ))}
-          {error ? <p className="spring-term__out">{error}</p> : null}
-        </div>
-        <form
-          className="spring-term__line spring-term__input"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const v = value.trim();
-            if (!v) return;
-            auto.setPaused(true);
-            if (build(v)) {
-              setValue("");
-              play("pop");
-            }
-          }}
-        >
-          <label htmlFor="spring-primary" className="spring-term__cmd">
-            spring build --primary
-          </label>
-          <input
-            id="spring-primary"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="#e11d48"
-            autoComplete="off"
-            spellCheck={false}
-            enterKeyHint="go"
-          />
-        </form>
+      <div className="spring-hero__sky">
+        <Horizon steps={steps} still={paused} />
       </div>
     </section>
   );

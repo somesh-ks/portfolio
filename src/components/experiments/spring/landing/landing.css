@@ -29,452 +29,382 @@
   padding: var(--space-12) var(--space-4) var(--space-16);
   outline: none;
 }
-
-/* ---------- Hero: the meadow grows out of a terminal (always dark, data-theme="dark") ---------- */
 .spring-landing {
   overflow-x: clip;
 }
-.spring-landing__main {
-  padding-top: 0;
-}
-.spring-hero {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto auto auto;
-  margin-inline: calc(50% - 50vw);
-  background: var(--surface-canvas);
-  color: var(--text-primary);
-}
-.spring-hero__top,
-.spring-term {
-  width: 100%;
-  max-width: var(--measure-wide);
-  margin-inline: auto;
-  padding-inline: var(--space-4);
-}
-.spring-hero__top {
-  padding-top: clamp(var(--space-8), 6vw, var(--space-16));
-}
-.spring-hero__name {
-  font-size: min(31vw, 20rem);
-  font-weight: 600;
-  letter-spacing: -0.055em;
-  line-height: 0.82;
-  margin-left: -0.04em;
-  margin-bottom: -0.38em;
-}
-/* The meadow rises over the lower half of the wordmark, so the type stands in the grass. */
-.spring-hero__meadow {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: clamp(11rem, 34svh, 22rem);
-  touch-action: pan-y;
-}
-.spring-term {
-  position: relative;
-  z-index: 2;
-  padding-block: var(--space-3) var(--space-6);
+.spring-landing__pause {
+  min-height: 2.75rem;
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
 }
-.spring-term::before {
-  content: "";
-  position: absolute;
-  inset: 0 calc(50% - 50vw);
-  z-index: -1;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--surface-canvas);
-}
-.spring-term__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 2.75rem;
-  color: var(--text-secondary);
-}
-.spring-term__pause {
-  min-height: 2.75rem;
-  padding-inline: var(--space-2);
-  margin-right: calc(-1 * var(--space-2));
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-.spring-term__line {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 2.75rem;
-}
-.spring-term__cmd {
-  min-width: 0;
-  font: inherit;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-.spring-term__cmd,
-.spring-term__note {
-  padding-left: 2ch;
-  text-indent: -2ch;
-}
-.spring-term__cmd::before {
-  content: "$ ";
-  color: var(--text-success);
-}
-.spring-term__line .spring-term__cmd {
-  flex: 1;
-}
-.spring-term__log > * + * {
-  margin-top: var(--space-3);
-}
-.spring-term__build {
-  display: grid;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-}
-.spring-term__scale {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  height: 1.75rem;
-}
-.spring-term__note {
-  padding-block: var(--space-1) var(--space-2);
-  color: var(--text-secondary);
-}
-.spring-term__out {
-  color: var(--text-secondary);
-}
-.spring-term__input {
-  margin-top: var(--space-3);
-  font-size: 1rem;
-  border-top: 1px dashed var(--border-subtle);
-}
-.spring-term__input .spring-term__cmd {
-  flex: none;
-}
-.spring-term__input input {
-  flex: 1;
-  min-width: 6rem;
-  min-height: 2.75rem;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 1rem;
-}
-.spring-term__input:focus-within {
-  box-shadow: inset 0 -1px 0 var(--text-primary);
-}
-@media (hover: hover) and (pointer: fine) {
-  .spring-term__pause:hover {
+@media (hover: hover) {
+  .spring-landing__pause:hover {
     color: var(--text-primary);
   }
 }
 
-/* ---------- Demo frame ---------- */
-.spring-demo {
-  margin-top: var(--space-12);
-  border: 1px solid var(--border-subtle);
+/* ---------- Hero: one centred box. Name, pitch, the two ways in, then the horizon (always dark). ---------- */
+.spring-hero {
+  position: relative;
+  margin-top: clamp(var(--space-4), 4vw, var(--space-10));
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  text-align: center;
+  overflow: hidden;
 }
-.spring-demo > :not(.spring-demo__bar) {
-  margin-inline: var(--space-3);
+/* The frame is drawn over the canvas so its hairline is never covered. */
+.spring-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  pointer-events: none;
 }
-.spring-demo > * + * {
-  margin-top: var(--space-3);
+.spring-hero__copy {
+  display: grid;
+  justify-items: center;
+  padding: clamp(var(--space-8), 6vw, var(--space-16)) var(--space-4) 0;
 }
-.spring-demo__bar {
+.spring-hero__name {
+  font-size: clamp(3.75rem, 13vw, 9rem);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+.spring-hero__line {
+  max-width: 24ch;
+  margin-top: var(--space-5);
+  font-family: var(--font-sans);
+  font-size: clamp(1.375rem, 3vw, 2.125rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.spring-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-8);
+}
+/* The install command is the main action: filled, with its copy button. */
+.spring-hero__install {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: 2.25rem;
-  padding-inline: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-sunken);
-}
-.spring-demo__title,
-.spring-demo__pause,
-.spring-demo__readout,
-.spring-demo__chip,
-.spring-palette__mode,
-.spring-type__meta {
+  width: 100%;
+  max-width: 31rem;
+  min-height: 2.75rem;
+  padding-left: var(--space-3);
+  background: var(--text-primary);
+  color: var(--surface-canvas);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  text-align: left;
 }
-.spring-demo__title {
-  color: var(--text-secondary);
+.spring-hero__install code {
+  flex: 1;
+  min-width: 0;
+  padding-block: var(--space-2);
+  overflow-wrap: anywhere;
 }
-.spring-demo__title::before {
+.spring-hero__install code::before {
   content: "$ ";
-  color: var(--text-secondary);
+  opacity: 0.6;
 }
-.spring-demo__pause {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+.spring-hero__install .copy-button {
+  color: inherit;
+}
+.spring-hero__cta .button {
   min-height: 2.75rem;
-  margin-right: calc(-1 * var(--space-2));
-  padding-inline: var(--space-2);
-  color: var(--text-secondary);
-  text-transform: uppercase;
 }
-.spring-demo__caption {
-  margin-block: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px dashed var(--border-subtle);
+.spring-hero__sky {
+  height: clamp(9.5rem, 22vw, 16.25rem);
+  margin-top: var(--space-10);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-hero__horizon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: pan-y;
+}
+@media (max-width: 37.5rem) {
+  .spring-hero__cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .spring-hero__cta .button {
+    justify-content: center;
+  }
+}
+
+/* ---------- Two modes, each a row of two fixed tiles. Only color, opacity and fixed-slot text change. ---------- */
+.spring-mode {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: clamp(var(--space-16), 9vw, 7rem);
+}
+.spring-mode + .spring-mode {
+  margin-top: clamp(var(--space-12), 8vw, var(--space-24));
+}
+.spring-mode__head {
+  display: grid;
+  gap: var(--space-1);
+}
+.spring-mode__head h2 {
+  font-family: var(--font-sans);
+  font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.spring-mode__head p {
   color: var(--text-secondary);
   font-size: var(--step-sm);
 }
-.spring-demo__readout {
-  display: block;
-  color: var(--text-secondary);
+.spring-mode__row {
+  display: grid;
+  gap: var(--space-6);
 }
-.spring-demo__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
+@media (min-width: 47.5rem) {
+  .spring-mode__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.spring-tile {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   min-width: 0;
-  margin-block: var(--space-3) 0;
-  padding: 0;
-  border: 0;
-}
-.spring-demo__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 2.75rem;
-  padding-inline: var(--space-2);
+  height: clamp(21rem, 34vw, 25rem);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
-  color: var(--text-secondary);
 }
-.spring-demo__chip[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px var(--text-primary);
-  color: var(--text-primary);
-}
-.spring-demo__chip[aria-pressed="true"]::before {
-  content: "▸";
-}
-.spring-demo__dot {
-  width: 0.625rem;
-  height: 0.625rem;
-  box-shadow: 0 0 0 1px var(--border-strong);
-}
-@media (hover: hover) and (pointer: fine) {
-  .spring-demo__chip,
-  .spring-demo__pause {
-    min-height: 2rem;
-  }
-  .spring-demo__chip:hover,
-  .spring-demo__pause:hover {
-    color: var(--text-primary);
-  }
-}
-
-/* ---------- Palette ---------- */
-.spring-palette > * + * {
-  margin-top: var(--space-1);
-}
-.spring-palette__row {
-  display: grid;
-  grid-template-columns: var(--spring-label) minmax(0, 1fr);
-  align-items: center;
-}
-.spring-palette__mode {
-  color: var(--text-secondary);
-}
-.spring-palette__steps {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  height: 3rem;
-  box-shadow: 0 0 0 1px var(--border-subtle);
-}
-/* Exception to the transform/opacity rule: the demo is the colour changing, step by step. */
-.spring-palette__step {
-  position: relative;
-  transition: background-color 520ms var(--ease-out);
-}
-/* The step the brand color landed on: a square inset frame. */
-.spring-palette__step[data-anchor] {
-  box-shadow:
-    inset 0 0 0 2px var(--surface-canvas),
-    inset 0 0 0 3px var(--text-primary);
-}
-.spring-palette .spring-demo__readout {
-  padding-top: var(--space-2);
-}
-
-/* ---------- Scrub ---------- */
-.spring-scrub {
-  position: relative;
-  display: block;
-}
-.spring-scrub input {
-  display: block;
-  width: 100%;
-  height: 2.75rem;
-  margin: 0;
-  appearance: none;
-  background: transparent;
-  touch-action: pan-y;
-  cursor: ew-resize;
-}
-/* Square thumb on a hairline track, like the rest of the frame. */
-.spring-scrub input::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--border-strong);
-}
-.spring-scrub input::-webkit-slider-thumb {
-  appearance: none;
-  width: 0.75rem;
-  height: 1.25rem;
-  margin-top: -0.625rem;
-  border-radius: 0;
-  background: var(--text-primary);
-}
-.spring-scrub input::-moz-range-track {
-  height: 1px;
-  background: var(--border-strong);
-}
-.spring-scrub input::-moz-range-thumb {
-  width: 0.75rem;
-  height: 1.25rem;
-  border: 0;
-  border-radius: 0;
-  background: var(--text-primary);
-}
-.spring-scrub input:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-.spring-scrub__ticks {
-  position: absolute;
-  inset: auto 0.375rem 0.25rem;
-  height: 0.375rem;
-  pointer-events: none;
-}
-.spring-scrub__ticks > span {
-  position: absolute;
-  top: 0;
-  width: 1px;
-  height: 100%;
-  background: var(--border-strong);
-}
-
-/* ---------- Type ---------- */
-.spring-type {
-  container-type: inline-size;
-  overflow: hidden;
-}
-.spring-type__row {
-  display: grid;
-  grid-template-columns: var(--spring-label) minmax(0, 1fr);
-  align-items: baseline;
+.spring-tile__title {
+  display: flex;
+  justify-content: space-between;
   gap: var(--space-2);
-  padding-block: var(--space-1);
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-type__meta {
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-.spring-type__sample {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: clip;
-  /* The real px size, shrunk on narrow frames so the scale still reads. */
-  font-size: min(
-    calc(var(--px) * 1px),
-    max(min(calc(var(--px) * 1px), 1rem), calc(var(--px) * 0.18cqi))
-  );
-}
-
-/* Narrow frames: the label sits above its sample so the sample gets the full width. */
-@container (max-width: 30rem) {
-  .spring-type__row {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .spring-type__sample {
-    font-size: min(
-      calc(var(--px) * 1px),
-      max(min(calc(var(--px) * 1px), 1rem), calc(var(--px) * 0.14cqi))
-    );
-  }
-}
-
-/* ---------- Motion ---------- */
-.spring-motion {
-  display: grid;
-  gap: var(--space-2);
-}
-.spring-motion svg {
-  width: 100%;
-  height: 5rem;
-  overflow: visible;
-}
-.spring-motion__rest {
-  stroke: var(--border-subtle);
-  stroke-dasharray: 2 2;
-  vector-effect: non-scaling-stroke;
-}
-.spring-motion__curve {
-  fill: none;
-  stroke: var(--text-primary);
-  stroke-width: 1.5;
-}
-.spring-motion__track {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 3rem;
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--border-subtle) 0 1px,
-    transparent 1px 2rem
-  );
-  cursor: pointer;
-  container-type: inline-size;
-}
-.spring-motion__block {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  width: 2rem;
-  height: 2rem;
-  background: var(--text-primary);
-  transition-property: translate;
-}
-.spring-motion__block[data-right] {
-  translate: calc(100cqw - 3rem) 0;
-}
-
-/* ---------- End ---------- */
-/* The header's Open app stays quiet so the install line leads; the footer one is the filled button. */
-.spring-landing__bar .button {
-  background: none;
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--text-primary);
+  padding: var(--space-5) var(--space-5) 0;
   font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  text-transform: uppercase;
+  font-size: var(--step-sm);
+  font-weight: 500;
 }
+.spring-tile__who {
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+  font-weight: 400;
+}
+.spring-tile__vis {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  margin: var(--space-4) var(--space-5) 0;
+  overflow: hidden;
+  container-type: size;
+}
+.spring-tile__caption {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+@media (max-width: 47.49rem) {
+  .spring-tile {
+    height: auto;
+  }
+  .spring-tile__vis {
+    height: 13.75rem;
+  }
+}
+
+/* Terminal output: scan and build */
+.spring-term {
+  display: grid;
+  align-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+}
+.spring-term p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.spring-term__cmd {
+  color: var(--text-primary);
+}
+.spring-term__cmd::before {
+  content: "$ ";
+  color: var(--text-accent);
+}
+.spring-term__hi {
+  color: var(--text-primary);
+}
+.spring-term__dim {
+  color: var(--text-secondary);
+}
+
+/* See: unused tokens dim */
+.spring-unused {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  height: 100%;
+}
+.spring-unused__cells {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 3px;
+  width: min(52cqw, 70cqh);
+}
+.spring-unused__cells i {
+  aspect-ratio: 1;
+  background: var(--text-primary);
+  transition: opacity 0.6s var(--ease-out);
+}
+.spring-unused[data-show] .spring-unused__cells i[data-dead] {
+  opacity: 0.16;
+}
+.spring-unused__stat {
+  display: grid;
+  gap: var(--space-1);
+}
+.spring-unused__num {
+  font-family: var(--font-sans);
+  font-size: clamp(2rem, 9cqw, 3rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.spring-unused__lbl {
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+}
+.spring-unused__pin {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step-xs);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-out);
+}
+.spring-unused[data-show] .spring-unused__pin {
+  opacity: 1;
+}
+.spring-unused__pin b {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  box-shadow:
+    0 0 0 2px var(--surface-canvas),
+    0 0 0 3px var(--text-danger);
+}
+
+/* Make: ramp and label pairs */
+.spring-make {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+}
+.spring-make__seed {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+}
+.spring-make__ramp {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  height: 2.75rem;
+}
+.spring-make__ramp span {
+  transition: background-color 0.9s var(--ease-out);
+}
+.spring-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+}
+.spring-pair {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.spring-pair__who {
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+}
+.spring-pair__sw {
+  display: grid;
+  place-items: center;
+  height: clamp(3.25rem, 22cqh, 5.25rem);
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 7cqw, 2.25rem);
+  font-weight: 600;
+  transition:
+    background-color 0.9s var(--ease-out),
+    color 0.9s var(--ease-out);
+}
+.spring-pair__r {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--step-sm);
+  font-variant-numeric: tabular-nums;
+}
+.spring-pair__r b {
+  font-weight: 500;
+}
+.spring-pair__r b[data-v="fail"] {
+  color: var(--text-danger);
+}
+.spring-pair__r b[data-v="pass"] {
+  color: var(--text-success);
+}
+
+/* ---------- Footer: static. ---------- */
 .spring-landing__end {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
-  margin-top: var(--space-12);
+  gap: 0 var(--space-5);
+  margin-top: var(--space-16);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-landing__end p {
+  flex-basis: 100%;
+  color: var(--text-secondary);
+  font-size: var(--step-xs);
+}
+.spring-landing__end a {
+  display: inline-block;
+  padding-block: var(--space-2);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spring-palette__step,
-  .spring-motion__block {
+  .spring-unused__cells i,
+  .spring-unused__pin,
+  .spring-make__ramp span,
+  .spring-pair__sw {
     transition: none !important;
   }
 }
