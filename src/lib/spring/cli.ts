@@ -324,7 +324,7 @@ function summary(view: View, dir: string, link: string | null, file: string | nu
     const low = ps.filter((p) => p.ratio !== null && p.ratio < 4.5);
     const unread = ps.filter((p) => p.ratio === null).length;
     lines.push(
-      `Contrast: ${ps.length} named text/background pairs; ${low.length} under 4.5:1` +
+      `Contrast: ${ps.length} pairs found by token name (colors combined only in component code aren't checked); ${low.length} under 4.5:1` +
         (low.length
           ? `: ${list(
               low.map((p) => `${p.fg} on ${p.bg} (${p.mode}) ${p.ratio}`),
