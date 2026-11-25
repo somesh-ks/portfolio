@@ -76,8 +76,12 @@ test("data colors reorder with their grip", async ({ page }) => {
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
-  await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
-  await expect(names.nth(0)).toHaveValue(second);
+  // A press before hydration does nothing, so retry it until the move lands.
+  const grip = page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) });
+  await expect(async () => {
+    await grip.press("ArrowDown");
+    await expect(names.nth(0)).toHaveValue(second, { timeout: 500 });
+  }).toPass();
   await expect(names.nth(1)).toHaveValue(first);
 });
 
