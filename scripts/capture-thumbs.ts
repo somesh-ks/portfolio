@@ -39,7 +39,7 @@ const TARGETS: Record<
     dark: true,
     themeKey: "design:theme",
   },
-  "singularity-podcast": { url: "https://news.someshks.com", dark: true },
+  "singularity-podcast": { url: "https://singularityfm.app", dark: true },
   spring: { url: `${LOCAL}/spring`, dark: true },
   // The app sits behind Cloudflare Access, so a redacted record drawn here.
   traceless: { url: "about:blank", html: REDACTED, dark: true },
