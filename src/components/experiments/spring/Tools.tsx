@@ -8,6 +8,8 @@ import { Eye } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { readInput, writeInput } from "@/lib/spring/io";
+import { tokenName, tokenRef, transitionSnippet } from "@/lib/spring/names";
+import type { Styling } from "@/lib/spring/stack";
 import {
   DEFAULT_INPUT,
   inputFromSeed,
@@ -18,6 +20,7 @@ import {
 import {
   FONT_NAMES,
   fontInfo,
+  buildType,
   googleFontsUrl,
   isCurated,
   opticalBase,
@@ -403,13 +406,13 @@ function Text({
   );
 }
 
-const TABS = ["color", "type", "space", "motion", "tokens"] as const;
+// Space and motion share one tab: three dials that finish the token set.
+const TABS = ["color", "type", "shape", "tokens"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   color: "Color",
   type: "Type",
-  space: "Space",
-  motion: "Motion",
+  shape: "Shape",
   tokens: "Tokens",
 };
 
@@ -486,6 +489,18 @@ export function SpringApp() {
           ))}
         </div>
         <span className="spring-app__actions">
+          <Select
+            label="Token names for"
+            hideLabel
+            value={input.stack.styling}
+            options={[
+              { value: "css", label: "CSS" },
+              { value: "tailwind", label: "Tailwind" },
+            ]}
+            onChange={(v) =>
+              setInput((i) => ({ ...i, stack: { ...i.stack, styling: v as Styling } }))
+            }
+          />
           <button
             type="button"
             className="button spring-app__preview"
@@ -519,9 +534,12 @@ export function SpringApp() {
             }}
           />
         ) : null}
-        {tab === "space" ? <ShapeControls {...spring} /> : null}
-        {tab === "motion" ? (
-          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+        {tab === "shape" ? (
+          <>
+            <ShapeControls {...spring} />
+            <p className="spring-group">motion</p>
+            <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+          </>
         ) : null}
         {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
       </aside>
@@ -560,7 +578,7 @@ export function SpringApp() {
             {charts ? (
               <ChartsScreen system={system} mode={mode} />
             ) : building === "site" ? (
-              <Homepage system={system} mode={mode} line={spring.line} />
+              <Homepage system={system} mode={mode} />
             ) : (
               <AppScreen system={system} mode={mode} />
             )}
@@ -588,7 +606,7 @@ export function SpringApp() {
                 current={input.type}
                 sample={{
                   heading: `${input.name || "Your name"} ships calm, quick software`,
-                  body: spring.line.trim() || "A short line about what it does and who it helps.",
+                  body: "Send invoices and close the month without a spreadsheet.",
                   mono: "const total = 5517.60;",
                 }}
                 onPick={(r, n, meta) =>
@@ -599,9 +617,11 @@ export function SpringApp() {
             ) : tab === "type" ? (
               <TypeOutput system={system} mode={mode} />
             ) : null}
-            {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
-            {tab === "motion" ? (
-              <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
+            {tab === "shape" ? (
+              <>
+                <ShapeOutput system={system} mode={mode} />
+                <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
+              </>
             ) : null}
             {f ? (
               <textarea
@@ -917,13 +937,7 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
 
 const ROLE_NAME: Record<FontRole, string> = { heading: "Headings", body: "Text", mono: "Code" };
 
-function TypeControls({
-  input,
-  line,
-  setInput,
-  setLine,
-  onBrowse,
-}: Spring & { onBrowse: (r: FontRole) => void }) {
+function TypeControls({ input, setInput, onBrowse }: Spring & { onBrowse: (r: FontRole) => void }) {
   const t = input.type;
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
@@ -959,7 +973,7 @@ function TypeControls({
       <Select
         label="Scale ratio"
         value={String(t.ratio)}
-        options={ratioOptions(t.ratio, input.stack.building)}
+        options={ratioOptions(t)}
         onChange={(v) => set({ ratio: Number(v) })}
       />
       {hi > lo ? (
@@ -993,12 +1007,6 @@ function TypeControls({
           </button>
         </div>
       ))}
-      <Text
-        label="Sample text"
-        value={line}
-        onChange={setLine}
-        placeholder="A short line about what it does and who it helps."
-      />
     </>
   );
 }
@@ -1056,6 +1064,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
 
 function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
+  const styling = system.input.stack.styling;
   return (
     <>
       <output className="sr-only">{said}</output>
@@ -1070,9 +1079,9 @@ function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
                 key={k}
                 type="button"
                 className="spring-ruler__row"
-                onClick={() => copy(name, `var(${name})`)}
+                onClick={() => copy(name, tokenRef(name, styling))}
               >
-                <span>{copied === name ? "✓ copied" : name}</span>
+                <span>{copied === name ? "✓ copied" : tokenName(name, styling)}</span>
                 <span className="tabular">{px}px</span>
                 <span className="spring-ruler__bar" style={{ width: px }} aria-hidden />
               </button>
@@ -1105,7 +1114,7 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
       <dl className="spring-facts">
         {Object.entries(m.duration).map(([k, ms]) => (
           <div key={k} className="contents">
-            <dt>--duration-{k}</dt>
+            <dt>{tokenName(`--duration-${k}`, system.input.stack.styling)}</dt>
             <dd className="tabular">{ms}ms</dd>
           </div>
         ))}
@@ -1145,7 +1154,7 @@ function MotionOutput({ system, run, onRun }: { system: System; run: number; onR
                 onClick={() =>
                   copy(
                     name,
-                    `transform var(--duration-${dur}) var(--ease-${name.replace("ease-", "")})`,
+                    transitionSnippet(name.replace("ease-", ""), dur, system.input.stack.styling),
                   )
                 }
               >
@@ -1274,23 +1283,25 @@ function AuditDialog() {
   );
 }
 
-const RATIOS = [1.125, 1.2, 1.25, 1.333, 1.5];
-/** Dense screens need small steps; pages can shout. */
-const FITS: Record<string, readonly [number, number]> = {
-  site: [1.25, 1.333],
-  dashboard: [1.125, 1.2],
-};
-const ratioOptions = (r: number, building: string) => {
-  const [lo, hi] = FITS[building] ?? [1.2, 1.25];
-  const fit =
-    building === "site" ? "fits sites" : building === "dashboard" ? "fits dashboards" : "fits apps";
-  const all = RATIOS.includes(r) ? RATIOS : [...RATIOS, r].toSorted((x, y) => x - y);
-  return all.map((v) => ({
-    value: String(v),
-    label: String(v),
-    hint: v >= lo && v <= hi ? fit : undefined,
-  }));
-};
+/** Each ratio with the products it suits: small steps for dense screens, big ones for pages that shout. */
+const RATIOS: [number, string][] = [
+  [1.125, "dense data"],
+  [1.2, "app UI"],
+  [1.25, "general web"],
+  [1.333, "editorial"],
+  [1.5, "hero only"],
+];
+/** Each option also says what it does to h1 at this body size. */
+const ratioOptions = (t: TypeInput) =>
+  (RATIOS.some(([v]) => v === t.ratio)
+    ? RATIOS
+    : [...RATIOS, [t.ratio, "custom"] as [number, string]]
+  )
+    .toSorted((x, y) => x[0] - y[0])
+    .map(([v, use]) => {
+      const h1 = buildType({ ...t, ratio: v }).tokens.find((x) => x.role === "h1")!.max;
+      return { value: String(v), label: String(v), hint: `${use} · h1 ${h1}px` };
+    });
 
 /** What people get wrong when choosing a brand font, on one card. */
 function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {

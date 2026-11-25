@@ -4,6 +4,7 @@ import { useId } from "react";
 import { ArrowRight, ChevronDown, CircleAlert } from "lucide-react";
 import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
+import { tokenName, typeSnippet } from "@/lib/spring/names";
 import type { System } from "@/lib/spring/system";
 import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
@@ -12,7 +13,6 @@ import { useCopy } from "./store";
 /** Display sizes fit about two words on one line, so the ladder shows the name, not the sentence. */
 const displayOf = (name: string) =>
   name.trim() && name !== "Untitled" ? name.trim() : "Ship calm";
-const lineOf = (l: string) => l.trim() || "A short line about what it does and who it helps.";
 
 /** Buttons, fields, badges and an alert: judge the whole, not swatches. */
 export function Components({ system, mode }: { system: System; mode: Mode }) {
@@ -97,8 +97,8 @@ const CHANGES = [
   ],
 ] as const;
 
-/** A marketing page: the visitor's own line as the headline, then a changelog with real jobs for every role. */
-export function Homepage({ system, mode, line }: { system: System; mode: Mode; line: string }) {
+/** A marketing page: a headline, then a changelog with real jobs for every role. */
+export function Homepage({ system, mode }: { system: System; mode: Mode }) {
   const name = system.input.name || "Untitled";
   return (
     <Scope system={system} mode={mode}>
@@ -111,7 +111,7 @@ export function Homepage({ system, mode, line }: { system: System; mode: Mode; l
         <span className="sp-btn sp-btn--secondary sp-btn--sm">Sign in</span>
       </nav>
       <section className="grid gap-5 px-6 pt-10 pb-12">
-        <div className="sp-display max-w-[16ch]">{lineOf(line)}</div>
+        <div className="sp-display max-w-[16ch]">Invoices that chase themselves</div>
         <p className="sp-lead max-w-[46ch]">
           Send invoices, chase late payers and close the month without a spreadsheet.
         </p>
@@ -227,6 +227,7 @@ const SAMPLE: Partial<Record<Role, string>> = {
  */
 export function Ladder({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
+  const styling = system.input.stack.styling;
   return (
     <Scope system={system} mode={mode}>
       <output className="sr-only">{said}</output>
@@ -237,7 +238,7 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
             <div key={t.role} className="spring-rung">
               <span className="sp-mono sp-muted spring-rung__spec">
                 <span className="sp-label" style={{ fontFamily: "var(--font-mono)" }}>
-                  {t.role}
+                  {tokenName(`--text-${t.role}`, styling)}
                 </span>
                 <span>
                   {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx} · {t.weight}
@@ -261,15 +262,9 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
                 type="button"
                 className="spring-rung__copy"
                 title={t.size}
-
-                onClick={() =>
-                  copy(
-                    t.role,
-                    `font-size: ${t.size};\nline-height: ${t.lineHeight};\nletter-spacing: ${t.tracking}em;\nfont-weight: ${t.weight};`,
-                  )
-                }
+                onClick={() => copy(t.role, typeSnippet(t.role, styling))}
               >
-                {copied === t.role ? "Copied" : "Copy CSS"}
+                {copied === t.role ? "Copied" : "Copy"}
                 <span className="sr-only"> for {t.role}</span>
               </button>
             </div>
