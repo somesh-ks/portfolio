@@ -1620,3 +1620,16 @@
     border-bottom: 0;
   }
 }
+
+.spring-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+}
+.spring-states > :first-child {
+  min-width: 4.5rem;
+}
