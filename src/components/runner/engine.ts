@@ -67,13 +67,20 @@ const TONE_VARS: Record<Tone, string> = {
   cream: "--illustration-cream",
   steel: "--illustration-steel",
 };
-/** Mist rows for fog: [y, streak length, gap], all in cells. */
-const MIST: readonly (readonly [number, number, number])[] = [
-  [26, 30, 22],
-  [34, 18, 40],
-  [41, 40, 16],
-  [47, 24, 30],
-  [52, 46, 12],
+/** A low fog bank, as row runs [x, y, w] in a 40x5 box, and where banks sit
+ * along the 200-cell strip: [x, y]. */
+const FOG_BANK: readonly (readonly [number, number, number])[] = [
+  [6, 0, 18],
+  [2, 1, 28],
+  [0, 2, 36],
+  [0, 3, 40],
+  [0, 4, 40],
+];
+const FOG_SPOTS: readonly (readonly [number, number])[] = [
+  [0, 47],
+  [55, 49],
+  [105, 46],
+  [150, 50],
 ];
 const MAX_STEPS = 5;
 const MILESTONE = 100;
@@ -240,16 +247,18 @@ export function createEngine(
         fill(copy, Math.floor(y), 1, Math.min(snow ? 1 : 3, WORLD.ground - Math.floor(y)), color);
   }
 
-  /** Fog: long mist streaks drifting low over the desk, behind the
-   * obstacles so it never makes a run harder. */
+  /** Fog: wide, flat banks drifting along the ground with the clouds, drawn
+   * behind the obstacles so fog never makes a run harder. */
   function drawFog() {
     if (weather.sky !== "fog") return;
-    const shift = Math.floor(cloudShift * 2);
-    for (const [row, length, gap] of MIST) {
-      const period = length + gap;
-      for (let x = -((shift + row * 7) % period); x < viewWidth; x += period)
-        fill(x, row, length, 1, colors.cloud);
-    }
+    const span = Math.ceil((viewWidth + 40) / CLOUD_STRIP) * CLOUD_STRIP;
+    const shift = Math.floor(cloudShift);
+    for (let copy = 0; copy < span; copy += CLOUD_STRIP)
+      for (const [spot, y] of FOG_SPOTS) {
+        // Wrap a bank's width early so banks slide off the left edge.
+        const x = ((((spot + copy - shift + 40) % span) + span) % span) - 40;
+        for (const [cx, cy, w] of FOG_BANK) fill(x + cx, y + cy, w, 1, colors.cloud);
+      }
   }
 
   /** Advance the weather by real time; under reduced motion it holds still. */
