@@ -36,7 +36,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob:",
   "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://cloudflareinsights.com",
+  // Spring's font browser fetches sample CSS to load it under a private name.
+  "connect-src 'self' https://cloudflareinsights.com https://fonts.googleapis.com",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",

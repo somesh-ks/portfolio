@@ -7,7 +7,7 @@ export const contentType = "image/png";
 export default function Image() {
   return ogCard({
     title: "Spring",
-    summary: "Tools to shape design system foundation: color, type, space, motion and tokens.",
+    summary: "Make the color and type foundations of a design system, and export them as tokens.",
     path: "/spring",
   });
 }

@@ -7,7 +7,7 @@
 
 type Building = "site" | "app" | "dashboard";
 type Ownership = "own" | "package";
-export type Styling = "tailwind" | "css";
+export type Styling = "tailwind" | "css" | "dtcg";
 
 export interface StackAnswers {
   building: Building;
@@ -139,6 +139,15 @@ export const STYLING: Record<Styling, Pick> = {
     whenNot: "You want agents constrained to your scale; raw CSS lets them type any value.",
     checked: CHECKED,
   },
+  dtcg: {
+    id: "dtcg",
+    name: "DTCG tokens.json",
+    url: "https://www.designtokens.org/tr/drafts/format/",
+    install: "No install: feed tokens.json to Style Dictionary, Tokens Studio or Figma.",
+    why: "The W3C format every token tool reads, so one file feeds code, Figma and docs.",
+    whenNot: "You only ship CSS: tokens.css alone is simpler.",
+    checked: CHECKED,
+  },
 };
 
 export interface StackPicks {
@@ -171,7 +180,7 @@ export function recommend(
       : icons === "phosphor"
         ? "Sites benefit from icons that match the font weight; Phosphor has six weights."
         : "A neutral, stroke-adjustable set that matches most product type.";
-  const sr = a.styling === "tailwind" ? STYLING.tailwind.why : STYLING.css.why;
+  const sr = STYLING[a.styling].why;
   return {
     components,
     icons,

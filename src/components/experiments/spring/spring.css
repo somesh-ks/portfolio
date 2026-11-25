@@ -39,47 +39,6 @@
   flex: none;
   box-shadow: inset 0 0 0 1px var(--border-default);
 }
-.spring-facts {
-  font-family: var(--font-mono);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--step-xs);
-}
-.spring-facts dt {
-  color: var(--text-secondary);
-}
-.spring-facts dd {
-  margin: 0;
-}
-.spring-track {
-  display: block;
-  container-type: inline-size;
-  position: relative;
-  height: 1.5rem;
-  border-bottom: 1px solid var(--border-default);
-}
-.spring-ball {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0.75rem;
-  height: 1.25rem;
-  background: var(--text-primary);
-}
-.spring-ball[data-run="true"] {
-  animation: spring-move var(--d) var(--e) forwards;
-}
-@keyframes spring-move {
-  to {
-    transform: translateX(calc(100cqi - 0.75rem));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spring-ball[data-run="true"] {
-    animation: none;
-  }
-}
 /* The file grows with its text, so the canvas is the only scroller (no box inside a box). */
 .spring-audit-input.spring-code {
   field-sizing: content;
@@ -331,7 +290,7 @@
 }
 .spring-rung {
   display: grid;
-  grid-template-columns: 14rem minmax(0, 1fr) auto;
+  grid-template-columns: 14rem minmax(0, 1fr);
   align-items: baseline;
   gap: var(--space-4, 1rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
@@ -339,6 +298,19 @@
 }
 .spring-rung:first-child {
   border-top: 0;
+}
+.spring-notes {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+.spring-notes__font {
+  color: var(--text-primary);
+}
+.spring-rung--head {
+  display: block;
+  padding-block: var(--space-2, 0.5rem);
+  font-size: 12px;
 }
 .spring-rung__spec {
   display: grid;
@@ -358,7 +330,7 @@
 }
 @container (max-width: 30rem) {
   .spring-rung {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-1, 0.25rem) var(--space-3);
   }
   .spring-rung__sample {
@@ -375,33 +347,6 @@
 .spring-bands > span {
   padding-inline: 2px;
   border-left: 1px solid var(--border-subtle);
-}
-.spring-race {
-  display: grid;
-  gap: var(--space-3);
-}
-.spring-lane {
-  display: grid;
-  gap: var(--space-1);
-}
-.spring-nested {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-.spring-nested__case {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-}
-.spring-nested__outer {
-  display: block;
-  border: 1px solid var(--border-strong);
-}
-.spring-nested__inner {
-  display: block;
-  height: 2.5rem;
-  border: 1px solid var(--text-primary);
 }
 
 /* ——— Terminal chrome, scoped to Spring's toys ——— */
@@ -545,55 +490,18 @@
     grid-column: 2 / -1;
   }
 }
-.spring-ruler {
-  display: grid;
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-ruler__row {
-  display: grid;
-  grid-template-columns: 7rem 3rem 1fr;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 1.75rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: copy;
-}
-.spring-ruler__row:hover,
-.spring-ruler__row:focus-visible {
-  color: var(--text-primary);
-}
-.spring-ruler__bar {
-  display: block;
-  max-width: 100%;
-  height: 0.5rem;
-  background: var(--text-primary);
-}
 .spring-rung__copy {
-  justify-self: end;
+  justify-self: start;
   padding: 0;
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--color-text);
+  text-align: left;
   cursor: copy;
 }
-.spring-rung__copy:hover {
-  color: var(--color-text);
-}
-/* Meta wraps on its own; Copy stays at the right on every row. */
-.spring-lane__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  column-gap: var(--space-3);
-}
-@media (max-width: 40rem) {
-  .spring-nested {
-    grid-template-columns: 1fr;
-  }
+.spring-rung__copy:hover,
+.spring-rung__copy:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ——— Workbench: tool controls left, pinned preview and output right ——— */
@@ -819,10 +727,39 @@
   gap: 0.3em;
   flex: none;
 }
+/* One strip: Preview, Export and the theme share hairlines, nothing between them. */
 .spring-app__actions {
   display: flex;
   flex: none;
-  gap: var(--space-2);
+  gap: 0;
+}
+.spring-app__actions,
+.spring-split {
+  align-items: stretch;
+}
+/* Bar cells: full bar height, flat, split by one hairline each. The bar's own
+   bottom border closes them, so nothing floats with padding above or below. */
+.spring-app__actions .button,
+.spring-app__format .select__trigger {
+  min-height: 0;
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: inset 1px 0 0 var(--border-subtle);
+  font-weight: 400;
+}
+.spring-app__format .select__trigger {
+  box-shadow:
+    inset 1px 0 0 var(--border-subtle),
+    inset -1px 0 0 var(--border-subtle);
+}
+.spring-app__actions .button:hover,
+.spring-app__format .select__trigger:hover {
+  background: var(--surface-hover);
+}
+.spring-app__actions .button:focus-visible {
+  position: relative;
+  z-index: 1;
 }
 /* Boxed icon buttons in the bar: same frame as the text buttons, square. */
 .spring-app__actions .spring-square {
@@ -837,21 +774,43 @@
 }
 /* Phones: name and actions share the top row, tabs take the full row below. */
 @media (max-width: 40rem) {
+  /* Row one: name and the strip. Row two: tabs, then the format. */
   .spring-app__bar {
     flex-wrap: wrap;
-    row-gap: 0;
+    gap: 0;
+  }
+  /* The line break between the rows. */
+  .spring-app__bar::after {
+    content: "";
+    flex-basis: 100%;
+    order: 1;
   }
   .spring-app__actions {
     margin-left: auto;
-    padding-top: var(--space-2);
-  }
-  .spring-app__name {
-    padding-top: var(--space-2);
   }
   .spring-tabs {
-    order: 1;
-    flex-basis: 100%;
-    margin-inline: calc(-1 * var(--space-4));
+    order: 2;
+    flex: 1 1 8rem;
+  }
+  .spring-app__format {
+    order: 3;
+    flex: none;
+  }
+  /* Row one is as tall as the strip; a hairline splits it from the tabs row. */
+  .spring-app__actions {
+    min-height: 2.75rem;
+  }
+  .spring-tabs,
+  .spring-app__format {
+    border-top: 1px solid var(--border-subtle);
+  }
+  .spring-app__actions > * {
+    flex: none;
+  }
+  /* Tabs give way to the format: they scroll rather than wrap. */
+  .spring-tabs {
+    gap: 0;
+    margin-left: calc(-1 * var(--space-4));
     padding-inline: var(--space-2);
   }
   /* Preview drops its label to an icon; the label stays for screen readers. */
@@ -872,7 +831,6 @@
 /* Preview on: the button reads as held down. */
 .spring-app__actions .button[aria-pressed="true"] {
   background: var(--surface-sunken, var(--input-bg));
-  box-shadow: inset 0 0 0 1px var(--text-primary);
   color: var(--text-primary);
 }
 
@@ -1246,12 +1204,13 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  align-items: center;
-  padding: 0 var(--space-4);
+  align-items: stretch;
+  padding: 0 0 0 var(--space-4);
   padding-top: env(safe-area-inset-top);
 }
 .spring-app__name {
   flex: none;
+  align-self: center;
   margin-block: 0;
   line-height: inherit;
   margin-right: var(--space-3);
@@ -1276,9 +1235,6 @@
 }
 .spring-split__main > span[data-on] {
   visibility: visible;
-}
-.spring-app__actions {
-  align-items: center;
 }
 .spring-app__canvas {
   grid-area: canvas;
@@ -1321,9 +1277,34 @@
 .spring-split {
   display: inline-flex;
 }
+.spring-app__actions,
+.spring-app__format,
+.spring-app__format > *,
+.spring-app__actions .spring-split {
+  display: flex;
+}
 .spring-split__more {
   padding-inline: var(--space-2);
-  border-left: 1px solid color-mix(in oklch, var(--surface-canvas) 35%, transparent);
+}
+/* The format picker sits in the middle of the bar on wide screens. */
+@media (min-width: 40.01rem) {
+  .spring-app__format .select__trigger {
+    min-width: 10rem;
+  }
+}
+@media (min-width: 40.01rem) and (max-width: 59.99rem) {
+  /* Beside the strip: share its first hairline. */
+  .spring-app__format {
+    margin-right: -1px;
+  }
+}
+@media (min-width: 60rem) {
+  .spring-app__format {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    translate: -50% 0;
+  }
 }
 
 /* ——— Strips: two sections, hover tools, a pickable seed ——— */

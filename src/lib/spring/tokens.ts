@@ -98,7 +98,10 @@ function themeOf(ctx: string[]): { mode: string } | { scoped: string } | null {
       p.match(
         /^(?:html|:root|body|:host)?\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?([\w-]+)["']?\]$/i,
       ) ?? p.match(/^(?:html|:root|body)?\.theme-([\w-]+)$/i);
-    if (m) return { mode: m[1]!.toLowerCase() === "light" ? "light" : m[1]!.toLowerCase() };
+    if (m)
+      return {
+        mode: m[1]!.toLowerCase() === "light" ? "light" : m[1]!.toLowerCase(),
+      };
     if (/^(?:html|:root)?\.light$/i.test(p)) return { mode: "light" };
   }
   if (parts.some((p) => ROOTISH.test(p))) return { mode: darkMedia ? "dark" : "light" };
@@ -434,7 +437,12 @@ export function kindOf(path: string, text: string): SourceKind | null {
 
 /** Files in, one View out. Later files win on the same token and mode, like a cascade. */
 export function extract(files: SourceFile[], name?: string): View {
-  const acc: Acc = { modes: new Set(), tokens: new Map(), scoped: new Map(), notes: [] };
+  const acc: Acc = {
+    modes: new Set(),
+    tokens: new Map(),
+    scoped: new Map(),
+    notes: [],
+  };
   const sources: string[] = [];
   for (const f of files) {
     const k = kindOf(f.path, f.text);
@@ -524,7 +532,10 @@ export function readView(v: unknown): View {
             (h): h is Hit => isObj(h) && typeof h.value === "string" && typeof h.at === "string",
           )
           .slice(0, 100)
-          .map((h) => ({ value: h.value.slice(0, 120), at: h.at.slice(0, 300) }))
+          .map((h) => ({
+            value: h.value.slice(0, 120),
+            at: h.at.slice(0, 300),
+          }))
       : [];
   const u = isObj(v.usage) ? v.usage : undefined;
   return {
@@ -540,7 +551,10 @@ export function readView(v: unknown): View {
                 isObj(s) && typeof s.selector === "string",
             )
             .slice(0, MAX_SCOPED)
-            .map((s) => ({ selector: s.selector.slice(0, 200), count: count(s.count) })),
+            .map((s) => ({
+              selector: s.selector.slice(0, 200),
+              count: count(s.count),
+            })),
         }
       : {}),
     sources: strs(v.sources, 200),
@@ -715,7 +729,10 @@ export function groupOf(name: string): { group: string; step?: string } {
 
 const key = (p: { fg: string; bg: string }) => `${p.fg}|${p.bg}`;
 
-/** fg/bg pairs a system names on purpose: x / x-foreground, on-x / x, foreground / background. */
+/**
+ * fg/bg pairs a system names on purpose: x / x-foreground, on-x / x, foreground / background,
+ * component-fg / component-bg, and every page text role on every page surface.
+ */
 export function pairs(names: string[]): { fg: string; bg: string }[] {
   const has = new Set(names);
   const out: { fg: string; bg: string }[] = [];
@@ -734,7 +751,37 @@ export function pairs(names: string[]): { fg: string; bg: string }[] {
       } else if (m[2] !== "text") add(n, base);
     }
   }
+  // Component pairs: tooltip-fg, tooltip-text-muted on tooltip-bg. A bare tooltip-muted counts as
+  // text only beside a tooltip-fg and with no tooltip-subtle, since x-muted / x-subtle are usually
+  // tinted fills (Primer, Radix).
+  const textOf = (n: string) => {
+    const m = n.match(/^(.+?)-(fg|foreground|text)(-(muted|subtle|secondary|placeholder))?$/);
+    if (m) return m[1]!;
+    const b = n.match(/^(.+)-muted$/)?.[1];
+    const sib = (s: string) => has.has(`${b}-${s}`);
+    return b && (sib("fg") || sib("text") || sib("foreground")) && !sib("subtle") ? b : undefined;
+  };
+  for (const n of names) {
+    const base = textOf(n);
+    if (!base || /^(color-)?(bg|background|surface|text|fg)$/.test(base)) continue;
+    for (const bg of ["bg", "background", "surface"]) add(n, `${base}-${bg}`);
+  }
+  // Page text on every page surface: text-muted on bg-subtle, not only on bg. A surface with its
+  // own foreground (card + card-foreground) carries that text instead, so it's skipped.
+  const TEXT =
+    /^(color-)?((text|fg|ink|foreground)(-(muted|subtle|secondary|tertiary|placeholder|faint|soft))?|(muted|secondary|subtle)-(text|foreground|fg))$/;
+  const PAGE = /^(color-)?(bg|background|surface|canvas|page|card|panel)(-(subtle|raised|alt))?$/;
+  const ownText = (bg: string) =>
+    ["foreground", "fg"].some((s) => has.has(`${bg}-${s}`)) ||
+    has.has(bg.replace(/^(color-)?/, "$1on-"));
+  const texts = names.filter((n) => TEXT.test(n));
+  const pages = names.filter((n) => PAGE.test(n) && !ownText(n));
+  for (const fg of texts)
+    for (const bg of pages) if (fg.startsWith("color-") === bg.startsWith("color-")) add(fg, bg);
   // Tailwind v4's @theme inline repeats each shadcn pair as color-x; keep one.
+  const uniq = [...new Map(out.map((p) => [key(p), p])).values()];
+  out.length = 0;
+  out.push(...uniq);
   const seen = new Set(out.map(key));
   return out.filter(
     (p) =>
