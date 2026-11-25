@@ -3127,11 +3127,17 @@ claude-mascot:defined > * {
   opacity: 0;
   transform: scale(0.96);
   visibility: hidden;
+  /* Fade first, then leave the tab order. */
+  transition:
+    opacity var(--duration-popover) var(--ease-out),
+    transform var(--duration-popover) var(--ease-out),
+    visibility 0s linear var(--duration-popover);
 }
 .tune-button__cursor {
   display: none;
 }
-/* One spot of colour once a hue is picked; nothing before that. */
+/* One spot of colour once a hue is picked; nothing before that. The swatch and the hue
+   strip are raw OKLCH on purpose: they show the hue itself, outside any theme. */
 .tune-swatch {
   display: none;
   width: 0.625rem;
@@ -3202,8 +3208,14 @@ claude-mascot:defined > * {
 .tune-panel__word {
   display: none;
 }
-/* Phones have no Esc key. */
+/* Phones have no Esc key; touch targets and typed values follow the mobile rules. */
 @media (pointer: coarse) {
+  .tune-panel .segmented__item {
+    min-width: 2.75rem;
+  }
+  .tune-panel .dial__value {
+    font-size: 1rem;
+  }
   .tune-panel__key {
     display: none;
   }
@@ -3315,6 +3327,7 @@ claude-mascot:defined > * {
     left: 0;
     width: auto;
     max-height: 50vh;
+    max-height: 50dvh;
     overflow-y: auto;
     border-width: 1px 0 0;
     padding-bottom: env(safe-area-inset-bottom);
@@ -3337,7 +3350,7 @@ claude-mascot:defined > * {
   }
   /* Room at the end so the button never covers the footer. */
   .page:has(.tune-button) {
-    padding-bottom: 4.5rem;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 }
 @media (prefers-reduced-motion: reduce) {

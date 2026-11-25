@@ -17,6 +17,8 @@ export interface TunePanelProps {
 
 const SIZES = ["14", "15", "16"] as const;
 const TYPES = ["sans", "mono"] as const;
+/** Double-clicking the hue dial passes this back: neutral greys again. */
+const HUE_OFF = -1;
 
 /** Non-modal, so the page stays visible, scrollable and live behind it. */
 export default function TunePanel({
@@ -42,7 +44,7 @@ export default function TunePanel({
               >
                 [reset]
               </button>
-              <Dialog.Close className="tune-panel__close pressable" aria-label="Close">
+              <Dialog.Close className="tune-panel__close pressable">
                 <span className="tune-panel__key">[esc]</span>
                 <span className="tune-panel__word">[close]</span>
               </Dialog.Close>
@@ -60,7 +62,8 @@ export default function TunePanel({
               max={TUNE_RANGE.hue.max}
               step={TUNE_RANGE.hue.step}
               show={tune.hue === null ? "off" : `${tune.hue}°`}
-              onChange={(hue) => set({ hue })}
+              reset={HUE_OFF}
+              onChange={(hue) => set({ hue: hue === HUE_OFF ? null : hue })}
             />
             <div className="tune-panel__row">
               <span className="tune-panel__label" aria-hidden>

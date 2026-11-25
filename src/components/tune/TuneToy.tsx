@@ -17,8 +17,14 @@ import {
 import { applyTune, TUNE_DEFAULT, type Tune } from "@/lib/tune";
 import type { TunePanelProps } from "./TunePanel";
 
+/** If the panel can't load (offline, or a deploy replaced the chunk), give the button back. */
+function PanelFailed({ onOpenChange }: TunePanelProps) {
+  useEffect(() => onOpenChange(false), [onOpenChange]);
+  return null;
+}
+
 const TunePanel = lazy<ComponentType<TunePanelProps>>(() =>
-  import("./TunePanel").catch(() => ({ default: () => null })),
+  import("./TunePanel").catch(() => ({ default: PanelFailed })),
 );
 
 export function TuneToy() {
