@@ -2,7 +2,7 @@
 
 Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun, Tailwind 4, MDX.
 
-- Implementation rules: [`.agents/CODE.md`](.agents/CODE.md). Design values: [`.agents/DESIGN.md`](.agents/DESIGN.md).
+- Implementation rules: [`.agents/CODE.md`](.agents/CODE.md). Design values: [`.agents/STANDARDS.md`](.agents/STANDARDS.md) (motion, tokens, layout, accessibility).
 - UI: before you write any, read [`docs/ui-kit.md`](docs/ui-kit.md) and use a listed component (`src/components/{ui,code,editorial}`) or shared class. A new component gets a row there in the same change.
 - Somesh's design rules and the case study format: [`.agents/DESIGN.md`](.agents/DESIGN.md#site-decisions-someshkscom). Follow them whenever you touch the look or write copy, and run the review below before he sees anything.
 - Skills live in [`.agents/skills/`](.agents/skills/README.md). Use them for tokens, typography, motion, layout, accessibility, mobile and interface review.

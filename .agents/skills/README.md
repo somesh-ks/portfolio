@@ -2,7 +2,7 @@
 
 Copied from Somesh's curated plugins in the private `somesh-ks/.agents` repo, plus four upstream skills. Cloud agent sessions cannot read that repo, so this folder is the copy they use. `.claude/skills` is a symlink to this folder.
 
-Paths inside these skills written as `~/.agents/DESIGN.md` or `~/.agents/CODE.md` resolve to `.agents/DESIGN.md` and `.agents/CODE.md` in this repo.
+Paths inside these skills written as `~/.agents/DESIGN.md` resolve to `.agents/STANDARDS.md` (general values) plus `.agents/DESIGN.md` (site decisions, which win); `~/.agents/CODE.md` resolves to `.agents/CODE.md`.
 
 | Skill | Source |
 | --- | --- |

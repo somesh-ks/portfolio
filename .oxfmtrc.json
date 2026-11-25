@@ -10,6 +10,7 @@
     "test-results/**",
     ".claude/**",
     "public/**",
-    "tests/fixtures/audit/**"
+    "tests/fixtures/audit/**",
+    "docs/ui-kit.md"
   ]
 }
