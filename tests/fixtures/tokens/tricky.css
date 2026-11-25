@@ -1,0 +1,8 @@
+/* a comment with --fake: #f00; and { braces } */
+:root {
+  --important: #123456 !important;
+  --fb: var(--a, var(--b, #fff));
+  --mix: color-mix(in oklab, var(--fb) 40%, transparent);
+  --ld: light-dark(#fff, #000);
+  --spaced: 4px;
+}

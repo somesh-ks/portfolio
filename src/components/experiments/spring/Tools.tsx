@@ -6,6 +6,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Eye } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
+import { readInput, writeInput } from "@/lib/spring/io";
 import {
   DEFAULT_INPUT,
   inputFromSeed,
@@ -69,6 +70,12 @@ function save(name: string, blob: Blob) {
 }
 const text = (s: string, type: string) => new Blob([s], { type });
 
+/** exportAll's files plus spring.json, the same system as plain data. */
+const withJson = (system: System, files: ExportFile[]) => [
+  ...files.map((x) => ({ path: x.path, content: x.content })),
+  { path: "spring.json", content: writeInput(system.input) },
+];
+
 const AREAS: { area: Area; label: string }[] = [
   { area: "color", label: "Color" },
   { area: "type", label: "Type" },
@@ -83,8 +90,30 @@ const AREAS: { area: Area; label: string }[] = [
 function ExportMenu({ system }: { system: System }) {
   const [, copy, said] = useCopy();
   const name = slug(system.input.name);
-  const all = () =>
-    save(`${name}.zip`, zip(exportAll(system).map((x) => ({ path: x.path, content: x.content }))));
+  const [importing, setImporting] = useState(false);
+  const [dropped, setDropped] = useState("");
+  // A file dropped anywhere on the app opens the import dialog, filled in.
+  useEffect(() => {
+    const over = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      const file = e.dataTransfer?.files[0];
+      if (!file) return;
+      e.preventDefault();
+      file.text().then((t) => {
+        setDropped(t);
+        setImporting(true);
+      });
+    };
+    addEventListener("dragover", over);
+    addEventListener("drop", drop);
+    return () => {
+      removeEventListener("dragover", over);
+      removeEventListener("drop", drop);
+    };
+  }, []);
+  const all = () => save(`${name}.zip`, zip(withJson(system, exportAll(system))));
   const area = (a: Area) => {
     const { css, json } = exportArea(system, a);
     save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
@@ -117,6 +146,18 @@ function ExportMenu({ system }: { system: System }) {
               <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
                 <span className="select__text">Copy share link</span>
               </Menu.Item>
+              <Menu.Item
+                className="select__item"
+                onClick={() =>
+                  save("spring.json", text(writeInput(system.input), "application/json"))
+                }
+              >
+                <span className="select__text">spring.json</span>
+                <span className="select__hint">.json</span>
+              </Menu.Item>
+              <Menu.Item className="select__item" onClick={() => setImporting(true)}>
+                <span className="select__text">Import…</span>
+              </Menu.Item>
               <Menu.Item className="select__item" onClick={resetInput}>
                 <span className="select__text">Start over</span>
               </Menu.Item>
@@ -125,7 +166,107 @@ function ExportMenu({ system }: { system: System }) {
         </Menu.Portal>
       </Menu.Root>
       <output className="sr-only">{said}</output>
+      <ImportDialog
+        open={importing}
+        onOpenChange={(o) => {
+          setImporting(o);
+          if (!o) setDropped("");
+        }}
+        initial={dropped}
+      />
     </span>
+  );
+}
+
+/** Reads spring.json exactly; anything else goes through the audit for its closest system. */
+function ImportDialog({
+  open,
+  onOpenChange,
+  initial,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  initial: string;
+}) {
+  const [value, setValue] = useState("");
+  const [result, setResult] = useState<{ error?: string; lines: string[] } | null>(null);
+  const [lastInitial, setLastInitial] = useState("");
+  if (initial !== lastInitial) {
+    setLastInitial(initial);
+    setValue(initial);
+    setResult(null);
+  }
+  const run = async () => {
+    const t = value.trim();
+    if (!t) return setResult({ error: "Paste or drop a file first.", lines: [] });
+    try {
+      let json: unknown;
+      try {
+        json = t.startsWith("{") ? JSON.parse(t) : undefined;
+      } catch {}
+      if (json && typeof json === "object" && ("$schema" in json || "v" in json)) {
+        const r = readInput(json);
+        loadInput(r.input);
+        return setResult({ lines: ["Imported spring.json.", ...r.notes] });
+      }
+      const { audit } = await import("@/lib/spring/audit");
+      loadInput(audit(t).input);
+      setResult({ lines: ["Closest starting point we could infer from this file."] });
+    } catch (e) {
+      setResult({ error: e instanceof Error ? e.message : "Couldn't read that.", lines: [] });
+    }
+  };
+  const pick = (f?: File) =>
+    f?.text().then((t) => {
+      setValue(t);
+      setResult(null);
+    });
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="palette-backdrop" />
+        <Dialog.Popup className="palette spring spring-dialog">
+          <div className="spring-dialog__head">
+            <Dialog.Title className="spring-dialog__title">Import</Dialog.Title>
+            <Dialog.Close className="button">Close</Dialog.Close>
+          </div>
+          <Dialog.Description className="spring-meta">
+            spring.json, CSS variables, tokens.json, tailwind.config.js or DESIGN.md. Drop a file
+            anywhere on the page, or paste it.
+          </Dialog.Description>
+          <textarea
+            className="spring-audit-input spring-code"
+            aria-label="Import text"
+            value={value}
+            spellCheck={false}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setResult(null);
+            }}
+          />
+          <span className="spring-export__row">
+            <button type="button" className="button button--primary" onClick={run}>
+              Import
+            </button>
+            <label className="spring-link">
+              Choose a file
+              <input
+                type="file"
+                className="sr-only"
+                aria-label="Choose a file"
+                onChange={(e) => pick(e.target.files?.[0])}
+              />
+            </label>
+          </span>
+          <output className="spring-meta" style={{ display: "block" }}>
+            {result?.error ? <p className="spring-import__error">{result.error}</p> : null}
+            {result?.lines.map((l) => (
+              <p key={l}>{l}</p>
+            ))}
+          </output>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -927,11 +1068,7 @@ function TokensControls({
   setFile: (label: string) => void;
 }) {
   const [copied, copy, said] = useCopy();
-  const download = () =>
-    save(
-      `${slug(system.input.name)}.zip`,
-      zip(files.map((x) => ({ path: x.path, content: x.content }))),
-    );
+  const download = () => save(`${slug(system.input.name)}.zip`, zip(withJson(system, files)));
   const name = f.path.split("/").pop();
   return (
     <>

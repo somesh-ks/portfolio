@@ -1389,3 +1389,8 @@
 .spring-strip--plain > .spring-meta {
   text-align: right;
 }
+
+.spring-import__error {
+  color: var(--text-primary);
+  text-decoration: underline wavy var(--border-strong);
+}

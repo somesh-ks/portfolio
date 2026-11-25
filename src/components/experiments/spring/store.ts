@@ -9,6 +9,7 @@
  */
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Mode } from "@/lib/spring/color";
+import { inputFromParams } from "@/lib/spring/io";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/system";
 
@@ -42,9 +43,13 @@ function load() {
     saved = localStorage.getItem(KEY);
     line = localStorage.getItem("spring-line") ?? "";
   } catch {}
-  // A share link wins; a broken one falls back to this browser's last system.
-  input =
-    decodeInput(new URLSearchParams(location.search).get("s")) ?? decodeInput(saved) ?? STARTER;
+  // A share or seed link (?s=, ?primary=&name=…) wins; a broken one falls back to this
+  // browser's last system. Either way the saved copy is replaced only on the first edit.
+  let fromUrl: SystemInput | null = null;
+  try {
+    fromUrl = inputFromParams(new URLSearchParams(location.search))?.input ?? null;
+  } catch {}
+  input = fromUrl ?? decodeInput(saved) ?? STARTER;
 }
 
 function emit() {

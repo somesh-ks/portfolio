@@ -1,0 +1,14 @@
+:root {
+  --bg: #fff;
+  --accent: #0066ff;
+}
+[data-theme="ocean"] {
+  --bg: #001f3f;
+  --accent: #7fdbff;
+}
+[data-theme="dark"] {
+  --bg: #000;
+}
+.theme-sunset {
+  --bg: #fff3e0;
+}

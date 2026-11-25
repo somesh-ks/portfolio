@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("Spring runs as its own app, without the site frame", async ({ page }) => {
@@ -74,4 +75,52 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   await expect(page).not.toHaveURL(/\?s=/);
   await page.reload();
   await expect(names.nth(0)).toHaveValue(first);
+});
+
+test("a seed link loads its system", async ({ page }) => {
+  await page.goto("/spring?primary=%23e11d48&name=Seedtest");
+  await page.getByRole("tab", { name: "Tokens" }).click();
+  await expect(page.getByLabel("System name")).toHaveValue("Seedtest");
+});
+
+test("Export gives spring.json, valid and self-describing", async ({ page }) => {
+  await page.goto("/spring");
+  await page.getByRole("button", { name: "Export one area" }).click();
+  const dl = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: /spring\.json/ }).click();
+  const file = await (await dl).path();
+  const json = JSON.parse(readFileSync(file, "utf8"));
+  expect(json.$schema).toMatch(/schema\.json$/);
+  expect(typeof json.name).toBe("string");
+});
+
+test("Import reads a spring.json", async ({ page }) => {
+  await page.goto("/spring");
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("menuitem", { name: /Import/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Import" });
+  await dialog
+    .getByLabel("Import text")
+    .fill(
+      JSON.stringify({ $schema: "https://someshks.com/spring/schema.json", name: "Importtest" }),
+    );
+  await dialog.getByRole("button", { name: "Import", exact: true }).click();
+  await expect(dialog.getByText("Imported spring.json.")).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("tab", { name: "Tokens" }).click();
+  await expect(page.getByLabel("System name")).toHaveValue("Importtest");
+});
+
+test("Import turns CSS variables into a starting point", async ({ page }) => {
+  await page.goto("/spring");
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("menuitem", { name: /Import/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Import" });
+  await dialog
+    .getByLabel("Import text")
+    .fill(
+      ":root{--background:0 0% 100%;--foreground:222 47% 11%;--primary:346 77% 49%;--radius:0.5rem}",
+    );
+  await dialog.getByRole("button", { name: "Import", exact: true }).click();
+  await expect(dialog.getByText(/closest starting point/i)).toBeVisible();
 });

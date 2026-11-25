@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://someshks.com/spring/schema.json",
+  "title": "spring.json",
+  "description": "Spring's input: the few choices a whole design system is built from. Open it at https://someshks.com/spring (Import), or build it offline with the spring CLI. Out-of-range values are clamped and reported, unknown fields ignored.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "v": { "const": 1 },
+    "name": { "type": "string", "maxLength": 60, "default": "Untitled" },
+    "primary": {
+      "description": "The brand color: any CSS color string (\"#e11d48\", \"oklch(0.6 0.2 20)\"), or the engine's own shape.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "hue": { "type": "number", "minimum": 0, "maximum": 360 },
+            "chroma": { "type": "number", "minimum": 0, "maximum": 0.4 },
+            "solidL": { "type": "number", "minimum": 0.2, "maximum": 0.95, "description": "OKLCH lightness of the brand fill." },
+            "label": { "enum": ["auto", "white", "ink"], "description": "Text color on the brand fill." }
+          }
+        }
+      ]
+    },
+    "neutralTint": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.3, "description": "0 pure gray, 1 clearly tinted." },
+    "neutralHue": { "type": "number", "minimum": 0, "maximum": 360, "description": "Hue the grays lean to. Defaults to the primary's." },
+    "curve": {
+      "type": "object",
+      "description": "Lightness curve of every 12-step scale.",
+      "properties": {
+        "bezier": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "default": [0.42, 0, 1, 1] },
+        "hueShift": { "type": "number", "minimum": -60, "maximum": 60, "default": 0 },
+        "darkChroma": { "type": "number", "minimum": 0.4, "maximum": 1.2, "default": 1 }
+      },
+      "required": ["bezier", "hueShift"]
+    },
+    "status": {
+      "type": "object",
+      "description": "Status color overrides as #rrggbb.",
+      "properties": {
+        "danger": { "$ref": "#/$defs/hex" },
+        "warning": { "$ref": "#/$defs/hex" },
+        "success": { "$ref": "#/$defs/hex" },
+        "info": { "$ref": "#/$defs/hex" }
+      },
+      "additionalProperties": false
+    },
+    "colors": { "type": "array", "maxItems": 6, "items": { "$ref": "#/$defs/strip" }, "description": "Extra color scales." },
+    "contrast": { "enum": ["aa", "aaa", "apca"], "default": "aa" },
+    "data": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/strip" }, "description": "Chart colors in order. Absent: suggested from the primary." },
+    "ramps": {
+      "type": "object",
+      "properties": {
+        "seq": { "type": "integer", "minimum": 0, "description": "Index into data for the sequential ramp." },
+        "div": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "type": {
+      "type": "object",
+      "properties": {
+        "body": { "type": "string", "description": "Any Google Fonts family.", "default": "Inter" },
+        "heading": { "type": "string", "default": "Inter" },
+        "mono": { "type": "string", "default": "JetBrains Mono" },
+        "base": { "type": "number", "minimum": 12, "maximum": 22, "default": 16, "description": "Body size, px." },
+        "ratio": { "type": "number", "minimum": 1.05, "maximum": 1.7, "default": 1.25 },
+        "headingWeight": { "type": "number", "minimum": 100, "maximum": 900, "default": 600 },
+        "fluid": { "type": "boolean", "default": true }
+      }
+    },
+    "density": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5, "description": "0 compact, 1 comfortable." },
+    "roundness": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5, "description": "0 square, 1 very round." },
+    "motion": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.4, "description": "0 calm, 1 lively." },
+    "stack": {
+      "type": "object",
+      "properties": {
+        "building": { "enum": ["site", "app", "dashboard"], "default": "app" },
+        "ownership": { "enum": ["own", "package"], "default": "own" },
+        "styling": { "enum": ["tailwind", "css"], "default": "tailwind" }
+      }
+    }
+  },
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "strip": {
+      "type": "object",
+      "properties": { "name": { "type": "string", "maxLength": 24 }, "hex": { "$ref": "#/$defs/hex" } },
+      "required": ["name", "hex"]
+    }
+  }
+}
