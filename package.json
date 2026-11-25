@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "bun scripts/build-resume.ts && next build",
+    "build": "bun scripts/build-resume.ts && bun scripts/github-contributions.ts && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --deny-warnings",
