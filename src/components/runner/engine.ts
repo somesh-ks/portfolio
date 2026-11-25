@@ -63,8 +63,6 @@ function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite>
   return Object.fromEntries(
     // A ride that failed to load falls back to the classic walk, loops and all.
     COSTUMES.map((costume) => {
-      // The car is drawn in code; it needs nothing from the file.
-      if (costume === "car") return [costume, buildSprite(walkSprite, "car")];
       const raw = costume === "walk" ? undefined : rides[costume];
       return [costume, raw ? buildSprite(raw, costume) : buildSprite(walkSprite, "walk")];
     }),
@@ -379,8 +377,11 @@ export function createEngine(
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
-    for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
+    const k = sprite.cell ?? 1;
+    for (const [x, y, w, h, color] of rects)
+      fill(WORLD.mascotX + x * k, lift + y * k, w * k, h * k, color);
     const accessory = accessoryFor(weather);
+    // The car wears a helmet and takes no props, so faces stay in art pixels.
     const face = accessory ? faceOf(rects) : null;
     if (!accessory || !face) {
       shelter = null;

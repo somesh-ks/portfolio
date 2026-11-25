@@ -17,9 +17,7 @@ import { OBSTACLE_SPRITES } from "@/lib/runner/sprites";
 
 const sprite = (costume: (typeof COSTUMES)[number]) =>
   buildSprite(
-    costume === "walk" || costume === "car"
-      ? walkSprite
-      : (rides as Record<string, RawSprite>)[costume]!,
+    costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!,
     costume,
   );
 
