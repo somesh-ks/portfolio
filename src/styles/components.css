@@ -2182,7 +2182,7 @@ claude-mascot:defined > * {
   background:
     linear-gradient(
       to right,
-      var(--surface-hover) var(--p),
+      var(--surface-hover) var(--p-line),
       var(--text-primary) var(--p-line) calc(var(--p-line) + var(--dial-line, 1px)),
       transparent calc(var(--p-line) + var(--dial-line, 1px))
     ),

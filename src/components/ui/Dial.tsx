@@ -8,7 +8,14 @@
  * Enter to commit, Escape to revert, and Up/Down (Shift for ×10) to step.
  * Double-click the row to reset when `reset` is given.
  */
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -49,7 +56,15 @@ export function Dial({
   const [pressed, setPressed] = useState(false);
   const range = useRef<HTMLInputElement>(null);
   /** The live drag: last pointer x, the unsnapped value so far, and whether it moved past a click. */
-  const drag = useRef<{ x: number; v: number; start: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    id: number;
+    x: number;
+    v: number;
+    start: number;
+    moved: boolean;
+  } | null>(null);
+  /** A press that ended without a drag: the click that follows sets the point. */
+  const tapped = useRef(false);
   const snap = (v: number) => {
     const s = Math.round((clamp(v, min, max) - min) / step) * step + min;
     return Number(s.toFixed(6));
@@ -90,18 +105,20 @@ export function Dial({
   const unit = /[^\d.\s+-]+$/.exec(show)?.[0] ?? "";
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || (e.target as Element).closest(".dial__value")) return;
+    // One pointer owns a scrub; a second finger can't take it over.
+    if (drag.current || e.button !== 0 || (e.target as Element).closest(".dial__value")) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     setPressed(true);
     // A half-typed value commits on blur; scrub from it, not the stale prop.
     const start = draft === null ? value : (typed(draft) ?? value);
     range.current?.focus({ preventScroll: true });
-    drag.current = { x: e.clientX, v: start, start, moved: false };
+    tapped.current = false;
+    drag.current = { id: e.pointerId, x: e.clientX, v: start, start, moved: false };
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
-    if (!d) return;
+    if (!d || e.pointerId !== d.id) return;
     const dx = e.clientX - d.x;
     // Touch gets a wider slop so a vertical scroll's jitter doesn't scrub.
     if (!d.moved && Math.abs(dx) < (e.pointerType === "touch" ? 8 : 3)) return;
@@ -117,7 +134,7 @@ export function Dial({
   };
   const up = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
-    if (!d) return;
+    if (!d || e.pointerId !== d.id) return;
     drag.current = null;
     setPressed(false);
     if (e.type === "pointercancel") {
@@ -125,15 +142,23 @@ export function Dial({
       if (d.moved) onChange(snap(d.start));
       return;
     }
+    if (d.moved) onCommit?.();
+    else tapped.current = true;
+  };
+  // Pointer events carry no click count, so click-to-set waits for the click.
+  const click = (e: MouseEvent<HTMLDivElement>) => {
+    if (!tapped.current) return;
+    tapped.current = false;
     // The second click of a double-click resets instead of setting.
-    if (!d.moved && !(reset !== undefined && e.detail > 1)) {
-      const r = e.currentTarget.getBoundingClientRect();
-      onChange(snap(min + ((e.clientX - r.left) / r.width) * (max - min)));
-    }
+    if (reset !== undefined && e.detail > 1) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    onChange(snap(min + ((e.clientX - r.left) / r.width) * (max - min)));
     onCommit?.();
   };
 
+  // The hidden range inside is the keyboard and screen-reader control; the row only adds pointer input.
   return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className={className ? `dial ${className}` : "dial"}
       data-flash={flash || undefined}
@@ -143,6 +168,7 @@ export function Dial({
       onPointerMove={move}
       onPointerUp={up}
       onPointerCancel={up}
+      onClick={click}
       onDoubleClick={
         reset === undefined
           ? undefined
