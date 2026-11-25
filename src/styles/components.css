@@ -3337,11 +3337,32 @@ claude-mascot:defined > * {
   .tune-panel[data-ending-style] {
     transform: translateY(1.5rem);
   }
+  /* A hairline list instead of boxed rows: 44px targets without the weight. */
   .tune-panel__body {
     grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 0;
   }
   .tune-panel__body > .tune-hue {
     grid-column: 1 / -1;
+  }
+  .tune-panel__body > *,
+  .tune-panel__body > .dial:hover {
+    padding-inline: var(--space-3);
+    box-shadow: none;
+  }
+  .tune-panel__body > :not(:nth-last-child(-n + 2)) {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tune-panel__body > :nth-child(even) {
+    border-right: 1px solid var(--border-subtle);
+  }
+  .tune-panel .segmented__item {
+    border-left-color: var(--border-subtle);
+  }
+  /* Segments reach the row's edge, so the row keeps no inset on that side. */
+  .tune-panel__body > .tune-panel__row {
+    padding-right: 0;
   }
   /* Out of the way while a run is being played; back once the game loses focus. */
   body:has(.runner__screen[data-active]:focus) .tune-button {
