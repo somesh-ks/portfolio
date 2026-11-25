@@ -152,6 +152,23 @@ describe("accessories", () => {
     expect(accessoryFor({ sky: "cloudy", night: false })).toBeNull();
   });
 
+  test("no prop covers an eye, on any ride, frame, prop or sway", () => {
+    for (const costume of COSTUMES) {
+      const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
+      const sprite = buildSprite(raw, costume);
+      for (const frame of [sprite.idle, ...sprite.frames]) {
+        const face = findFace(frame)!;
+        for (const prop of ["umbrella", "beanie", "nightcap"] as const)
+          for (const sway of [-1, 0, 1] as const)
+            for (const [x, y, w, h] of dress(face, prop, costume, sway, 30))
+              for (const [ex, ey] of face.eyes) {
+                const apart = x >= ex + 2 || ex >= x + w || y >= ey + 2 || ey >= y + h;
+                expect(apart, `${costume} ${prop}`).toBe(true);
+              }
+      }
+    }
+  });
+
   test("no hat sits on the kite rider's eyes", () => {
     const face = { eyes: [[6, -15] as const], top: -16, left: 4, right: 19 };
     expect(dress(face, "nightcap", "kite", 0)).toEqual([]);
