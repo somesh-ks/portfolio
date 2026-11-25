@@ -26,8 +26,9 @@ type Limb = readonly [number, number] | null;
 /** How a ride seats Claude on frame `f`: the torso's own nudge and where each limb goes. */
 export interface RidePose {
   body: readonly [number, number];
-  armL: Limb;
-  armR: Limb;
+  /** Omitted: the arm follows the action. Set: it holds that spot while the action leaves it flat. */
+  armL?: Limb;
+  armR?: Limb;
   legs: readonly [Limb, Limb, Limb, Limb];
 }
 
@@ -51,6 +52,8 @@ export interface ItemDef {
   layers?: Layer[];
   /** Several parts (back/front, particles). Replaces rows/layers. */
   parts?: ItemPart[];
+  /** Parts the picker's thumbnail draws instead of `parts` (rides: the vehicle alone, cleaned up). */
+  thumb?: ItemPart[];
   /** Offset for the whole item per frame, or null to hide it. */
   pose?: (f: number, n: number) => readonly [number, number] | null;
   /** claims "arms": where each arm goes (relative to the body) on frame `f`. */

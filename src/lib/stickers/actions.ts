@@ -138,7 +138,7 @@ const peek: ActionDef = {
   id: "peek",
   name: "Peek",
   frames: 24,
-  still: 14,
+  still: 6,
   // Leans out around a corner, feet planted, one hand up on the edge it leans past.
   pose: (f) => {
     const left = f >= 4 && f < 10;

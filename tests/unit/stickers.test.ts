@@ -23,6 +23,7 @@ import {
   type Slot,
   setItem,
   stickerSvg,
+  stillFrame,
 } from "@/lib/stickers";
 import { gifBuffer, pngBuffer, rasterFrame } from "@/lib/stickers/export";
 import { itemDef, partsOf } from "@/lib/stickers/items";
@@ -605,10 +606,21 @@ describe("art is the object, not the body", () => {
   });
 });
 
+/** Every arm track of a look on one frame, as one string. */
+const sig = (action: ActionId, id: string, f: number) => {
+  const clip = clipFor(look(action, [id]));
+  return JSON.stringify(
+    ["armL", "armR"].flatMap((side) =>
+      ["", "_bent", "_up"].map((k) => named(clip, `${side}${k}`).track[f]),
+    ),
+  );
+};
+
 describe("rides are ridden", () => {
   // Per ride: the most cells the rendered body may differ from the claude.dev original (see
   // scripts/ride-fit.ts: what the rig can't reach is filled, what it paints on empty is extra).
-  const TOLERANCE = { skate: 0, scooter: 1, bike: 6 } as const;
+  // The skateboard rider's right arm follows the action (flat at x 20..23), one cell wider than the original's.
+  const TOLERANCE = { skate: 4, scooter: 1, bike: 6 } as const;
 
   for (const id of ["skate", "scooter", "bike"] as const) {
     test(`${id}: the rendered rider matches the original sprite`, () => {
@@ -651,9 +663,45 @@ describe("rides are ridden", () => {
       const car = ofItem(clip, id)[0]!;
       expect(car.z).toBeGreaterThan(named(clip, "torso").z);
     }
-    // Waving does not lift the hand off the bar.
-    const a = partRects(named(clipFor(look("wave", ["scooter"])), "armR"), 3);
-    const b = partRects(named(clipFor(look("idle", ["scooter"])), "armR"), 3);
-    expect(a).toEqual(b);
+  });
+
+  test("every ride follows the action: waving and cheering raise an arm that idle does not", () => {
+    for (const id of ["skate", "scooter", "bike", "dala"]) {
+      for (const action of ["wave", "cheer"] as const) {
+        const f = stillFrame(action);
+        expect(sig(action, id, f)).not.toBe(sig("idle", id, f));
+        // A raised arm is the up shape, drawn.
+        const clip = clipFor(look(action, [id]));
+        expect(["armL_up", "armR_up"].some((k) => partRects(named(clip, k), f).length > 0)).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  test("a skateboard has no arm pose: the arms follow the action as they do on the ground", () => {
+    for (const f of [0, 3, 12]) {
+      const on = clipFor(look("walk", ["skate"]));
+      const off = clipFor(look("walk", []));
+      expect(armRects(on, "armL", f).map((r) => r.x)).toEqual(
+        armRects(off, "armL", f).map((r) => r.x),
+      );
+    }
+  });
+
+  test("the eyes stay on the face: inside the torso for every ride and action", () => {
+    for (const id of ["skate", "scooter", "bike", "dala"]) {
+      for (const a of IDS) {
+        const clip = clipFor(look(a, [id]));
+        const eyes = clip.parts.filter((p) => p.kind === "eyes");
+        for (let f = 0; f < clip.frames; f++) {
+          const t = partRects(named(clip, "torso"), f)[0]!;
+          for (const r of rectsOf(eyes, f)) {
+            if (r.x < t.x || r.x + r.w > t.x + t.w)
+              throw new Error(`${a} + ${id} f${f}: eye at ${r.x} leaves the torso`);
+          }
+        }
+      }
+    }
   });
 });

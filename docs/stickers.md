@@ -44,8 +44,11 @@ below. Negative coordinates are fine. Somesh's `claude-pixel-stickers` skill can
 - `claims: "legs"` (rides): the legs ignore the action. `seat: "stand"` keeps them visible on the
   ride, `"hide"` tucks them behind its front layer. `ground` is the ground line for the shadow.
   A ride's `rider(f, n)` returns the pose that seats Claude: a torso nudge and an offset (or null,
-  hidden) for each arm and leg from its rest slot. Those limbs ignore the action, so a hand never
-  lets go of the bar; the torso still bobs and the eyes still blink. The vehicle is `parts` drawn at
+  hidden) for each arm and leg from its rest slot. A limb the pose omits (the skateboard's arms) follows the action. A posed arm holds
+  its spot (the bar, the horse's neck, hidden behind the torso) while the action leaves it flat; an arm the
+  action raises (`up`, `bent`: wave, cheer, jump, shrug) follows the action instead. The torso still bobs, the
+  eyes still blink, and their combined glance is clamped to the torso so they never leave the face. `thumb`
+  overrides the parts of a ride's picker thumbnail (the vehicle alone, rider cells removed, frame gaps closed). The vehicle is `parts` drawn at
   its original place in front of the body; wheel states switch by frame with `at`. `eye` is the
   eyes' base glance (looking ahead), `handL` where the left hand appears when a hand item needs it.
 - Items are the object only. A `handL` item has no hand in its art: the rig draws a fist over the
@@ -63,7 +66,7 @@ Then:
    colliding pairs, outline off and thin: the body stays one piece, limbs overlap the torso, held
    items touch the hands, nothing but a face item covers the eyes, bounds stay within 48 x 48 cells.
 2. `bun scripts/sticker-sheet.ts` writes `engine-sheet.png` (and a dark one, a combo sheet and
-   `rides-sheet.png`) to `/mnt/project-files/sticker-studio/v3/`. Look at it: hats sit on the head, held things sit in
+   `rides-sheet.png`) to `/mnt/project-files/sticker-studio/v3/`. `bun scripts/sticker-thumbs.ts` renders the picker thumbnails on light and dark tiles. Look at it: hats sit on the head, held things sit in
    the hand, rides sit under the body.
 
 ## Add an action

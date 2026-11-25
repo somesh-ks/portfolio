@@ -128,6 +128,64 @@ function BrandMark() {
   );
 }
 
+/**
+ * One action in the radio group. The radio is the focused element but the label is the tooltip's
+ * trigger, so keyboard focus opens the name from here (fine pointers only; touch shows labels).
+ */
+function ActionTile({
+  name,
+  fine,
+  checked,
+  groupName,
+  thumb,
+  onSelect,
+}: {
+  name: string;
+  fine: boolean;
+  checked: boolean;
+  groupName: string;
+  thumb: string;
+  onSelect: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const tile = (
+    <label className="stickers-tile pressable">
+      <input
+        type="radio"
+        name={groupName}
+        className="sr-only"
+        aria-label={name}
+        checked={checked}
+        onChange={onSelect}
+        onFocus={(e) => setFocused(e.currentTarget.matches(":focus-visible"))}
+        onBlur={() => setFocused(false)}
+      />
+      <span
+        className="stickers-thumb"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: thumb }}
+      />
+      <span className="stickers-label" aria-hidden="true">
+        {name}
+      </span>
+    </label>
+  );
+  if (!fine) return tile;
+  return (
+    <Tooltip
+      content={name}
+      open={hovered || focused}
+      onOpenChange={(open) => {
+        setHovered(open);
+        if (!open) setFocused(false);
+      }}
+    >
+      {tile}
+    </Tooltip>
+  );
+}
+
 export function StickerStudio() {
   const { play } = useSound();
   const [look, setLook] = useState<Look>(DEFAULT_LOOK);
@@ -149,7 +207,8 @@ export function StickerStudio() {
     const { frame: f, ...l } = lookFromQuery(q);
     setLook(l);
     const hero = stillFrame(l.action);
-    const shared = q.has("fr") && f !== hero;
+    // Any explicit frame in the link pauses there, even the hero frame.
+    const shared = q.has("fr");
     setPos(shared ? f : hero);
     if (shared || matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
     setFine(matchMedia("(hover: hover) and (pointer: fine)").matches);
@@ -336,30 +395,17 @@ export function StickerStudio() {
             <div role="radiogroup" aria-label="Action" className="stickers-grid">
               {ACTIONS.map((m, i) => (
                 <Fragment key={m.id}>
-                  {named(
-                    m.name,
-                    <label className="stickers-tile pressable">
-                      <input
-                        type="radio"
-                        name={`${groupId}-action`}
-                        className="sr-only"
-                        aria-label={m.name}
-                        checked={m.id === look.action}
-                        onChange={() => {
-                          play("tick");
-                          change({ ...look, action: m.id as ActionId });
-                        }}
-                      />
-                      <span
-                        className="stickers-thumb"
-                        aria-hidden="true"
-                        dangerouslySetInnerHTML={{ __html: actionThumbs[i]! }}
-                      />
-                      <span className="stickers-label" aria-hidden="true">
-                        {m.name}
-                      </span>
-                    </label>,
-                  )}
+                  <ActionTile
+                    name={m.name}
+                    fine={fine}
+                    checked={m.id === look.action}
+                    groupName={`${groupId}-action`}
+                    thumb={actionThumbs[i]!}
+                    onSelect={() => {
+                      play("tick");
+                      change({ ...look, action: m.id as ActionId });
+                    }}
+                  />
                 </Fragment>
               ))}
             </div>

@@ -28,8 +28,6 @@ export const RIDE_SPRITES: Record<"skate" | "scooter" | "bike", RideSprite> = {
     pose: [
       {
         body: [0, 0],
-        armL: [0, 0],
-        armR: [-1, 0],
         legs: [
           [1, 0],
           [1, 0],
@@ -39,8 +37,6 @@ export const RIDE_SPRITES: Record<"skate" | "scooter" | "bike", RideSprite> = {
       },
       {
         body: [0, 0],
-        armL: [0, 0],
-        armR: [-1, 0],
         legs: [
           [1, 0],
           [1, 0],

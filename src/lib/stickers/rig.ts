@@ -372,25 +372,28 @@ export function buildClip(action: ActionDef, items: readonly ItemDef[], outline:
     const n = posed(f)?.body ?? [0, 0];
     return [body(f)[0] + n[0], body(f)[1] + n[1]];
   };
+  /** The arm's drawn shape: the action's, unless a front item holds both arms. */
+  const shape = (f: number, side: "armL" | "armR"): ArmShape =>
+    armsItem ? "flat" : (poses[f]?.[side === "armL" ? "shapeL" : "shapeR"] ?? "flat");
   /**
    * A limb the ride poses: from the seat, null when hidden, undefined when the action or a front
-   * item places it. A hand item brings the left arm out so there is a hand to hold it.
+   * item places it. A ride's hand stays on its bar (or hides) while the action leaves the arm
+   * flat; an arm the action raises (up or bent) follows the action, and so does an arm the ride
+   * does not pose. A hand item brings the left arm out so there is a hand to hold it.
    */
   const riderArm = (
     f: number,
     side: "armL" | "armR",
   ): readonly [number, number] | null | undefined => {
     const p = posed(f);
-    if (!p || armsItem) return undefined;
+    if (!p || armsItem || shape(f, side) !== "flat") return undefined;
     const [sx, sy] = seat(f);
     if (side === "armL" && holdsItem)
       return [sx + (ride?.handL?.[0] ?? 0), sy + (ride?.handL?.[1] ?? 0)];
     const l = p[side];
+    if (l === undefined) return undefined;
     return l ? [sx + l[0], sy + l[1]] : null;
   };
-  /** The arm's drawn shape. Rides and front items place the arms themselves: always flat. */
-  const shape = (f: number, side: "armL" | "armR"): ArmShape =>
-    rider || armsItem ? "flat" : (poses[f]?.[side === "armL" ? "shapeL" : "shapeR"] ?? "flat");
   const arm = (f: number, side: "armL" | "armR"): readonly [number, number] | null => {
     const r = riderArm(f, side);
     if (r !== undefined) return r;
@@ -419,6 +422,9 @@ export function buildClip(action: ActionDef, items: readonly ItemDef[], outline:
       Math.min(0, body(f)[1]) + (ride ? 0 : clampTuck(poses[f]?.legs?.[i] ?? 0)),
     ];
   };
+  /** The ride's base glance plus the action's, kept so both eyes stay on the torso (x 4..19). */
+  const glanceX = (f: number) =>
+    Math.max(-2, Math.min(2, (ride?.eye?.[0] ?? 0) + (poses[f]?.eye?.[0] ?? 0)));
   const track = (fn: (f: number) => Step): Step[] => Array.from({ length: N }, (_, f) => fn(f));
 
   const parts: Part[] = [];
@@ -480,7 +486,7 @@ export function buildClip(action: ActionDef, items: readonly ItemDef[], outline:
       track((f) =>
         (poses[f]?.eyes ?? "open") === k
           ? [
-              torso(f)[0] + (tint ? 0 : (ride?.eye?.[0] ?? 0) + (poses[f]?.eye?.[0] ?? 0)),
+              torso(f)[0] + (tint ? 0 : glanceX(f)),
               torso(f)[1] + (tint ? 0 : (ride?.eye?.[1] ?? 0) + (poses[f]?.eye?.[1] ?? 0)),
               1,
             ]

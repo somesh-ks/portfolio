@@ -51,6 +51,64 @@ function spriteParts(s: RideSprite): ItemPart[] {
   return parts;
 }
 
+/**
+ * The picker's thumbnail of a ride is the vehicle alone, from the first state. The rider's own
+ * dark cells (shoes and shadows between the legs: `ink` inside `cols`) and the body-coloured fill
+ * that completes a posed rider are not the vehicle; each is replaced by the frame colour beside
+ * it (the frame runs on behind where the legs were) or dropped when nothing is beside it; small
+ * holes left in the frame where a leg crossed it are closed with the frame colour.
+ */
+const THUMB: Partial<
+  Record<
+    string,
+    {
+      ink: string;
+      frame: string;
+      cols: readonly [number, number];
+      rows: readonly [number, number];
+    }
+  >
+> = {
+  scooter: { ink: "3", frame: "45", cols: [0, 17], rows: [6, 10] },
+  bike: { ink: "5", frame: "4", cols: [7, 18], rows: [7, 12] },
+};
+
+function thumbParts(id: string, s: RideSprite): ItemPart[] | undefined {
+  const t = THUMB[id];
+  if (!t) return undefined;
+  const src = s.states[0]!.map((r) => r.split(""));
+  const gap = (x: number, y: number) => {
+    const c = src[y]?.[x] ?? ".";
+    if (fill(c)) return true;
+    return c === t.ink && x >= t.cols[0] && x <= t.cols[1] && y >= t.rows[0] && y <= t.rows[1];
+  };
+  const rows = src.map((r, y) =>
+    r
+      .map((c, x) => {
+        if (!gap(x, y)) return c;
+        for (const dx of [-1, 1, -2, 2]) {
+          const n = src[y]?.[x + dx];
+          if (n && n !== "." && !gap(x + dx, y)) return n;
+        }
+        return ".";
+      })
+      .join(""),
+  );
+  // Then the legs' own holes in the frame: up to three empty cells between two frame cells.
+  const closed = rows.map((r) => {
+    const out = [...r];
+    for (let x = 0; x < out.length; x++) {
+      if (out[x] !== "." || x === 0 || !t.frame.includes(out[x - 1]!)) continue;
+      let e = x;
+      while (out[e] === ".") e++;
+      if (e - x <= 3 && e < out.length && t.frame.includes(out[e]!)) out.fill(out[x - 1]!, x, e);
+      x = e;
+    }
+    return out.join("");
+  });
+  return [{ layers: art(closed, s.at[0], s.at[1], s.palette) }];
+}
+
 const sprite = (id: "skate" | "scooter" | "bike", name: string): ItemDef => {
   const s = RIDE_SPRITES[id];
   return {
@@ -64,6 +122,7 @@ const sprite = (id: "skate" | "scooter" | "bike", name: string): ItemDef => {
     eye: s.eye,
     rider: (f) => s.pose[f % s.pose.length]!,
     parts: spriteParts(s),
+    thumb: thumbParts(id, s),
   };
 };
 
@@ -136,7 +195,12 @@ export const RIDE: ItemDef[] = [
     handsOver: true,
     // Claude sits in the saddle: the horse's back covers the hips, the right hand rests on its
     // neck and the left arm hides.
-    rider: () => ({ body: [0, 3], armL: null, armR: [-1, 4], legs: [null, null, null, null] }),
+    rider: () => ({
+      body: [0, 3],
+      armL: null,
+      armR: [-1, 4],
+      legs: [null, null, null, null],
+    }),
     parts: HORSE,
   },
 ];
