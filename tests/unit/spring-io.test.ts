@@ -140,7 +140,7 @@ describe("inputFromParams", () => {
     const r = inputFromParams(q(`s=${encodeInput(input)}`))!;
     expect(r.notes).toEqual([]);
     expect(r.input.name).toBe("Shared");
-    expect(linkFor(input)).toBe(`https://someshks.com/spring?s=${encodeInput(input)}`);
+    expect(linkFor(input)).toBe(`https://someshks.com/spring/app?s=${encodeInput(input)}`);
     expect(inputFromParams(new URL(linkFor(input)).searchParams)!.input.primary).toMatchObject(
       input.primary,
     );

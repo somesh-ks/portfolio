@@ -1205,8 +1205,8 @@
 .spring-app__shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  /* On a phone the controls come first: the first thing to do is pick a color. */
-  grid-template-areas: "bar" "side" "canvas";
+  /* On a phone the output comes first, then the controls that change it (Somesh, 2026-11-25). */
+  grid-template-areas: "bar" "canvas" "side";
 }
 .spring-app__bar {
   grid-area: bar;

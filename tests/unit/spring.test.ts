@@ -105,6 +105,33 @@ describe("palette curve", () => {
     const apca = buildSystem({ ...inputFromSeed("#7c3aed"), contrast: "apca" });
     expect(apca.checks.light.find((c) => c.fg === "text")!.min).toBe(75);
   });
+  test("interaction states: pressed, selected and disabled roles for any brand", () => {
+    for (const input of inputs) {
+      const sys = buildSystem(input);
+      for (const mode of ["light", "dark"] as const) {
+        const by = Object.fromEntries(sys.roles[mode].map((r) => [r.name, r]));
+        const step = (n: string) => Number(by[n]!.from.split(".")[1]);
+        expect(step("primary-active")).toBeGreaterThanOrEqual(1);
+        expect(step("primary-active")).toBeLessThanOrEqual(12);
+        const dir = Math.sign(step("primary-hover") - step("primary"));
+        expect(
+          Math.sign(step("primary-active") - step("primary-hover")) * dir,
+        ).toBeGreaterThanOrEqual(0);
+        expect(by.selected!.from).toBe("primary.4");
+        expect(by.disabled!.from).toBe("neutral.3");
+        expect(by["disabled-text"]!.from).toBe("neutral.8");
+        expect(
+          sys.checks[mode].some((c) => c.fg === "primary-fg" && c.bg === "primary-active"),
+        ).toBe(true);
+        expect(sys.checks[mode].some((c) => c.fg === "disabled-text")).toBe(false);
+      }
+      const files = exportAll(sys);
+      for (const n of ["primary-active", "selected", "disabled", "disabled-text"])
+        for (const f of ["tokens.css", "tokens.json", "theme.css"])
+          expect(files.find((x) => x.path.endsWith(f))?.content ?? "").toContain(n);
+    }
+  });
+
   test("a set status color wins, its hue kept inside the status range", () => {
     const base = inputFromSeed("#e11d48");
     const set = (status: SystemInput["status"]) => buildSystem({ ...base, status }).scales;
@@ -651,6 +678,43 @@ describe("primary rename and formats", () => {
     const c = parseColor("#93c5fd")!;
     expect(freshName(c, ["blue"])).toBe("light blue");
     expect(freshName(c, ["blue", "light blue"])).toBe("blue 2");
+  });
+});
+
+const dupes = (ring: string) =>
+  audit(`:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --primary: #1d4ed8;
+  --ring: ${ring};
+}`).findings.some((f) => f.id === "near-dupes");
+
+describe("audit: edges and rings are not text", () => {
+  test("a border named like a link and an illustration ink are not text pairs", () => {
+    const css = `:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --border-link: oklch(20% 0 0 / 0.35);
+  --illustration-mascot-ink: #fafafa;
+}`;
+    const contrast = audit(css).findings.find((f) => f.id === "contrast")!;
+    expect(contrast.status).toBe("pass");
+  });
+
+  test("focus-ring next to a focus color is checked on the page, not on itself", () => {
+    const css = `:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --color-focus: #111111;
+  --focus-ring: #111111;
+}`;
+    expect(audit(css).findings.some((f) => f.id === "ring")).toBe(false);
+  });
+
+  test("a translucent copy of a color is derived, not a near-duplicate", () => {
+    expect(dupes("#1d4ed880")).toBe(false);
+    expect(dupes("oklch(48.8% 0.241 264 / 50%)")).toBe(false);
+    expect(dupes("#1d4ed9")).toBe(true);
   });
 });
 

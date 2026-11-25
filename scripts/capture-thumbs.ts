@@ -28,8 +28,8 @@ const TARGETS: Record<
   { url: string; clip?: string; click?: string; html?: string; dark?: boolean; themeKey?: string }
 > = {
   // Projects
-  "interface-mechanics": {
-    url: `${LOCAL}/projects/interface-mechanics`,
+  skills: {
+    url: `${LOCAL}/projects/skills`,
     clip: ".toy, .stage, pre",
   },
   // Rows that link out show the destination itself.

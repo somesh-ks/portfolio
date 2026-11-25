@@ -1,10 +1,10 @@
 # Spring
 
-> Spring builds a design system from a few choices (brand color, fonts, density, roundness, motion) with exact OKLCH and contrast math, and shows any project's existing design system as a page. Web app: https://someshks.com/spring. Viewer: https://someshks.com/spring/view.
+> Spring builds a design system from a few choices (brand color, fonts, density, roundness, motion) with exact OKLCH and contrast math, and shows any project's existing design system as a page. Web app: https://someshks.com/spring/app. Agent skills: `npx skills add somesh-ks/skills` (design-sys runs Spring's scan; sk-design-sys audits and fixes). Viewer: https://someshks.com/spring/view.
 
 ## For agents
 
-- Agent skill (recommended): `npx skills add somesh-ks/skills --skill spring`. It ships Spring's engine as one offline Node script: `scan` a repo (tokens per theme, contrast, unused tokens, raw colors, off-system classes, a view link), `build` a system, `infer` the closest spring.json from a repo.
+- Agent skills (recommended): `npx skills add somesh-ks/skills`. Ask "show me this project's design system" and design-sys scans the repo (tokens per theme, contrast, unused tokens, raw colors, off-system classes) and returns a Spring View link. `/sk-design-sys audit` maps hard-coded colors to roles and fixes them.
 - HTTP: `GET https://someshks.com/api/spring?primary=%23e11d48&name=Acme&font=Geist` returns JSON `{ input, notes, link, contrast, files: [{ path, content }] }`. Params: `primary` (any CSS color), `name`, `font` (body and heading), `body`, `heading`, `mono` (any Google font), `base` (px), `ratio`, `contrast` (aa, aaa, apca), `styling` (tailwind, css), `building` (site, app, dashboard), or `s` (a share code). Add `file=tokens.css` (or theme.css, tokens.json, DESIGN.md, AGENTS.md, palette.js, SKILL.md, spring.json) for one file as plain text. `POST` the same URL with spring.json as the body for full control.
 - `notes` lists every value Spring clamped or ignored, so check it.
 - `link` opens the same system in Spring for a person to tune by eye. Spring's Export menu downloads spring.json; send it back to rebuild.
