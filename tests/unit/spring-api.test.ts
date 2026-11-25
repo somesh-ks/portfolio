@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { GET, POST } from "@/app/api/spring/route";
 import { decodeInput } from "@/lib/spring/state";
 
+const post = (body: string) => POST(new Request("https://x/api/spring", { method: "POST", body }));
 const get = (q: string) => GET(new Request(`https://someshks.com/api/spring?${q}`));
 
 describe("/api/spring", () => {
@@ -72,8 +73,6 @@ describe("/api/spring", () => {
   });
 
   test("POST rejects bodies that aren't JSON or are too big", async () => {
-    const post = (body: string) =>
-      POST(new Request("https://x/api/spring", { method: "POST", body }));
     expect((await post("nope")).status).toBe(400);
     expect((await post("x".repeat(70_000))).status).toBe(413);
   });
