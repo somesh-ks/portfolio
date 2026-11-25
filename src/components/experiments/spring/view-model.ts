@@ -78,7 +78,7 @@ export async function encodePayload(view: View): Promise<string> {
 /** Every custom property the page sets is prefixed, so a visitor's --space-2 never restyles the site. */
 const prop = (name: string) => `--sv-${name}`;
 export const ref = (name: string) => `var(${prop(name)})`;
-const prefixed = (v: string) => v.replace(/var\(\s*--/g, "var(--sv-");
+const prefixed = (v: string) => v.replace(/var\(\s*--/gi, "var(--sv-");
 
 /** The mode's own value, else the default mode's: how a cascade falls back. */
 export function valuesFor(view: View, mode: string): [string, string][] {
@@ -91,6 +91,35 @@ export function valuesFor(view: View, mode: string): [string, string][] {
 }
 
 export const schemeOf = (mode: string) => (/dark|night|dim/i.test(mode) ? "dark" : "light");
+
+/** The first mode whose scheme matches the site's theme, else the file's first mode. */
+export const defaultMode = (modes: string[], dark: boolean) =>
+  modes.find((m) => schemeOf(m) === (dark ? "dark" : "light")) ?? modes[0]!;
+
+/**
+ * Length probes inherit this from their host, so a value the browser rejects
+ * reads back as the sentinel rather than as a plausible 16px.
+ */
+export const LENGTH_SENTINEL = "12345.6px";
+/** A probe's computed text-indent → px, or undefined when it's the sentinel or not px. */
+export function lengthOf(computed: string): number | undefined {
+  if (!computed.endsWith("px") || computed === LENGTH_SENTINEL) return undefined;
+  const v = parseFloat(computed);
+  return Number.isFinite(v) ? v : undefined;
+}
+
+/** React keys for a list that may repeat: the second "x" is "x~1". */
+export function uniqueKeys(list: string[]): string[] {
+  const seen = new Map<string, number>();
+  return list.map((k) => {
+    const n = seen.get(k) ?? 0;
+    seen.set(k, n + 1);
+    return n ? `${k}~${n}` : k;
+  });
+}
+
+/** NUL bytes in the first 8 KB: an image, archive or font, not a text file. */
+export const looksBinary = (text: string) => text.slice(0, 8192).includes("\u0000");
 
 export interface Sorted {
   /** Name-based guess; colors and "other" are confirmed by the browser. */

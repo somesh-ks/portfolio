@@ -69,3 +69,27 @@ test("Rebuild in Spring lands on /spring?s=", async ({ page }) => {
   await page.getByRole("button", { name: "Rebuild in Spring" }).click();
   await page.waitForURL(/\/spring\?s=/);
 });
+
+test("the mode matching the site theme opens first, and bad lengths show raw", async ({ page }) => {
+  const view = {
+    v: 1,
+    name: "Modes",
+    modes: ["dark", "light"],
+    tokens: {
+      background: { dark: "#000000", light: "#ffffff" },
+      "space-ok": { dark: "8px", light: "8px" },
+      "space-bad": { dark: "calc(8px + 1)", light: "calc(8px + 1)" },
+    },
+  };
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto(`/spring/view#d=${link(view)}`);
+  const modes = page.getByRole("group", { name: "Mode" });
+  await expect(modes.getByRole("button", { name: "light" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  const space = page.getByRole("region", { name: "Space" });
+  await expect(space.getByText("8px", { exact: true })).toBeVisible();
+  await expect(space.getByText("calc(8px + 1)", { exact: true })).toBeVisible();
+  await expect(space.getByText("16px")).toHaveCount(0);
+});

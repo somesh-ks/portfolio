@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import {
   colorOf,
   extract,
@@ -24,12 +32,17 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Segmented } from "../Segmented";
 import {
   decodePayload,
+  defaultMode,
   encodePayload,
+  LENGTH_SENTINEL,
+  lengthOf,
+  looksBinary,
   ref,
   SAMPLE,
   scalesOf,
   schemeOf,
   sortTokens,
+  uniqueKeys,
   valuesFor,
 } from "./view-model";
 import "./spring.css";
@@ -38,6 +51,8 @@ import "./view.css";
 const KEY = "spring-view";
 const MAX_FILES = 50;
 const MAX_FILE = 5 * 1024 * 1024;
+/** Google Fonts families loaded at once; the rest are listed as not loaded. */
+const MAX_FONTS = 6;
 
 // Read the link payload as soon as this module runs and drop it from the URL,
 // so analytics beacons and the Referer never carry a visitor's system.
@@ -88,7 +103,7 @@ const SENTINEL = "rgb(1, 2, 3)";
 
 interface Measured {
   colors: Map<string, Paint>;
-  /** Computed px for size (font-size) and space (margin) tokens. */
+  /** Computed px for size and space tokens; missing when the browser rejected the value. */
   px: Map<string, number>;
 }
 
@@ -117,6 +132,7 @@ function measure(view: View, mode: string, colorish: string[], lengths: string[]
   for (const [k, v] of valuesFor(view, mode)) host.style.setProperty(k, v);
   host.style.colorScheme = schemeOf(mode);
   host.style.color = SENTINEL;
+  host.style.textIndent = LENGTH_SENTINEL;
   const probes: [string, HTMLElement, "color" | "length"][] = [];
   for (const n of colorish) {
     const p = document.createElement("i");
@@ -125,7 +141,7 @@ function measure(view: View, mode: string, colorish: string[], lengths: string[]
   }
   for (const n of lengths) {
     const p = document.createElement("i");
-    p.style.fontSize = ref(n);
+    p.style.textIndent = ref(n);
     probes.push([n, p, "length"]);
   }
   host.append(...probes.map((p) => p[1]));
@@ -133,8 +149,8 @@ function measure(view: View, mode: string, colorish: string[], lengths: string[]
   for (const [n, p, what] of probes) {
     const cs = getComputedStyle(p);
     if (what === "length") {
-      const v = parseFloat(cs.fontSize);
-      if (Number.isFinite(v)) out.set(n, v);
+      const v = lengthOf(cs.textIndent);
+      if (v !== undefined) out.set(n, v);
       continue;
     }
     const css = cs.color;
@@ -248,7 +264,7 @@ export function SpringView() {
     return () => removeEventListener("hashchange", onHash);
   }, []);
 
-  const open = (files: { path: string; text: string }[], name?: string) => {
+  const open = (files: { path: string; text: string }[], name?: string, note = "") => {
     try {
       const v = readView(extract(files, name));
       if (!Object.keys(v.tokens).length) {
@@ -258,7 +274,7 @@ export function SpringView() {
         return;
       }
       setView(v);
-      setError("");
+      setError(note);
       keep(v);
       scrollTo(0, 0);
     } catch (e) {
@@ -267,13 +283,27 @@ export function SpringView() {
   };
 
   const readFiles = async (list: FileList | File[]) => {
-    const files = [...list].slice(0, MAX_FILES).filter((f) => f.size <= MAX_FILE);
-    if (!files.length) return;
-    open(
-      await Promise.all(
-        files.map(async (f) => ({ path: f.webkitRelativePath || f.name, text: await f.text() })),
-      ),
+    const all = [...list];
+    const read = await Promise.all(
+      all
+        .slice(0, MAX_FILES)
+        .filter((f) => f.size <= MAX_FILE)
+        .map(async (f) => {
+          try {
+            const text = await f.text();
+            return looksBinary(text) ? null : { path: f.webkitRelativePath || f.name, text };
+          } catch {
+            return null;
+          }
+        }),
     );
+    const files = read.filter((f) => f !== null);
+    const skipped = all.length - files.length;
+    const note = skipped
+      ? `Skipped ${skipped} ${skipped === 1 ? "file" : "files"}: over 5 MB, not text, or past ${MAX_FILES}.`
+      : "";
+    if (!files.length) return setError(note || "Couldn't read that.");
+    open(files, undefined, note);
   };
 
   // Drop anywhere, paste anywhere outside a field.
@@ -401,7 +431,7 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   // A theme change on the site picks the matching mode again.
   useEffect(() => setPicked(null), [siteDark, view]);
-  const fallback = siteDark && view.modes.includes("dark") ? "dark" : view.modes[0]!;
+  const fallback = defaultMode(view.modes, siteDark);
   const mode = picked && view.modes.includes(picked) ? picked : fallback;
   const [format, setFormat] = useState<ColorFormat>("oklch");
   const [said, copy] = useCopy();
@@ -411,7 +441,8 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
   const byKind = (k: string) => names.filter((n) => sorted.kinds.get(n) === k);
 
   const [m, setM] = useState<Measured>({ colors: new Map(), px: new Map() });
-  useEffect(() => {
+  // Before paint, so colors never flash through "Other" first.
+  useLayoutEffect(() => {
     const colorish = names.filter((n) => {
       const k = sorted.kinds.get(n);
       return k === "color" || k === "other";
@@ -469,6 +500,9 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
   });
 
   const value = (n: string) => resolve(view, n, mode) ?? "";
+  // Files can list the same selector or note twice.
+  const scopedKeys = uniqueKeys(view.scoped?.map((s) => s.selector) ?? []);
+  const noteKeys = uniqueKeys(view.notes ?? []);
 
   return (
     <div ref={scope} className="spring-view__shown">
@@ -531,7 +565,11 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
                   </span>
                   <span className="spring-view__name">{n}</span>
                   <span className="spring-meta tabular">
-                    {sorted.unresolved.has(n) ? "unresolved" : `${round(m.px.get(n))}px`}
+                    {sorted.unresolved.has(n)
+                      ? "unresolved"
+                      : m.px.has(n)
+                        ? `${round(m.px.get(n))}px`
+                        : value(n)}
                     {["line-height", "letter-spacing", "font-weight"].map((x) =>
                       view.tokens[`${n}--${x}`] ? ` · ${x} ${value(`${n}--${x}`)}` : "",
                     )}
@@ -633,8 +671,8 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
           <p className="spring-meta">Custom properties set on components, not themes.</p>
           <table className="spring-view__table">
             <tbody>
-              {view.scoped.map((s) => (
-                <tr key={s.selector}>
+              {view.scoped.map((s, i) => (
+                <tr key={scopedKeys[i]}>
                   <td>{s.selector}</td>
                   <td className="tabular">{s.count}</td>
                 </tr>
@@ -646,8 +684,8 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
       {view.notes?.length ? (
         <Section title="Notes" count={view.notes.length}>
           <ul className="spring-view__notes">
-            {view.notes.map((n) => (
-              <li key={n} className="spring-meta">
+            {view.notes.map((n, i) => (
+              <li key={noteKeys[i]} className="spring-meta">
                 {n}
               </li>
             ))}
@@ -914,26 +952,26 @@ function Fonts({
       live = false;
     };
   }, []);
+  // Load at most MAX_FONTS Google families, in token order.
+  const loaded = new Map<string, GoogleRow>();
   const rows = names.map((n) => {
     const v = value(n);
     const fam = firstFamily(v);
     const g = list?.get(fam.toLowerCase());
+    if (g && !unresolved.has(n) && !GENERIC.test(fam) && loaded.size < MAX_FONTS)
+      loaded.set(g[0], g);
     const status = unresolved.has(n)
       ? "unresolved"
       : GENERIC.test(fam)
         ? "system"
         : !list
           ? ""
-          : g
+          : g && loaded.has(g[0])
             ? "Google Fonts"
             : "not loaded";
-    return { n, v, fam, g, status };
+    return { n, v, fam, status };
   });
-  const loads = [
-    ...new Map(
-      rows.filter((r) => r.g && r.status === "Google Fonts").map((r) => [r.g![0], r.g!]),
-    ).values(),
-  ];
+  const loads = [...loaded.values()];
   const href = loads.length
     ? `https://fonts.googleapis.com/css2?${loads
         .map(([name, , weights, axis]) => {
@@ -1043,6 +1081,7 @@ function Hits({
   hits: { value: string; at: string }[];
 }) {
   if (!count) return <p className="spring-meta">{title}: 0</p>;
+  const keys = uniqueKeys(hits.map((h) => `${h.at} ${h.value}`));
   return (
     <details className="spring-view__more">
       <summary>
@@ -1050,8 +1089,8 @@ function Hits({
       </summary>
       <table className="spring-view__table">
         <tbody>
-          {hits.map((h) => (
-            <tr key={`${h.at}${h.value}`}>
+          {hits.map((h, i) => (
+            <tr key={keys[i]}>
               <th scope="row">{h.value}</th>
               <td>{h.at}</td>
             </tr>

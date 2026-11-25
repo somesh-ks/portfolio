@@ -9,7 +9,7 @@
  */
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Mode } from "@/lib/spring/color";
-import { inputFromParams } from "@/lib/spring/io";
+import { inputFromParams, SCHEMA_URL } from "@/lib/spring/io";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
 import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/system";
 
@@ -78,6 +78,23 @@ export function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput
   }, 250);
 }
 
+/** Every URL param that can carry a system (see inputFromParams). */
+const SYSTEM_PARAMS = [
+  "s",
+  "j",
+  "primary",
+  "name",
+  "font",
+  "body",
+  "heading",
+  "mono",
+  "base",
+  "ratio",
+  "contrast",
+  "styling",
+  "building",
+];
+
 /** Back to the starter system: clears the saved copy and the link. */
 export function resetInput() {
   clearTimeout(timer);
@@ -87,8 +104,31 @@ export function resetInput() {
     localStorage.removeItem(KEY);
   } catch {}
   const url = new URL(location.href);
-  url.searchParams.delete("s");
+  for (const p of SYSTEM_PARAMS) url.searchParams.delete(p);
   history.replaceState(history.state, "", url);
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+
+const hasDollarKey = (v: unknown, depth = 0): boolean =>
+  isRecord(v) &&
+  depth < 6 &&
+  Object.entries(v).some(([k, x]) => k.startsWith("$") || hasDollarKey(x, depth + 1));
+
+/**
+ * How the Import dialog reads parsed JSON: spring.json exactly, a Spring View
+ * through its CSS, anything else (DTCG, Style Dictionary) through the audit.
+ */
+export function importRoute(json: unknown): "spring" | "view" | "audit" {
+  if (!isRecord(json)) return "audit";
+  if (json.$schema === SCHEMA_URL) return "spring";
+  if (json.v === 1 && isRecord(json.tokens)) return "view";
+  if ("$schema" in json || "tokens" in json) return "audit";
+  // DTCG groups hold $value/$type leaves; spring.json's objects never do.
+  const dtcg = Object.values(json).some(hasDollarKey);
+  if (dtcg) return "audit";
+  return ["primary", "type", "name", "density"].some((k) => k in json) ? "spring" : "audit";
 }
 
 function setLine(v: string) {

@@ -122,7 +122,50 @@ test("Import turns CSS variables into a starting point", async ({ page }) => {
       ":root{--background:0 0% 100%;--foreground:222 47% 11%;--primary:346 77% 49%;--radius:0.5rem}",
     );
   await dialog.getByRole("button", { name: "Import", exact: true }).click();
-  await expect(dialog.getByText(/closest starting point/i)).toBeVisible();
+  await expect(dialog.getByText("Closest match loaded.")).toBeVisible();
+});
+
+const importText = async (page: import("@playwright/test").Page, text: string) => {
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("menuitem", { name: /Import/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Import" });
+  await dialog.getByLabel("Import text").fill(text);
+  await dialog.getByRole("button", { name: "Import", exact: true }).click();
+  return dialog;
+};
+
+test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", async ({
+  page,
+}) => {
+  await page.goto("/spring?primary=%23e11d48&name=Before");
+  const dtcg = {
+    $schema: "https://www.designtokens.org/schemas/2025.10/format.json",
+    color: { primary: { $type: "color", $value: "#16a34a" } },
+  };
+  let dialog = await importText(page, JSON.stringify(dtcg));
+  await expect(dialog.getByText("Closest match loaded.")).toBeVisible();
+  await expect(dialog.getByText("Imported spring.json.")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Undo" }).click();
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("tab", { name: "Tokens" }).click();
+  await expect(page.getByLabel("System name")).toHaveValue("Before");
+
+  const view = {
+    $schema: "https://someshks.com/spring/view.schema.json",
+    v: 1,
+    name: "Viewfile",
+    modes: ["light"],
+    tokens: { primary: { light: "#16a34a" }, background: { light: "#ffffff" } },
+  };
+  dialog = await importText(page, JSON.stringify(view));
+  await expect(dialog.getByText("Closest match loaded.")).toBeVisible();
+});
+
+test("Start over drops seed params from the URL", async ({ page }) => {
+  await page.goto("/spring?primary=%23e11d48&name=Seedtest&font=Inter");
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("menuitem", { name: "Start over" }).click();
+  await expect.poll(() => new URL(page.url()).search).toBe("");
 });
 
 test("a curve handle follows the pointer", async ({ page }) => {

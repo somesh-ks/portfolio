@@ -36,7 +36,16 @@ import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
-import { setInput as loadInput, resetInput, shareUrl, useCopy, useMode, useSpring } from "./store";
+import {
+  getInput,
+  importRoute,
+  setInput as loadInput,
+  resetInput,
+  shareUrl,
+  useCopy,
+  useMode,
+  useSpring,
+} from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
@@ -91,18 +100,18 @@ function ExportMenu({ system }: { system: System }) {
   const [, copy, said] = useCopy();
   const name = slug(system.input.name);
   const [importing, setImporting] = useState(false);
-  const [dropped, setDropped] = useState("");
+  const [dropped, setDropped] = useState<Dropped>(NOTHING);
   // A file dropped anywhere on the app opens the import dialog, filled in.
   useEffect(() => {
     const over = (e: DragEvent) => {
       if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
     };
     const drop = (e: DragEvent) => {
-      const file = e.dataTransfer?.files[0];
-      if (!file) return;
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
       e.preventDefault();
-      file.text().then((t) => {
-        setDropped(t);
+      void readDrop(files).then((d) => {
+        setDropped(d);
         setImporting(true);
       });
     };
@@ -170,12 +179,40 @@ function ExportMenu({ system }: { system: System }) {
         open={importing}
         onOpenChange={(o) => {
           setImporting(o);
-          if (!o) setDropped("");
+          if (!o) setDropped(NOTHING);
         }}
         initial={dropped}
       />
     </span>
   );
+}
+
+/** A dropped or picked file, read as text, or why it wasn't. */
+interface Dropped {
+  text: string;
+  error?: string;
+  /** Files past the first, which import doesn't read. */
+  note?: string;
+}
+const NOTHING: Dropped = { text: "" };
+const MAX_DROP = 5 * 1024 * 1024;
+
+/** The first file as text; over 5 MB, binary or unreadable says so instead. */
+async function readDrop(files: FileList | File[]): Promise<Dropped> {
+  const list = [...files];
+  const skipped = list.length - 1;
+  const note = skipped ? `Skipped ${skipped} ${skipped === 1 ? "file" : "files"}.` : undefined;
+  const f = list[0]!;
+  if (f.size > MAX_DROP) return { text: "", error: `${f.name} is over 5 MB.`, note };
+  try {
+    const body = await f.text();
+    // NUL bytes near the start: an image, archive or font.
+    if (body.slice(0, 8192).includes("\u0000"))
+      return { text: "", error: `${f.name} isn't a text file.`, note };
+    return { text: body, note };
+  } catch {
+    return { text: "", error: `Couldn't read ${f.name}.` };
+  }
 }
 
 /** Reads spring.json exactly; anything else goes through the audit for its closest system. */
@@ -186,41 +223,62 @@ function ImportDialog({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  initial: string;
+  initial: Dropped;
 }) {
   const [value, setValue] = useState("");
   const [result, setResult] = useState<{ error?: string; lines: string[] } | null>(null);
-  const [lastInitial, setLastInitial] = useState("");
+  // An import replaces the whole system, so keep the one before it for Undo.
+  const [before, setBefore] = useState<SystemInput | null>(null);
+  const [lastInitial, setLastInitial] = useState(NOTHING);
   if (initial !== lastInitial) {
     setLastInitial(initial);
-    setValue(initial);
-    setResult(null);
+    setValue(initial.text);
+    setResult(
+      initial.error || initial.note
+        ? { error: initial.error, lines: initial.note ? [initial.note] : [] }
+        : null,
+    );
+    setBefore(null);
   }
+  const edit = (t: string, error?: string) => {
+    setValue(t);
+    setResult(error ? { error, lines: [] } : null);
+    setBefore(null);
+  };
   const run = async () => {
     const t = value.trim();
     if (!t) return setResult({ error: "Paste or drop a file first.", lines: [] });
+    const prev = getInput();
     try {
       let json: unknown;
       try {
         json = t.startsWith("{") ? JSON.parse(t) : undefined;
       } catch {}
-      if (json && typeof json === "object" && ("$schema" in json || "v" in json)) {
+      const route = importRoute(json);
+      if (route === "spring") {
         const r = readInput(json);
         loadInput(r.input);
+        setBefore(prev);
         return setResult({ lines: ["Imported spring.json.", ...r.notes] });
       }
-      const { audit } = await import("@/lib/spring/audit");
-      loadInput(audit(t).input);
-      setResult({ lines: ["Closest starting point we could infer from this file."] });
+      const [{ audit }, tokens] = await Promise.all([
+        import("@/lib/spring/audit"),
+        route === "view" ? import("@/lib/spring/tokens") : null,
+      ]);
+      // A Spring View file goes in as the CSS it describes.
+      const source = tokens ? tokens.toCss(tokens.readView(json)) : t;
+      loadInput(audit(source).input);
+      setBefore(prev);
+      setResult({ lines: ["Closest match loaded."] });
     } catch (e) {
       setResult({ error: e instanceof Error ? e.message : "Couldn't read that.", lines: [] });
     }
   };
-  const pick = (f?: File) =>
-    f?.text().then((t) => {
-      setValue(t);
-      setResult(null);
-    });
+  const pick = async (f?: File) => {
+    if (!f) return;
+    const d = await readDrop([f]);
+    edit(d.text, d.error);
+  };
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -231,18 +289,14 @@ function ImportDialog({
             <Dialog.Close className="button">Close</Dialog.Close>
           </div>
           <Dialog.Description className="spring-meta">
-            spring.json, CSS variables, tokens.json, tailwind.config.js or DESIGN.md. Drop a file
-            anywhere on the page, or paste it.
+            Paste or drop spring.json, CSS, tokens or a Tailwind config.
           </Dialog.Description>
           <textarea
             className="spring-audit-input spring-code"
             aria-label="Import text"
             value={value}
             spellCheck={false}
-            onChange={(e) => {
-              setValue(e.target.value);
-              setResult(null);
-            }}
+            onChange={(e) => edit(e.target.value)}
           />
           <span className="spring-export__row">
             <button type="button" className="button button--primary" onClick={run}>
@@ -254,14 +308,32 @@ function ImportDialog({
                 type="file"
                 className="sr-only"
                 aria-label="Choose a file"
-                onChange={(e) => pick(e.target.files?.[0])}
+                onChange={(e) => void pick(e.target.files?.[0])}
               />
             </label>
           </span>
           <output className="spring-meta" style={{ display: "block" }}>
             {result?.error ? <p className="spring-import__error">{result.error}</p> : null}
-            {result?.lines.map((l) => (
-              <p key={l}>{l}</p>
+            {result?.lines.map((l, i) => (
+              <p key={l}>
+                {l}
+                {i === 0 && before ? (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      className="spring-link"
+                      onClick={() => {
+                        loadInput(before);
+                        setBefore(null);
+                        setResult({ lines: ["Undone."] });
+                      }}
+                    >
+                      Undo
+                    </button>
+                  </>
+                ) : null}
+              </p>
             ))}
           </output>
         </Dialog.Popup>
