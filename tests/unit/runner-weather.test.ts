@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 import { GET } from "@/app/api/runner/weather/route";
 import {
   RESKINS,
+  NIGHT_RESKINS,
+  obstacleSkin,
   accessoryFor,
   dress,
   findFace,
@@ -98,11 +100,20 @@ describe("weather route", () => {
 
 describe("scene", () => {
   test("reskins keep the size of the obstacle they replace", () => {
-    for (const skins of Object.values(RESKINS))
+    for (const skins of [...Object.values(RESKINS), NIGHT_RESKINS])
       for (const [kind, skin] of Object.entries(skins ?? {})) {
         const original = OBSTACLE_SPRITES[kind as ObstacleKind];
         expect([skin.w, skin.h]).toEqual([original.w, original.h]);
       }
+  });
+
+  test("night dresses the desk, but rain, snow and fog dress it first", () => {
+    expect(obstacleSkin({ sky: "clear", night: true }, "mug")).toBe(NIGHT_RESKINS.mug);
+    expect(obstacleSkin({ sky: "clear", night: true }, "plant")).toBe(NIGHT_RESKINS.plant);
+    expect(obstacleSkin({ sky: "clear", night: false }, "plant")).toBe(RESKINS.clear?.plant);
+    expect(obstacleSkin({ sky: "rain", night: true }, "mug")).toBe(RESKINS.rain?.mug);
+    expect(obstacleSkin({ sky: "snow", night: true }, "bug")).toBe(NIGHT_RESKINS.bug);
+    expect(obstacleSkin({ sky: "cloudy", night: false }, "mug")).toBeUndefined();
   });
 
   test("particles stay inside the sky", () => {
@@ -139,6 +150,12 @@ describe("accessories", () => {
     expect(accessoryFor({ sky: "clear", night: false })).toBeNull();
     expect(accessoryFor({ sky: "clear", night: true })).toBe("nightcap");
     expect(accessoryFor({ sky: "cloudy", night: false })).toBeNull();
+  });
+
+  test("no hat sits on the kite rider's eyes", () => {
+    const face = { eyes: [[6, -15] as const], top: -16, left: 4, right: 19 };
+    expect(dress(face, "nightcap", "kite", 0)).toEqual([]);
+    expect(dress(face, "beanie", "kite", 0)).toEqual([]);
   });
 });
 
