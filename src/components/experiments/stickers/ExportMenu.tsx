@@ -1,74 +1,49 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Menu } from "@base-ui/react/menu";
-import { Download } from "lucide-react";
-import { ACTIONS, type Look, lookToQuery } from "@/lib/stickers";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Popover } from "@base-ui/react/popover";
+import { Braces, Clapperboard, Copy, Download, FileCode, Image as ImageIcon } from "lucide-react";
+import { type Look, lookToQuery, stickerSvg } from "@/lib/stickers";
 import { useSound } from "@/components/providers/SoundProvider";
-import { Chevron } from "@/components/ui/Select";
-import { zip } from "../spring/zip";
+import { Segmented } from "../Segmented";
 
-type Tab = "static" | "animated";
-type Note = "" | "Copied" | "Saved" | "Failed";
+type Note = "" | "Copied" | "Failed";
+const SIZES = ["512", "1024"] as const;
+type Size = (typeof SIZES)[number];
 
 const route = (look: Look, rest: string, frame?: number) =>
   `/stickers/export?${lookToQuery(look, frame === undefined ? undefined : { frame })}&${rest}`;
 
-function save(name: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+const ICON = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
 
-async function bytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(String(res.status));
-  return new Uint8Array(await res.arrayBuffer());
-}
-
-function menuLink(label: string, aria: string, href: string, file: string) {
+function Tile({
+  icon,
+  label,
+  aria,
+  href,
+  file,
+}: {
+  icon: ReactNode;
+  label: string;
+  aria: string;
+  href: string;
+  file: string;
+}) {
   return (
-    <Menu.Item
-      className="select__item"
-      render={<a href={href} download={file} aria-label={aria} />}
-    >
-      <span className="select__text">{label}</span>
-    </Menu.Item>
-  );
-}
-
-function group(title: string, children: ReactNode) {
-  return (
-    <Menu.Group className="stickers-menu__group">
-      <Menu.GroupLabel className="stickers-menu__label">{title}</Menu.GroupLabel>
-      {children}
-    </Menu.Group>
+    <a className="stickers-xtile pressable" href={href} download={file} aria-label={aria}>
+      {icon}
+      <span aria-hidden="true">{label}</span>
+    </a>
   );
 }
 
 const fileName = (look: Look) => ["claude", look.action, ...look.items].join("-");
 
-/**
- * A split button like Spring's: the main press downloads the headline format, the menu lists the
- * rest. Downloads are plain links to the export route, so they work without script too.
- */
-export function ExportMenu({
-  look,
-  tab,
-  frame,
-  svg,
-}: {
-  look: Look;
-  tab: Tab;
-  /** The static frame on screen. */
-  frame: number;
-  /** The static sticker markup, saved as-is for the SVG item. */
-  svg: string;
-}) {
+/** The panel's body. Mounts only while open, so the still thumbnail is drawn on demand. */
+function Panel({ look, still }: { look: Look; still: number }) {
   const { play } = useSound();
+  const [size, setSize] = useState<Size>("512");
+  const [square, setSquare] = useState(false);
   const [note, setNote] = useState<Note>("");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -78,13 +53,16 @@ export function ExportMenu({
     timer.current = setTimeout(() => setNote(""), 1600);
   };
 
-  const animated = tab === "animated";
-  const main = animated ? route(look, "f=gif") : route(look, "f=png&s=512", frame);
   const name = fileName(look);
+  const raster = `s=${size}${square ? "&sq=1" : ""}`;
+  const tag = `${size === "1024" ? "-1024" : ""}${square ? "-square" : ""}`;
+  const n = still + 1;
+  const svg = useMemo(() => stickerSvg(look, { animated: false, frame: still }), [look, still]);
+  const pngHref = route(look, `f=png&${raster}`, still);
 
   const copy = () => {
     // The promise goes to the clipboard unresolved, so Safari keeps the click's permission.
-    const png = fetch(route(look, "f=png&s=512", frame)).then((r) => {
+    const png = fetch(pngHref).then((r) => {
       if (!r.ok) throw new Error(String(r.status));
       return r.blob();
     });
@@ -97,135 +75,105 @@ export function ExportMenu({
       .catch(() => say("Failed"));
   };
 
-  const all = async () => {
-    const ext = animated ? "gif" : "png";
-    const moves = ACTIONS;
-    try {
-      const files = await Promise.all(
-        moves.map(async (m) => ({
-          path: `${["claude", m.id, ...look.items].join("-")}.${ext}`,
-          content: await bytes(
-            route({ ...look, action: m.id }, animated ? "f=gif" : "f=png&s=512"),
-          ),
-        })),
-      );
-      save(`claude-stickers-${ext}.zip`, zip(files));
-      say("Saved");
-    } catch {
-      say("Failed");
-    }
-  };
-
   return (
-    <span className="spring-split">
-      <a
-        href={main}
-        download={`${name}.${animated ? "gif" : "png"}`}
-        className="button button--primary spring-split__main"
-        aria-label={animated ? "Export GIF" : "Export PNG"}
-      >
-        <Download
-          aria-hidden="true"
-          size={16}
-          strokeWidth={1.75}
-          className="stickers-export-icon"
-        />
-        <span aria-hidden="true" className="stickers-export-label">
-          {note || "Export"}
-        </span>
-      </a>
-      <Menu.Root>
-        <Menu.Trigger
-          className="button button--primary spring-split__more"
-          aria-label="More exports"
+    <>
+      <Popover.Title className="sr-only">Export</Popover.Title>
+      <section className="stickers-pop__group">
+        <h3 className="stickers-pop__head">Animated</h3>
+        <div className="stickers-tiles">
+          <Tile
+            icon={<Clapperboard {...ICON} />}
+            label="GIF"
+            aria="Download GIF"
+            href={route(look, `f=gif&${raster}`)}
+            file={`${name}${tag}.gif`}
+          />
+          <Tile
+            icon={<FileCode {...ICON} />}
+            label="SVG"
+            aria="Download animated SVG"
+            href={route(look, "f=svg")}
+            file={`${name}.svg`}
+          />
+          <Tile
+            icon={<Braces {...ICON} />}
+            label="Lottie"
+            aria="Download Lottie JSON"
+            href={route(look, "f=json")}
+            file={`${name}.json`}
+          />
+        </div>
+      </section>
+      <section className="stickers-pop__group">
+        <h3 className="stickers-pop__head">
+          <span
+            className="stickers-pop__thumb"
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+          <span>Still · frame {n}</span>
+        </h3>
+        <div className="stickers-tiles">
+          <Tile
+            icon={<ImageIcon {...ICON} />}
+            label="PNG"
+            aria={`Download PNG, frame ${n}`}
+            href={pngHref}
+            file={`${name}${tag}.png`}
+          />
+          <Tile
+            icon={<FileCode {...ICON} />}
+            label="SVG"
+            aria={`Download still SVG, frame ${n}`}
+            href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}
+            file={`${name}-still.svg`}
+          />
+          <button
+            type="button"
+            className="stickers-xtile pressable"
+            aria-label="Copy PNG"
+            data-sound="none"
+            onClick={copy}
+          >
+            <Copy {...ICON} />
+            <span aria-hidden="true">{note || "Copy"}</span>
+          </button>
+        </div>
+      </section>
+      <div className="stickers-pop__foot">
+        <Segmented label="Size" options={SIZES} value={size} onChange={setSize} />
+        <button
+          type="button"
+          className="button pressable stickers-square"
+          aria-pressed={square}
+          onClick={() => setSquare(!square)}
         >
-          <Chevron />
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
-            <Menu.Popup className="select__popup spring-menu">
-              {animated ? (
-                <>
-                  {group(
-                    "GIF",
-                    <>
-                      {menuLink("512", "Download GIF 512", route(look, "f=gif"), `${name}.gif`)}
-                      {menuLink(
-                        "Square",
-                        "Download square GIF",
-                        route(look, "f=gif&sq=1"),
-                        `${name}-square.gif`,
-                      )}
-                    </>,
-                  )}
-                  {menuLink(
-                    "Animated SVG",
-                    "Download animated SVG",
-                    route(look, "f=svg"),
-                    `${name}.svg`,
-                  )}
-                  {menuLink(
-                    "Lottie",
-                    "Download Lottie JSON",
-                    route(look, "f=json"),
-                    `${name}.json`,
-                  )}
-                </>
-              ) : (
-                <>
-                  {group(
-                    "PNG",
-                    <>
-                      {menuLink(
-                        "512",
-                        "Download PNG 512",
-                        route(look, "f=png&s=512", frame),
-                        `${name}.png`,
-                      )}
-                      {menuLink(
-                        "1024",
-                        "Download PNG 1024",
-                        route(look, "f=png&s=1024", frame),
-                        `${name}-1024.png`,
-                      )}
-                      {menuLink(
-                        "Square",
-                        "Download square PNG",
-                        route(look, "f=png&s=512&sq=1", frame),
-                        `${name}-square.png`,
-                      )}
-                    </>,
-                  )}
-                  <Menu.Item
-                    className="select__item"
-                    aria-label="Download SVG"
-                    onClick={() => save(`${name}.svg`, new Blob([svg], { type: "image/svg+xml" }))}
-                  >
-                    <span className="select__text">SVG</span>
-                  </Menu.Item>
-                  <Menu.Item
-                    className="select__item"
-                    data-sound="none"
-                    aria-label="Copy PNG"
-                    onClick={copy}
-                  >
-                    <span className="select__text">Copy</span>
-                  </Menu.Item>
-                </>
-              )}
-              <Menu.Separator className="spring-menu__rule" />
-              <Menu.Item
-                className="select__item"
-                aria-label="Download all moves as zip"
-                onClick={() => void all()}
-              >
-                <span className="select__text">All moves (.zip)</span>
-              </Menu.Item>
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
+          Square
+        </button>
+      </div>
       <output className="sr-only">{note}</output>
-    </span>
+    </>
+  );
+}
+
+/**
+ * One Export button that opens a panel of icon tiles. Downloads are plain links to the export
+ * route, so they work without script too. `still` is the frame the still row exports.
+ */
+export function ExportMenu({ look, still }: { look: Look; still: number }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger className="button button--primary stickers-export">
+        <Download aria-hidden="true" size={16} strokeWidth={1.75} />
+        Export
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
+          <Popover.Popup className="spring-pop stickers-pop">
+            <Panel look={look} still={still} />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

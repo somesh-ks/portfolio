@@ -17,10 +17,10 @@ type Split = (x: number, y: number) => boolean;
 const behindBody: Split = (x, y) => y <= 14 && x >= 4 && x <= 19;
 
 /** Splits per-state ASCII into static + per-state parts, each cell routed to back or front. */
-function spriteParts(s: RideSprite, isBack: Split = () => false): ItemPart[] {
+function spriteParts(s: RideSprite, isBack: Split = () => false, dx = 0): ItemPart[] {
   const h = s.states[0]!.length;
   const w = s.states[0]![0]!.length;
-  const [ox, oy] = s.at;
+  const [ox, oy] = [s.at[0] + dx, s.at[1]];
   const cell = (k: number, x: number, y: number) => s.states[k]!.at(y)!.charAt(x);
   const same = (x: number, y: number) => s.states.every((_, k) => cell(k, x, y) === cell(0, x, y));
   const parts: ItemPart[] = [];
@@ -103,7 +103,9 @@ export const RIDE: ItemDef[] = [
     claims: "legs",
     seat: "stand",
     ground: 21,
-    parts: spriteParts(RIDE_SPRITES.scooter, behindBody),
+    // Shifted right so the stem and bar stand in front of and beside the torso, where the hands
+    // reach them; nothing of it goes behind the body.
+    parts: spriteParts(RIDE_SPRITES.scooter, () => false, 4),
   },
   {
     id: "bike",
@@ -113,7 +115,8 @@ export const RIDE: ItemDef[] = [
     claims: "legs",
     seat: "hide",
     ground: 19,
-    parts: spriteParts(RIDE_SPRITES.bike, behindBody),
+    // Same shift: only the saddle end stays behind the body, the bar and fork stand in front.
+    parts: spriteParts(RIDE_SPRITES.bike, (x, y) => x <= 14 && y <= 14, 4),
   },
   {
     id: "dala",

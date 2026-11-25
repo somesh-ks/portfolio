@@ -44,7 +44,7 @@ below. Negative coordinates are fine. Somesh's `claude-pixel-stickers` skill can
 - `claims: "legs"` (rides): the legs ignore the action. `seat: "stand"` keeps them visible on the
   ride, `"hide"` tucks them behind its front layer. `ground` is the ground line for the shadow.
   Give rides `parts` with `z: "back"` and `"front"`; wheel states switch by frame with `at`.
-- Effects (`lane`) live at x 21..30, y -16..-1, never above the head, and loop over the action's
+- Effects (`lane`) live at the upper right of the head (x 21..31, y -18..-1) and follow the body. Every particle must sit within two cells of the head corner or of the particle before it, or the die-cut splits into islands (a test checks it); build them as a chain that grows with the loop. They loop over the action's
   frame count: give each particle `at(f, n)` returning `[dx, dy]` or `null` to hide it.
 
 Optional per entry: `layers` (hand-built rects, for alpha), `parts` (several pieces), `pose(f, n)`,

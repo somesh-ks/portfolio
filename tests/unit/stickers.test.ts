@@ -200,11 +200,13 @@ describe("stickers engine", () => {
   test("effects stay in the lane, right of the head", () => {
     for (const id of byslot("effect")) {
       const clip = clipFor(look("wave", [id]));
-      for (let f = 0; f < clip.frames; f++)
+      for (let f = 0; f < clip.frames; f++) {
+        const [, top] = named(clip, "torso").track[f]!;
         for (const r of rectsOf(ofItem(clip, id), f)) {
           expect(r.x).toBeGreaterThanOrEqual(20);
-          expect(r.y + r.h).toBeLessThanOrEqual(0);
+          expect(r.y + r.h).toBeLessThanOrEqual(top);
         }
+      }
     }
   });
 
@@ -327,6 +329,70 @@ describe("die-cut", () => {
       expect(clip.parts.filter((p) => p.kind === "outline").length).toBeLessThan(clip.frames * 2);
     }
   });
+});
+
+/** Cells of the die-cut's white mask on frame `f`, as a set of "x,y". */
+function whiteCells(clip: Clip, f: number): Set<string> {
+  const cells = new Set<string>();
+  for (const p of clip.parts) {
+    if (p.kind !== "outline" || !p.layers.some((l) => l.color === "#FFFFFF")) continue;
+    for (const r of partRects(p, f))
+      for (let y = r.y; y < r.y + r.h; y++)
+        for (let x = r.x; x < r.x + r.w; x++) cells.add(`${x},${y}`);
+  }
+  return cells;
+}
+
+function components(cells: Set<string>): number {
+  const seen = new Set<string>();
+  let n = 0;
+  for (const start of cells) {
+    if (seen.has(start)) continue;
+    n++;
+    seen.add(start);
+    const stack = [start];
+    while (stack.length) {
+      const [x, y] = stack.pop()!.split(",").map(Number) as [number, number];
+      for (const k of [`${x - 1},${y}`, `${x + 1},${y}`, `${x},${y - 1}`, `${x},${y + 1}`]) {
+        if (cells.has(k) && !seen.has(k)) {
+          seen.add(k);
+          stack.push(k);
+        }
+      }
+    }
+  }
+  return n;
+}
+
+const check = (l: Look) => {
+  const clip = clipFor(l);
+  for (let f = 0; f < clip.frames; f++) {
+    const n = components(whiteCells(clip, f));
+    if (n !== 1)
+      throw new Error(`${l.action} + ${l.items.join(",")} o${l.outline} f${f}: ${n} islands`);
+  }
+};
+
+describe("die-cut is one piece", () => {
+  test("every action x every effect, outline 1 and 2", () => {
+    for (const o of [1, 2] as const)
+      for (const a of IDS) for (const e of byslot("effect")) check(look(a, [e], o));
+  }, 120_000);
+
+  test("every item on a calm, a walking and a jumping action, outline 1 and 2", () => {
+    for (const o of [1, 2] as const)
+      for (const a of ["idle", "walk", "jump", "cheer"] as const)
+        for (const i of ITEMS) check(look(a, [i.id], o));
+  }, 120_000);
+
+  test("an effect with a hat, a held item and a ride is still one piece", () => {
+    for (const e of byslot("effect"))
+      for (const o of [1, 2] as const) {
+        check(look("dance", ["crown", e, "bike"], o));
+        check(look("jump", ["captain", e, "kite"], o));
+        check(look("walk", [e, "balloon"], o));
+      }
+  }, 120_000);
 });
 
 describe("look helpers", () => {

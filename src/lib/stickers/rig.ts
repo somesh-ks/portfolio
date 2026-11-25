@@ -400,9 +400,10 @@ export function buildClip(action: ActionDef, items: readonly ItemDef[], outline:
         case "ride":
           return [body(f)[0], Math.min(0, body(f)[1])];
         case "ground":
-        case "lane":
-          return [0, 0];
+          // Stays on the ground, but half-follows a jump so the die-cut stays one piece.
+          return [0, Math.ceil(Math.min(0, body(f)[1]) / 2)];
         default:
+          // head, face, front and lane: the lane rides with the head so it never drifts off.
           return body(f);
       }
     };

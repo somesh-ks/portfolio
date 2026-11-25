@@ -1,13 +1,21 @@
 /**
  * Contact sheet: every action at its hero frame with no items, then every item on idle (rides and
  * hand-held items on wave), outline thin. Writes engine-sheet.png (light) and engine-sheet-dark.png
- * into the folder given as the first argument (default /mnt/project-files/sticker-studio/v3).
+ * (plus combo-sheet.png: twelve hand-picked combinations) into the folder given as the first
+ * argument (default /mnt/project-files/sticker-studio/v3).
  * Optional second argument: an outline width 0, 1 or 2.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
-import { ACTIONS, ITEMS, type Look, type Outline, stillFrame } from "../src/lib/stickers";
+import {
+  ACTIONS,
+  frameCount,
+  ITEMS,
+  type Look,
+  type Outline,
+  stillFrame,
+} from "../src/lib/stickers";
 import { rasterFrame } from "../src/lib/stickers/export";
 
 const out = process.argv[2] ?? "/mnt/project-files/sticker-studio/v3";
@@ -24,7 +32,7 @@ interface Cell {
   frame: number;
   label: string;
 }
-const cells: Cell[] = [
+const allCells: Cell[] = [
   ...ACTIONS.map((a) => ({
     look: { action: a.id, items: [], outline },
     frame: stillFrame(a.id),
@@ -34,15 +42,42 @@ const cells: Cell[] = [
     const action = i.slot === "ride" ? "wave" : "idle";
     return {
       look: { action, items: [i.id], outline } as Look,
-      frame: i.slot === "effect" ? 10 : stillFrame(action),
+      frame:
+        i.slot === "effect"
+          ? Math.floor(frameCount({ action, items: [], outline } as Look) * 0.85)
+          : stillFrame(action),
       label: `${i.name} · ${i.anchor}`,
     };
   }),
 ];
 
+const COMBOS: [Look["action"], string[]][] = [
+  ["wave", ["captain", "vasa"]],
+  ["dance", ["crayhat", "crayfish"]],
+  ["idle", ["polar", "kanelbulle", "steam"]],
+  ["zen", ["flowers", "sparkles"]],
+  ["jump", ["headphones", "skate"]],
+  ["walk", ["party", "balloon"]],
+  ["cheer", ["crown", "flag"]],
+  ["sleep", ["beanie", "zzz"]],
+  ["idle", ["toque", "meatballs"]],
+  ["wave", ["vippass", "shades"]],
+  ["walk", ["metro"]],
+  ["dance", ["dala", "notes"]],
+];
+const comboCells: Cell[] = COMBOS.map(([action, ids]) => {
+  const look: Look = { action, items: ids, outline };
+  const fx = ids.some((id) => ITEMS.find((i) => i.id === id)?.slot === "effect");
+  return {
+    look,
+    frame: fx ? Math.floor(frameCount(look) * 0.85) : stillFrame(action),
+    label: `${action} + ${ids.join(" + ")}`,
+  };
+});
+
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
-async function sheet(file: string, bg: string, fg: string) {
+async function sheet(file: string, bg: string, fg: string, cells: Cell[] = allCells) {
   const rows = Math.ceil(cells.length / COLS);
   const overlays: OverlayOptions[] = [];
   for (const [i, c] of cells.entries()) {
@@ -79,3 +114,4 @@ async function sheet(file: string, bg: string, fg: string) {
 
 await sheet("engine-sheet.png", "#F3F1EA", "#141413");
 await sheet("engine-sheet-dark.png", "#1F1E1D", "#E8E6DC");
+await sheet("combo-sheet.png", "#F3F1EA", "#141413", comboCells);
