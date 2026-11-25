@@ -104,6 +104,8 @@ const MAX_STEPS = 5;
 const MILESTONE = 100;
 /** Largest cell, in CSS pixels. */
 const MAX_CELL_PX = 6;
+/** The car art's body and tyre black. */
+const CAR_INK = "#131413";
 /** Cells above the ground that the tallest ride fills. */
 const HEADROOM = 24;
 /** How long the crash pose holds before Claude walks again. */
@@ -169,7 +171,7 @@ export function createEngine(
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
   let sceneryShift = 0;
-  let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
+  let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "carInk", string>;
   let weather = initialWeather;
   const particles = makeParticles();
   const sway: Sway = { offset: 0, speed: 0 };
@@ -189,6 +191,11 @@ export function createEngine(
       ground: read("--border-strong"),
       cloud: read("--border-default"),
       dust: read("--illustration-grid"),
+      // On the dark page the canvas is the mascot's ink colour.
+      carInk:
+        read("--surface-canvas") === read("--illustration-mascot-ink")
+          ? read("--color-gray-850")
+          : CAR_INK,
     };
   }
 
@@ -384,9 +391,7 @@ export function createEngine(
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
-    const k = sprite.cell ?? 1;
-    for (const [x, y, w, h, color] of rects)
-      fill(WORLD.mascotX + x * k, lift + y * k, w * k, h * k, color);
+    drawRide(sprite, rects, lift);
     const accessory = accessoryFor(weather);
     // The car wears a helmet and takes no props, so faces stay in art pixels.
     const face = accessory ? faceOf(rects) : null;
@@ -401,6 +406,29 @@ export function createEngine(
       accessory === "umbrella" && cells.length
         ? [middle - 8, middle + 8, lift + Math.min(...cells.map(([, y]) => y)) + 1]
         : null;
+  }
+
+  /** A ride with a smoothed copy uses it once each of its pixels spans two
+   * device pixels; below that the finer art would blur. Near-black that would
+   * vanish on the dark page (the car's tyres) is lifted to read. */
+  function drawRide(sprite: Sprite, rects: Sprite["idle"], lift: number) {
+    let art = sprite;
+    let pose = rects;
+    const fine = sprite.fine;
+    if (fine && scale * (fine.cell ?? 1) >= 2) {
+      const index = sprite.frames.indexOf(rects);
+      art = fine;
+      pose = index >= 0 ? (fine.frames[index] ?? fine.idle) : fine.idle;
+    }
+    const k = art.cell ?? 1;
+    for (const [x, y, w, h, color] of pose)
+      fill(
+        WORLD.mascotX + x * k,
+        lift + y * k,
+        w * k,
+        h * k,
+        k !== 1 && color === CAR_INK ? colors.carInk : color,
+      );
   }
 
   /** Faces are found once per frame of art and kept. */

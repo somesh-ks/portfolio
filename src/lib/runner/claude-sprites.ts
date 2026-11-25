@@ -31,6 +31,8 @@ export interface Sprite {
   hitbox: { x: number; w: number };
   /** World cells per art pixel, when the art is drawn smaller than 1:1. */
   cell?: number;
+  /** The same frames smoothed to twice the pixels, for screens with room. */
+  fine?: Sprite;
 }
 
 export const COSTUMES = ["walk", "skate", "scooter", "bike", "kite", "car"] as const;
@@ -56,10 +58,39 @@ const LOOPS: Record<Costume, readonly [number, number]> = {
   car: [13, 29],
 };
 
-/** The car's art is twice the others' length, so each of its pixels is
- * drawn at two thirds of a cell. Every pixel survives (a resample broke the
- * wheels and face into noise); the engine rounds edges to device pixels. */
+/** The car's art is twice the others' length, so it rides at two thirds of
+ * a cell per art pixel. Shrinking it by dropping pixels broke the wheels and
+ * face into noise; every pixel is kept instead, and the engine rounds edges
+ * to device pixels. */
 const CELL: Partial<Record<Costume, number>> = { car: 2 / 3 };
+/** Rides that also get a smoothed copy (see `Sprite.fine`). */
+const SMOOTHED = new Set<Costume>(["car"]);
+
+/** Scale2x (EPX): doubles pixel art, rounding stair-steps into diagonals
+ * without inventing colours, so the design stays the same. */
+function scale2x(raw: RawSprite, frames: Uint8Array[]) {
+  const { w, h } = raw;
+  const scaled = frames.map((pixels) => {
+    const out = new Uint8Array(w * h * 4);
+    const at = (x: number, y: number, fallback: number) =>
+      x < 0 || y < 0 || x >= w || y >= h ? fallback : (pixels[y * w + x] ?? 255);
+    for (let y = 0; y < h; y += 1)
+      for (let x = 0; x < w; x += 1) {
+        const p = pixels[y * w + x] ?? 255;
+        const a = at(x, y - 1, p);
+        const b = at(x + 1, y, p);
+        const c = at(x - 1, y, p);
+        const d = at(x, y + 1, p);
+        const row = 2 * y * 2 * w;
+        out[row + 2 * x] = c === a && c !== d && a !== b ? a : p;
+        out[row + 2 * x + 1] = a === b && a !== c && b !== d ? b : p;
+        out[row + 2 * w + 2 * x] = d === c && d !== b && c !== a ? c : p;
+        out[row + 2 * w + 2 * x + 1] = b === d && b !== a && d !== c ? d : p;
+      }
+    return out;
+  });
+  return { raw: { ...raw, w: w * 2, h: h * 2 }, frames: scaled };
+}
 
 /** The front of the body collides; a long car's tail is forgiven. */
 const MAX_HIT_WIDTH = 20;
@@ -165,9 +196,16 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
 }
 
 export function buildSprite(source: RawSprite, costume: Costume): Sprite {
-  const raw = source;
-  const cell = CELL[costume] ?? 1;
-  const all = decodePixels(source);
+  return build(source, decodePixels(source), costume, CELL[costume] ?? 1, SMOOTHED.has(costume));
+}
+
+function build(
+  raw: RawSprite,
+  all: Uint8Array[],
+  costume: Costume,
+  cell: number,
+  smooth: boolean,
+): Sprite {
   const [start, end] = LOOPS[costume];
   const flown = all.slice(start, end);
   const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
@@ -184,7 +222,13 @@ export function buildSprite(source: RawSprite, costume: Costume): Sprite {
     width: Math.ceil(width * cell),
     hitbox: { x: Math.round(front * cell - hit) + 2, w: Math.round(hit) - 4 },
     ...(cell === 1 ? {} : { cell }),
+    ...(smooth ? { fine: smoothed(raw, all, costume, cell) } : {}),
   };
+}
+
+function smoothed(raw: RawSprite, all: Uint8Array[], costume: Costume, cell: number): Sprite {
+  const twice = scale2x(raw, all);
+  return build(twice.raw, twice.frames, costume, cell / 2, false);
 }
 
 /** The walking Claude, for the server-rendered frame. */
