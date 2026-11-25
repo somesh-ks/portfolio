@@ -127,6 +127,7 @@ export function llmsTxt(): string {
       .join("\n"),
     "## Tools",
     `- [Spring for agents](${absoluteUrl("/spring/llms.txt")}): Build a design system or view a repo's existing one, over HTTP or with an offline agent skill.`,
+    `- [Claude sticker studio](${absoluteUrl("/stickers")}): Pick an action and items to dress a pixel Claude. Files come from ${absoluteUrl("/stickers/export")}?m=<action>&p=<item,item>&o=0|1|2&f=png|gif|svg|json (s=512|1024, sq=1 for square, fr=<frame> for a still).`,
     "## Optional",
     `- [About](${absoluteUrl("/index.md")}): Bio and links.`,
     `- [Resume](${absoluteUrl("/resume.md")}): Experience, education and skills.`,

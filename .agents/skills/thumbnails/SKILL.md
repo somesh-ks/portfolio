@@ -20,7 +20,7 @@ Ask "what does this row give you?" and draw that, one object or two at most:
 | Spring | a colour ramp over an `Aa` type scale |
 | Singularity ds | tokens and the components built from them |
 | Tide | the dithered landscape the app renders |
-| Claude studio | the mascot and the colours you can pick |
+| Claude sticker studio | the mascot in a hat on its die-cut sticker |
 | Making graphic comics | a comic panel: halftone, a hero, POW |
 | Building an agentic ds | the checklist agents pass, one item left |
 | ROYC, Luminovo | the headline result from the row title (4x, 57%) with a chart or quote sheet |
