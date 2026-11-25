@@ -1082,8 +1082,76 @@
   font-family: var(--font-mono);
   font-size: var(--step-xs);
 }
+/* Sidebar segmented controls fill their column, so every row ends on the same right edge. */
 .spring-row .segmented {
-  justify-self: start;
+  justify-self: stretch;
+  display: flex;
+}
+.spring-row .segmented__item {
+  flex: 1 1 0;
+  padding-inline: var(--space-2);
+}
+/* Grays: one cool-to-warm dial and an Auto toggle, the same height, no gap.
+   The track stays neutral ink (a hue in chrome biases color judgement); the
+   ends are named underneath. */
+.spring-temp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: var(--space-1);
+}
+.spring-temp__dial {
+  min-width: 0;
+  /* Above the Auto cell, so the focus ring is never clipped at the seam. */
+  z-index: 1;
+  background:
+    linear-gradient(
+      to right,
+      transparent var(--p-line),
+      var(--text-primary) var(--p-line) calc(var(--p-line) + var(--dial-line, 1px)),
+      transparent calc(var(--p-line) + var(--dial-line, 1px))
+    ),
+    linear-gradient(var(--border-subtle), var(--border-subtle)) 50% 50% / 1px 40% no-repeat,
+    var(--input-bg);
+}
+.spring-temp__auto {
+  min-height: 0;
+  border-radius: 0;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  box-shadow:
+    inset 0 1px 0 var(--border-default),
+    inset -1px 0 0 var(--border-default),
+    inset 0 -1px 0 var(--border-default);
+  font-weight: 400;
+}
+.spring-temp__auto[aria-pressed="true"] {
+  color: var(--text-primary);
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+}
+.spring-temp__ends {
+  grid-column: 1;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+/* Data viz: each ramp drawn under its pickers, so the names have a picture. */
+.spring-ramp {
+  display: block;
+  height: 0.5rem;
+  margin-top: calc(var(--space-1) * -1);
+  margin-left: calc(6rem + var(--space-2));
+  /* A hairline edge, so a ramp whose middle matches the page still reads as one bar. */
+  outline: 1px solid var(--border-subtle);
+  outline-offset: -1px;
+}
+.spring-ramp__dot {
+  display: block;
+  margin: auto;
+  width: 0.625rem;
+  height: 0.625rem;
 }
 .spring-more {
   display: grid;
