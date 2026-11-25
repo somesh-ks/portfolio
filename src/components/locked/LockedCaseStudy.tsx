@@ -11,7 +11,7 @@ import { notFound } from "next/navigation";
 import { EntryArticle } from "@/components/editorial/EntryArticle";
 import { Mdx } from "@/components/mdx/Mdx";
 import { hasAccess, isGateConfigured, SESSION_COOKIE } from "@/lib/auth";
-import { entriesOf, findEntry } from "@/lib/content";
+import { findEntry, pagesOf } from "@/lib/content";
 import { entryMetadata } from "@/lib/metadata";
 import { loadProtectedBody } from "@/lib/protected-source";
 import type { LockedSlug } from "@/lib/site";
@@ -41,7 +41,7 @@ export async function LockedCaseStudy({
 }) {
   const entry = findEntry("case-study", slug);
   if (!entry?.meta.protected) notFound();
-  const all = entriesOf("case-study");
+  const all = pagesOf("case-study");
   const next = all[(all.indexOf(entry) + 1) % all.length];
 
   if (await isUnlocked(slug)) {

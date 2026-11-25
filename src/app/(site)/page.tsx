@@ -6,13 +6,16 @@ import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
 import { ClaudeRunner } from "@/components/runner/ClaudeRunner";
 import { TuneToy } from "@/components/tune/TuneToy";
-import { entriesOf } from "@/lib/content";
+import { entriesOf, isExternal } from "@/lib/content";
 import type { Kind } from "@/lib/schema";
 
-/** Row thumbnails come from scripts/capture-thumbs.ts; rows without one show none. */
-function thumbFor(slug: string): string | undefined {
-  const file = path.join(process.cwd(), "public", "thumbs", `${slug}.webp`);
-  return existsSync(file) ? `/thumbs/${slug}.webp` : undefined;
+/** Row thumbnails come from scripts/capture-thumbs.ts; rows without one show none.
+ * A `<slug>.dark.webp` beside it is shown in dark mode. */
+function thumbFor(slug: string, dark = false): string | undefined {
+  const name = `${slug}${dark ? ".dark" : ""}.webp`;
+  return existsSync(path.join(process.cwd(), "public", "thumbs", name))
+    ? `/thumbs/${name}`
+    : undefined;
 }
 
 const onHome = (kind: Kind) => entriesOf(kind).filter((entry) => entry.meta.home);
@@ -39,6 +42,8 @@ export default function HomePage() {
             title={entry.meta.title}
             summary={entry.meta.summary}
             thumb={thumbFor(entry.meta.slug)}
+            thumbDark={thumbFor(entry.meta.slug, true)}
+            external={isExternal(entry.href)}
           />
         ))}
       </ListSection>
@@ -50,6 +55,8 @@ export default function HomePage() {
             title={entry.meta.title}
             summary={entry.meta.summary}
             thumb={thumbFor(entry.meta.slug)}
+            thumbDark={thumbFor(entry.meta.slug, true)}
+            external={isExternal(entry.href)}
           />
         ))}
       </ListSection>

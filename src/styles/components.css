@@ -876,6 +876,11 @@ claude-mascot:defined > * {
     opacity: 1;
     transition-delay: var(--duration-tooltip);
   }
+  /* Light and dark stills: show the one for the page's theme. */
+  [data-theme="dark"] .list-row__thumb--light,
+  :root:not([data-theme="dark"]) .list-row__thumb--dark {
+    display: none;
+  }
 }
 
 .lock-badge {
