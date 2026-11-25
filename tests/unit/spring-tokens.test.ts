@@ -99,7 +99,9 @@ describe("css: modes and scopes", () => {
     expect(val(v, "accent", "ocean")).toBe("#7fdbff");
   });
   test("[data-theme=light] is the light mode", () => {
-    expect(css('[data-theme="light"] { --a: #fff }').tokens.a).toEqual({ light: "#fff" });
+    expect(css('[data-theme="light"] { --a: #fff }').tokens.a).toEqual({
+      light: "#fff",
+    });
   });
   test("a component inside [data-theme=dark] stays scoped, not global dark", () => {
     const v = css(
@@ -149,7 +151,9 @@ describe("css: modes and scopes", () => {
     expect(css(":root{color-scheme: light dark; --a:#fff}").modes).toEqual(["light"]);
   });
   test("selector lists: any theme part wins", () => {
-    expect(css(":root, .light { --a: #fff }").tokens.a).toEqual({ light: "#fff" });
+    expect(css(":root, .light { --a: #fff }").tokens.a).toEqual({
+      light: "#fff",
+    });
   });
   test("later files win on the same token and mode", () => {
     const v = extract([
@@ -327,7 +331,10 @@ describe("json: Style Dictionary and DTCG", () => {
   });
   test("$-prefixed metadata keys are not walked", () => {
     const x = extract([
-      { path: "t.json", text: '{"$description":{"$value":"no"},"a":{"$value":"#fff"}}' },
+      {
+        path: "t.json",
+        text: '{"$description":{"$value":"no"},"a":{"$value":"#fff"}}',
+      },
     ]);
     expect(Object.keys(x.tokens)).toEqual(["a"]);
   });
@@ -442,7 +449,10 @@ describe("readView", () => {
         raw: [
           { value: "#fff", at: "a.tsx:1" },
           { value: 1 },
-          ...Array.from({ length: 150 }, () => ({ value: "v".repeat(500), at: "a" })),
+          ...Array.from({ length: 150 }, () => ({
+            value: "v".repeat(500),
+            at: "a",
+          })),
         ],
         rawCount: -1,
         offSystem: "no",
@@ -458,10 +468,12 @@ describe("readView", () => {
     expect(u.offSystemCount).toBe(9);
   });
   test("does not carry $schema or unknown fields", () => {
-    const r = readView({ v: 1, $schema: "x", evil: 1, tokens: {} }) as unknown as Record<
-      string,
-      unknown
-    >;
+    const r = readView({
+      v: 1,
+      $schema: "x",
+      evil: 1,
+      tokens: {},
+    }) as unknown as Record<string, unknown>;
     expect(r.$schema).toBeUndefined();
     expect(r.evil).toBeUndefined();
   });
@@ -509,7 +521,10 @@ const mk = (tokens: View["tokens"], modes = ["light", "dark"]): View => ({
 
 describe("resolve", () => {
   test("falls back to the default mode, then to var() fallbacks", () => {
-    const v = mk({ a: { light: "#111" }, b: { light: "var(--a)", dark: "#222" } });
+    const v = mk({
+      a: { light: "#111" },
+      b: { light: "var(--a)", dark: "#222" },
+    });
     expect(resolve(v, "a", "dark")).toBe("#111");
     expect(resolve(v, "b", "dark")).toBe("#222");
     expect(resolve(v, "b", "light")).toBe("#111");
@@ -535,11 +550,19 @@ describe("resolve", () => {
     );
   });
   test("several vars in one value", () => {
-    const v = mk({ a: { light: "1px" }, b: { light: "2px" }, x: { light: "var(--a) var(--b)" } });
+    const v = mk({
+      a: { light: "1px" },
+      b: { light: "2px" },
+      x: { light: "var(--a) var(--b)" },
+    });
     expect(resolve(v, "x", "light")).toBe("1px 2px");
   });
   test("cycles and unterminated var() terminate", () => {
-    const v = mk({ a: { light: "var(--b)" }, b: { light: "var(--a)" }, c: { light: "var(--zz" } });
+    const v = mk({
+      a: { light: "var(--b)" },
+      b: { light: "var(--a)" },
+      c: { light: "var(--zz" },
+    });
     expect(typeof resolve(v, "a", "light")).toBe("string");
     expect(resolve(v, "c", "light")).toBe("var(--zz");
   });
@@ -622,7 +645,8 @@ describe("pairs", () => {
     const p = pairs(["background", "foreground", "primary", "primary-foreground", "card"]);
     expect(p).toContainEqual({ fg: "foreground", bg: "background" });
     expect(p).toContainEqual({ fg: "primary-foreground", bg: "primary" });
-    expect(p).toHaveLength(2);
+    expect(p).toContainEqual({ fg: "foreground", bg: "card" });
+    expect(p).toHaveLength(3);
   });
   test("material style: on-x / x, with and without a color- prefix", () => {
     expect(pairs(["on-primary", "primary"])).toEqual([{ fg: "on-primary", bg: "primary" }]);
@@ -640,6 +664,26 @@ describe("pairs", () => {
     expect(pairs(["action-fg", "action"])).toEqual([{ fg: "action-fg", bg: "action" }]);
     expect(pairs(["text", "surface"])).toEqual([{ fg: "text", bg: "surface" }]);
   });
+  test("component pairs: x-fg and x-muted on x-bg", () => {
+    const p = pairs(["tooltip-bg", "tooltip-fg", "tooltip-muted", "tooltip-border"]);
+    expect(p).toContainEqual({ fg: "tooltip-fg", bg: "tooltip-bg" });
+    expect(p).toContainEqual({ fg: "tooltip-muted", bg: "tooltip-bg" });
+    expect(p).toHaveLength(2);
+  });
+  test("page text on every page surface, muted and placeholder included", () => {
+    const p = pairs([
+      "bg",
+      "surface",
+      "bg-subtle",
+      "text",
+      "text-muted",
+      "text-placeholder",
+      "text-sm",
+    ]);
+    for (const fg of ["text", "text-muted", "text-placeholder"])
+      for (const bg of ["bg", "surface", "bg-subtle"]) expect(p).toContainEqual({ fg, bg });
+    expect(p.some((x) => x.fg === "text-sm")).toBe(false);
+  });
   test("no partner, no pair; never pairs a token with itself", () => {
     expect(pairs(["primary-foreground", "secondary"])).toEqual([]);
     expect(pairs(["text"])).toEqual([]);
@@ -652,7 +696,10 @@ const fan = (n: number) => Array.from({ length: 40 }, (_, i) => `var(--l${n + 1}
 describe("review fixes", () => {
   test("an apostrophe in an SCSS // comment doesn't eat tokens", () => {
     const v = extract([
-      { path: "a.scss", text: ":root {\n  // it's here\n  --a: 1px;\n  --b: 2px;\n}" },
+      {
+        path: "a.scss",
+        text: ":root {\n  // it's here\n  --a: 1px;\n  --b: 2px;\n}",
+      },
     ]);
     expect(val(v, "a")).toBe("1px");
     expect(val(v, "b")).toBe("2px");
@@ -690,7 +737,10 @@ describe("review fixes", () => {
       {
         path: "t.json",
         text: JSON.stringify({
-          c: { $type: "color", $value: { colorSpace: "hsl", components: [200, 50, 50] } },
+          c: {
+            $type: "color",
+            $value: { colorSpace: "hsl", components: [200, 50, 50] },
+          },
         }),
       },
     ]);
