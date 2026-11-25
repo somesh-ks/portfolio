@@ -378,3 +378,17 @@ test("a data color drags to a new place by its grip", async ({ page, isMobile })
   await page.mouse.up();
   await expect(names.nth(2)).toHaveValue(first);
 });
+
+test("on touch, a tapped step names its pair on a reserved line", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "desktop shows it as a tooltip");
+  await page.goto("/spring/app");
+  const strip = page.getByRole("toolbar", { name: "primary steps" });
+  const told = page.locator(".spring-told").first();
+  const below = page.getByRole("heading", { name: "data viz", exact: true }).first();
+  const before = (await below.boundingBox())!.y;
+  await strip.locator("button").nth(2).tap();
+  await expect(told).toHaveText(/^Primary step 12 text on step 3: [\d.]+$/);
+  await strip.locator("button").nth(6).tap();
+  await expect(told).toHaveText(/^Primary step 7 on the page: [\d.]+$/);
+  expect((await below.boundingBox())!.y).toBe(before);
+});
