@@ -26,9 +26,7 @@ test("the landing page is its own site, tries a color, and opens the app", async
     "/spring/app?primary=%23dc3545",
   );
   // The audit section shows a real app's drift and what changed.
-  await expect(
-    page.getByText("npx skills add somesh-ks/skills --skill sk-design-sys"),
-  ).toBeVisible();
+  await expect(page.getByText("npx skills add somesh-ks/skills", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /Documenso's avatar initials/ })).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).
   const pause = page.getByRole("button", { name: "Pause" });

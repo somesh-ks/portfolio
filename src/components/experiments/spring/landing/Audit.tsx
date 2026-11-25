@@ -3,7 +3,7 @@ import { Install } from "./Hero";
 
 /* A server component: the proof's numbers and swatches render as HTML, never as client JS. */
 
-const AUDIT = "npx skills add somesh-ks/skills --skill sk-design-sys";
+const AUDIT = "npx skills add somesh-ks/skills";
 
 /*
  * Documenso (documenso/documenso at cc491f1), consolidated on 2026-11-25. Light values:
