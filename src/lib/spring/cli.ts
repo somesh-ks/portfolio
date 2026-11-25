@@ -2,9 +2,10 @@
  * Spring for agents: one zero-dependency Node script (bundled by
  * scripts/build-spring-cli.ts into the `spring` skill).
  *
- *   spring scan [dir] [--json] [--out file] [--no-usage]
- *     Read the repo's design system and how the code uses it; print facts and
- *     a /spring/view link. Reads files only; sends nothing anywhere.
+ *   spring scan [dir] [--json] [--out file] [--no-usage] [--open]
+ *     Read the repo's design system and how the code uses it; print facts,
+ *     audit findings (counts, no grade) and a /spring/view link. --open opens
+ *     the link in the browser. Reads files only; sends nothing anywhere.
  *   spring build [spring.json] [--primary c] [--name n] [--font f] [--out dir] [--only a,b] [--print file]
  *     Generate a system with Spring's engine: tokens.css, tokens.json (DTCG),
  *     theme.css (Tailwind v4), DESIGN.md, SKILL.md, AGENTS.md, palette.js, spring.json.
@@ -12,13 +13,14 @@
  *     The closest spring.json to the repo's current system, to rebuild it cleanly.
  *   spring schema [input|view]
  */
+import { spawn } from "node:child_process";
 import { lstatSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve as resolvePath, dirname, basename } from "node:path";
 import { deflateRawSync } from "node:zlib";
 import inputSchema from "../../../public/spring/schema.json";
 import viewSchema from "../../../public/spring/view.schema.json";
-import { audit } from "./audit";
+import { audit, type Report } from "./audit";
 import { over, wcagContrast } from "./colormath";
 import { exportAll } from "./exports";
 import { linkFor, readInput, writeInput } from "./io";
@@ -300,7 +302,38 @@ export function viewLink(view: View): string {
 const list = (xs: string[], max = 8) =>
   xs.slice(0, max).join(", ") + (xs.length > max ? `, +${xs.length - max} more` : "");
 
-function summary(view: View, dir: string, link: string | null, file: string | null): string {
+type Finding = Report["findings"][number];
+type Findings = { items: Finding[]; error?: string };
+
+/** The same audit the web View runs: the token map flattened to CSS. Never throws. */
+export function findingsOf(view: View): Findings {
+  try {
+    return { items: audit(toCss(view)).findings };
+  } catch (e) {
+    return { items: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+function findingLines({ items, error }: Findings): string[] {
+  if (error) return [`Note: findings unavailable (${error})`];
+  const rank = { fail: 0, warn: 1, pass: 2 };
+  const look = items
+    .filter((f) => f.status !== "pass")
+    .sort((a, b) => rank[a.status] - rank[b.status]);
+  return [
+    `Findings: ${look.length} to look at`,
+    ...look.map((f) => `  ${f.status === "fail" ? "✕" : "!"} ${f.title}. ${f.detail}`),
+    `  ✓ ${items.length - look.length} checks pass`,
+  ];
+}
+
+function summary(
+  view: View,
+  dir: string,
+  link: string | null,
+  file: string | null,
+  findings: Findings = { items: [] },
+): string {
   const lines = [`Spring scan of ${dir}`];
   if (!view.sources.length) {
     lines.push(
@@ -362,6 +395,7 @@ function summary(view: View, dir: string, link: string | null, file: string | nu
         )})`,
       );
   }
+  lines.push(...findingLines(findings));
   for (const n of view.notes ?? []) lines.push(`Note: ${n}`);
   if (link) lines.push(`View: ${link}`);
   if (file)
@@ -443,7 +477,7 @@ interface Args {
   opts: Record<string, string>;
 }
 
-const BOOL = new Set(["json", "no-usage", "help"]);
+const BOOL = new Set(["json", "no-usage", "help", "open"]);
 
 function parse(argv: string[]): Args {
   const out: Args = { _: [], flags: new Set(), opts: {} };
@@ -470,13 +504,38 @@ function fail(msg: string): never {
   process.exit(1);
 }
 
-const HELP = `spring scan [dir] [--json] [--out file] [--no-usage]
+/** Open a URL in the default browser, detached. Failures are reported, never thrown. */
+export function openInBrowser(url: string, onError: (msg: string) => void = () => {}) {
+  const [cmd, ...args] =
+    process.platform === "darwin"
+      ? ["open", url]
+      : process.platform === "win32"
+        ? ["cmd", "/c", "start", '""', url]
+        : ["xdg-open", url];
+  try {
+    const child = spawn(cmd!, args, { detached: true, stdio: "ignore" });
+    child.on("error", (e) => onError(e.message));
+    child.unref();
+  } catch (e) {
+    onError(e instanceof Error ? e.message : String(e));
+  }
+}
+
+const openNote = (json: boolean) => (m: string) =>
+  (json ? console.error : say)(`Note: could not open the browser (${m})`);
+
+export interface Deps {
+  open?: (url: string) => void;
+}
+
+const HELP = `spring scan [dir] [--json] [--out file] [--no-usage] [--open]
+             --open opens the View link (or ${VIEW_URL} when it wrote a JSON file) in your browser
 spring build [spring.json] [--primary color] [--name n] [--font f] [--heading f] [--mono f]
              [--contrast aa|aaa|apca] [--styling tailwind|css] [--out dir] [--only a,b] [--print file]
 spring infer [dir] [--out spring.json]
 spring schema [input|view]`;
 
-export function main(argv = process.argv.slice(2)) {
+export function main(argv = process.argv.slice(2), deps: Deps = {}) {
   const [cmd, ...rest] = argv;
   const args = parse(rest);
   if (cmd === "scan") {
@@ -486,9 +545,23 @@ export function main(argv = process.argv.slice(2)) {
     const view = extract(src, basename(dir));
     if (!args.flags.has("no-usage"))
       view.usage = usage(dir, all, view, new Set(src.map((s) => s.path)));
-    if (args.flags.has("json")) {
-      if (args.opts.out) writeFileSync(args.opts.out, JSON.stringify(view, null, 2) + "\n");
-      process.stdout.write(JSON.stringify(view, null, 2) + "\n");
+    const findings = findingsOf(view);
+    const json = args.flags.has("json");
+    const open = (url: string) => {
+      if (!args.flags.has("open")) return;
+      // With --json stdout stays pure JSON, so the Note goes to stderr.
+      const note = openNote(json);
+      try {
+        (deps.open ?? ((u) => openInBrowser(u, note)))(url);
+      } catch (e) {
+        note(e instanceof Error ? e.message : String(e));
+      }
+    };
+    if (json) {
+      const text = JSON.stringify({ ...view, findings: findings.items }, null, 2) + "\n";
+      if (args.opts.out) writeFileSync(args.opts.out, text);
+      process.stdout.write(text);
+      open(VIEW_URL);
       return;
     }
     const link = viewLink(view);
@@ -498,7 +571,8 @@ export function main(argv = process.argv.slice(2)) {
       file = args.opts.out ?? join(tmpdir(), `spring-view-${Date.now()}.json`);
       writeFileSync(file, JSON.stringify(view, null, 2) + "\n");
     }
-    say(summary(view, dir, fits ? link : null, file));
+    say(summary(view, dir, fits ? link : null, file, findings));
+    open(fits ? link : VIEW_URL);
     return;
   }
   if (cmd === "infer") {

@@ -72,3 +72,52 @@ describe("contrastPairs", () => {
     expect(ratio(view("#ffffff"), "primary")).toBeGreaterThan(1);
   });
 });
+
+function run(argv: string[], files: Record<string, string>, open = () => {}) {
+  const dir = mkdtempSync(join(tmpdir(), "spring-cli-"));
+  for (const [p, t] of Object.entries(files)) writeFileSync(join(dir, p), t);
+  let printed = "";
+  const spy = spyOn(process.stdout, "write").mockImplementation((s) => {
+    printed += String(s);
+    return true;
+  });
+  const opened: string[] = [];
+  try {
+    main(["scan", dir, ...argv], { open: (u) => (opened.push(u), open()) });
+  } finally {
+    spy.mockRestore();
+  }
+  return { printed, opened };
+}
+describe("spring scan findings and --open", () => {
+  const css = readFileSync(join(import.meta.dir, "../fixtures/tokens/shadcn-v4.css"), "utf8");
+
+  test("prints findings counts, never a grade", () => {
+    const { printed } = run([], { "tokens.css": css });
+    expect(printed).toMatch(/^Findings: \d+ to look at$/m);
+    expect(printed).toMatch(/^ {2}✓ \d+ checks pass$/m);
+    expect(printed).not.toMatch(/grade|score/i);
+  });
+
+  test("--json includes every finding with its status", () => {
+    const { printed } = run(["--json"], { "tokens.css": css });
+    const json = JSON.parse(printed) as { findings: { status: string; title: string }[] };
+    expect(json.findings.length).toBeGreaterThan(0);
+    expect(json.findings.every((f) => ["pass", "warn", "fail"].includes(f.status))).toBe(true);
+  });
+
+  test("--open hands the View link to the opener; without it nothing opens", () => {
+    expect(run([], { "tokens.css": css }).opened).toEqual([]);
+    const { opened } = run(["--open"], { "tokens.css": css });
+    expect(opened).toHaveLength(1);
+    expect(opened[0]).toStartWith("https://someshks.com/spring/view");
+  });
+
+  test("--open with --json opens the bare View URL; a failing opener never breaks the JSON", () => {
+    const { opened, printed } = run(["--json", "--open"], { "tokens.css": css }, () => {
+      throw new Error("no browser");
+    });
+    expect(opened).toEqual(["https://someshks.com/spring/view"]);
+    expect(() => JSON.parse(printed)).not.toThrow();
+  });
+});
