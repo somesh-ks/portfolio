@@ -1,14 +1,14 @@
 /**
  * Actions are body motion only: they own no props, so any item can combine with any action.
  * A pose is relative to the mascot: `body` moves everything, arms and legs are offsets from
- * where the body is, so a limb can never detach. Legs only tuck up (0 down to -2 rows).
+ * where the body is, so a limb can never detach. Legs only tuck up (0 or -1 row), so at least two rows of every leg always show.
  */
 export interface Pose {
   body?: readonly [number, number];
   /** Arm offsets from the body. Outward dx is capped at 3 cells (the arm roots cover that). */
   armL?: readonly [number, number];
   armR?: readonly [number, number];
-  /** Rows each leg tucks up into the torso, 0 to -2. Clamped by the rig. */
+  /** Rows each leg tucks up into the torso, 0 or -1. Clamped by the rig. */
   legs?: readonly [number, number, number, number];
   eyes?: "open" | "closed" | "happy";
   /** Eye glance in cells. */
@@ -17,7 +17,19 @@ export interface Pose {
   shadow?: 0 | 1 | 2;
 }
 
-export type ActionId = "idle" | "wave" | "walk" | "dance" | "cheer" | "jump" | "zen" | "sleep";
+export type ActionId =
+  | "idle"
+  | "wave"
+  | "nod"
+  | "shrug"
+  | "peek"
+  | "walk"
+  | "run"
+  | "dance"
+  | "cheer"
+  | "jump"
+  | "zen"
+  | "sleep";
 
 export interface ActionDef {
   id: ActionId;
@@ -70,6 +82,70 @@ const walk: ActionDef = {
   },
 };
 
+// Body-motion extras. Each is one idea: a dip, a lift, a lean.
+const nod: ActionDef = {
+  id: "nod",
+  name: "Nod",
+  frames: 24,
+  still: 4,
+  pose: (f) => {
+    const dip = (f >= 3 && f < 7) || (f >= 9 && f < 13);
+    return {
+      body: [0, dip ? 1 : 0],
+      eyes: dip ? "happy" : blink(f, [20, 21]) ? "closed" : "open",
+    };
+  },
+};
+
+const shrug: ActionDef = {
+  id: "shrug",
+  name: "Shrug",
+  frames: 24,
+  still: 7,
+  pose: (f) => {
+    const lift = f >= 6 && f < 12 ? -2 : (f >= 4 && f < 6) || (f >= 12 && f < 14) ? -1 : 0;
+    return {
+      armL: [0, lift],
+      armR: [0, lift],
+      eyes: "open",
+      eye: f >= 6 && f < 9 ? [-1, 0] : f >= 9 && f < 12 ? [1, 0] : [0, 0],
+    };
+  },
+};
+
+const peek: ActionDef = {
+  id: "peek",
+  name: "Peek",
+  frames: 24,
+  still: 6,
+  pose: (f) => {
+    const dx = f >= 4 && f < 10 ? -1 : f >= 12 && f < 18 ? 1 : 0;
+    return { body: [dx, 0], eyes: "open", eye: [dx, 0] };
+  },
+};
+
+// A fast walk: contact and flight every two frames, a bigger bob, arms pumping.
+const run: ActionDef = {
+  id: "run",
+  name: "Run",
+  frames: 24,
+  still: 2,
+  pose: (f) => {
+    const p = f % 4;
+    const air = p % 2 === 1;
+    const a = f % 8 < 4;
+    return {
+      body: [0, air ? -1 : 1],
+      legs: air ? [-1, -1, -1, -1] : p === 0 ? [-1, 0, 0, -1] : [0, -1, -1, 0],
+      armL: a ? [0, -2] : [0, 2],
+      armR: a ? [0, 2] : [0, -2],
+      eyes: "open",
+      eye: [1, 0],
+      shadow: air ? 1 : 0,
+    };
+  },
+};
+
 const dance: ActionDef = {
   id: "dance",
   name: "Dance",
@@ -110,7 +186,7 @@ const cheer: ActionDef = {
 
 // A hop: crouch, push off, legs tucked at the top, a squash on landing, then a beat of rest.
 const JUMP_DY = [0, 1, 1, 0, -3, -6, -8, -8, -7, -4, -1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-const JUMP_TUCK = [0, 0, 0, 0, -1, -2, -2, -2, -2, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const JUMP_TUCK = [0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const jump: ActionDef = {
   id: "jump",
   name: "Jump",
@@ -131,7 +207,8 @@ const jump: ActionDef = {
   },
 };
 
-// Cross-legged hover. The legs are body-relative and tucked two rows, so they ride along.
+// Cross-legged hover. The legs are body-relative and tucked one row, so they ride along and
+// still show.
 const zen: ActionDef = {
   id: "zen",
   name: "Zen",
@@ -139,7 +216,7 @@ const zen: ActionDef = {
   still: 0,
   pose: (f) => ({
     body: [0, f >= 6 && f < 18 ? -2 : -1],
-    legs: [-2, -2, -2, -2],
+    legs: [-1, -1, -1, -1],
     armL: [0, -1],
     armR: [0, -1],
     eyes: "closed",
@@ -155,4 +232,17 @@ const sleep: ActionDef = {
   pose: (f) => ({ body: [0, f >= 14 && f < 38 ? 1 : 0], eyes: "closed" }),
 };
 
-export const ACTION_DEFS: readonly ActionDef[] = [idle, wave, walk, dance, cheer, jump, zen, sleep];
+export const ACTION_DEFS: readonly ActionDef[] = [
+  idle,
+  wave,
+  nod,
+  shrug,
+  peek,
+  walk,
+  run,
+  dance,
+  cheer,
+  jump,
+  zen,
+  sleep,
+];

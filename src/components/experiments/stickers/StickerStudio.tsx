@@ -80,6 +80,10 @@ function runningFrame(root: HTMLElement | null, frames: number): number | null {
 // Whoever presses Play wants motion even under reduced motion, so the SVG's own opt-out goes.
 const MOTION_OFF = /@media \(prefers-reduced-motion:reduce\)\{[^{}]*\{[^{}]*\}\}/;
 
+/** Offset that centres `art` in `size` and lands its edge on a whole pixel, given the origin. */
+const place = (size: number, span: number, origin: number) =>
+  Math.round(origin + (size - span) / 2) - origin;
+
 /** The brand's pixel mark: the mascot in 12 x 5 cells. */
 const MARK = ["..XXXXXXXX..", "..XKXXXXKX..", "XXXXXXXXXXXX", "..XXXXXXXX..", "..X.X..X.X.."];
 
@@ -118,7 +122,8 @@ export function StickerStudio() {
   const [pos, setPos] = useState(() => stillFrame(DEFAULT_LOOK.action));
   const [onScreen, setOnScreen] = useState(true);
   const [ready, setReady] = useState(false);
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ w: 0, h: 0, left: 0, top: 0 });
+  const [tip, setTip] = useState<{ sec: string; name: string } | null>(null);
   const stage = useRef<HTMLButtonElement>(null);
   const art = useRef<HTMLDivElement>(null);
   const posRef = useRef(pos);
@@ -155,16 +160,30 @@ export function StickerStudio() {
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => {
-      if (e) setBox({ w: e.contentRect.width, h: e.contentRect.height });
-    });
+    // The stage's size and where it sits on screen: the art is placed on whole pixels from these.
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setBox((p) => {
+        const n = {
+          w: el.clientWidth,
+          h: el.clientHeight,
+          left: r.left + el.clientLeft,
+          top: r.top + el.clientTop,
+        };
+        return p.w === n.w && p.h === n.h && p.left === n.left && p.top === n.top ? p : n;
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
+    window.addEventListener("resize", measure);
     // Off-screen (phone, panel scrolled up), the loop pauses.
     const io = new IntersectionObserver(([e]) => setOnScreen(e?.isIntersecting ?? true));
     io.observe(el);
     return () => {
       ro.disconnect();
       io.disconnect();
+      window.removeEventListener("resize", measure);
     };
   }, []);
 
@@ -184,6 +203,11 @@ export function StickerStudio() {
     1,
     Math.floor(Math.min((box.w - pad * 2) / b.w, (box.h - pad * 2) / b.h) || 1),
   );
+
+  // Whole-pixel placement: odd remainders would put every rect edge on a half pixel, and the
+  // animated SVG antialiases those into a visible seam. The sum of origin and offset is an integer.
+  const artW = b.w * scale;
+  const artH = b.h * scale;
 
   const animating = ready && playing;
   const staticSvg = useMemo(
@@ -242,6 +266,18 @@ export function StickerStudio() {
   const actionThumbs = useMemo(() => ACTIONS.map((m) => actionThumbSvg(m.id)), []);
   const itemThumbs = useMemo(() => new Map(ITEMS.map((p) => [p.id, itemThumbSvg(p.id)])), []);
 
+  const tipProps = (sec: string, name: string) => ({
+    onPointerEnter: () => setTip({ sec, name }),
+    onPointerLeave: () => setTip(null),
+    onFocus: () => setTip({ sec, name }),
+    onBlur: () => setTip(null),
+  });
+  const caption = (sec: string, selected: string | undefined) => (
+    <p className="stickers-cap" aria-hidden="true">
+      {(tip?.sec === sec ? tip.name : selected) ?? "\u00a0"}
+    </p>
+  );
+
   const actionName = ACTIONS.find((m) => m.id === look.action)?.name;
   const moves = useMemo(() => hasMotion(look), [look]);
   const stillAt = playing ? hero : shown;
@@ -278,7 +314,7 @@ export function StickerStudio() {
           </h2>
           <div role="radiogroup" aria-label="Action" className="stickers-grid">
             {ACTIONS.map((m, i) => (
-              <label key={m.id} className="stickers-tile pressable" title={m.name}>
+              <label key={m.id} className="stickers-tile pressable" {...tipProps("action", m.name)}>
                 <input
                   type="radio"
                   name={`${groupId}-action`}
@@ -294,6 +330,7 @@ export function StickerStudio() {
               </label>
             ))}
           </div>
+          {caption("action", actionName)}
         </section>
         {SLOTS.map((slot) => {
           const current = look.items.find((id) => ITEMS.find((i) => i.id === id)?.slot === slot.id);
@@ -328,8 +365,8 @@ export function StickerStudio() {
                     type="button"
                     aria-pressed={look.items.includes(p.id)}
                     aria-label={p.name}
-                    title={p.name}
                     className="stickers-tile pressable"
+                    {...tipProps(slot.id, p.name)}
                     data-sound="none"
                     onClick={() => {
                       play("tick");
@@ -339,6 +376,7 @@ export function StickerStudio() {
                   />
                 ))}
               </fieldset>
+              {caption(slot.id, current ? nameOf(current) : undefined)}
             </section>
           );
         })}
@@ -358,7 +396,12 @@ export function StickerStudio() {
             ref={art}
             className="stickers-art"
             data-outline={look.outline ? "on" : "off"}
-            style={{ width: b.w * scale, height: b.h * scale }}
+            style={{
+              width: artW,
+              height: artH,
+              left: place(box.w, artW, box.left),
+              top: place(box.h, artH, box.top),
+            }}
             aria-hidden="true"
             dangerouslySetInnerHTML={{ __html: animating ? animatedSvg : staticSvg }}
           />
@@ -397,21 +440,26 @@ export function StickerStudio() {
                 onChange={(e) => scrub(Number(e.target.value))}
               />
               <span className="stickers-count" aria-hidden="true">
-                {shown + 1} / {frames}
+                Frame {shown + 1} / {frames}
               </span>
             </div>
           ) : (
             <span className="stickers-scrub" />
           )}
-          <Segmented
-            label="Outline"
-            options={OUTLINES}
-            value={outlineName(look.outline)}
-            onChange={(n) => {
-              play("tick");
-              change({ ...look, outline: outlineValue(n) });
-            }}
-          />
+          <div className="stickers-outline">
+            <span className="stickers-outline__label" aria-hidden="true">
+              Outline
+            </span>
+            <Segmented
+              label="Outline"
+              options={OUTLINES}
+              value={outlineName(look.outline)}
+              onChange={(n) => {
+                play("tick");
+                change({ ...look, outline: outlineValue(n) });
+              }}
+            />
+          </div>
         </div>
       </section>
     </div>

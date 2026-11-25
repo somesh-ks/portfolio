@@ -85,7 +85,7 @@ test("Shuffle changes the look", async ({ page }) => {
 test("the playhead moves while playing and the scrubber pauses on a frame", async ({ page }) => {
   await open(page);
   const count = page.locator(".stickers-count");
-  await expect(count).toHaveText(/^\d+ \/ 24$/);
+  await expect(count).toHaveText(/^Frame \d+ \/ 24$/);
   const first = await frame(page).inputValue();
   await expect(async () => {
     expect(await frame(page).inputValue()).not.toBe(first);
@@ -98,7 +98,7 @@ test("the playhead moves while playing and the scrubber pauses on a frame", asyn
   expect(await frame(page).inputValue()).toBe(held);
 
   await scrubTo(page, 5);
-  await expect(count).toHaveText("6 / 24");
+  await expect(count).toHaveText("Frame 6 / 24");
   await expect(page).toHaveURL(/fr=5/);
 
   await page.getByRole("button", { name: "Play" }).click();
@@ -188,3 +188,66 @@ for (const scheme of ["light", "dark"] as const) {
     });
   });
 }
+
+for (const [width, height] of [
+  [390, 844],
+  [1440, 900],
+] as const)
+  for (const dpr of [1, 2]) {
+    test.describe(`seam ${width}x${height} @${dpr}x`, () => {
+      test.use({ viewport: { width, height }, deviceScaleFactor: dpr });
+
+      test("the art sits on whole pixels and an animated frame equals the static one", async ({
+        page,
+      }) => {
+        await open(page);
+        const art = page.locator(".stickers-art");
+        const rect = () =>
+          art.evaluate((el) => {
+            const r = el.getBoundingClientRect();
+            return [r.x, r.y, r.width, r.height];
+          });
+        for (const v of await rect()) expect(Number.isInteger(v)).toBe(true);
+
+        // Freeze the running animation on frame 5, shoot it, then scrub to frame 5 (a static
+        // render of the same frame) and shoot again: every pixel must match, so no seam.
+        await art.evaluate((el) => {
+          for (const a of el.querySelector("svg")?.getAnimations({ subtree: true }) ?? []) {
+            a.pause();
+            a.currentTime = (5 / 12) * 1000 + 5;
+          }
+        });
+        const animated = await art.screenshot({ animations: "allow" });
+        await scrubTo(page, 5);
+        for (const v of await rect()) expect(Number.isInteger(v)).toBe(true);
+        const still = await art.screenshot({ animations: "allow" });
+        expect(animated.equals(still)).toBe(true);
+      });
+    });
+  }
+
+test("the bar strip clears the title and the window edge; the outline control is labelled", async ({
+  page,
+}) => {
+  for (const [w, h] of [
+    [360, 740],
+    [390, 844],
+    [1440, 900],
+  ] as const) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.goto("/stickers");
+    const strip = (await page.locator(".stickers-strip").boundingBox())!;
+    const name = (await page.locator(".stickers .spring-app__name").boundingBox())!;
+    expect(strip.x - (name.x + name.width)).toBeGreaterThanOrEqual(8);
+    expect(w - (strip.x + strip.width)).toBeGreaterThanOrEqual(15);
+    await expect(page.locator(".stickers-outline__label")).toBeVisible();
+  }
+});
+
+test("tile names show in a caption on hover and for the selected tile", async ({ page }) => {
+  await page.goto("/stickers");
+  const caps = page.locator(".stickers-cap");
+  await expect(caps.first()).toHaveText("Wave");
+  await page.getByRole("radio", { name: "Run" }).focus();
+  await expect(caps.first()).toHaveText("Run");
+});

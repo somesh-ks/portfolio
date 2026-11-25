@@ -63,20 +63,10 @@ const SHADOW: Layer[][] = [
     rectLayer(
       K.ink,
       [
-        [3, 16, 18, 1],
-        [5, 17, 14, 1],
-      ],
-      0.16,
-    ),
-  ],
-  [
-    rectLayer(
-      K.ink,
-      [
         [5, 16, 14, 1],
         [7, 17, 10, 1],
       ],
-      0.12,
+      0.09,
     ),
   ],
   [
@@ -86,7 +76,17 @@ const SHADOW: Layer[][] = [
         [7, 16, 10, 1],
         [9, 17, 6, 1],
       ],
-      0.09,
+      0.07,
+    ),
+  ],
+  [
+    rectLayer(
+      K.ink,
+      [
+        [9, 16, 6, 1],
+        [10, 17, 4, 1],
+      ],
+      0.05,
     ),
   ],
 ];
@@ -309,7 +309,7 @@ function outlineParts(parts: Part[], N: number, width: 1 | 2): Part[] {
   return out;
 }
 
-const clampTuck = (n: number) => Math.max(-2, Math.min(0, n));
+const clampTuck = (n: number) => Math.max(-1, Math.min(0, n));
 
 /**
  * Builds a clip: the mascot, then each item on its anchor. Arms and legs are placed from the

@@ -6,6 +6,7 @@
 .stickers .spring-app__bar {
   flex-wrap: nowrap;
   padding-block: var(--space-2);
+  padding-right: var(--space-4);
 }
 .stickers .spring-app__name {
   min-width: 0;
@@ -26,6 +27,10 @@
   display: inline-flex;
   flex: none;
   gap: 0;
+  margin-left: auto;
+}
+.stickers .spring-app__name {
+  margin-right: var(--space-3);
 }
 .stickers-strip > .button {
   border-radius: 0;
@@ -66,6 +71,9 @@
 }
 
 /* ——— Export panel ——— */
+.spring-pop.stickers-pop {
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
 .stickers-pop {
   display: grid;
   gap: var(--space-3);
@@ -175,30 +183,44 @@
   white-space: nowrap;
 }
 .stickers-clear {
+  position: relative;
   display: grid;
   place-items: center;
   flex: none;
   width: 1.75rem;
   height: 1.75rem;
+  margin-right: -0.25rem;
+  background: none;
   color: var(--text-secondary);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
+/* A 44px hit area on touch without making the header taller. */
 @media (pointer: coarse) {
-  .stickers-clear {
-    width: 2.75rem;
-    height: 2.75rem;
-    margin-block: -0.5rem;
+  .stickers-clear::after {
+    content: "";
+    position: absolute;
+    inset: -0.5625rem;
   }
 }
 @media (hover: hover) and (pointer: fine) {
   .stickers-clear:hover {
+    background: var(--surface-sunken);
     color: var(--text-primary);
-    box-shadow: inset 0 0 0 1px var(--border-strong);
   }
 }
 .stickers-clear:focus-visible {
   outline: 2px solid var(--text-primary);
-  outline-offset: 2px;
+  outline-offset: 0;
+}
+.stickers-cap {
+  min-height: 1rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .stickers-grid {
   display: grid;
@@ -256,14 +278,14 @@
   padding: 0;
 }
 .stickers-stage {
-  display: grid;
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  place-items: center;
   min-height: 0;
   overflow: hidden;
   transition: opacity var(--duration-tooltip) var(--ease-out);
@@ -275,12 +297,9 @@
 .stickers-stage[data-ready="false"] {
   opacity: 0;
 }
+/* Placed on whole pixels from JS (left and top); no shadow, no transform, no filter. */
 .stickers-art {
-  filter: drop-shadow(0 0.25rem 0.5rem oklch(0% 0 0 / 0.14));
-}
-:root[data-theme="dark"] .stickers-art,
-.stickers-art[data-outline="off"] {
-  filter: none;
+  position: absolute;
 }
 .stickers-art svg {
   display: block;
@@ -321,7 +340,7 @@
 }
 .stickers-count {
   flex: none;
-  min-width: 5ch;
+  min-width: 13ch;
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
@@ -382,6 +401,27 @@
 .stickers-range:focus-visible::-moz-range-thumb {
   outline: 2px solid var(--text-primary);
   outline-offset: 4px;
+}
+
+.stickers-outline {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+.stickers-outline__label {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+@media (max-width: 40rem) {
+  .stickers-scrub {
+    flex-basis: 100%;
+  }
+  .stickers-outline {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
 }
 
 /* ——— Phone and tablet: the stage is pinned, the panel scrolls below ——— */

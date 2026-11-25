@@ -91,7 +91,7 @@ export function clipFor(look: Look): Clip {
   return clip;
 }
 
-/** Union bounds of every frame, outline included, plus one cell of padding. In cells. */
+/** Union bounds of every frame, outline included, plus one cell of padding, on whole cells. */
 export function bounds(look: Look): { x: number; y: number; w: number; h: number } {
   const key = lookKey(look);
   const hit = boxes.get(key);
@@ -109,7 +109,10 @@ export function bounds(look: Look): { x: number; y: number; w: number; h: number
       y1 = Math.max(y1, r.y + r.h);
     }
   }
-  const box = { x: x0 - 1, y: y0 - 1, w: x1 - x0 + 2, h: y1 - y0 + 2 };
+  // Whole cells only: the hairline is a quarter cell, and a fractional box lands the art on
+  // fractional pixels, where every rect edge antialiases into a visible seam.
+  const [fx, fy] = [Math.floor(x0), Math.floor(y0)];
+  const box = { x: fx - 1, y: fy - 1, w: Math.ceil(x1) - fx + 2, h: Math.ceil(y1) - fy + 2 };
   boxes.set(key, box);
   return box;
 }

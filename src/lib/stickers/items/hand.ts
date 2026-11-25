@@ -102,7 +102,8 @@ export const HAND: ItemDef[] = [
     anchor: "front",
     claims: "arms",
     z: 25,
-    hold: (f) => (tap(f) ? { armL: [3, 3], armR: [-3, 4] } : { armL: [3, 4], armR: [-3, 3] }),
+    // Hands at the laptop's sides, each covering its outer edge cell, not blocks on the screen.
+    hold: (f) => (tap(f) ? { armL: [1, 3], armR: [-1, 4] } : { armL: [1, 4], armR: [-1, 3] }),
     layers: [
       rectLayer(K.coal, [[4, 7, 16, 7]]),
       rectLayer(K.steel, [

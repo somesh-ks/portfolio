@@ -63,7 +63,7 @@ Then:
 
 One entry in `actions.ts`: `id`, `name`, `frames` (24 or 48, so ride wheels loop cleanly), `still`
 (the hero frame) and `pose(f)`. A pose is `body`, `armL`, `armR`, `legs`, `eyes`, `eye`, `shadow`.
-Arms and legs are offsets from the body, so a limb can't detach; leg tucks are clamped to 0..-2 rows
+Arms and legs are offsets from the body, so a limb can't detach; leg tucks are clamped to 0..-1 rows so every leg shows at least two rows
 and arms move outward at most 3 cells. Add the id to `ActionId`.
 
 ## Rides from claude.dev

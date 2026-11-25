@@ -64,10 +64,17 @@ const zzz = chain([
   { shapes: [one(Z_ART[2]!, 22, -18, K.sky)] },
 ]);
 
+// Two wavy columns of wisps that climb and thin out: the higher, the fainter. The wisps flip
+// between two S shapes so each column wobbles, and every one sits within two cells of the last.
+const WISP_B = ["XX.", ".XX", "XX."];
+const wisp = (rows: string[], x: number, y: number, alpha: number): Layer[] =>
+  art(rows, x, y, { X: K.warmGrey }, alpha);
 const steam = chain([
-  { shapes: [one(WISP, 21, -4, K.warmGrey)] },
-  { shapes: [one(WISP, 23, -8, K.warmGrey)] },
-  { shapes: [one(WISP, 21, -11, K.warmGrey)] },
+  { shapes: [wisp(WISP, 21, -4, 0.9)] },
+  { shapes: [wisp(WISP_B, 25, -5, 0.85)] },
+  { shapes: [wisp(WISP_B, 21, -8, 0.7)] },
+  { shapes: [wisp(WISP, 25, -9, 0.65)] },
+  { shapes: [wisp(WISP, 22, -12, 0.5)] },
 ]);
 
 const spark = (cx: number, cy: number): Layer[][] => [

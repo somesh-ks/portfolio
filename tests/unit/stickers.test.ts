@@ -147,11 +147,15 @@ function checkLook(l: Look) {
 }
 
 describe("stickers engine", () => {
-  test("registry: eight actions, unique ids, every slot filled, claims are coherent", () => {
+  test("registry: twelve actions, unique ids, every slot filled, claims are coherent", () => {
     expect(ACTIONS.map((a) => a.id)).toEqual([
       "idle",
       "wave",
+      "nod",
+      "shrug",
+      "peek",
       "walk",
+      "run",
       "dance",
       "cheer",
       "jump",
@@ -186,6 +190,43 @@ describe("stickers engine", () => {
       expect(leg.y).toBeLessThanOrEqual(torso.y + 11);
       expect(leg.y).toBeGreaterThanOrEqual(torso.y + 7);
     }
+  });
+
+  test("legs always read as legs: at least two rows of each leg show below the torso", () => {
+    for (const a of IDS)
+      for (const o of [0, 1] as const) {
+        const clip = clipFor(look(a, [], o));
+        for (let f = 0; f < clip.frames; f++) {
+          const torso = partRects(named(clip, "torso"), f);
+          const torsoBottom = Math.max(...torso.map((r) => r.y + r.h));
+          for (let i = 0; i < 4; i++) {
+            const bottom = Math.max(...partRects(named(clip, `leg${i}`), f).map((r) => r.y + r.h));
+            if (bottom - torsoBottom < 2)
+              throw new Error(`${a} f${f}: leg${i} shows ${bottom - torsoBottom} rows`);
+          }
+        }
+      }
+  });
+
+  test("every track moves by whole cells, so animated edges never land on a fraction", () => {
+    for (const a of IDS)
+      for (const items of [[], ["laptop"], ["bike"], ["steam"], ["balloon"]]) {
+        const clip = clipFor(look(a, items, 1));
+        for (const p of clip.parts)
+          for (const [dx, dy] of p.track)
+            if (!Number.isInteger(dx) || !Number.isInteger(dy))
+              throw new Error(`${a} ${items} ${p.id}: fractional step ${dx},${dy}`);
+      }
+  });
+
+  test("bounds are whole cells for every action, item and outline", () => {
+    for (const a of IDS)
+      for (const items of [[], ["beanie"], ["laptop"], ["bike", "mug"], ["steam"], ["balloon"]])
+        for (const o of [0, 1, 2] as const) {
+          const b = bounds(look(a, items, o));
+          for (const v of [b.x, b.y, b.w, b.h])
+            if (!Number.isInteger(v)) throw new Error(`${a} ${items} o${o}: ${JSON.stringify(b)}`);
+        }
   });
 
   test("every action alone and with each item: connected body, seams, held items, eyes, bounds", () => {
