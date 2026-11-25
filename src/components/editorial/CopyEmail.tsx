@@ -22,13 +22,7 @@ export function CopyEmail({ email, label }: { email: string; label: string }) {
   const hintId = useId();
   const { play } = useSound();
   const link = useRef<HTMLAnchorElement>(null);
-  const { value: Tooltip, load, hovered, hover } = useLazy(loadTooltip, link);
-  // A mouse already on the link when the tooltip arrives shows it straight away.
-  const [arrived, setArrived] = useState(false);
-  if (Tooltip && !arrived) {
-    setArrived(true);
-    if (hovered) setOpen(true);
-  }
+  const [Tooltip, load] = useLazy(loadTooltip, link);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const href = `mailto:${email}`;
@@ -46,7 +40,8 @@ export function CopyEmail({ email, label }: { email: string; label: string }) {
       href={href}
       className="link"
       aria-describedby={hintId}
-      {...(Tooltip ? {} : { ...hover, onFocus: load })}
+      onPointerEnter={load}
+      onFocus={load}
       onClick={(event) => {
         if (!navigator.clipboard || event.metaKey || event.ctrlKey || event.shiftKey) return;
         event.preventDefault();

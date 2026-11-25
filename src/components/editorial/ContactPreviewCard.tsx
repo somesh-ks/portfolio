@@ -10,21 +10,18 @@ import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
 
 export function ContactPreviewCard({
   ref,
-  defaultOpen,
   href,
   label,
   children,
 }: {
   ref: Ref<HTMLAnchorElement>;
-  /** Open on mount: the mouse was already resting on the link when this loaded. */
-  defaultOpen: boolean;
   href: string;
   label: string;
   /** The card body, rendered on the server. */
   children: ReactNode;
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
   // Same anchor on every device (no remount after hydration); it just never opens without a fine pointer.
   return (
     <PreviewCard.Root open={open && fineHover} onOpenChange={(next) => setOpen(next && fineHover)}>

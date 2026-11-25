@@ -13,14 +13,11 @@ import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
 
 export function CompanyPreviewCard({
   ref,
-  defaultOpen,
   company,
   thumbnail,
   logo,
 }: {
   ref: Ref<HTMLButtonElement>;
-  /** Open on mount: the visitor tapped the pill, or rested the mouse on it, before this loaded. */
-  defaultOpen: boolean;
   company: Company;
   thumbnail: boolean;
   /** Inline SVG from CompanyLogo, rendered on the server; null when none. */
@@ -35,7 +32,7 @@ export function CompanyPreviewCard({
       }
     : undefined;
   return (
-    <Popover.Root defaultOpen={defaultOpen}>
+    <Popover.Root>
       <Popover.Trigger
         ref={ref}
         openOnHover={fineHover}

@@ -52,3 +52,44 @@ test("email shows the address, then Copied on click", async ({ page, context, is
   await email.click();
   await expect(page.locator(".tooltip")).toContainText("Copied");
 });
+
+/** Holds back chunks requested after the page has loaded, i.e. the lazy hover cards. */
+async function holdLateChunks(page: import("@playwright/test").Page) {
+  let loaded = false;
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    if (loaded) await held;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.waitForLoadState("load");
+  loaded = true;
+  return release;
+}
+
+test("a mouse resting on a pill while the card code loads still opens it", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "hover needs a fine pointer");
+  const release = await holdLateChunks(page);
+  await page.getByRole("button", { name: "Netlight" }).hover();
+  await page.waitForTimeout(400);
+  await expect(page.locator(".company-card")).toHaveCount(0);
+  release();
+  await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
+});
+
+test("a click before the card code loads opens it and keeps it open", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "desktop click semantics");
+  const release = await holdLateChunks(page);
+  await page.getByRole("button", { name: "Netlight" }).click();
+  release();
+  await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(500);
+  await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
+});

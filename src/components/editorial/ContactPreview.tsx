@@ -25,10 +25,10 @@ export function ContactPreview({
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
   const link = useRef<HTMLAnchorElement>(null);
-  const { value: Card, load, hovered, hover } = useLazy(loadCard, link, fineHover);
+  const [Card, load] = useLazy(loadCard, link, fineHover);
   if (Card)
     return (
-      <Card ref={link} defaultOpen={hovered} href={href} label={label}>
+      <Card ref={link} href={href} label={label}>
         {children}
       </Card>
     );
@@ -39,7 +39,7 @@ export function ContactPreview({
       className="link"
       rel="me noopener"
       target="_blank"
-      {...(fineHover ? { ...hover, onFocus: load } : {})}
+      {...(fineHover ? { onPointerEnter: load, onFocus: load } : {})}
     >
       {label}
     </a>

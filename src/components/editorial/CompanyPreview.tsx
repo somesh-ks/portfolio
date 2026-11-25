@@ -4,10 +4,9 @@
  * Inline company name that reveals a preview card. The card's Base UI code
  * (CompanyPreviewCard) loads once the page is idle; until then this renders the
  * same pill, and reaching for it (hover, focus or a tap) loads it at once.
- * A tap, or a mouse resting on the pill, before it arrives opens the card as
- * soon as it does.
+ * A tap before it arrives opens the card as soon as it does.
  */
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { Company } from "@content/profile";
 import { useLazy } from "@/hooks/useLazy";
 
@@ -24,18 +23,14 @@ export function CompanyPreview({
   logo: ReactNode;
 }) {
   const pill = useRef<HTMLButtonElement>(null);
-  const [tapped, setTapped] = useState(false);
-  const { value: Card, load, hovered, hover } = useLazy(loadCard, pill);
-  if (Card)
-    return (
-      <Card
-        ref={pill}
-        defaultOpen={tapped || hovered}
-        company={company}
-        thumbnail={thumbnail}
-        logo={logo}
-      />
-    );
+  const tapped = useRef(false);
+  const [Card, load] = useLazy(loadCard, pill);
+  // A tap or click before the card arrived is replayed on the real trigger,
+  // so the card opens just as a click would open it.
+  useEffect(() => {
+    if (Card && tapped.current) pill.current?.click();
+  }, [Card]);
+  if (Card) return <Card ref={pill} company={company} thumbnail={thumbnail} logo={logo} />;
   const warm = () => {
     if (thumbnail) new window.Image().src = `/previews/${company.id}.webp`;
   };
@@ -46,17 +41,16 @@ export function CompanyPreview({
       aria-haspopup="dialog"
       aria-expanded="false"
       className="company-pill pressable"
-      {...hover}
-      onPointerEnter={(event) => {
+      onPointerEnter={() => {
         warm();
-        hover.onPointerEnter(event);
+        load();
       }}
       onFocus={() => {
         warm();
         load();
       }}
       onClick={() => {
-        setTapped(true);
+        tapped.current = true;
         warm();
         load();
       }}
