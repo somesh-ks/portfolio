@@ -5,13 +5,13 @@ import type { Kind } from "@/lib/schema";
 /**
  * Somesh wrote this copy himself (2026-11-23). Agents must not reword, recase or reorder it.
  * Change it only when Somesh asks for the new text, then update this list in the same PR.
+ * Traceless is off the homepage (home: false) at his request (2026-11-25).
  * Writing rows show a date instead of a summary, so only their titles are locked.
  */
 const FINAL: Record<Kind, [title: string, summary?: string][]> = {
   project: [
     ["Skills", "Agent skills to craft great interfaces"],
     ["Singularity", "Podcast app you'd love"],
-    ["Traceless", "Data removal tool for India"],
     ["Spring", "Tools to shape a design system"],
     ["Singularity ds", "Agentic design system"],
   ],
