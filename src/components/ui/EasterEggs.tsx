@@ -42,15 +42,16 @@ export function EasterEggs() {
       // oxlint-disable-next-line no-console -- the egg is the console message
       console.info(HELLO);
     }
-    let step = 0;
+    const recent: string[] = [];
     function onKey(event: KeyboardEvent) {
       if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement;
       if (target.closest("input, textarea, select, [contenteditable], .runner")) return;
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-      step = key === KONAMI[step] ? step + 1 : key === KONAMI[0] ? 1 : 0;
-      if (step < KONAMI.length) return;
-      step = 0;
+      recent.push(key);
+      if (recent.length > KONAMI.length) recent.shift();
+      if (recent.join() !== KONAMI.join()) return;
+      recent.length = 0;
       const on = document.documentElement.dataset.egg !== "crt";
       if (on) document.documentElement.dataset.egg = "crt";
       else delete document.documentElement.dataset.egg;

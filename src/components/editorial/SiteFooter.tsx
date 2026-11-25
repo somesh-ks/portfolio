@@ -7,9 +7,10 @@ import { SoundToggle } from "@/components/ui/SoundToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const LINKS = [...PROFILE.links, { label: "For AI agents", href: "/llms.txt" }];
+const hrefOf = (label: string) => PROFILE.links.find((link) => link.label === label)?.href ?? "";
 const PREVIEWS = {
-  "https://www.linkedin.com/in/someshks/": <LinkedInCard />,
-  "https://github.com/somesh-ks": <GitHubCard />,
+  [hrefOf("LinkedIn")]: <LinkedInCard />,
+  [hrefOf("GitHub")]: <GitHubCard />,
 };
 
 export function SiteFooter() {
