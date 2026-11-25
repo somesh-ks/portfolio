@@ -274,11 +274,6 @@
   gap: var(--space-2);
   font-size: var(--step-xs);
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.4s var(--ease-out);
-}
-.spring-unused[data-show] .spring-unused__pin {
-  opacity: 1;
 }
 .spring-unused__pin b {
   flex: none;
@@ -397,7 +392,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .spring-unused__cells i,
-  .spring-unused__pin,
   .spring-tiers__chip,
   .spring-tiers__button {
     transition: none !important;
