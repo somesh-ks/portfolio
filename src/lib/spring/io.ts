@@ -94,7 +94,11 @@ const b64 = (s: string) => {
  *   `contrast`, `styling`, `building`.
  * Returns null when the URL names no system.
  */
-export function inputFromParams(q: URLSearchParams): Read | null {
+export function inputFromParams(
+  q: URLSearchParams,
+  /** Fills in what the caller knows before the checks run, e.g. any Google font's metadata. */
+  prepare?: (raw: Obj) => void,
+): Read | null {
   const s = decodeInput(q.get("s"));
   if (s) return { input: s, notes: [] };
   const j = q.get("j");
@@ -107,6 +111,7 @@ export function inputFromParams(q: URLSearchParams): Read | null {
         "The j parameter isn't JSON: pass spring.json as URL-encoded or base64url text.",
       );
     }
+    if (isObj(json)) prepare?.(json);
     return readInput(json);
   }
   const SEEDS = [
@@ -135,13 +140,15 @@ export function inputFromParams(q: URLSearchParams): Read | null {
   const stack: Obj = {};
   if (q.has("styling")) stack.styling = q.get("styling");
   if (q.has("building")) stack.building = q.get("building");
-  return readInput({
+  const raw: Obj = {
     ...(q.has("name") ? { name: q.get("name") } : {}),
     ...(q.has("primary") ? { primary: q.get("primary") } : {}),
     ...(q.has("contrast") ? { contrast: q.get("contrast") } : {}),
     type,
     stack,
-  });
+  };
+  prepare?.(raw);
+  return readInput(raw);
 }
 
 /** The share link for a system. */

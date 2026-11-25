@@ -16,13 +16,13 @@ import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from "n
 import { tmpdir } from "node:os";
 import { join, relative, resolve as resolvePath, dirname, basename } from "node:path";
 import { deflateRawSync } from "node:zlib";
-import catalogueJson from "../../../public/spring/google-fonts.json";
 import inputSchema from "../../../public/spring/schema.json";
 import viewSchema from "../../../public/spring/view.schema.json";
 import { audit } from "./audit";
 import { over, wcagContrast } from "./colormath";
 import { exportAll } from "./exports";
 import { linkFor, readInput, writeInput } from "./io";
+import { withFonts } from "./fonts-any";
 import { buildSystem } from "./system";
 import {
   colorOf,
@@ -38,7 +38,6 @@ import {
   type Usage,
   type View,
 } from "./tokens";
-import { isCurated, type FontMeta, type FontTag } from "./type";
 
 const VIEW_URL = "https://someshks.com/spring/view";
 /** Chat apps and terminals stop linkifying long before browsers give up. */
@@ -365,29 +364,6 @@ function summary(view: View, dir: string, link: string | null, file: string | nu
 }
 
 // ------------------------------------------------------------------ build
-
-type Row = [string, string, number[], [number, number] | 0, number];
-const TAG: Record<string, FontTag> = { s: "sans", r: "serif", d: "display", m: "mono", h: "hand" };
-const CATALOGUE = new Map((catalogueJson as Row[]).map((r) => [r[0].toLowerCase(), r]));
-
-/** Any Google font by name: the engine needs its kind and weights, which the catalogue holds. */
-function withFonts(raw: Record<string, unknown>, notes: string[]) {
-  const type = (raw.type ?? {}) as Record<string, unknown>;
-  const extra = { ...(type.extra as Record<string, FontMeta> | undefined) };
-  for (const role of ["body", "heading", "mono"]) {
-    const f = type[role];
-    if (typeof f !== "string" || isCurated(f) || extra[f]) continue;
-    const r = CATALOGUE.get(f.toLowerCase());
-    if (!r) {
-      notes.push(`type.${role}: "${f}" isn't a Google font Spring knows; used the default.`);
-      continue;
-    }
-    type[role] = r[0];
-    extra[r[0]] = { tag: TAG[r[1]] ?? "sans", weights: r[2], variable: r[3] || null };
-  }
-  if (Object.keys(extra).length) type.extra = extra;
-  raw.type = type;
-}
 
 function build({ _: pos, opts: o }: Args) {
   const file = pos[0];
