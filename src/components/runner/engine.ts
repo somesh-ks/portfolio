@@ -326,7 +326,10 @@ export function createEngine(
     if (walkFrame !== null) rects = sprite.frames[walkFrame % sprite.frames.length] ?? sprite.idle;
     else if (state) {
       // Frozen in the air and on a crash; otherwise the riding loop plays.
-      const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps * RUN) : null;
+      // A crash freezes the pose; so does a jump on foot. Rides (the kite
+      // above all) keep moving in the air.
+      const frozen = state.over || (costume === "walk" && !grounded(state));
+      const held = frozen ? Math.floor(frozenAt * sprite.fps * RUN) : null;
       const index = held ?? Math.floor(state.time * sprite.fps * RUN);
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
@@ -334,7 +337,12 @@ export function createEngine(
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
     const accessory = accessoryFor(weather);
     const face = accessory ? faceOf(rects) : null;
-    if (accessory && face) drawCells(dress(face, accessory, costume), WORLD.mascotX, lift);
+    // On the way down, hats and the umbrella trail a cell or two above the
+    // head, then settle on landing.
+    const falling = state && !state.over && !grounded(state) ? -state.velocity : 0;
+    const float = falling > 100 ? 2 : falling > 30 ? 1 : 0;
+    if (accessory && face)
+      drawCells(dress(face, accessory, costume, float, lift + face.top), WORLD.mascotX, lift);
   }
 
   /** Faces are found once per frame of art and kept. */

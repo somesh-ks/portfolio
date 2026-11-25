@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/runner/weather/route";
-import { RESKINS, accessoryFor, findFace, makeParticles, stepParticles } from "@/lib/runner/scene";
+import {
+  RESKINS,
+  accessoryFor,
+  dress,
+  findFace,
+  makeParticles,
+  stepParticles,
+} from "@/lib/runner/scene";
 import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
 import rides from "../../public/runner/rides.json";
-import { OBSTACLE_SPRITES, type ObstacleKind } from "@/lib/runner/sprites";
+import { OBSTACLE_SPRITES, type Cell, type ObstacleKind } from "@/lib/runner/sprites";
 import { localNight, roundCoord, skyFromCode, weatherLabel } from "@/lib/runner/weather";
 
 const realFetch = globalThis.fetch;
@@ -94,7 +101,8 @@ describe("scene", () => {
 
 describe("accessories", () => {
   test("every frame of every ride has a face to dress", () => {
-    for (const costume of COSTUMES) {
+    // The scaled-down car's eyes are single pixels: it rides undressed.
+    for (const costume of COSTUMES.filter((ride) => ride !== "car")) {
       const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
       const sprite = buildSprite(raw, costume);
       for (const frame of [sprite.idle, ...sprite.frames]) {
@@ -149,5 +157,26 @@ describe("weather label", () => {
     );
     expect(await response.json()).toEqual({ sky: "clear", night: false, temp: 70, unit: "F" });
     expect(asked).toContain("temperature_unit=fahrenheit");
+  });
+});
+
+const highest = (cells: readonly Cell[]) => Math.min(...cells.map(([, y]) => y));
+
+describe("jump props", () => {
+  const face = { eyes: [[9, -15] as const], top: -17, left: 4, right: 19 };
+
+  test("falling lifts a hat off the head", () => {
+    expect(highest(dress(face, "beanie", "walk", 2))).toBe(
+      highest(dress(face, "beanie", "walk")) - 2,
+    );
+  });
+
+  test("the umbrella shaft always reaches the head and stays on screen", () => {
+    for (const headroom of [4, 7, 9, 30]) {
+      const cells = dress(face, "umbrella", "walk", 2, headroom);
+      const shaft = cells.at(-1)!;
+      expect(shaft[1] + shaft[3]).toBe(face.top);
+      if (headroom >= 7) expect(highest(cells) - face.top).toBeGreaterThanOrEqual(-headroom);
+    }
   });
 });

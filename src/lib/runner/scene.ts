@@ -252,8 +252,17 @@ const HATLESS = new Set(["bike", "car"]);
 const UMBRELLALESS = new Set(["car"]);
 
 /** The accessory as cells, in the same frame as the ride's rects. */
-export function dress(face: Face, accessory: Accessory, costume: string): Cell[] {
-  const { top, left, right, eyes } = face;
+export function dress(
+  face: Face,
+  accessory: Accessory,
+  costume: string,
+  float = 0,
+  /** Rows between the head and the top of the canvas. */
+  headroom = Infinity,
+): Cell[] {
+  const { left, right, eyes } = face;
+  // Falling, a hat lifts off the head and an umbrella rises on a longer shaft.
+  const top = face.top - float;
   const width = right - left + 1;
   const middle = Math.floor((left + right) / 2);
   if (accessory === "shades") {
@@ -271,7 +280,9 @@ export function dress(face: Face, accessory: Accessory, costume: string): Cell[]
     if (UMBRELLALESS.has(costume)) return [];
     const span = 17;
     const x0 = middle - 8;
-    const canopy = top - 7;
+    // Near the top of a jump the shaft shortens so the canopy stays on screen.
+    const shaft = Math.max(1, Math.min(3 + float, headroom - 6));
+    const canopy = face.top - shaft - 4;
     return [
       [x0 + 6, canopy, 5, 1, "gold"],
       [x0 + 3, canopy + 1, 11, 1, "gold"],
@@ -283,7 +294,7 @@ export function dress(face: Face, accessory: Accessory, costume: string): Cell[]
       [x0 + 10, canopy + 4, 2, 1, "gold"],
       [x0 + 15, canopy + 4, 2, 1, "gold"],
       [middle, canopy - 1, 1, 1, "steel"],
-      [middle, canopy + 4, 1, 3, "steel"],
+      [middle, canopy + 4, 1, shaft, "steel"],
     ];
   }
   if (HATLESS.has(costume)) return [];
