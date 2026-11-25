@@ -12,6 +12,8 @@ interface LandingMotion {
   paused: boolean;
   reduced: boolean;
   setPaused: (p: boolean) => void;
+  /** A brand the visitor picked; it holds until they pick another. */
+  setPick: (hex: string) => void;
 }
 
 const Ctx = createContext<LandingMotion>({
@@ -20,15 +22,17 @@ const Ctx = createContext<LandingMotion>({
   paused: true,
   reduced: true,
   setPaused: () => {},
+  setPick: () => {},
 });
 
 export const useLandingMotion = () => useContext(Ctx);
 
-/** One clock for the page: the hero's brand changes every 6s, the tiles step every 3s. */
+/** One clock for the page: the brand changes every 6s until the visitor picks one. */
 export function LandingMotionProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(true);
+  const [pick, setPick] = useState<string | null>(null);
   useEffect(() => {
     const mq = matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReduced(mq.matches);
@@ -44,9 +48,9 @@ export function LandingMotionProvider({ children }: { children: ReactNode }) {
     }, 3000);
     return () => clearInterval(t);
   }, [still]);
-  const seed = SEEDS[Math.floor(tick / 2) % SEEDS.length]!;
+  const seed = pick ?? SEEDS[Math.floor(tick / 2) % SEEDS.length]!;
   const value = useMemo(
-    () => ({ tick, seed, paused: still, reduced, setPaused }),
+    () => ({ tick, seed, paused: still, reduced, setPaused, setPick }),
     [tick, seed, still, reduced],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -67,7 +71,7 @@ export function PauseToggle() {
         play(paused ? "toggle" : "toggleOff");
       }}
     >
-      {paused ? "Play" : "Pause"}
+      {paused ? "Play demo" : "Pause demo"}
     </button>
   );
 }

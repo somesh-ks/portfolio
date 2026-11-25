@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { OG_BASE } from "@/lib/site";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Closing, OldAppLinks } from "@/components/experiments/spring/landing/Demos";
 import { Features } from "@/components/experiments/spring/landing/Features";
 import { LandingMotionProvider } from "@/components/experiments/spring/landing/Motion";
@@ -23,7 +22,7 @@ export default function SpringLanding() {
   const brands = landingData();
   return (
     <LandingMotionProvider>
-      <div className="spring-landing">
+      <div className="spring-landing" data-theme="dark">
         <OldAppLinks />
         <ScrollNav />
         <main id="main" tabIndex={-1} className="spring-landing__main">
@@ -41,7 +40,6 @@ export default function SpringLanding() {
             {/* A text file, not a page. */}
             {/* oxlint-disable-next-line next/no-html-link-for-pages */}
             <a href="/spring/llms.txt">llms.txt</a>
-            <ThemeToggle />
           </span>
         </footer>
       </div>

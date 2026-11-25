@@ -2,7 +2,6 @@ import { buildScale, parseColor } from "@/lib/spring/color";
 import { exportAll } from "@/lib/spring/exports";
 import { buildSystem, inputFromSeed } from "@/lib/spring/system";
 import { BRANDS } from "./brands";
-import type { Look } from "./Sample";
 
 /*
  * Everything the landing shows from the engine, computed on the server for each brand,
@@ -20,31 +19,10 @@ function scaleFor(hex: string) {
   });
 }
 
-/** Spring's system from one brand color, as the card's look plus what the page shows of it. */
+/** Spring's system from one brand color: what the page shows of it. */
 function springLook(brand: string) {
   const sys = buildSystem(inputFromSeed(brand));
-  const role = Object.fromEntries(sys.roles.light.map((x) => [x.name, x.hex]));
   const byRole = Object.fromEntries(sys.type.tokens.map((t) => [t.role, t]));
-  const t = (n: string) => [byRole[n]!.min, byRole[n]!.lineHeightPx] as const;
-  const look: Look = {
-    bg: role.bg!,
-    panel: role["bg-subtle"]!,
-    text: role.text!,
-    muted: role["text-muted"]!,
-    border: role["border-subtle"]!,
-    primary: role.primary!,
-    primaryFg: role["primary-fg"]!,
-    link: role["primary-text"]!,
-    meter: role.primary!,
-    track: role.fill!,
-    badge: role["success-subtle"]!,
-    badgeFg: role["success-text"]!,
-    title: t("h3"),
-    body: t("body"),
-    meta: t("caption"),
-    button: t("label"),
-    radius: [sys.shape.radius.lg, sys.shape.radius.md],
-  };
   const checks = [...sys.checks.light, ...sys.checks.dark].filter((c) => !c.advisory);
   const dark = Object.fromEntries(sys.roles.dark.map((x) => [x.name, x]));
   const light = Object.fromEntries(sys.roles.light.map((x) => [x.name, x]));
@@ -58,15 +36,14 @@ function springLook(brand: string) {
   const roleLine = line(/^\s*--color-primary:/);
   const step = /var\(--(primary-\d+)\)/.exec(roleLine)![1]!;
   return {
-    look,
+    /** The dark roles the hero's specimen is drawn in. */
+    ui: {
+      primary: dark.primary!.hex,
+      primaryFg: dark["primary-fg"]!.hex,
+      link: dark["primary-text"]!.hex,
+    },
     ramp: sys.scales.primary.light.map((x) => x.hex),
     rampDark: sys.scales.primary.dark.map((x) => x.hex),
-    type: ["h3", "body", "label", "caption"].map((n) => ({
-      role: n,
-      size: byRole[n]!.min,
-      lh: byRole[n]!.lineHeightPx,
-      weight: byRole[n]!.weight,
-    })),
     roles: ["primary", "primary-text", "text-muted", "border-subtle"].map((n) => ({
       name: n,
       from: light[n]!.from,

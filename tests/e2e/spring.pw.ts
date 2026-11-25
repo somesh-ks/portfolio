@@ -14,23 +14,21 @@ test("the landing page is its own site, tries a color, and opens the app", async
   await page.goto("/spring");
   await expect(page).toHaveTitle("Spring: color and type tokens");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Color and type tokens from one brand color.",
+    /One color\.\s*A whole system\./,
   );
   // No portfolio chrome: no link back to the site's home.
   await expect(page.getByRole("link", { name: /Home/ })).toHaveCount(0);
-  // The playground rebuilds from a picked color, and hands it to the app.
+  // A picked brand holds, and the one way in opens the app with it.
   await page.getByRole("button", { name: "Red" }).click();
   await expect(page.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("link", { name: /Open this system in Spring/ })).toHaveAttribute(
+  await expect(page.locator("[data-spring-cta]").first()).toHaveAttribute(
     "href",
     "/spring/app?primary=%23dc3545",
   );
   // One ask at a time: the scroll bar stays hidden while the hero's button shows.
   const bar = page.locator(".spring-nav");
   await expect(bar).toBeHidden();
-  await page
-    .getByRole("heading", { name: "One color in. A whole system out." })
-    .scrollIntoViewIfNeeded();
+  await page.evaluate(() => scrollTo(0, innerHeight * 1.2));
   await expect(bar).toBeVisible();
   await expect(page.getByRole("row", { name: /primary-text/ })).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).

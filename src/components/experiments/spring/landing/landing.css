@@ -1,4 +1,4 @@
-/* Spring's landing page (/spring): standalone, full bleed, pixel terminal. Hairlines, square corners, no shadows. */
+/* Spring's landing page (/spring): standalone, full bleed, always dark, pixel terminal. Hairlines, square corners, no shadows. */
 .spring-landing {
   /* One container edge for the bars, frames, sections and footer. */
   --spring-gutter: clamp(1rem, 3vw, 1.5rem);
@@ -43,6 +43,8 @@
   padding-inline: var(--space-4);
 }
 .spring-landing__pause {
+  /* Fits "Pause demo" and "Play demo", so toggling never moves its neighbours. */
+  min-width: 10ch;
   min-height: 2.25rem;
   padding-inline: var(--space-2);
   color: var(--text-secondary);
@@ -94,325 +96,108 @@
   transition: transform 0.24s var(--ease-out);
 }
 
-/* ---------- Hero: full bleed, always dark. The tool hangs over its bottom edge. ---------- */
+/* ---------- Hero: one screen. Copy on the left, the system resolving on the right, edge to edge. ---------- */
 .spring-hero {
-  position: relative;
-  isolation: isolate;
-  padding: 0 var(--spring-edge);
-  color: var(--text-primary);
-  text-align: center;
-}
-/* The dark ground stops partway down the frame, so it straddles dark and light. */
-.spring-hero__sky {
-  position: absolute;
-  inset: 0 0 clamp(7rem, 14vw, 13rem);
-  z-index: -1;
-  background: var(--surface-canvas);
-}
-.spring-hero__horizon {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  touch-action: pan-y;
-  /* Text never sits on the dither: it fades out well below the copy. */
-  mask-image: linear-gradient(to top, #000 22%, transparent 50%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  min-height: clamp(36rem, 100svh, 56rem);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .spring-hero__top {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   height: 3.5rem;
+  padding: 0 var(--spring-edge);
   border-bottom: 1px solid var(--border-subtle);
 }
 .spring-hero__copy {
   display: grid;
-  justify-items: center;
-  padding-top: clamp(var(--space-12), 8vw, 6rem);
+  align-content: center;
+  justify-items: start;
+  gap: var(--space-6);
+  /* The page's edge, not this column's: the copy lines up with the bar above. */
+  padding: var(--space-12) var(--space-8) var(--space-12)
+    max(var(--spring-gutter), calc((100vw - 70rem) / 2));
 }
 .spring-hero__title {
-  max-width: 20ch;
   font-family: var(--font-mono);
-  font-size: clamp(2rem, 4.6vw, 3.75rem);
+  font-size: clamp(2.25rem, 3.6vw, 3.5rem);
   font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.05em;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
   text-wrap: balance;
 }
 .spring-hero__line {
-  max-width: 34rem;
-  margin: var(--space-5) 0 var(--space-8);
+  max-width: 30rem;
   color: var(--text-secondary);
-  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
   line-height: 1.55;
   text-wrap: pretty;
 }
-.spring-hero__note {
-  margin-top: var(--space-3);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
-.spring-hero__proof {
-  margin-top: clamp(var(--space-10), 5vw, var(--space-16));
-  text-align: left;
-}
-
-/* ---------- The playground frame: square, hairline, fixed heights so nothing reflows. ---------- */
-.spring-ba {
-  overflow: hidden;
-  background: var(--surface-canvas);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-}
-.spring-ba__bar {
+.spring-hero__keys {
   display: flex;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  min-height: 3rem;
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
-.spring-ba__bar b {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.spring-ba__body-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 21rem;
-  height: 25rem;
-}
-.spring-ba__stage {
-  position: relative;
-  display: grid;
-  overflow: hidden;
-  background: var(--surface-sunken);
-}
-.spring-ba__stage > * {
-  grid-area: 1 / 1;
-}
-.spring-ba__stage > .spring-ba__card {
-  place-self: center;
-}
-.spring-ba__k {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
-.spring-ba__sw {
-  display: flex;
-  height: 1.25rem;
-}
-.spring-ba__sw i {
-  flex: 1;
-  transition: background-color 0.5s var(--ease-out);
-}
-@media (max-width: 52rem) {
-  .spring-ba__body-grid {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 24rem auto;
-    height: auto;
-  }
-}
-
-/* Playground */
-.spring-play__swatches {
-  display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-.spring-play__swatch {
+.spring-hero__key {
   position: relative;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
   outline: 1px solid rgb(255 255 255 / 0.16);
   outline-offset: -1px;
 }
-.spring-play__swatch::after {
+.spring-hero__key::after {
   content: "";
   position: absolute;
-  inset: -0.625rem;
+  inset: -0.5rem -0.25rem;
 }
-.spring-play__swatch[aria-pressed="true"] {
+.spring-hero__key[aria-pressed="true"] {
   outline: 1px solid var(--text-primary);
   outline-offset: 2px;
 }
-.spring-play__swatches code {
+.spring-hero__keys code {
   min-width: 4.5rem;
   margin-left: var(--space-2);
-  color: var(--text-primary);
-}
-.spring-play__panel {
-  display: grid;
-  align-content: center;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  border-left: 1px solid var(--border-subtle);
-}
-.spring-play__panel .spring-ba__k {
-  margin-bottom: var(--space-2);
-}
-.spring-play__type {
-  display: grid;
-  list-style: none;
-}
-.spring-play__type li {
-  display: grid;
-  grid-template-columns: 2.75rem 1fr auto;
-  align-items: baseline;
-  gap: var(--space-3);
-  color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
-  font-variant-numeric: tabular-nums;
 }
-.spring-play__type li > span:first-child {
+.spring-hero__stage {
+  position: relative;
+  min-height: 24rem;
+  border-left: 1px solid var(--border-subtle);
+}
+/* A fixed box: a new brand redraws the picture and never moves the page. */
+.spring-stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-canvas);
   color: var(--text-primary);
   font-family: var(--font-sans);
-}
-.spring-play__type code {
-  color: var(--text-primary);
-}
-.spring-play__pass {
-  color: var(--text-secondary);
-  font-size: var(--step-sm);
-}
-.spring-play__pass b {
-  color: var(--text-success);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-.spring-play__files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-}
-.spring-play__foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-play__open {
-  font-size: var(--step-sm);
-  font-weight: 500;
-  text-decoration: none;
-}
-@media (hover: hover) {
-  .spring-play__open:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
+  image-rendering: pixelated;
 }
 @media (max-width: 52rem) {
-  .spring-play__panel {
+  .spring-hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(22rem, 60svh);
+    min-height: 0;
+  }
+  .spring-hero__copy {
+    padding: var(--space-10) var(--spring-gutter);
+  }
+  .spring-hero__stage {
     border-left: 0;
     border-top: 1px solid var(--border-subtle);
   }
-}
-
-/* The billing card. Every value comes from --ba-*, set per look. */
-.spring-ba__card {
-  display: grid;
-  gap: 1rem;
-  width: min(21rem, calc(100% - 2.5rem));
-  padding: 1.25rem;
-  background: var(--ba-bg);
-  border: 1px solid var(--ba-border);
-  border-radius: var(--ba-r-card);
-  color: var(--ba-text);
-  font-family: var(--font-sans);
-  font-size: var(--ba-body);
-  line-height: var(--ba-body-lh);
-  letter-spacing: normal;
-  transition:
-    background-color 0.5s var(--ease-out),
-    color 0.5s var(--ease-out);
-}
-.spring-ba__card p {
-  margin: 0;
-}
-.spring-ba__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.spring-ba__title {
-  font-size: var(--ba-title);
-  font-weight: 600;
-  line-height: var(--ba-title-lh);
-}
-.spring-ba__badge {
-  padding: 0.125rem 0.5rem;
-  background: var(--ba-badge);
-  color: var(--ba-badge-fg);
-  border-radius: 999px;
-  font-size: var(--ba-meta);
-  font-weight: 500;
-  line-height: var(--ba-meta-lh);
-}
-.spring-ba__plan,
-.spring-ba__usage {
-  display: grid;
-  gap: 0.375rem;
-  padding: 0.75rem;
-  background: var(--ba-panel);
-  border-radius: var(--ba-r-ctl);
-}
-.spring-ba__meta {
-  color: var(--ba-muted);
-  font-size: var(--ba-meta);
-  line-height: var(--ba-meta-lh);
-}
-.spring-ba__track {
-  display: block;
-  height: 6px;
-  background: var(--ba-track);
-  border-radius: 999px;
-}
-.spring-ba__track span {
-  display: block;
-  width: 84%;
-  height: 100%;
-  background: var(--ba-meter);
-  border-radius: inherit;
-}
-.spring-ba__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-}
-.spring-ba__btn {
-  padding: 0.5rem 0.875rem;
-  background: var(--ba-primary);
-  color: var(--ba-primary-fg);
-  border-radius: var(--ba-r-ctl);
-  font-size: var(--ba-button);
-  font-weight: 500;
-  line-height: var(--ba-button-lh);
-}
-.spring-ba__btn--ghost {
-  background: transparent;
-  color: var(--ba-text);
-  outline: 1px solid var(--ba-border);
-  outline-offset: -1px;
-}
-.spring-ba__link {
-  margin-left: auto;
-  color: var(--ba-link);
-  font-size: var(--ba-button);
-  line-height: var(--ba-button-lh);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* ---------- Features: a hairline grid, each cell with a live readout of the brand on the clock. ---------- */
@@ -466,11 +251,10 @@
 .spring-feat__ramps span {
   display: flex;
   height: 0.875rem;
-  opacity: 0.35;
-  transition: opacity 0.3s var(--ease-out);
 }
 .spring-feat__ramps span[data-on] {
-  opacity: 1;
+  outline: 1px solid var(--text-primary);
+  outline-offset: 2px;
 }
 .spring-feat__ramps i,
 .spring-feat__roles i {
@@ -606,6 +390,15 @@
   color: var(--text-primary);
   text-align: center;
 }
+.spring-horizon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: pan-y;
+  /* Text never sits on the dither: it fades out below the copy. */
+  mask-image: linear-gradient(to top, #000 22%, transparent 70%);
+}
 .spring-close__sky {
   position: absolute;
   inset: auto 0 0;
@@ -646,9 +439,6 @@
 @media (prefers-reduced-motion: reduce) {
   .spring-nav,
   .spring-nav[data-shown="true"],
-  .spring-ba__sw i,
-  .spring-ba__card,
-  .spring-feat__ramps span,
   .spring-feat__ramps i,
   .spring-feat__roles i,
   .spring-feat__pairs span {

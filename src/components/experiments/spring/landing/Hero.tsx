@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { BrandData } from "./data";
-import { Playground } from "./Playground";
+import { Stage } from "./Stage";
 import { PauseToggle, useLandingMotion } from "./Motion";
 import { GITHUB } from "./Nav";
 
@@ -153,18 +153,14 @@ export function Horizon({ steps, still }: { steps: string[]; still: boolean }) {
     };
   }, [still]);
 
-  return <canvas ref={ref} className="spring-hero__horizon" aria-hidden="true" />;
+  return <canvas ref={ref} className="spring-horizon" aria-hidden="true" />;
 }
 
-/** Full-bleed dark hero: the claim, the one way in, and Spring itself rising out of the horizon. */
+/** Full-bleed hero: the claim, the brands to try, one way in, and the system resolving beside them. */
 export function Hero({ brands }: { brands: BrandData[] }) {
-  const { seed, paused } = useLandingMotion();
-  const steps = horizonFor(brands, seed);
+  const { seed, setPick } = useLandingMotion();
   return (
-    <section className="spring-hero" data-theme="dark" aria-labelledby="spring-hero-title">
-      <div className="spring-hero__sky">
-        <Horizon steps={steps} still={paused} />
-      </div>
+    <section className="spring-hero" aria-labelledby="spring-hero-title">
       <div className="spring-hero__top">
         <span className="spring-mark">spring</span>
         <span className="spring-nav__end">
@@ -176,19 +172,37 @@ export function Hero({ brands }: { brands: BrandData[] }) {
       </div>
       <div className="spring-hero__copy">
         <h1 id="spring-hero-title" className="spring-hero__title">
-          Color and type tokens from one brand color.
+          One color.
+          <br />A whole system.
         </h1>
         <p className="spring-hero__line">
-          Pick a color. Spring builds the scales, roles and type for light and dark, checks every
-          text pair, and exports CSS, Tailwind and DTCG.
+          Color scales, roles and type tokens from one hex. Every text pair contrast-checked.
         </p>
-        <Link href="/spring/app" className="spring-btn pressable" data-spring-cta>
+        <fieldset className="spring-hero__keys">
+          <legend className="sr-only">Try a brand color</legend>
+          {brands.map(({ name, hex }) => (
+            <button
+              key={hex}
+              type="button"
+              className="spring-hero__key pressable"
+              style={{ background: hex }}
+              aria-label={name}
+              aria-pressed={seed === hex}
+              onClick={() => setPick(hex)}
+            />
+          ))}
+          <code>{seed}</code>
+        </fieldset>
+        <Link
+          href={`/spring/app?primary=${encodeURIComponent(seed)}`}
+          className="spring-btn pressable"
+          data-spring-cta
+        >
           Open Spring
         </Link>
-        <p className="spring-hero__note">free · no account · runs in your browser</p>
       </div>
-      <div className="spring-hero__proof">
-        <Playground brands={brands} />
+      <div className="spring-hero__stage">
+        <Stage brands={brands} />
       </div>
     </section>
   );

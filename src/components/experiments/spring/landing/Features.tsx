@@ -10,7 +10,7 @@ export function Features({ brands }: { brands: BrandData[] }) {
   return (
     <section className="spring-feat" aria-labelledby="spring-feat-title">
       <h2 id="spring-feat-title" className="spring-h2">
-        One color in. A whole system out.
+        What you get
       </h2>
       <ul className="spring-feat__grid">
         <li>
