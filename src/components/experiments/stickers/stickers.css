@@ -11,7 +11,7 @@
   display: none;
 }
 @media (max-width: 40rem) {
-  .stickers .spring-split__main > span {
+  .stickers .stickers-export-label {
     display: none;
   }
   .stickers-export-icon {
@@ -190,4 +190,12 @@
     border-top: 1px solid var(--border-subtle);
     border-bottom: 0;
   }
+}
+/* One label that swaps text (Export, Copied, Saved, Failed); min width keeps the button still. */
+.stickers .spring-split__main {
+  display: inline-flex;
+}
+.stickers-export-label {
+  min-width: 3.75em;
+  text-align: center;
 }

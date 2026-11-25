@@ -128,11 +128,9 @@ export function ExportMenu({
           strokeWidth={1.75}
           className="stickers-export-icon"
         />
-        {["Export", "Copied", "Saved", "Failed"].map((t) => (
-          <span key={t} aria-hidden="true" data-on={t === (note || "Export") || undefined}>
-            {t}
-          </span>
-        ))}
+        <span aria-hidden="true" className="stickers-export-label">
+          {note || "Export"}
+        </span>
       </a>
       <Menu.Root>
         <Menu.Trigger
