@@ -36,6 +36,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
 
 test("data colors reorder with their move buttons", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
@@ -52,6 +53,7 @@ test("the audit stays reachable at #audit", async ({ page }) => {
 
 test("the color page opens its charts in Preview", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   await page.getByRole("button", { name: "See them in charts" }).click();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
     "aria-pressed",
@@ -62,6 +64,7 @@ test("the color page opens its charts in Preview", async ({ page }) => {
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "data viz" }).first().click();
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
@@ -172,6 +175,7 @@ test("Start over drops seed params from the URL", async ({ page }) => {
 
 test("a curve handle follows the pointer", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "scale" }).click();
   const plot = page.locator(".spring-curve__plot");
   await plot.scrollIntoViewIfNeeded();
   const field = page.getByLabel("cubic-bezier");
