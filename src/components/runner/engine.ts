@@ -7,7 +7,16 @@
  * - Whole device pixels per cell, so pixels stay square and crisp.
  * - Colours come from CSS custom properties and are re-read on theme change.
  */
-import { createRun, grounded, score, step, STEP, WORLD, type RunState } from "@/lib/runner/sim";
+import {
+  createRun,
+  GRAVITY,
+  grounded,
+  score,
+  step,
+  STEP,
+  WORLD,
+  type RunState,
+} from "@/lib/runner/sim";
 import {
   buildSprite,
   COSTUMES,
@@ -41,6 +50,10 @@ import {
   RESKINS,
   STARS,
   stepParticles,
+  stepSway,
+  swayRow,
+  SPLASH,
+  type Sway,
   SUN,
 } from "@/lib/runner/scene";
 import type { Weather } from "@/lib/runner/weather";
@@ -154,6 +167,7 @@ export function createEngine(
   let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
   let weather = initialWeather;
   const particles = makeParticles();
+  const sway: Sway = { offset: 0, speed: 0 };
   const faces = new WeakMap<object, Face | null>();
   /** Weather moves on its own clock, so rain falls between runs too. */
   let weatherLast: number | null = null;
@@ -248,11 +262,31 @@ export function createEngine(
 
   function drawParticles() {
     if (!particleSpeed(weather.sky)) return;
-    const snow = weather.sky === "snow";
     const color = colors.sky;
-    for (const { x, y } of particles)
-      for (let copy = x; copy < viewWidth; copy += 200)
-        fill(copy, Math.floor(y), 1, Math.min(snow ? 1 : 3, WORLD.ground - Math.floor(y)), color);
+    if (weather.sky === "snow") {
+      for (const { x, y } of particles)
+        for (let copy = x; copy < viewWidth; copy += 200) fill(copy, Math.floor(y), 1, 1, color);
+      return;
+    }
+    // Rain: short drops slanting down to the left, near ones a cell longer,
+    // each with a two-dot splash where it lands.
+    for (const { x, y, near, splash, splashX } of particles) {
+      const length = 2 + near;
+      const top = Math.floor(y);
+      for (let copy = x; copy < viewWidth + 200; copy += 200) {
+        const left = Math.floor(copy);
+        for (let cell = 0; cell < length; cell += 1) {
+          const row = top - cell;
+          if (row >= 0 && row < WORLD.ground) fill(left + Math.ceil(cell / 2), row, 1, 1, color);
+        }
+        if (splash < SPLASH) {
+          const at = Math.floor(splashX + copy - x);
+          const spread = splash < SPLASH / 2 ? 1 : 2;
+          fill(at - spread, WORLD.ground - 1, 1, 1, color);
+          fill(at + spread, WORLD.ground - 1, 1, 1, color);
+        }
+      }
+    }
   }
 
   /** Fog: wide, flat banks drifting along the ground with the clouds, drawn
@@ -337,12 +371,12 @@ export function createEngine(
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
     const accessory = accessoryFor(weather);
     const face = accessory ? faceOf(rects) : null;
-    // On the way down, hats and the umbrella trail a cell or two above the
-    // head, then settle on landing.
-    const falling = state && !state.over && !grounded(state) ? -state.velocity : 0;
-    const float = falling > 100 ? 2 : falling > 30 ? 1 : 0;
     if (accessory && face)
-      drawCells(dress(face, accessory, costume, float, lift + face.top), WORLD.mascotX, lift);
+      drawCells(
+        dress(face, accessory, costume, swayRow(sway), lift + face.top),
+        WORLD.mascotX,
+        lift,
+      );
   }
 
   /** Faces are found once per frame of art and kept. */
@@ -386,7 +420,9 @@ export function createEngine(
       const before = state.jumps;
       const milestoneBefore = Math.floor(score(state) / MILESTONE);
       const wasGrounded = grounded(state);
+      const velocity = state.velocity;
       step(state, pressed, viewWidth);
+      if (!motion.matches) stepSway(sway, velocity, state.velocity, STEP, GRAVITY);
       if (!motion.matches) {
         cloudShift += state.speed * STEP * CLOUD_PARALLAX;
         sceneryShift += state.speed * STEP * SCENERY_PARALLAX;
@@ -458,6 +494,8 @@ export function createEngine(
     start(seed, next) {
       costume = next;
       run = createRun(seed, SPRITES[next].hitbox);
+      sway.offset = 0;
+      sway.speed = 0;
       pressed = false;
       walkFrame = null;
       idleLast = null;

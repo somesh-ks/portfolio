@@ -7,9 +7,13 @@ import {
   dress,
   findFace,
   makeParticles,
+  SPLASH,
   stepParticles,
+  stepSway,
+  swayRow,
 } from "@/lib/runner/scene";
 import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
+import { createRun, GRAVITY, step, STEP } from "@/lib/runner/sim";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES, type Cell, type ObstacleKind } from "@/lib/runner/sprites";
 import { localNight, roundCoord, skyFromCode, weatherLabel } from "@/lib/runner/weather";
@@ -119,7 +123,7 @@ describe("accessories", () => {
   test("weather picks the accessory", () => {
     expect(accessoryFor({ sky: "rain", night: true, temp: null })).toBe("umbrella");
     expect(accessoryFor({ sky: "snow", night: false, temp: null })).toBe("beanie");
-    expect(accessoryFor({ sky: "clear", night: false, temp: null })).toBe("shades");
+    expect(accessoryFor({ sky: "clear", night: false, temp: null })).toBeNull();
     expect(accessoryFor({ sky: "clear", night: true, temp: null })).toBe("nightcap");
     expect(accessoryFor({ sky: "cloudy", night: false, temp: null })).toBeNull();
   });
@@ -162,21 +166,73 @@ describe("weather label", () => {
 
 const highest = (cells: readonly Cell[]) => Math.min(...cells.map(([, y]) => y));
 
+const touching = (a: Cell, b: Cell) =>
+  a[0] <= b[0] + b[2] && b[0] <= a[0] + a[2] && a[1] <= b[1] + b[3] && b[1] <= a[1] + a[3];
+
+/** Every cell joins the others: nothing floats free of the hat. */
+const connected = (cells: readonly Cell[]) => {
+  const reached = new Set([0]);
+  for (let grew = true; grew;) {
+    grew = false;
+    cells.forEach((cell, index) => {
+      if (reached.has(index)) return;
+      if ([...reached].some((other) => touching(cell, cells[other]!))) {
+        reached.add(index);
+        grew = true;
+      }
+    });
+  }
+  return reached.size === cells.length;
+};
+
 describe("jump props", () => {
   const face = { eyes: [[9, -15] as const], top: -17, left: 4, right: 19 };
 
-  test("falling lifts a hat off the head", () => {
-    expect(highest(dress(face, "beanie", "walk", 2))).toBe(
-      highest(dress(face, "beanie", "walk")) - 2,
-    );
+  test("a hat's band never leaves the head", () => {
+    for (const hat of ["beanie", "nightcap"] as const)
+      for (const sway of [-1, 0, 1] as const) {
+        const cells = dress(face, hat, "walk", sway);
+        expect(Math.max(...cells.map(([, y, , h]) => y + h))).toBe(face.top);
+        expect(connected(cells)).toBe(true);
+      }
   });
 
-  test("the umbrella shaft always reaches the head and stays on screen", () => {
+  test("loose cloth sags on take-off and landing and floats in the air", () => {
+    const run = createRun(1);
+    const sway = { offset: 0, speed: 0 };
+    const rows: number[] = [];
+    for (let tick = 0; tick < 70; tick += 1) {
+      const before = run.velocity;
+      step(run, tick === 5, 600);
+      stepSway(sway, before, run.velocity, STEP, GRAVITY);
+      rows.push(swayRow(sway));
+    }
+    expect(rows.slice(0, 5).every((row) => row === 0)).toBe(true);
+    expect(rows.slice(5, 9)).toContain(1);
+    expect(rows.slice(15, 40).every((row) => row === -1)).toBe(true);
+    expect(rows.slice(40, 52)).toContain(1);
+    expect(rows.slice(-10).every((row) => row === 0)).toBe(true);
+  });
+
+  test("the umbrella is rigid, reaches the head and stays on screen", () => {
     for (const headroom of [4, 7, 9, 30]) {
-      const cells = dress(face, "umbrella", "walk", 2, headroom);
+      const cells = dress(face, "umbrella", "walk", 1, headroom);
+      expect(cells).toEqual(dress(face, "umbrella", "walk", -1, headroom));
       const shaft = cells.at(-1)!;
       expect(shaft[1] + shaft[3]).toBe(face.top);
       if (headroom >= 7) expect(highest(cells) - face.top).toBeGreaterThanOrEqual(-headroom);
     }
+  });
+});
+
+describe("rain", () => {
+  test("a drop that lands leaves a splash, then the splash fades", () => {
+    const particles = makeParticles();
+    const drop = particles[0]!;
+    drop.y = 55.5;
+    stepParticles(particles, "rain", 1 / 60, 56);
+    expect(drop.splash).toBe(0);
+    for (let i = 0; i < 12; i += 1) stepParticles(particles, "rain", 1 / 60, 56);
+    expect(drop.splash).toBeGreaterThan(SPLASH);
   });
 });

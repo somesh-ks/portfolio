@@ -126,6 +126,11 @@ export const RESKINS: Partial<Record<Sky, Partial<Record<ObstacleKind, ObstacleS
 interface Particle {
   x: number;
   y: number;
+  /** Rain only: 0 is a far, short, slower drop; 1 a near, longer one. */
+  near: 0 | 1;
+  /** Seconds since this drop last hit the ground, for its splash. */
+  splash: number;
+  splashX: number;
 }
 
 /** Rain streaks and snowflakes over a 200-cell strip of sky. */
@@ -136,13 +141,18 @@ export function makeParticles(): Particle[] {
   // A fixed scatter, so the reduced-motion frame is the same every visit.
   return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
     const hash = Math.imul(index + 1, 2654435761) >>> 0;
-    return { x: hash % PARTICLE_STRIP, y: (hash >>> 8) % 56 };
+    const near = ((hash >>> 4) & 1) as 0 | 1;
+    return { x: hash % PARTICLE_STRIP, y: (hash >>> 8) % 56, near, splash: SPLASH, splashX: 0 };
   });
 }
 
-/** Cells per second: [fall, drift left]. */
+/** How long a splash shows, in seconds. */
+export const SPLASH = 0.12;
+
+/** Cells per second: [fall, drift left]. Rain slants about one across for
+ * three down, the angle its drops are drawn at. */
 export function particleSpeed(sky: Sky): readonly [number, number] | null {
-  if (sky === "rain") return [60, 6];
+  if (sky === "rain") return [54, 18];
   if (sky === "snow") return [10, 4];
   return null;
 }
@@ -152,9 +162,16 @@ export function stepParticles(particles: Particle[], sky: Sky, dt: number, groun
   const speed = particleSpeed(sky);
   if (!speed) return;
   for (const particle of particles) {
-    particle.y += speed[0] * dt;
-    particle.x -= speed[1] * dt;
-    if (particle.y >= ground) particle.y -= ground;
+    // Far drops fall a little slower, so the rain has depth.
+    const pace = sky === "rain" && !particle.near ? 0.8 : 1;
+    particle.y += speed[0] * dt * pace;
+    particle.x -= speed[1] * dt * pace;
+    particle.splash += dt;
+    if (particle.y >= ground) {
+      particle.y -= ground;
+      particle.splash = 0;
+      particle.splashX = particle.x;
+    }
     particle.x = ((particle.x % PARTICLE_STRIP) + PARTICLE_STRIP) % PARTICLE_STRIP;
   }
 }
@@ -235,15 +252,14 @@ export function findFace(rects: readonly Rect[]): Face | null {
   return { eyes, top, left, right };
 }
 
-export type Accessory = "umbrella" | "beanie" | "nightcap" | "shades";
+export type Accessory = "umbrella" | "beanie" | "nightcap";
 
-/** What Claude wears: an umbrella in rain, a beanie in snow, shades in the
- * sun, a nightcap on a dry night. Cloud and fog need nothing. */
+/** What Claude wears: an umbrella in rain, a beanie in snow, a nightcap on a
+ * dry night. Clear days, cloud and fog need nothing. */
 export function accessoryFor(weather: Weather): Accessory | null {
   if (weather.sky === "rain") return "umbrella";
   if (weather.sky === "snow") return "beanie";
   if (weather.night) return "nightcap";
-  if (weather.sky === "clear") return "shades";
   return null;
 }
 
@@ -251,38 +267,61 @@ export function accessoryFor(weather: Weather): Accessory | null {
 const HATLESS = new Set(["bike", "car"]);
 const UMBRELLALESS = new Set(["car"]);
 
+/** How the soft parts of a hat (the pom, the nightcap's tail) sit: a
+ * damped spring driven by the head's acceleration. Positive sags toward the
+ * head, negative lifts. A hat's band never moves: it is pulled onto the head,
+ * so only what hangs loose answers to a jump. */
+export interface Sway {
+  offset: number;
+  speed: number;
+}
+
+const SWAY_FREQUENCY = 18;
+const SWAY_DAMPING = 0.55;
+
+/** Advances the sway by one step, given the head's vertical velocity before
+ * and after it (cells per second, up is positive) and gravity. On the ground
+ * the felt gravity is 1g and the pom rests; in free fall it is 0g, so loose
+ * cloth floats up a cell; take-off and landing are hard pushes that sag it. */
+export function stepSway(sway: Sway, before: number, after: number, dt: number, gravity: number) {
+  const felt = 1 + (after - before) / dt / gravity;
+  const pull = Math.max(-1, Math.min(24, felt - 1));
+  const stiffness = SWAY_FREQUENCY ** 2;
+  const accel =
+    stiffness * pull - stiffness * sway.offset - 2 * SWAY_DAMPING * SWAY_FREQUENCY * sway.speed;
+  sway.speed += accel * dt;
+  sway.offset += sway.speed * dt;
+  if (Math.abs(sway.offset) > 1) {
+    sway.offset = Math.sign(sway.offset);
+    sway.speed = 0;
+  }
+}
+
+/** The sway as a whole row: -1 lifted, 0 at rest, 1 sagging. */
+export function swayRow(sway: Sway): -1 | 0 | 1 {
+  return sway.offset > 0.5 ? 1 : sway.offset < -0.5 ? -1 : 0;
+}
+
 /** The accessory as cells, in the same frame as the ride's rects. */
 export function dress(
   face: Face,
   accessory: Accessory,
   costume: string,
-  float = 0,
+  sway: -1 | 0 | 1 = 0,
   /** Rows between the head and the top of the canvas. */
   headroom = Infinity,
 ): Cell[] {
-  const { left, right, eyes } = face;
-  // Falling, a hat lifts off the head and an umbrella rises on a longer shaft.
-  const top = face.top - float;
+  const { left, right, top } = face;
   const width = right - left + 1;
   const middle = Math.floor((left + right) / 2);
-  if (accessory === "shades") {
-    const cells: Cell[] = [];
-    for (const [x, y] of eyes) {
-      cells.push([x - 1, y, 4, 2, "ink"], [x - 1, y, 1, 1, "cream"]);
-    }
-    const first = eyes[0];
-    const last = eyes.at(-1);
-    if (first && last && last[0] - first[0] > 3)
-      cells.push([first[0] + 3, first[1], last[0] - first[0] - 3, 1, "ink"]);
-    return cells;
-  }
   if (accessory === "umbrella") {
     if (UMBRELLALESS.has(costume)) return [];
     const span = 17;
     const x0 = middle - 8;
-    // Near the top of a jump the shaft shortens so the canopy stays on screen.
-    const shaft = Math.max(1, Math.min(3 + float, headroom - 6));
-    const canopy = face.top - shaft - 4;
+    // The umbrella is rigid: the shaft only shortens (Claude holds it lower)
+    // when a jump would push the canopy off the top of the canvas.
+    const shaft = Math.max(1, Math.min(3, headroom - 6));
+    const canopy = top - shaft - 4;
     return [
       [x0 + 6, canopy, 5, 1, "gold"],
       [x0 + 3, canopy + 1, 11, 1, "gold"],
@@ -299,24 +338,37 @@ export function dress(
   }
   if (HATLESS.has(costume)) return [];
   if (accessory === "beanie") {
+    // The pom squashes wide on a sag and stretches tall when it floats; it
+    // stays sewn on either way.
+    const pom: Cell =
+      sway === 1
+        ? [middle - 2, top - 5, 5, 1, "gold"]
+        : sway === -1
+          ? [middle - 1, top - 7, 3, 3, "gold"]
+          : [middle - 1, top - 6, 3, 2, "gold"];
     return [
-      [middle - 1, top - 6, 3, 2, "gold"],
+      pom,
       [left + 3, top - 4, width - 6, 1, "sky"],
       [left + 1, top - 3, width - 2, 1, "sky"],
       [left, top - 2, width, 1, "sky"],
       [left, top - 1, width, 1, "gold"],
     ];
   }
-  // A nightcap flops back over the head's left side, pom at the tip.
-  return [
+  // A nightcap flops back over the head's left side, pom at the tip. The
+  // tail sags a row on a hard push and lifts a row in free fall.
+  const tail = top + sway;
+  const cells: Cell[] = [
     [left, top - 1, width, 1, "sky"],
     [left + 1, top - 2, width - 2, 1, "sky"],
     [left + 3, top - 3, width - 7, 1, "sky"],
     [left + 2, top - 4, Math.max(width - 11, 4), 1, "sky"],
-    [left, top - 5, 4, 1, "sky"],
-    [left - 1, top - 4, 2, 1, "sky"],
-    [left - 3, top - 4, 2, 2, "gold"],
+    [left, tail - 5, 4, 1, "sky"],
+    [left - 1, tail - 4, 2, 1, "sky"],
+    [left - 3, tail - 4, 2, 2, "gold"],
   ];
+  // Lifted, a stitch joins the raised tip back to the cap.
+  if (sway === -1) cells.push([left + 2, top - 5, 2, 1, "sky"]);
+  return cells;
 }
 
 /** Faint horizon scenery, one colour: palms, pines, a house, low hills. */
