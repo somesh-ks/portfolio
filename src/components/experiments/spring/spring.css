@@ -799,18 +799,49 @@
   flex: none;
   gap: var(--space-2);
 }
-/* Phones: the buttons take a row above the tabs, so every tab stays in view. */
+/* Boxed icon buttons in the bar: same frame as the text buttons, square. */
+.spring-app__actions .spring-square {
+  justify-content: center;
+  width: 2.75rem;
+  padding: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-app__actions .spring-square {
+    width: 2.25rem;
+  }
+}
+/* Phones: name and actions share the top row, tabs take the full row below. */
 @media (max-width: 40rem) {
   .spring-app__bar {
     flex-wrap: wrap;
+    row-gap: 0;
   }
   .spring-app__actions {
-    order: -1;
-    width: 100%;
-    justify-content: flex-end;
+    margin-left: auto;
+    padding-top: var(--space-2);
+  }
+  .spring-app__name {
+    padding-top: var(--space-2);
   }
   .spring-tabs {
+    order: 1;
     flex-basis: 100%;
+    margin-inline: calc(-1 * var(--space-4));
+    padding-inline: var(--space-2);
+  }
+  /* Preview drops its label to an icon; the label stays for screen readers. */
+  .spring-app__actions .spring-app__preview {
+    justify-content: center;
+    width: 2.75rem;
+    padding: 0;
+  }
+  .spring-app__preview span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 /* Preview on: the button reads as held down. */
@@ -911,6 +942,10 @@
   margin: var(--space-2) 0;
   border: 0;
   border-top: 1px solid var(--border-subtle);
+}
+/* In the sidebar a divider runs edge to edge, past the panel's padding. */
+.spring-app__side .spring-rule {
+  margin-inline: calc(-1 * var(--space-4));
 }
 
 /* ——— Curve editor ——— */

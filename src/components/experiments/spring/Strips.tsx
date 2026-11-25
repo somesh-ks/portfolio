@@ -5,8 +5,6 @@ import { Popover } from "@base-ui/react/popover";
 import {
   CHART_MAX,
   CVD_FILTER,
-  DIV_STEPS,
-  SEQ_STEPS,
   VISION_LABEL,
   VISIONS,
   type ChartCheck,
@@ -303,6 +301,7 @@ export function ColorOutput({
   mode,
   format,
   setFormat,
+  onPreview,
 }: {
   system: System;
   input: SystemInput;
@@ -310,6 +309,8 @@ export function ColorOutput({
   mode: Mode;
   format: ColorFormat;
   setFormat: (f: ColorFormat) => void;
+  /** Opens the preview on its charts screen. */
+  onPreview: () => void;
 }) {
   const [copied, copyText, said] = useCopy();
   const copy = { copied, copy: copyText };
@@ -540,10 +541,9 @@ export function ColorOutput({
         input={input}
         setInput={setInput}
         mode={mode}
-        page={page}
         format={format}
         filter={filter}
-        filterId={filterId}
+        onPreview={onPreview}
         steps={steps}
         pick={pick}
         newColor={newColor}
@@ -558,22 +558,20 @@ function DataSection({
   input,
   setInput,
   mode,
-  page,
   format,
   filter,
-  filterId,
   steps,
   pick,
   newColor,
+  onPreview,
 }: {
   system: System;
   input: SystemInput;
   setInput: SetInput;
   mode: Mode;
-  page: string;
   format: ColorFormat;
   filter?: { filter: string };
-  filterId: string;
+  onPreview: () => void;
   steps: (key: string, name: string, extra?: { mark?: number }) => ReactNode;
   pick: (name: string, hex: string, onHex: (hex: string) => void) => ReactNode;
   newColor: (h: number) => DataColor;
@@ -591,11 +589,6 @@ function DataSection({
       [next[k], next[j]] = [next[j]!, next[k]!];
       return next;
     });
-  const options = data.map((d, i) => ({ value: String(i), label: d.name }));
-  const ramps = input.ramps ?? {};
-  const setRamps = (r: typeof ramps) => setInput((i) => ({ ...i, ramps: { ...i.ramps, ...r } }));
-  const seq = data.findIndex((d) => d.key === c.seq);
-  const div = c.div ? c.div.map((k) => data.findIndex((d) => d.key === k)) : [0, 1];
   return (
     <>
       <h2 className="spring-section">data viz</h2>
@@ -685,66 +678,12 @@ function DataSection({
       </div>
       {data.length ? (
         <>
-          <div className="spring-ramps">
-            <Select
-              label="Sequential from"
-              value={String(Math.max(0, seq))}
-              options={options}
-              onChange={(v) => setRamps({ seq: Number(v) })}
-            />
-            {data.length > 1 ? (
-              <>
-                <Select
-                  label="Diverging from"
-                  value={String(div[0])}
-                  options={options}
-                  onChange={(v) => setRamps({ div: [Number(v), div[1]!] })}
-                />
-                <Select
-                  label="to"
-                  value={String(div[1])}
-                  options={options}
-                  onChange={(v) => setRamps({ div: [div[0]!, Number(v)] })}
-                />
-              </>
-            ) : null}
-          </div>
-          <div className="spring-scales" style={filter}>
-            <RampRow name="series" colors={c.marks[mode]} keys={data.map((d) => d.key)} />
-            {VISIONS.filter((v) => v !== "normal").map((v) => {
-              const near = c.closest[mode][v];
-              return (
-                <div key={v} className="spring-scale" aria-hidden>
-                  <span className="spring-strip spring-strip--plain">
-                    <span className="spring-strip__name" title={VISION_LABEL[v]}>
-                      {v}
-                    </span>
-                    <span className="spring-meta">
-                      {data.length > 1 ? `${near.a + 1}≈${near.b + 1} ΔE ${near.d.toFixed(2)}` : ""}
-                    </span>
-                  </span>
-                  <span
-                    className="spring-scale__steps"
-                    style={{
-                      gridTemplateColumns: `repeat(${data.length}, 1fr)`,
-                      filter: `url(#${filterId}-${v})`,
-                    }}
-                  >
-                    {c.marks[mode].map((hex, i) => (
-                      <span key={data[i]!.key} style={{ backgroundColor: hex }} />
-                    ))}
-                  </span>
-                </div>
-              );
-            })}
-            {c.sequential[mode].length ? (
-              <RampRow name="sequential" colors={c.sequential[mode]} keys={SEQ_STEPS.map(String)} />
-            ) : null}
-            {c.diverging[mode].length ? (
-              <RampRow name="diverging" colors={c.diverging[mode]} keys={DIV_KEYS} />
-            ) : null}
-          </div>
-          <Sample colors={c.marks[mode]} page={page} />
+          <p className="spring-meta">
+            <button type="button" className="spring-link" onClick={onPreview}>
+              See them in charts
+            </button>{" "}
+            : bars, a heatmap from the amounts ramp, and above / below from the diverging one.
+          </p>
           <Checks checks={c.checks[mode]} />
         </>
       ) : (
@@ -754,59 +693,6 @@ function DataSection({
   );
 }
 
-function RampRow({ name, colors, keys }: { name: string; colors: string[]; keys: string[] }) {
-  return (
-    <div className="spring-scale" aria-hidden>
-      <span className="spring-strip spring-strip--plain">
-        <span className="spring-strip__name">{name}</span>
-      </span>
-      <span
-        className="spring-scale__steps"
-        style={{ gridTemplateColumns: `repeat(${colors.length}, 1fr)` }}
-      >
-        {keys.map((k, i) => (
-          <span key={k} style={{ backgroundColor: colors[i] }} />
-        ))}
-      </span>
-    </div>
-  );
-}
-
-/** Bars in series order, the way most charts will use them, with the 2px gap between touching marks. */
-function Sample({ colors, page }: { colors: string[]; page: string }) {
-  const groups = [0.55, 0.8, 0.45, 0.95];
-  const w = 100 / (groups.length * (colors.length + 1));
-  return (
-    <svg
-      viewBox="0 0 100 40"
-      preserveAspectRatio="none"
-      className="spring-chart"
-      role="img"
-      aria-label="Sample bar chart using the series colors"
-      style={{ background: page }}
-    >
-      {groups.flatMap((g, gi) =>
-        colors.map((col, i) => {
-          const h = 36 * g * (0.55 + 0.45 * Math.abs(Math.sin(gi * 3 + i * 1.7)));
-          return (
-            <rect
-              key={`${g}-${col}`}
-              x={(gi * (colors.length + 1) + i + 0.5) * w}
-              y={40 - h}
-              width={w}
-              height={h}
-              fill={col}
-              stroke={page}
-              strokeWidth={0.4}
-            />
-          );
-        }),
-      )}
-    </svg>
-  );
-}
-
-const DIV_KEYS = [...DIV_STEPS.map((s) => `a${s}`), "mid", ...DIV_STEPS.map((s) => `b${s}`)];
 const MARK = { pass: "✓", warn: "!", fail: "✕" } as const;
 
 function Checks({ checks }: { checks: ChartCheck[] }) {

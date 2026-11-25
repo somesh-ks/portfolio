@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
+import { Eye } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import {
@@ -33,7 +34,7 @@ import { CurveEditor } from "./CurveEditor";
 import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
-import { AppScreen, Components, Homepage, Ladder } from "./Preview";
+import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
 import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
@@ -175,6 +176,7 @@ export function SpringApp() {
   const mode = useMode();
   const [tab, setTab] = useState<Tab>("color");
   const [view, setView] = useState<"output" | "preview">("output");
+  const [charts, setCharts] = useState(false);
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
@@ -231,14 +233,15 @@ export function SpringApp() {
         <span className="spring-app__actions">
           <button
             type="button"
-            className="button"
+            className="button spring-app__preview"
             aria-pressed={view === "preview"}
             onClick={() => setView((v) => (v === "preview" ? "output" : "preview"))}
           >
-            Preview
+            <Eye aria-hidden="true" size={16} strokeWidth={1.75} />
+            <span>Preview</span>
           </button>
           <ExportMenu system={system} />
-          <ThemeToggle />
+          <ThemeToggle className="button spring-square pressable" />
         </span>
       </header>
       <AuditDialog />
@@ -250,15 +253,17 @@ export function SpringApp() {
           <div className="spring-wb__bar">
             <Segmented
               label="Screen"
-              options={["site", "app"] as const}
-              value={building === "site" ? "site" : "app"}
-              onChange={(v) =>
+              options={["site", "app", "charts"] as const}
+              value={charts ? "charts" : building === "site" ? "site" : "app"}
+              onChange={(v) => {
+                setCharts(v === "charts");
+                if (v === "charts") return;
                 setInput((i) => ({
                   ...i,
                   stack: { ...i.stack, building: v, components: undefined, icons: undefined },
-                }))
-              }
-              render={(v) => (v === "site" ? "Site" : "App")}
+                }));
+              }}
+              render={(v) => (v === "site" ? "Site" : v === "app" ? "App" : "Charts")}
             />
             <Segmented
               label="Width"
@@ -272,7 +277,9 @@ export function SpringApp() {
         {view === "preview" ? (
           // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
           <div className="spring-frame" data-width={width}>
-            {building === "site" ? (
+            {charts ? (
+              <ChartsScreen system={system} mode={mode} />
+            ) : building === "site" ? (
               <Homepage system={system} mode={mode} line={spring.line} />
             ) : (
               <AppScreen system={system} mode={mode} />
@@ -288,6 +295,10 @@ export function SpringApp() {
                 mode={mode}
                 format={format}
                 setFormat={setFormat}
+                onPreview={() => {
+                  setView("preview");
+                  setCharts(true);
+                }}
               />
             ) : null}
             {tab === "type" && browse ? (
@@ -532,6 +543,13 @@ function ColorControls({
         show={`${Math.round(input.neutralTint * 100)}%`}
         onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
       />
+      {system.data.length ? (
+        <>
+          <hr className="spring-rule" />
+          <p className="spring-group">data viz</p>
+          <DataRamps system={system} setInput={setInput} />
+        </>
+      ) : null}
       <hr className="spring-rule" />
       <p className="spring-group">rules</p>
       <Row label="contrast">
@@ -566,6 +584,59 @@ function ColorControls({
       ) : (
         <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
       )}
+    </>
+  );
+}
+
+/**
+ * Which data colors the two ramps use. "amounts" runs one color light to dark;
+ * "above / below" meets two colors at a neutral middle.
+ */
+function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
+  const keys = system.data.map((d) => d.key);
+  const options = system.data.map((d, n) => ({ value: String(n), label: d.name }));
+  const at = (key?: string) => String(Math.max(0, keys.indexOf(key ?? "")));
+  const c = system.charts;
+  const setRamps = (r: Partial<NonNullable<Spring["input"]["ramps"]>>) =>
+    setInput((i) => ({ ...i, ramps: { ...i.ramps, ...r } }));
+  const div: [number, number] = [Number(at(c.div?.[0])), Number(at(c.div?.[1] ?? keys[1]))];
+  return (
+    <>
+      <Row label="amounts">
+        <Select
+          label="Color for amounts, light to dark"
+          hideLabel
+          value={at(c.seq)}
+          options={options}
+          onChange={(v) => setRamps({ seq: Number(v) })}
+        />
+      </Row>
+      {keys.length > 1 ? (
+        <>
+          <Row label="below">
+            <Select
+              label="Color for values below the middle"
+              hideLabel
+              value={String(div[0])}
+              options={options}
+              onChange={(v) => setRamps({ div: [Number(v), div[1]] })}
+            />
+          </Row>
+          <Row label="above">
+            <Select
+              label="Color for values above the middle"
+              hideLabel
+              value={String(div[1])}
+              options={options}
+              onChange={(v) => setRamps({ div: [div[0], Number(v)] })}
+            />
+          </Row>
+        </>
+      ) : null}
+      <p className="spring-meta">
+        Amounts shade one color from light to dark. Above and below meet two colors at a gray
+        middle, for change against a baseline.
+      </p>
     </>
   );
 }

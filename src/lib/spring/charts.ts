@@ -99,9 +99,9 @@ export interface Charts {
 }
 
 /** Sequential uses steps 3–11: step 1–2 vanish into the page, 12 is text. */
-export const SEQ_STEPS: Step[] = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+const SEQ_STEPS: Step[] = [3, 4, 5, 6, 7, 8, 9, 10, 11];
 /** Diverging: arm A from strong to light, a neutral middle, arm B back to strong. */
-export const DIV_STEPS: Step[] = [10, 8, 6, 4];
+const DIV_STEPS: Step[] = [10, 8, 6, 4];
 
 /** A strip's mark: its brand step, or the first step past it that clears 3:1 on the page. */
 function markStep(scale: BuiltScale, mode: Mode, page: string): Step {

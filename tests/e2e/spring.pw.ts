@@ -48,3 +48,13 @@ test("the audit stays reachable at #audit", async ({ page }) => {
   await page.goto("/spring#audit");
   await expect(page.getByRole("dialog", { name: "Audit a system" })).toBeVisible();
 });
+
+test("the color page opens its charts in Preview", async ({ page }) => {
+  await page.goto("/spring");
+  await page.getByRole("button", { name: "See them in charts" }).click();
+  await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByText("Change vs last month")).toBeVisible();
+});

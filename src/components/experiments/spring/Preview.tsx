@@ -1,6 +1,8 @@
 "use client";
 
+import { useId } from "react";
 import { ArrowRight, ChevronDown, CircleAlert } from "lucide-react";
+import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
 import type { System } from "@/lib/spring/system";
 import type { Role } from "@/lib/spring/type";
@@ -276,6 +278,181 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
             </div>
           );
         })}
+      </div>
+    </Scope>
+  );
+}
+
+const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const TEAMS = [
+  ["Support", -3],
+  ["Sales", 2],
+  ["Design", 4],
+  ["Ops", -1],
+  ["Legal", 0],
+  ["Data", 3],
+] as const;
+
+/**
+ * The data colors at work: series as grouped bars, the amounts ramp as a
+ * heatmap, the above/below ramp as change against a midline, and the series
+ * as each kind of color blindness sees them.
+ */
+export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
+  const c = system.charts;
+  const marks = c.marks[mode];
+  const seq = c.sequential[mode];
+  const div = c.diverging[mode];
+  const name = (key?: string) => system.data.find((d) => d.key === key)?.name ?? "";
+  const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  if (!marks.length)
+    return (
+      <Scope system={system} mode={mode}>
+        <p className="sp-body sp-muted p-6">Add data colors to see them in charts.</p>
+      </Scope>
+    );
+  const w = 100 / (QUARTERS.length * (marks.length + 1));
+  return (
+    <Scope system={system} mode={mode}>
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        {Object.entries(CVD_FILTER).map(([k, m]) => (
+          <filter key={k} id={`${filterId}-${k}`} colorInterpolationFilters="linearRGB">
+            <feColorMatrix type="matrix" values={m} />
+          </filter>
+        ))}
+      </svg>
+      <div className="grid gap-6 p-6">
+        <section className="grid gap-3">
+          <span className="sp-h3">Revenue by region</span>
+          <span className="flex flex-wrap gap-x-4 gap-y-1">
+            {system.data.map((d, i) => (
+              <span key={d.key} className="sp-caption inline-flex items-center gap-1.5">
+                <span className="inline-block size-2.5" style={{ background: marks[i] }} />
+                {d.name}
+              </span>
+            ))}
+          </span>
+          <svg
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+            className="h-40 w-full"
+            role="img"
+            aria-label="Grouped bars, one color per series"
+          >
+            {QUARTERS.flatMap((q, gi) =>
+              system.data.map((d, i) => {
+                const h = 34 * (0.35 + 0.6 * Math.abs(Math.sin(gi * 2.3 + i * 1.7)));
+                return (
+                  <rect
+                    key={`${q}-${d.key}`}
+                    x={(gi * (marks.length + 1) + i + 0.5) * w}
+                    y={40 - h}
+                    width={w}
+                    height={h}
+                    fill={marks[i]}
+                    stroke="var(--chart-gap)"
+                    strokeWidth={0.3}
+                  />
+                );
+              }),
+            )}
+          </svg>
+          <span className="sp-caption grid grid-cols-4 text-center">
+            {QUARTERS.map((q) => (
+              <span key={q}>{q}</span>
+            ))}
+          </span>
+        </section>
+        <div className="grid gap-6 @md:grid-cols-2">
+          {seq.length ? (
+            <section className="grid content-start gap-3">
+              <span className="sp-h3">Visitors by hour</span>
+              <span className="sp-caption">Amounts: one color, light to dark ({name(c.seq)}).</span>
+              <div className="grid gap-0.5">
+                {DAYS.map((day, r) => (
+                  <div key={day} className="grid grid-cols-[2.5rem_repeat(12,1fr)] gap-0.5">
+                    <span className="sp-caption">{day}</span>
+                    {Array.from({ length: 12 }, (_, h) => {
+                      const v = Math.sin(h / 3.2 + r * 0.4) * 0.5 + 0.5 - (r > 4 ? 0.3 : 0);
+                      const k = Math.max(
+                        0,
+                        Math.min(seq.length - 1, Math.round(v * (seq.length - 1))),
+                      );
+                      return (
+                        <span key={`${day}-${h}`} className="h-4" style={{ background: seq[k] }} />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <span className="sp-caption flex items-center gap-2">
+                fewer
+                <span
+                  className="h-2 flex-1"
+                  style={{ background: `linear-gradient(to right, ${seq.join(", ")})` }}
+                />
+                more
+              </span>
+            </section>
+          ) : null}
+          {div.length ? (
+            <section className="grid content-start gap-3">
+              <span className="sp-h3">Change vs last month</span>
+              <span className="sp-caption">
+                Above or below: two colors meet at a neutral middle ({name(c.div?.[0])} to{" "}
+                {name(c.div?.[1])}).
+              </span>
+              <div className="grid gap-1.5">
+                {TEAMS.map(([team, v]) => (
+                  <div key={team} className="grid grid-cols-[3.5rem_1fr_1fr] items-center gap-0">
+                    <span className="sp-caption">{team}</span>
+                    <span
+                      className="flex h-4 justify-end border-r"
+                      style={{ borderColor: "var(--color-border-strong)" }}
+                    >
+                      {v < 0 ? (
+                        <span style={{ width: `${(-v / 4) * 100}%`, background: div[4 + v] }} />
+                      ) : null}
+                    </span>
+                    <span className="flex h-4">
+                      {v > 0 ? (
+                        <span style={{ width: `${(v / 4) * 100}%`, background: div[4 + v] }} />
+                      ) : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <span className="sp-caption flex items-center gap-2">
+                below
+                <span
+                  className="h-2 flex-1"
+                  style={{ background: `linear-gradient(to right, ${div.join(", ")})` }}
+                />
+                above
+              </span>
+            </section>
+          ) : null}
+        </div>
+        <section className="grid gap-2">
+          <span className="sp-h3">The series, as color-blind readers see them</span>
+          {VISIONS.filter((v) => v !== "normal").map((v) => (
+            <div key={v} className="grid grid-cols-[7rem_1fr] items-center gap-3">
+              <span className="sp-caption">{VISION_LABEL[v]}</span>
+              <span
+                className="grid h-5"
+                style={{
+                  gridTemplateColumns: `repeat(${marks.length}, 1fr)`,
+                  filter: `url(#${filterId}-${v})`,
+                }}
+              >
+                {system.data.map((d, i) => (
+                  <span key={d.key} style={{ background: marks[i] }} />
+                ))}
+              </span>
+            </div>
+          ))}
+        </section>
       </div>
     </Scope>
   );
