@@ -622,3 +622,65 @@ describe("pairs", () => {
     expect(pairs([])).toEqual([]);
   });
 });
+
+const fan = (n: number) => Array.from({ length: 40 }, (_, i) => `var(--l${n + 1}-${i})`).join(" ");
+
+describe("review fixes", () => {
+  test("an apostrophe in an SCSS // comment doesn't eat tokens", () => {
+    const v = extract([
+      { path: "a.scss", text: ":root {\n  // it's here\n  --a: 1px;\n  --b: 2px;\n}" },
+    ]);
+    expect(val(v, "a")).toBe("1px");
+    expect(val(v, "b")).toBe("2px");
+  });
+  test("an escaped quote stays inside a string value", () => {
+    const v = css(':root { --q: "say \\"hi\\""; --after: 3px; }');
+    expect(val(v, "q")).toBe('"say \\"hi\\""');
+    expect(val(v, "after")).toBe("3px");
+  });
+  test("a media-query override is scoped and doesn't replace the theme value", () => {
+    const v = css(":root{--x:1rem} @media (min-width:768px){:root{--x:2rem}}");
+    expect(val(v, "x")).toBe("1rem");
+    expect(v.scoped?.length).toBeGreaterThan(0);
+  });
+  test(".dark .card and .dark-sidebar are scoped, not the dark mode", () => {
+    const v = css(":root{--a:1} .dark .card{--y:red} .dark-sidebar{--z:blue}");
+    expect(v.modes).toEqual(["light"]);
+    expect(v.tokens.y?.dark).toBeUndefined();
+    expect(v.tokens.z?.dark).toBeUndefined();
+    expect(v.scoped?.length).toBeGreaterThan(0);
+  });
+  test("tailwind theme.colors and extend.colors both survive", () => {
+    const v = extract([
+      {
+        path: "tailwind.config.js",
+        text: "module.exports = { theme: { colors: { brand: '#111' }, extend: { colors: { accent: '#222' } } } }",
+      },
+    ]);
+    const names = Object.keys(v.tokens).join(" ");
+    expect(names).toMatch(/brand/);
+    expect(names).toMatch(/accent/);
+  });
+  test("DTCG hsl components become hsl()", () => {
+    const v = extract([
+      {
+        path: "t.json",
+        text: JSON.stringify({
+          c: { $type: "color", $value: { colorSpace: "hsl", components: [200, 50, 50] } },
+        }),
+      },
+    ]);
+    expect(Object.values(v.tokens)[0]!.light).toBe("hsl(200 50% 50%)");
+  });
+  test("resolve() on a deep var() fan-out is fast and bounded", () => {
+    const tokens: View["tokens"] = {};
+    for (let d = 0; d < 12; d++)
+      for (let i = 0; i < 40; i++) tokens[`l${d}-${i}`] = { light: d === 11 ? "1px" : fan(d) };
+    tokens.root = { light: fan(-1) };
+    const view: View = { v: 1, modes: ["light"], tokens, sources: [] } as View;
+    const t = performance.now();
+    const out = resolve(view, "root", "light");
+    expect(performance.now() - t).toBeLessThan(200);
+    expect((out ?? "").length).toBeLessThanOrEqual(120_000);
+  });
+});

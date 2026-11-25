@@ -124,3 +124,60 @@ test("Import turns CSS variables into a starting point", async ({ page }) => {
   await dialog.getByRole("button", { name: "Import", exact: true }).click();
   await expect(dialog.getByText(/closest starting point/i)).toBeVisible();
 });
+
+test("a curve handle follows the pointer", async ({ page }) => {
+  await page.goto("/spring");
+  const plot = page.locator(".spring-curve__plot");
+  await plot.scrollIntoViewIfNeeded();
+  const field = page.getByLabel("cubic-bezier");
+  const hit = page.locator(".spring-curve__hit").first();
+  const from = (await hit.boundingBox())!;
+  const box = (await plot.boundingBox())!;
+  // viewBox -8 -8 116 116 is square and fitted inside the element: scale and offset.
+  const k = Math.min(box.width, box.height) / 116;
+  const ox = box.x + (box.width - 116 * k) / 2 + 8 * k;
+  const oy = box.y + (box.height - 116 * k) / 2 + 8 * k;
+  const target = { x: ox + 0.3 * 100 * k, y: oy + (1 - 0.7) * 100 * k };
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 8 });
+  await page.mouse.up();
+  const [x, y] = (await field.inputValue()).split(",").map(Number);
+  expect(Math.abs(x! - 0.3)).toBeLessThan(0.03);
+  expect(Math.abs(y! - 0.7)).toBeLessThan(0.03);
+});
+
+test("a Dial's value field takes typed digits after Enter without appending", async ({ page }) => {
+  await page.goto("/spring");
+  const field = page.getByLabel("hue, type a value");
+  await field.scrollIntoViewIfNeeded();
+  await field.focus();
+  await page.keyboard.type("30");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("5");
+  await expect(field).toHaveValue("5");
+  await page.keyboard.press("Enter");
+  await expect(field).toHaveValue("5");
+  await expect(page.getByLabel("hue", { exact: true })).toHaveValue("5");
+});
+
+test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
+  const errors: Error[] = [];
+  page.on("pageerror", (e) => errors.push(e));
+  await page.goto("/spring?primary=%23808080");
+  const toggle = page.getByRole("button", { name: /Switch to/ });
+  for (let i = 0; i < 3; i++) {
+    if ((await page.locator("html").getAttribute("data-theme")) === "dark") break;
+    await toggle.click();
+  }
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const field = page.getByLabel("chroma, dark, type a value");
+  await field.scrollIntoViewIfNeeded();
+  await field.focus();
+  await page.keyboard.type("0.05");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  expect(await page.locator("body").innerText()).not.toContain("NaN");
+  expect(await page.locator("body").innerHTML()).not.toContain("NaN");
+  expect(errors.map((e) => e.message)).toEqual([]);
+});
