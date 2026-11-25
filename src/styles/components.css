@@ -315,11 +315,33 @@ claude-mascot:defined > * {
   font: inherit;
   letter-spacing: inherit;
 }
+/* The whole screen starts a run; the outline only shows where to press. It
+   sits on the page colour so rain and scenery don't run through it. */
+.runner__play {
+  display: inline-flex;
+  gap: 1ch;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-default);
+  background: var(--surface-canvas);
+  transition: border-color var(--duration-press) var(--ease-out);
+}
+@media (hover: hover) {
+  .runner__prompt:hover .runner__play {
+    border-color: var(--text-primary);
+  }
+}
+.runner__prompt:focus-visible {
+  outline: none;
+}
+.runner__prompt:focus-visible .runner__play {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 /* A caption under the play prompt, placed absolutely so it lands without a shift. */
 .runner__weather {
   position: absolute;
   inset-inline: 0;
-  top: calc(50% + 1.75em);
+  top: calc(50% + 2.25em);
   color: var(--text-secondary);
   text-align: center;
   pointer-events: none;

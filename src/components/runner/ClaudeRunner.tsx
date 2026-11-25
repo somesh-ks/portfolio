@@ -545,7 +545,9 @@ export function ClaudeRunner() {
             onClick={() => void startRun()}
             disabled={phase === "loading"}
           >
-            <Key click="CLICK TO" touch="TAP TO" /> PLAY
+            <span className="runner__play">
+              <Key click="CLICK TO" touch="TAP TO" /> PLAY
+            </span>
           </button>
         ) : null}
 

@@ -152,9 +152,15 @@ describe("accessories", () => {
 describe("weather label", () => {
   test("condition and temperature, no city", () => {
     expect(weatherLabel({ sky: "rain", night: false, temp: 12, unit: "C", city: "Munich" })).toBe(
-      "RAIN · 12°C",
+      "RAINY, 12°C",
     );
-    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe("SNOW · 27°F");
+    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe("SNOWY, 27°F");
+  });
+
+  test("a clear sky is sunny by day, clear at night", () => {
+    expect(weatherLabel({ sky: "clear", night: false, temp: 20 })).toBe("SUNNY, 20°C");
+    expect(weatherLabel({ sky: "clear", night: true, temp: 3 })).toBe("CLEAR, 3°C");
+    expect(weatherLabel({ sky: "fog", night: true, temp: 3 })).toBe("FOGGY, 3°C");
   });
 
   test("no temperature, no label", () => {
