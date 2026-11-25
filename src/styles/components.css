@@ -433,10 +433,11 @@ claude-mascot:defined > * {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-/* A caption under the play prompt, placed absolutely so it lands without a shift. */
+/* The game-over panel holds to the sky: it ends at the ground line, which
+   the engine sets as --runner-ground, so nothing sits on the ground. */
 .runner__over {
   position: absolute;
-  inset: 0;
+  inset: 0 0 calc(100% - var(--runner-ground, 100%));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,11 +504,40 @@ claude-mascot:defined > * {
     0 0 2px var(--surface-canvas),
     0 0 6px var(--surface-canvas);
 }
-.runner__row {
+.runner__head {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0 var(--space-4);
+  align-items: center;
+  gap: var(--space-3);
+}
+/* Share belongs to the score; retry keeps the box. With a keyboard the S key
+   marks it; on touch, where key hints hide, an underline marks it as tappable. */
+.runner__over .runner__share {
+  padding-inline: 0;
+  text-underline-offset: 0.25em;
+}
+@media (pointer: coarse) {
+  .runner:not([data-input="keys"]) .runner__share {
+    text-decoration: underline;
+  }
+}
+.runner[data-input="touch"] .runner__share {
+  text-decoration: underline;
+}
+.runner__over .runner__retry {
+  min-height: 0;
+  padding: 0;
+}
+@media (hover: hover) {
+  .runner__retry:hover .runner__play {
+    border-color: var(--text-primary);
+  }
+}
+.runner__retry:focus-visible {
+  outline: none;
+}
+.runner__retry:focus-visible .runner__play {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .runner__final {
   color: var(--text-primary);
@@ -767,6 +797,11 @@ claude-mascot:defined > * {
      Fullscreen has the room to centre it. */
   .runner:not(:fullscreen, [data-immersive]) .runner__over {
     justify-content: safe flex-start;
+  }
+  /* The width sets the scale here, so extra height is all sky: room for the
+     score, name field and retry above a kite in flight. */
+  .runner:not(:fullscreen, [data-immersive]) .runner__screen {
+    height: 19rem;
   }
   /* The short phone screen fits a top 3, and the name field replaces it. */
   .runner__board li:nth-child(n + 4),

@@ -123,6 +123,61 @@ export const RESKINS: Partial<Record<Sky, Partial<Record<ObstacleKind, ObstacleS
   },
 };
 
+/** After dark the desk turns to night things, each the size of the desk
+ * obstacle it replaces. Rain, snow and fog dress an obstacle first. */
+export const NIGHT_RESKINS: Partial<Record<ObstacleKind, ObstacleSprite>> = {
+  mug: sprite(
+    [
+      "...SSS...",
+      "..S...S..",
+      "..SSSSS..",
+      "..SGGGS..",
+      "..SGCGS..",
+      "..SGGGS..",
+      "..SGGGS..",
+      "..SSSSS..",
+      ".SSSSSSS.",
+    ],
+    { S: "steel", G: "gold", C: "cream" },
+  ),
+  bug: sprite(
+    [
+      "M.......M..",
+      ".M.....M...",
+      "..MMMMM....",
+      ".MMMMMMMGG.",
+      "MMCMMMCMGGG",
+      ".MMMMMMMGG.",
+      "M.M.M.M.M..",
+    ],
+    { M: "moss", C: "cream", G: "gold" },
+  ),
+  plant: sprite(
+    [
+      "..GGGGG..",
+      ".GGCGGGG.",
+      "GGGGGGCGG",
+      "GCGGGGGGG",
+      "GGGGGGGCG",
+      "...CCC...",
+      "...CCC...",
+      "...CCC...",
+      "...CCC...",
+      "..CCCCC..",
+      ".M.CCC.M.",
+      "MMMMMMMMM",
+    ],
+    { G: "gold", C: "cream", M: "moss" },
+  ),
+};
+
+/** The obstacle as this weather dresses it: rain, snow and fog first, then
+ * night, then a clear day's stand-ins. */
+export function obstacleSkin(weather: Weather, kind: ObstacleKind): ObstacleSprite | undefined {
+  const wet = weather.sky === "clear" ? undefined : RESKINS[weather.sky]?.[kind];
+  return wet ?? (weather.night ? NIGHT_RESKINS[kind] : RESKINS[weather.sky]?.[kind]);
+}
+
 interface Particle {
   x: number;
   y: number;
@@ -263,8 +318,9 @@ export function accessoryFor(weather: Weather): Accessory | null {
   return null;
 }
 
-/** Rides whose head is under a helmet or a roof keep their hats off. */
-const HATLESS = new Set(["bike", "car"]);
+/** Rides whose head is under a helmet or a roof keep their hats off, and the
+ * kite rider, who looks up at its kite with eyes at the top of its head. */
+const HATLESS = new Set(["bike", "car", "kite"]);
 const UMBRELLALESS = new Set(["car"]);
 
 /** How the soft parts of a hat (the pom, the nightcap's tail) sit: a
