@@ -93,7 +93,7 @@ export function remapRamps(
   return { ...(seq === undefined ? {} : { seq }), ...(div ? { div } : {}) };
 }
 
-export interface ChartCheck {
+interface ChartCheck {
   id: string;
   title: string;
   value: string;
@@ -105,6 +105,8 @@ export interface Charts {
   keys: string[];
   /** The step each strip's mark uses: its brand step, moved toward contrast until it clears 3:1. */
   markStep: Record<Mode, Step[]>;
+  /** Where a mark would sit if no earlier series were in its way; differs only for healed marks. */
+  markBase: Record<Mode, Step[]>;
   marks: Record<Mode, string[]>;
   /** Ramps as the strip keys they come from, after clamping to the strips that exist. */
   seq?: string;
@@ -131,6 +133,70 @@ function markStep(scale: BuiltScale, mode: Mode, page: string): Step {
 }
 
 const seeOf = (hex: string) => seen(...lch(hex));
+
+/**
+ * Self-healing marks. Each series keeps its color; only the step a chart draws
+ * may move. Walking in chart order, a mark too close to an earlier one (normal
+ * ΔE 0.10, color-blind ΔE 0.06, or a neighbour within ΔL 0.06) tries the other
+ * steps that still clear 3:1 and takes the one furthest from the rest. Earlier
+ * series never move, so editing a later one leaves the first ones alone.
+ */
+function healMarks(scales: BuiltScale[], mode: Mode, page: string, base: Step[]): Step[] {
+  const steps = [...base];
+  const view = (i: number, s: Step) => {
+    const hex = scales[i]![mode][s - 1]!.hex;
+    return { see: seeOf(hex), l: lch(hex)[0] };
+  };
+  const placed = steps.map((s, i) => view(i, s));
+  // Per rule, 1 or more means clear of every other mark. Later series count
+  // at their current step, so a move never lands on them.
+  const rules = (i: number, m: ReturnType<typeof view>) => {
+    const r = { hue: Infinity, cvd: Infinity, light: Infinity };
+    for (let j = 0; j < placed.length; j++) {
+      if (j === i) continue;
+      const q = placed[j]!;
+      r.hue = Math.min(r.hue, dist(m.see.normal, q.see.normal) / 0.1);
+      for (const v of ["protan", "deutan", "tritan"] as const)
+        r.cvd = Math.min(r.cvd, dist(m.see[v], q.see[v]) / 0.06);
+      if (Math.abs(j - i) === 1) r.light = Math.min(r.light, Math.abs(m.l - q.l) / 0.06);
+    }
+    return r;
+  };
+  const room = (i: number, m: ReturnType<typeof view>) => {
+    const r = rules(i, m);
+    return Math.min(r.hue, r.cvd, r.light);
+  };
+  const totals = () => {
+    const t = { hue: Infinity, cvd: Infinity, light: Infinity };
+    placed.forEach((m, i) => {
+      const r = rules(i, m);
+      t.hue = Math.min(t.hue, r.hue);
+      t.cvd = Math.min(t.cvd, r.cvd);
+      t.light = Math.min(t.light, r.light);
+    });
+    return t;
+  };
+  const before = totals();
+  for (let i = 1; i < steps.length; i++) {
+    if (room(i, placed[i]!) >= 1) continue;
+    let best = { s: steps[i]!, r: room(i, placed[i]!) };
+    // At most three steps either way, so a series keeps reading as its own hue.
+    for (let s = Math.max(5, base[i]! - 3); s <= Math.min(11, base[i]! + 3); s++) {
+      const step = s as Step;
+      if (wcagContrast(scales[i]![mode][s - 1]!.hex, page) < 3) continue;
+      // A small cost per step moved, so the nearest good step wins a tie.
+      const r = room(i, view(i, step)) - Math.abs(s - base[i]!) * 0.02;
+      if (r > best.r) best = { s: step, r };
+    }
+    steps[i] = best.s;
+    placed[i] = view(i, best.s);
+  }
+  // Healing never breaks a rule that held, or worsens one that didn't.
+  const after = totals();
+  for (const k of ["hue", "cvd", "light"] as const)
+    if (after[k] < Math.min(before[k], 1)) return [...base];
+  return steps;
+}
 
 function closestPairs(marks: string[]) {
   const see = marks.map(seeOf);
@@ -241,6 +307,7 @@ export function buildCharts(
     seq,
     div,
     markStep: {},
+    markBase: {},
     marks: {},
     sequential: {},
     diverging: {},
@@ -249,7 +316,14 @@ export function buildCharts(
   } as Omit<Charts, "other">;
   for (const mode of ["light", "dark"] as Mode[]) {
     const page = pages[mode];
-    const steps = keys.map((k) => markStep(scales[k]!, mode, page));
+    const base = keys.map((k) => markStep(scales[k]!, mode, page));
+    const steps = healMarks(
+      keys.map((k) => scales[k]!),
+      mode,
+      page,
+      base,
+    );
+    out.markBase[mode] = base;
     const marks = keys.map((k, i) => scales[k]![mode][steps[i]! - 1]!.hex);
     out.markStep[mode] = steps;
     out.marks[mode] = marks;

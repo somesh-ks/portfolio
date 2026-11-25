@@ -1,8 +1,6 @@
 "use client";
 
-import { useId } from "react";
 import { ArrowRight } from "lucide-react";
-import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
 import { formatOf, typeName, typeSnippet } from "@/lib/spring/names";
 import type { System } from "@/lib/spring/system";
@@ -232,19 +230,25 @@ const TEAMS = [
   ["Legal", 0],
   ["Data", 3],
 ] as const;
+const STATS = [
+  ["Revenue", "€48.2k", ""],
+  ["Visitors", "12,480", ""],
+  ["Change", "+4.1%", "sp-text-success"],
+] as const;
 
-/**
- * The data colors at work: series as grouped bars, the amounts ramp as a
- * heatmap, the above/below ramp as change against a midline, and the series
- * as each kind of color blindness sees them.
- */
+/** A reports screen in the same app as the invoice: series as grouped bars, the amounts ramp as a heatmap, above/below as change. */
 export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
   const c = system.charts;
   const marks = c.marks[mode];
   const seq = c.sequential[mode];
   const div = c.diverging[mode];
-  const name = (key?: string) => system.data.find((d) => d.key === key)?.name ?? "";
-  const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const markOf = (key: string | undefined, fallback: string | undefined) => {
+    const i = system.data.findIndex((d) => d.key === key);
+    return (i >= 0 ? marks[i] : undefined) ?? fallback ?? "";
+  };
+  const below = markOf(c.div?.[0], div[0]);
+  const above = markOf(c.div?.[1], div.at(-1));
+  const nameOf = (key?: string) => system.data.find((d) => d.key === key)?.name ?? "";
   if (!marks.length)
     return (
       <Scope system={system} mode={mode}>
@@ -254,34 +258,40 @@ export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
   const w = 100 / (QUARTERS.length * (marks.length + 1));
   return (
     <Scope system={system} mode={mode}>
-      <svg width="0" height="0" className="absolute" aria-hidden>
-        {Object.entries(CVD_FILTER).map(([k, m]) => (
-          <filter key={k} id={`${filterId}-${k}`} colorInterpolationFilters="linearRGB">
-            <feColorMatrix type="matrix" values={m} />
-          </filter>
-        ))}
-      </svg>
-      <div className="grid gap-6 p-6">
-        <section className="grid gap-3">
-          <span className="sp-h3">Revenue by region</span>
-          <span className="flex flex-wrap gap-x-4 gap-y-1">
+      <div className="grid gap-5 p-6">
+        <span className="sp-caption">Reports / November</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="sp-h2 mr-auto">Monthly report</span>
+          <span className="sp-badge sp-badge--success">On track</span>
+        </div>
+        <dl className="grid grid-cols-3 gap-x-6 gap-y-3">
+          {STATS.map(([k, v, cls]) => (
+            <div key={k} className="grid gap-0.5">
+              <dt className="sp-caption">{k}</dt>
+              <dd className={`sp-label sp-num ${cls}`}>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <section className="sp-card grid gap-3 p-4">
+          <span className="sp-label">Revenue by region</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
             {system.data.map((d, i) => (
               <span key={d.key} className="sp-caption inline-flex items-center gap-1.5">
-                <span className="inline-block size-2.5" style={{ background: marks[i] }} />
+                <span className="inline-block size-2" style={{ background: marks[i] }} />
                 {d.name}
               </span>
             ))}
-          </span>
+          </div>
           <svg
             viewBox="0 0 100 40"
             preserveAspectRatio="none"
-            className="h-40 w-full"
+            className="h-36 w-full"
             role="img"
-            aria-label="Grouped bars, one color per series"
+            aria-label="Revenue by region, grouped bars, one color per series"
           >
             {QUARTERS.flatMap((q, gi) =>
               system.data.map((d, i) => {
-                const h = 34 * (0.35 + 0.6 * Math.abs(Math.sin(gi * 2.3 + i * 1.7)));
+                const h = 36 * (0.35 + 0.6 * Math.abs(Math.sin(gi * 2.3 + i * 1.7)));
                 return (
                   <rect
                     key={`${q}-${d.key}`}
@@ -296,21 +306,29 @@ export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
                 );
               }),
             )}
+            <line
+              x1={0}
+              x2={100}
+              y1={39.8}
+              y2={39.8}
+              stroke="var(--color-border-strong)"
+              strokeWidth={0.4}
+              vectorEffect="non-scaling-stroke"
+            />
           </svg>
-          <span className="sp-caption grid grid-cols-4 text-center">
+          <span className="sp-caption sp-mono grid grid-cols-4 text-center">
             {QUARTERS.map((q) => (
               <span key={q}>{q}</span>
             ))}
           </span>
         </section>
-        <div className="grid gap-6 @md:grid-cols-2">
+        <div className="grid items-start gap-5 @md:grid-cols-2">
           {seq.length ? (
-            <section className="grid content-start gap-3">
-              <span className="sp-h3">Visitors by hour</span>
-              <span className="sp-caption">Amounts: one color, light to dark ({name(c.seq)}).</span>
-              <div className="grid gap-0.5">
+            <section className="sp-card grid content-start gap-3 p-4">
+              <span className="sp-label">Visitors by hour</span>
+              <div className="grid gap-0.5" title={`${nameOf(c.seq)}, light to dark`}>
                 {DAYS.map((day, r) => (
-                  <div key={day} className="grid grid-cols-[2.5rem_repeat(12,1fr)] gap-0.5">
+                  <div key={day} className="grid grid-cols-[2.25rem_repeat(12,1fr)] gap-0.5">
                     <span className="sp-caption">{day}</span>
                     {Array.from({ length: 12 }, (_, h) => {
                       const v = Math.sin(h / 3.2 + r * 0.4) * 0.5 + 0.5 - (r > 4 ? 0.3 : 0);
@@ -328,7 +346,7 @@ export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
               <span className="sp-caption flex items-center gap-2">
                 fewer
                 <span
-                  className="h-2 flex-1"
+                  className="h-1.5 flex-1"
                   style={{ background: `linear-gradient(to right, ${seq.join(", ")})` }}
                 />
                 more
@@ -336,62 +354,44 @@ export function ChartsScreen({ system, mode }: { system: System; mode: Mode }) {
             </section>
           ) : null}
           {div.length ? (
-            <section className="grid content-start gap-3">
-              <span className="sp-h3">Change vs last month</span>
-              <span className="sp-caption">
-                Above or below: two colors meet at a neutral middle ({name(c.div?.[0])} to{" "}
-                {name(c.div?.[1])}).
-              </span>
+            <section className="sp-card grid content-start gap-3 p-4">
+              <span className="sp-label">Change vs last month</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span className="sp-caption inline-flex items-center gap-1.5">
+                  <span className="inline-block size-2" style={{ background: below }} />
+                  down
+                </span>
+                <span className="sp-caption inline-flex items-center gap-1.5">
+                  <span className="inline-block size-2" style={{ background: above }} />
+                  up
+                </span>
+              </div>
               <div className="grid gap-1.5">
                 {TEAMS.map(([team, v]) => (
-                  <div key={team} className="grid grid-cols-[3.5rem_1fr_1fr] items-center gap-0">
+                  <div key={team} className="grid grid-cols-[3.5rem_1fr_1fr_2rem] items-center">
                     <span className="sp-caption">{team}</span>
                     <span
                       className="flex h-4 justify-end border-r"
                       style={{ borderColor: "var(--color-border-strong)" }}
                     >
                       {v < 0 ? (
-                        <span style={{ width: `${(-v / 4) * 100}%`, background: div[4 + v] }} />
+                        <span style={{ width: `${(-v / 4) * 100}%`, background: below }} />
                       ) : null}
                     </span>
                     <span className="flex h-4">
                       {v > 0 ? (
-                        <span style={{ width: `${(v / 4) * 100}%`, background: div[4 + v] }} />
+                        <span style={{ width: `${(v / 4) * 100}%`, background: above }} />
                       ) : null}
+                    </span>
+                    <span className="sp-mono sp-muted text-right">
+                      {v > 0 ? `+${v}` : v < 0 ? `−${-v}` : "0"}
                     </span>
                   </div>
                 ))}
               </div>
-              <span className="sp-caption flex items-center gap-2">
-                below
-                <span
-                  className="h-2 flex-1"
-                  style={{ background: `linear-gradient(to right, ${div.join(", ")})` }}
-                />
-                above
-              </span>
             </section>
           ) : null}
         </div>
-        <section className="grid gap-2">
-          <span className="sp-h3">The series, as color-blind readers see them</span>
-          {VISIONS.filter((v) => v !== "normal").map((v) => (
-            <div key={v} className="grid grid-cols-[7rem_1fr] items-center gap-3">
-              <span className="sp-caption">{VISION_LABEL[v]}</span>
-              <span
-                className="grid h-5"
-                style={{
-                  gridTemplateColumns: `repeat(${marks.length}, 1fr)`,
-                  filter: `url(#${filterId}-${v})`,
-                }}
-              >
-                {system.data.map((d, i) => (
-                  <span key={d.key} style={{ background: marks[i] }} />
-                ))}
-              </span>
-            </div>
-          ))}
-        </section>
       </div>
     </Scope>
   );
