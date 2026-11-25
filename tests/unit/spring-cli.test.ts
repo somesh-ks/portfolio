@@ -2,7 +2,7 @@ import { describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { main } from "@/lib/spring/cli";
+import { contrastPairs, main } from "@/lib/spring/cli";
 import type { View } from "@/lib/spring/tokens";
 
 /** `spring scan <dir> --json --out file`: stdout and the written file, both parsed. */
@@ -45,5 +45,30 @@ describe("spring scan", () => {
       "a.css": ".card { color: var(--e); background: var(--x); }",
     });
     for (const n of ["a", "b", "c", "d", "e", "x", "y"]) expect(u.refs[n]).toBeGreaterThan(0);
+  });
+});
+
+const view = (bg: string): View => ({
+  v: 1,
+  sources: [],
+  modes: ["light"],
+  tokens: {
+    background: { light: bg },
+    primary: { light: "rgb(0 0 255 / 50%)" },
+    "primary-foreground": { light: "#ffffff" },
+    card: { light: "#ffffff" },
+    "card-foreground": { light: "#000000" },
+  },
+});
+const ratio = (v: View, bg: string) => contrastPairs(v).find((p) => p.bg === bg)?.ratio;
+
+describe("contrastPairs", () => {
+  test("a translucent pair over a page we can't read goes unmeasured", () => {
+    const v = view("color(display-p3 1 1 1)");
+    expect(ratio(v, "primary")).toBeNull();
+    expect(ratio(v, "card")).toBe(21);
+  });
+  test("a readable page still measures translucent pairs", () => {
+    expect(ratio(view("#ffffff"), "primary")).toBeGreaterThan(1);
   });
 });

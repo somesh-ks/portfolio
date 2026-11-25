@@ -238,7 +238,10 @@ interface Pair {
 }
 
 /** The page color for a mode: the composite backdrop for alpha. */
-function pageOf(view: View, mode: string): string {
+const opaque = (c: string) => over(c, "#000000") === over(c, "#ffffff");
+
+/** The page backdrop; null when the theme names one we can't parse (so translucent pairs go unmeasured). */
+function pageOf(view: View, mode: string): string | null {
   for (const n of [
     "background",
     "color-background",
@@ -249,8 +252,9 @@ function pageOf(view: View, mode: string): string {
     "canvas",
     "page",
   ]) {
-    const c = colorOf(resolve(view, n, mode) ?? "");
-    if (c) return c;
+    const v = resolve(view, n, mode);
+    if (v === undefined) continue;
+    return colorOf(v) ?? null;
   }
   return /dark/.test(mode) ? "#000000" : "#ffffff";
 }
@@ -262,11 +266,12 @@ export function contrastPairs(view: View): Pair[] {
     for (const { fg, bg } of pairs(Object.keys(view.tokens))) {
       const b = colorOf(resolve(view, bg, mode) ?? "");
       const f = colorOf(resolve(view, fg, mode) ?? "");
-      if (!b || !f) {
+      // Without a readable page, only opaque pairs can be measured.
+      if (!b || !f || (page === null && !(opaque(b) && opaque(f)))) {
         out.push({ fg, bg, mode, ratio: null });
         continue;
       }
-      const solidBg = over(b, page);
+      const solidBg = over(b, page ?? "#ffffff");
       out.push({
         fg,
         bg,
