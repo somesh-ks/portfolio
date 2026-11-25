@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
 import { DevFeedback } from "@/components/dev/DevFeedback";
@@ -14,6 +14,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
+});
+
+// Only the tune toy's "serif" uses it, so it isn't preloaded: the file loads when someone picks it.
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-source-serif",
+  display: "swap",
+  preload: false,
 });
 
 const description = `${PROFILE.name} is a design engineer and senior product designer in Stockholm, and Claude Ambassador for Sweden.`;
@@ -43,7 +51,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geist.variable} ${geistMono.variable} ${sourceSerif.variable}`}
+    >
       <body>
         <script
           type="application/ld+json"

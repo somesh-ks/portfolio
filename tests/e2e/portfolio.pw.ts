@@ -210,6 +210,18 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });
 
+test("tune toy switches type without the text flip under reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const bio = page.locator(".bio p").first();
+  const bioText = await bio.textContent();
+  await page.locator(".tune-button").click();
+  await page.getByRole("dialog", { name: "$ tune" }).getByRole("button", { name: "mono" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-tune-type", "mono");
+  await expect(page.locator(".page")).not.toHaveAttribute("aria-busy", "true");
+  expect(await bio.textContent()).toBe(bioText);
+});
+
 test("tune toy retunes the page live and puts it back", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/");
@@ -224,8 +236,16 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
 
   await panel.getByRole("button", { name: "16" }).click();
   await expect(bio).toHaveCSS("font-size", "16px");
+  const bioText = await bio.textContent();
+  await panel.getByRole("button", { name: "serif" }).click();
+  await expect(page.locator(".page")).toHaveAttribute("aria-busy", "true");
+  await expect(root).toHaveAttribute("data-tune-type", "serif");
+  await expect(bio).toHaveCSS("font-family", /Source Serif/);
   await panel.getByRole("button", { name: "mono" }).click();
   await expect(root).toHaveAttribute("data-tune-type", "mono");
+  // The type switch flips the text, then every character comes back as it was.
+  await expect(page.locator(".page")).not.toHaveAttribute("aria-busy", "true");
+  expect(await bio.textContent()).toBe(bioText);
   const hue = panel.getByRole("slider", { name: "hue" });
   await hue.focus();
   await page.keyboard.press("ArrowRight");
@@ -236,9 +256,6 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
   // Extremes don't scroll sideways (WCAG 1.4.10).
   const density = panel.getByRole("slider", { name: "density" });
   await density.focus();
-  await page.keyboard.press("End");
-  const scale = panel.getByRole("slider", { name: "scale" });
-  await scale.focus();
   await page.keyboard.press("End");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
@@ -252,9 +269,15 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
   await expect(bio).toHaveCSS("font-size", "14px");
   await expect(root).not.toHaveAttribute("data-tune-type");
 
+  const spring = panel.getByRole("link", { name: /made with Spring/ });
+  await expect(spring).toHaveAttribute("href", "/spring");
+  await expect(spring).toHaveAttribute("target", "_blank");
+
+  // Leaving the homepage puts every token back.
   await panel.getByRole("button", { name: "16" }).click();
-  await panel.getByRole("link", { name: /made with Spring/ }).click();
-  await expect(page).toHaveURL(/\/projects\/spring/);
+  await page.keyboard.press("Escape");
+  await page.locator('main a[href^="/projects/"]').first().click();
+  await expect(page).toHaveURL(/\/projects\//);
   await expect(root).not.toHaveAttribute("data-tune");
   expect(errors).toEqual([]);
 });

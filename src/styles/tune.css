@@ -17,20 +17,17 @@
   --step-xs: calc(0.75rem * var(--tune-f));
   --step-sm: calc(0.8125rem * var(--tune-f));
   --step-base: calc(0.875rem * var(--tune-f));
-  --step-lg: calc(clamp(0.9375rem, 0.913rem + 0.1087vw, 1rem) * var(--tune-f) * var(--tune-k));
-  --step-xl: calc(
-    clamp(1.125rem, 1.0761rem + 0.2174vw, 1.25rem) * var(--tune-f) * var(--tune-k) * var(--tune-k)
-  );
-  --step-2xl: calc(
-    clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem) * var(--tune-f) * var(--tune-k) *
-      var(--tune-k) * var(--tune-k)
-  );
+  --step-lg: calc(clamp(0.9375rem, 0.913rem + 0.1087vw, 1rem) * var(--tune-f));
+  --step-xl: calc(clamp(1.125rem, 1.0761rem + 0.2174vw, 1.25rem) * var(--tune-f));
+  --step-2xl: calc(clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem) * var(--tune-f));
 }
 /* The toy itself stays put while it retunes the page around it. */
 .tune-exempt {
   --tune-f: 1;
-  --tune-k: 1;
   --tune-d: 1;
+}
+:root[data-tune-type="serif"] {
+  --font-sans: var(--font-source-serif), ui-serif, Georgia, serif;
 }
 :root[data-tune-type="mono"] {
   --font-sans: var(--font-mono);

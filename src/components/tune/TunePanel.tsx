@@ -1,7 +1,6 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import Link from "next/link";
 import type { RefObject } from "react";
 import { Segmented } from "@/components/experiments/Segmented";
 import { Dial } from "@/components/ui/Dial";
@@ -16,7 +15,7 @@ export interface TunePanelProps {
 }
 
 const SIZES = ["14", "15", "16"] as const;
-const TYPES = ["sans", "mono"] as const;
+const TYPES = ["sans", "serif", "mono"] as const;
 /** Double-clicking the hue dial passes this back: neutral greys again. */
 const HUE_OFF = -1;
 
@@ -88,14 +87,6 @@ export default function TunePanel({
               />
             </div>
             <Dial
-              label="scale"
-              value={tune.scale}
-              {...TUNE_RANGE.scale}
-              show={`${tune.scale.toFixed(2)}×`}
-              reset={1}
-              onChange={(scale) => set({ scale })}
-            />
-            <Dial
               label="density"
               value={tune.density}
               {...TUNE_RANGE.density}
@@ -105,9 +96,9 @@ export default function TunePanel({
             />
           </div>
           <div className="tune-panel__foot">
-            <Link href="/projects/spring" className="tune-panel__credit">
-              made with Spring →
-            </Link>
+            <a href="/spring" className="tune-panel__credit" target="_blank" rel="noopener">
+              made with Spring ↗<span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
