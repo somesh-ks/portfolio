@@ -318,9 +318,8 @@ export function accessoryFor(weather: Weather): Accessory | null {
   return null;
 }
 
-/** Rides whose head is under a helmet or a roof keep their hats off. */
-/** The kite rider looks up at its kite: its eyes reach the top of its head,
- * so a hat would sit on them. */
+/** Rides whose head is under a helmet or a roof keep their hats off, and the
+ * kite rider, who looks up at its kite with eyes at the top of its head. */
 const HATLESS = new Set(["bike", "car", "kite"]);
 const UMBRELLALESS = new Set(["car"]);
 

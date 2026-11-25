@@ -509,16 +509,19 @@ claude-mascot:defined > * {
   align-items: center;
   gap: var(--space-3);
 }
-/* Share belongs to the score, quieter than the boxed retry. */
+/* Share belongs to the score; retry keeps the box. With a keyboard the S key
+   marks it; on touch, where key hints hide, an underline marks it as tappable. */
 .runner__over .runner__share {
-  min-height: 2.25rem;
   padding-inline: 0;
-  color: var(--text-secondary);
+  text-underline-offset: 0.25em;
 }
-@media (hover: hover) {
-  .runner__over .runner__share:hover {
-    color: var(--text-primary);
+@media (pointer: coarse) {
+  .runner:not([data-input="keys"]) .runner__share {
+    text-decoration: underline;
   }
+}
+.runner[data-input="touch"] .runner__share {
+  text-decoration: underline;
 }
 .runner__over .runner__retry {
   min-height: 0;
@@ -794,6 +797,11 @@ claude-mascot:defined > * {
      Fullscreen has the room to centre it. */
   .runner:not(:fullscreen, [data-immersive]) .runner__over {
     justify-content: safe flex-start;
+  }
+  /* The width sets the scale here, so extra height is all sky: room for the
+     score, name field and retry above a kite in flight. */
+  .runner:not(:fullscreen, [data-immersive]) .runner__screen {
+    height: 19rem;
   }
   /* The short phone screen fits a top 3, and the name field replaces it. */
   .runner__board li:nth-child(n + 4),
