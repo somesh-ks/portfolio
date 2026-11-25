@@ -1,9 +1,10 @@
 "use client";
 
 import { useId } from "react";
-import { ArrowRight, ChevronDown, CircleAlert } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
+import { formatOf, typeName, typeSnippet } from "@/lib/spring/names";
 import type { System } from "@/lib/spring/system";
 import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
@@ -12,66 +13,6 @@ import { useCopy } from "./store";
 /** Display sizes fit about two words on one line, so the ladder shows the name, not the sentence. */
 const displayOf = (name: string) =>
   name.trim() && name !== "Untitled" ? name.trim() : "Ship calm";
-const lineOf = (l: string) => l.trim() || "A short line about what it does and who it helps.";
-
-/** Buttons, fields, badges and an alert: judge the whole, not swatches. */
-export function Components({ system, mode }: { system: System; mode: Mode }) {
-  return (
-    <Scope system={system} mode={mode}>
-      <div className="grid gap-5 p-5">
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="sp-btn sp-btn--primary" tabIndex={-1}>
-            Get started <ArrowRight size={16} aria-hidden />
-          </button>
-          <button type="button" className="sp-btn sp-btn--secondary" tabIndex={-1}>
-            Secondary
-          </button>
-          <button type="button" className="sp-btn sp-btn--ghost" tabIndex={-1}>
-            Ghost
-          </button>
-          <button type="button" className="sp-btn sp-btn--danger" tabIndex={-1}>
-            Delete
-          </button>
-        </div>
-        <div className="grid gap-4 @md:grid-cols-2">
-          <div className="grid gap-1.5">
-            <span className="sp-label">Work email</span>
-            <span className="sp-field sp-muted">you@company.com</span>
-            <span className="sp-caption">We'll never share it.</span>
-          </div>
-          <div className="grid gap-1.5">
-            <span className="sp-label">Plan</span>
-            <span className="sp-field justify-between">
-              Team <ChevronDown size={16} aria-hidden />
-            </span>
-            <span className="sp-caption sp-text-danger">Choose a plan to continue.</span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="sp-badge sp-badge--primary">New</span>
-          <span className="sp-badge sp-badge--success">Paid</span>
-          <span className="sp-badge sp-badge--warning">Pending</span>
-          <span className="sp-badge sp-badge--danger">Failed</span>
-          <span className="sp-badge sp-badge--info">Beta</span>
-        </div>
-        <div className="sp-card sp-card--raised flex items-start gap-3 p-4">
-          <CircleAlert size={18} className="sp-text-info mt-0.5 shrink-0" aria-hidden />
-          <div className="grid gap-0.5">
-            <span className="sp-label">Your trial ends in 3 days</span>
-            <span className="sp-caption">Add a payment method to keep your projects.</span>
-          </div>
-          <button
-            type="button"
-            className="sp-btn sp-btn--secondary sp-btn--sm ml-auto"
-            tabIndex={-1}
-          >
-            Upgrade
-          </button>
-        </div>
-      </div>
-    </Scope>
-  );
-}
 
 const CHANGES = [
   [
@@ -97,8 +38,8 @@ const CHANGES = [
   ],
 ] as const;
 
-/** A marketing page: the visitor's own line as the headline, then a changelog with real jobs for every role. */
-export function Homepage({ system, mode, line }: { system: System; mode: Mode; line: string }) {
+/** A marketing page: a headline, then a changelog with real jobs for every role. */
+export function Homepage({ system, mode }: { system: System; mode: Mode }) {
   const name = system.input.name || "Untitled";
   return (
     <Scope system={system} mode={mode}>
@@ -111,7 +52,7 @@ export function Homepage({ system, mode, line }: { system: System; mode: Mode; l
         <span className="sp-btn sp-btn--secondary sp-btn--sm">Sign in</span>
       </nav>
       <section className="grid gap-5 px-6 pt-10 pb-12">
-        <div className="sp-display max-w-[16ch]">{lineOf(line)}</div>
+        <div className="sp-display max-w-[16ch]">Invoices that chase themselves</div>
         <p className="sp-lead max-w-[46ch]">
           Send invoices, chase late payers and close the month without a spreadsheet.
         </p>
@@ -227,18 +168,34 @@ const SAMPLE: Partial<Record<Role, string>> = {
  */
 export function Ladder({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
+  const format = formatOf(system.input.stack);
   return (
     <Scope system={system} mode={mode}>
       <output className="sr-only">{said}</output>
       <div className="grid">
+        <div className="spring-rung spring-rung--head sp-mono sp-muted" aria-hidden>
+          token · phone–desktop / line · weight · tracking
+        </div>
         {system.type.tokens.map((t) => {
           const px = t.max;
           return (
             <div key={t.role} className="spring-rung">
               <span className="sp-mono sp-muted spring-rung__spec">
-                <span className="sp-label" style={{ fontFamily: "var(--font-mono)" }}>
-                  {t.role}
-                </span>
+                {/* The name is the copy button: one action per row, no extra column. */}
+                <button
+                  type="button"
+                  className="sp-label spring-rung__copy"
+                  onClick={() => copy(t.role, typeSnippet(t.role, format))}
+                >
+                  {copied === t.role ? (
+                    "copied"
+                  ) : (
+                    <>
+                      {typeName(t.role, format)}
+                      <span className="sr-only"> copy</span>
+                    </>
+                  )}
+                </button>
                 <span>
                   {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx} · {t.weight}
                   {t.tracking ? ` · ${t.tracking > 0 ? "+" : ""}${t.tracking}em` : ""}
@@ -257,21 +214,6 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
               >
                 {t.role === "display" ? displayOf(system.input.name) : SAMPLE[t.role]}
               </span>
-              <button
-                type="button"
-                className="spring-rung__copy"
-                title={t.size}
-
-                onClick={() =>
-                  copy(
-                    t.role,
-                    `font-size: ${t.size};\nline-height: ${t.lineHeight};\nletter-spacing: ${t.tracking}em;\nfont-weight: ${t.weight};`,
-                  )
-                }
-              >
-                {copied === t.role ? "Copied" : "Copy CSS"}
-                <span className="sr-only"> for {t.role}</span>
-              </button>
             </div>
           );
         })}

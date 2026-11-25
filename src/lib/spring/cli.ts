@@ -474,7 +474,7 @@ const SCAN_HELP = `spring scan [dir] [--json] [--out file] [--no-usage]
 spring schema view`;
 const HELP = `spring scan [dir] [--json] [--out file] [--no-usage]
 spring build [spring.json] [--primary color] [--name n] [--font f] [--heading f] [--mono f]
-             [--contrast aa|aaa|apca] [--styling tailwind|css] [--out dir] [--only a,b] [--print file]
+             [--contrast aa|aaa|apca] [--styling tailwind|css|dtcg] [--out dir] [--only a,b] [--print file]
 spring infer [dir] [--out spring.json]
 spring schema [input|view]`;
 
