@@ -22,7 +22,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
+import { ArrowUpRight, Maximize2, Minimize2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -37,6 +37,7 @@ import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/
 import { isSky, localNight, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
 import { beatUrl, parseBeat, shareText } from "@/lib/runner/share";
+import { boardWindow } from "@/lib/runner/board";
 
 /** `?weather=snow` or `?weather=rain-night` shows any sky, for QA and the curious. */
 function weatherOverride(): Weather | null {
@@ -203,6 +204,8 @@ export function ClaudeRunner() {
   const [board, setBoard] = useState<Board>({ enabled: false, top: [] });
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
+  /** The name and score just saved, so its row stays highlighted. */
+  const [savedAs, setSavedAs] = useState<Entry | null>(null);
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
   /** Set once the visitor's real weather arrives; overrides and misses get none. */
@@ -212,6 +215,13 @@ export function ClaudeRunner() {
   const [ready, setReady] = useState(false);
   /** A score is waiting for a name: the crash scene holds until it's saved. */
   const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
+  const rows = board.enabled
+    ? boardWindow(
+        board.top,
+        3,
+        canSubmit ? { pending: points } : savedAs ? { saved: savedAs } : null,
+      )
+    : [];
   const [announcement, setAnnouncement] = useState("");
   /** A score to beat from a shared link (?beat=), and whether a share just copied. */
   const [shared, setShared] = useState(false);
@@ -340,6 +350,7 @@ export function ClaudeRunner() {
     const next = costumeRef.current;
     setPoints(0);
     setSubmitted("no");
+    setSavedAs(null);
     setReady(false);
     setAnnouncement("");
     token.current = null;
@@ -516,6 +527,7 @@ export function ClaudeRunner() {
       if (!body.ok || !body.top) throw new Error("rejected");
       setBoard({ enabled: true, top: body.top });
       setSubmitted("yes");
+      setSavedAs({ name: clean, score: points });
       setAnnouncement(`Saved as ${clean}.`);
       screen.current?.focus({ preventScroll: true });
     } catch {
@@ -599,7 +611,11 @@ export function ClaudeRunner() {
           const key = event.key.toLowerCase();
           if (key === " " || key === "arrowup" || key === "enter") {
             event.preventDefault();
-            if (!event.repeat) press();
+            if (event.repeat) return;
+            // While a score waits for a name, Enter goes to the name row
+            // (SAVE ↵); Space still retries.
+            if (key === "enter" && canSubmit) document.getElementById(nameId)?.focus();
+            else press();
           }
         }}
       >
@@ -627,73 +643,89 @@ export function ClaudeRunner() {
 
         {phase === "over" ? (
           <div className="runner__over">
-            {/* Share sits with the score it shares; retry is the one boxed action. */}
-            <div className="runner__head">
+            {/* Arcade order: the score, your place on the board (typed in
+                place when it qualifies), then the two actions. */}
+            <div className="runner__panel">
               <p className="runner__final">{pad(points)}</p>
-              {points > 0 ? (
+              {rows.length > 0 ? (
+                <ol className="runner__board" aria-label="Top scores">
+                  {rows.map((row) =>
+                    row.entry ? (
+                      <li
+                        key={row.rank}
+                        className={row.you ? "runner__you" : undefined}
+                        aria-current={row.you || undefined}
+                      >
+                        <span>{row.rank}</span>
+                        <span className="runner__name">{row.entry.name}</span>
+                        <span>{pad(row.entry.score)}</span>
+                      </li>
+                    ) : (
+                      <li key={row.rank} className="runner__entry">
+                        <form className="runner__row" onSubmit={submit}>
+                          <span>{row.rank}</span>
+                          <label className="sr-only" htmlFor={nameId}>
+                            Name
+                          </label>
+                          <input
+                            id={nameId}
+                            className="runner__input"
+                            value={name}
+                            onChange={(event) => setName(event.target.value.slice(0, 12))}
+                            placeholder="NAME"
+                            maxLength={12}
+                            autoComplete="off"
+                            spellCheck={false}
+                            required
+                          />
+                          <span>{pad(points)}</span>
+                          <button
+                            type="submit"
+                            className="runner__save"
+                            disabled={submitted === "sending"}
+                          >
+                            SAVE <Key keyName="↵" />
+                          </button>
+                        </form>
+                      </li>
+                    ),
+                  )}
+                </ol>
+              ) : null}
+              {submitted === "failed" ? <output className="runner__error">NOT SAVED</output> : null}
+              <div className="runner__actions">
                 <button
                   type="button"
-                  className="runner__action runner__share"
-                  aria-keyshortcuts="S"
-                  onClick={(event) => {
-                    void share();
-                    // A pointer click hands focus back so Space and Enter retry.
-                    if (event.detail > 0) screen.current?.focus({ preventScroll: true });
-                  }}
+                  className="runner__button runner__retry"
+                  aria-keyshortcuts="Space"
+                  onClick={() => ready && void startRun()}
                 >
-                  <Key keyName="S" />{" "}
-                  {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}
+                  <RotateCcw aria-hidden="true" size={14} strokeWidth={2.5} absoluteStrokeWidth />
+                  RETRY <Key keyName="SPACE" />
                 </button>
-              ) : null}
+                {points > 0 ? (
+                  <button
+                    type="button"
+                    className="runner__button runner__share"
+                    aria-keyshortcuts="S"
+                    onClick={(event) => {
+                      void share();
+                      // A pointer click hands focus back so Space and Enter retry.
+                      if (event.detail > 0) screen.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      size={14}
+                      strokeWidth={2.5}
+                      absoluteStrokeWidth
+                    />
+                    {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}{" "}
+                    <Key keyName="S" />
+                  </button>
+                ) : null}
+              </div>
             </div>
-            {board.enabled && board.top.length > 0 ? (
-              <ol className="runner__board" aria-label="Top scores">
-                {board.top.slice(0, canSubmit ? 3 : 5).map((entry, rank) => (
-                  // Rank is the identity here: the same name can hold two places.
-                  // oxlint-disable-next-line react/no-array-index-key
-                  <li key={rank}>
-                    <span>{rank + 1}</span>
-                    <span className="runner__name">{entry.name}</span>
-                    <span>{pad(entry.score)}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : null}
-            {canSubmit ? (
-              <form className="runner__form" onSubmit={submit}>
-                <label className="sr-only" htmlFor={nameId}>
-                  Name
-                </label>
-                <input
-                  id={nameId}
-                  className="runner__input"
-                  value={name}
-                  onChange={(event) => setName(event.target.value.slice(0, 12))}
-                  placeholder="NAME"
-                  maxLength={12}
-                  autoComplete="off"
-                  spellCheck={false}
-                  required
-                />
-                <button
-                  type="submit"
-                  className="runner__action runner__save"
-                  disabled={submitted === "sending"}
-                >
-                  SAVE
-                </button>
-                {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
-              </form>
-            ) : null}
-            <button
-              type="button"
-              className="runner__action runner__retry"
-              onClick={() => ready && void startRun()}
-            >
-              <span className="runner__play">
-                <Key click="CLICK TO" touch="TAP TO" /> RETRY
-              </span>
-            </button>
           </div>
         ) : null}
       </div>
