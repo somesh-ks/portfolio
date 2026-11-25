@@ -28,7 +28,12 @@ export function CompanyPreview({
   // A tap or click before the card arrived is replayed on the real trigger,
   // so the card opens just as a click would open it.
   useEffect(() => {
-    if (Card && tapped.current) pill.current?.click();
+    const el = pill.current;
+    if (!Card || !tapped.current || !el) return;
+    // The visitor's own click already made its sound; keep the replay silent.
+    // React listens on the document first, so this stops it before SoundProvider.
+    document.addEventListener("click", (event) => event.stopPropagation(), { once: true });
+    el.click();
   }, [Card]);
   if (Card) return <Card ref={pill} company={company} thumbnail={thumbnail} logo={logo} />;
   const warm = () => {

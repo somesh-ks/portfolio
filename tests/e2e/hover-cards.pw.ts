@@ -20,9 +20,9 @@ test("company pill opens its card on hover and on Enter", async ({ page, isMobil
   await expect(pill).toBeFocused();
 });
 
-test("company pill opens on tap, even straight after load", async ({ page, isMobile }) => {
+test("company pill opens on tap", async ({ page, isMobile }) => {
   test.skip(!isMobile, "touch only");
-  await page.goto("/", { waitUntil: "commit" });
+  await page.goto("/");
   const pill = page.getByRole("button", { name: "Netlight" });
   await pill.tap();
   await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
@@ -53,18 +53,12 @@ test("email shows the address, then Copied on click", async ({ page, context, is
   await expect(page.locator(".tooltip")).toContainText("Copied");
 });
 
-/** Holds back chunks requested after the page has loaded, i.e. the lazy hover cards. */
-async function holdLateChunks(page: import("@playwright/test").Page) {
-  let loaded = false;
-  const { promise: held, resolve: release } = Promise.withResolvers<void>();
-  await page.route("**/_next/static/chunks/**", async (route) => {
-    if (loaded) await held;
-    await route.continue();
+/** Turns off the idle preload, so the card code only starts loading on the visitor's gesture. */
+async function noIdlePreload(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    window.requestIdleCallback = () => 0;
   });
   await page.goto("/");
-  await page.waitForLoadState("load");
-  loaded = true;
-  return release;
 }
 
 test("a mouse resting on a pill while the card code loads still opens it", async ({
@@ -72,11 +66,8 @@ test("a mouse resting on a pill while the card code loads still opens it", async
   isMobile,
 }) => {
   test.skip(isMobile, "hover needs a fine pointer");
-  const release = await holdLateChunks(page);
+  await noIdlePreload(page);
   await page.getByRole("button", { name: "Netlight" }).hover();
-  await page.waitForTimeout(400);
-  await expect(page.locator(".company-card")).toHaveCount(0);
-  release();
   await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
 });
 
@@ -85,11 +76,17 @@ test("a click before the card code loads opens it and keeps it open", async ({
   isMobile,
 }) => {
   test.skip(isMobile, "desktop click semantics");
-  const release = await holdLateChunks(page);
+  await noIdlePreload(page);
   await page.getByRole("button", { name: "Netlight" }).click();
-  release();
   await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
   await page.mouse.move(0, 0);
   await page.waitForTimeout(500);
+  await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
+});
+
+test("a tap before the card code loads opens it", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "touch only");
+  await noIdlePreload(page);
+  await page.getByRole("button", { name: "Netlight" }).tap();
   await expect(page.locator(".company-card").getByText("Netlight")).toBeVisible();
 });

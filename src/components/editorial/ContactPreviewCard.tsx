@@ -22,7 +22,7 @@ export function ContactPreviewCard({
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
   const [open, setOpen] = useState(false);
-  // Same anchor on every device (no remount after hydration); it just never opens without a fine pointer.
+  // It never opens without a fine pointer. (ContactPreview swaps this in for a plain link; useLazy carries focus and hover across.)
   return (
     <PreviewCard.Root open={open && fineHover} onOpenChange={(next) => setOpen(next && fineHover)}>
       <PreviewCard.Trigger

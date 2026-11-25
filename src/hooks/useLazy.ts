@@ -1,5 +1,6 @@
 "use client";
 
+import { FINE_HOVER } from "@/hooks/useMediaQuery";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -54,7 +55,8 @@ export function useLazy<T>(
     // Only if focus fell to the body with the old trigger, never away from a control.
     const active = document.activeElement;
     if (hadFocus.current && (!active || active === document.body)) el.focus();
-    if (el.matches(":hover")) {
+    // Touch screens keep :hover on the last tapped element; replay real mice only.
+    if (el.matches(":hover") && window.matchMedia(FINE_HOVER).matches) {
       el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
       el.dispatchEvent(new MouseEvent("mouseenter"));
       el.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
