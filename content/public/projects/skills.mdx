@@ -1,0 +1,38 @@
+---
+title: Skills
+slug: skills
+kind: project
+order: 1
+summary: Agent skills to craft great interfaces
+publishedAt: 2026-11-22
+tags: [agents, skills, design engineering]
+repoUrl: https://github.com/somesh-ks/skills
+---
+
+Four skills that teach coding agents the interface details they usually miss. `design-eng` and `design-sys` load on their own when the agent writes UI; you run the two `sk-` audits yourself. They work in Claude Code, Cursor, Codex and any agent that reads `SKILL.md`.
+
+<Command command="npx skills add somesh-ks/skills" />
+
+<SkillHeading name="design-eng" />
+
+**CSS, DOM and motion mechanics** with working code and browser support: buttons that keep their size, hover with no dead zones, clean theme switches.
+
+<StableButtonDemo />
+
+<SkillHeading name="design-sys" />
+
+**Design system values** with a reason and a source: hairlines, type and **tap targets per platform**, dark mode surfaces, token tiers.
+
+<TargetSizeDemo />
+
+<SkillHeading name="sk-design-eng" />
+
+**Audits UI code** for the traps `design-eng` fixes and returns `path:line` findings graded High to Low.
+
+<AuditDemo skill="sk-design-eng" />
+
+<SkillHeading name="sk-design-sys" />
+
+**Scores a design system** across 18 domains with evidence, or builds a new one from the same rubric.
+
+<AuditDemo skill="sk-design-sys" />

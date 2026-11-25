@@ -58,20 +58,21 @@ here, when a row names a file or export that doesn't exist, or when a row leaves
 
 Some parts are a class, not a component. Use these before you write new CSS.
 
-| Class           | What it is                                                                      |
-| --------------- | ------------------------------------------------------------------------------- |
-| `button`        | Text button; add `button--primary` for the one main action.                     |
-| `icon-button`   | Square icon-only button; give it an `sr-only` label.                            |
-| `chip`          | Toggle chip; state comes from `aria-pressed`.                                   |
-| `field`         | Wrapper that stacks a label over its control.                                   |
-| `pressable`     | Press feedback (scale on `:active`) for any clickable element.                  |
-| `toy`           | Frame for an interactive demo in MDX, with `toy__bar` and `toy__caption`.       |
-| `before-after`  | Titled pair of Before / After stages; `BeforeAfter` in `src/components/skills`. |
-| `section-title` | Mono caps section heading.                                                      |
-| `link`          | Underlined inline link.                                                         |
-| `tabular`       | Tabular figures for numbers that change or line up.                             |
-| `nowrap`        | Keeps a short phrase on one line.                                               |
-| `sr-only`       | Text for screen readers only.                                                   |
+| Class           | What it is                                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `button`        | Text button; add `button--primary` for the one main action.                                                                                                                    |
+| `icon-button`   | Square icon-only button; give it an `sr-only` label.                                                                                                                           |
+| `chip`          | Toggle chip; state comes from `aria-pressed`.                                                                                                                                  |
+| `field`         | Wrapper that stacks a label over its control.                                                                                                                                  |
+| `pressable`     | Press feedback (scale on `:active`) for any clickable element.                                                                                                                 |
+| `toy`           | Frame for an interactive demo in MDX, with `toy__bar` and `toy__caption`.                                                                                                      |
+| `before-after`  | ✕ Typical agent / ✓ With the skill pair of stages; `BeforeAfter` in `src/components/skills`. Demos there: `StableButtonDemo`, `TargetSizeDemo`, `AuditDemo` (real audit runs). |
+| `skill-heading` | `/ name` section rule on the Skills page; `SkillHeading` in `src/components/skills`.                                                                                           |
+| `section-title` | Mono caps section heading.                                                                                                                                                     |
+| `link`          | Underlined inline link.                                                                                                                                                        |
+| `tabular`       | Tabular figures for numbers that change or line up.                                                                                                                            |
+| `nowrap`        | Keeps a short phrase on one line.                                                                                                                                              |
+| `sr-only`       | Text for screen readers only.                                                                                                                                                  |
 
 ## When nothing fits
 

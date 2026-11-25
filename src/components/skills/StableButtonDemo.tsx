@@ -73,8 +73,7 @@ export function StableButtonDemo() {
   return (
     <BeforeAfter
       ref={ref}
-      title="Buttons that keep their size"
-      line="Watch the dashed frames: a typical button shrinks as it saves, and Cancel jumps out of place."
+      label="A save button that keeps its size"
       before={row(false)}
       after={row(true)}
     />
