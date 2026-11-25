@@ -415,6 +415,12 @@ claude-mascot:defined > * {
   background: var(--surface-canvas);
   transition: border-color var(--duration-press) var(--ease-out);
 }
+@media (prefers-reduced-motion: reduce) {
+  .runner__play,
+  .runner__over .runner__save {
+    transition: none;
+  }
+}
 @media (hover: hover) {
   .runner__prompt:hover .runner__play {
     border-color: var(--text-primary);
