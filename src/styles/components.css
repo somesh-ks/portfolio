@@ -404,6 +404,12 @@ claude-mascot:defined > * {
     0 0 2px var(--surface-canvas),
     0 0 6px var(--surface-canvas);
 }
+.runner__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 var(--space-4);
+}
 .runner__final {
   color: var(--text-primary);
   font-size: var(--step-lg);
