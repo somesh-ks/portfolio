@@ -3359,6 +3359,7 @@ claude-mascot:defined > * {
   outline-offset: 2px;
 }
 /* The panel takes the button's place while it's open. */
+.tune-button[data-dodge],
 .tune-button[data-open] {
   opacity: 0;
   transform: scale(0.96);

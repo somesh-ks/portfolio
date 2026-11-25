@@ -1,7 +1,6 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import Link from "next/link";
 import type { RefObject } from "react";
 import { Segmented } from "@/components/experiments/Segmented";
 import { Dial } from "@/components/ui/Dial";
@@ -88,14 +87,6 @@ export default function TunePanel({
               />
             </div>
             <Dial
-              label="scale"
-              value={tune.scale}
-              {...TUNE_RANGE.scale}
-              show={`${tune.scale.toFixed(2)}×`}
-              reset={1}
-              onChange={(scale) => set({ scale })}
-            />
-            <Dial
               label="density"
               value={tune.density}
               {...TUNE_RANGE.density}
@@ -105,9 +96,9 @@ export default function TunePanel({
             />
           </div>
           <div className="tune-panel__foot">
-            <Link href="/spring" className="tune-panel__credit">
-              made with Spring →
-            </Link>
+            <a href="/spring" className="tune-panel__credit" target="_blank" rel="noopener">
+              made with Spring ↗<span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
