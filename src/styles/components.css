@@ -1031,7 +1031,7 @@ claude-mascot:defined > * {
 /* Hover thumbnail: wide screens with a mouse only, in the gutter right of the
    40rem column. Out of flow, so row height and the hover highlight never move.
    Fade only (hover runs tens of times a day), after a short delay so sweeping
-   the list doesn't flash every image. */
+   the list doesn't flash every image. The art is RowThumb's inline SVG. */
 .list-row__thumb {
   display: none;
 }
@@ -1047,13 +1047,13 @@ claude-mascot:defined > * {
     width: 10rem;
     height: auto;
     aspect-ratio: 16 / 10;
-    object-fit: cover;
     outline: 1px solid var(--border-image);
     outline-offset: -1px;
-    background: var(--surface-raised);
+    background: var(--surface-canvas);
     opacity: 0;
     transform: translateY(-50%);
     pointer-events: none;
+    user-select: none;
     transition: opacity var(--duration-tooltip) ease;
   }
   .list-row:hover .list-row__thumb,
@@ -1061,11 +1061,53 @@ claude-mascot:defined > * {
     opacity: 1;
     transition-delay: var(--duration-tooltip);
   }
-  /* Light and dark stills: show the one for the page's theme. */
-  [data-theme="dark"] .list-row__thumb--light,
-  :root:not([data-theme="dark"]) .list-row__thumb--dark {
-    display: none;
-  }
+}
+
+/* Thumbnail paint roles (src/lib/thumbs/draw.tsx). Theme tokens, plus the
+   row's own --thumb-accent set on the svg. */
+.thumb-ink {
+  fill: var(--text-primary);
+}
+.thumb-muted {
+  fill: var(--text-secondary);
+}
+.thumb-line {
+  fill: var(--border-default);
+}
+.thumb-bg {
+  fill: var(--surface-canvas);
+}
+.thumb-accent {
+  fill: var(--thumb-accent);
+}
+.thumb-on {
+  fill: var(--thumb-on-accent);
+}
+.thumb-stroke-bg {
+  stroke: var(--surface-canvas);
+}
+.thumb-stroke-ink {
+  stroke: var(--text-primary);
+}
+.thumb-stroke-muted {
+  stroke: var(--text-secondary);
+}
+.thumb-stroke-line {
+  stroke: var(--border-default);
+}
+.thumb-stroke-accent {
+  stroke: var(--thumb-accent);
+}
+.thumb-stroke-on {
+  stroke: var(--thumb-on-accent);
+}
+.thumb-mono {
+  font-family: var(--font-mono);
+}
+.thumb-display {
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
 }
 
 .lock-badge {
