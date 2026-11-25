@@ -74,6 +74,7 @@ export function ColorPicker({
   setFormat,
   onPick,
   onHex,
+  onClear,
   label = "Brand color",
 }: {
   /** The field's visible name. */
@@ -87,6 +88,8 @@ export function ColorPicker({
   setFormat: (f: ColorFormat) => void;
   onPick: (p: { hue: number; chroma: number }) => void;
   onHex: (hex: string) => void;
+  /** Lets a blank field clear the color, for one that has an automatic default. */
+  onClear?: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -123,9 +126,12 @@ export function ColorPicker({
     // Store hex whatever format was typed: links and saved state only keep #rrggbb.
     const c = draft ? parseColor(draft) : null;
     if (c) onHex(oklchToHex(clampChroma(c)));
+    else if (draft !== null && !draft.trim()) onClear?.();
     setDraft(null);
   };
   const second = space === "oklch" ? "chroma" : "saturation";
+  // "Brand color" names its sliders "Brand hue"; "danger color", "danger hue".
+  const name = label.replace(/\s*colou?r$/i, "");
 
   return (
     <div className="field spring-picker">
@@ -157,7 +163,7 @@ export function ColorPicker({
           ref={hueInput}
           type="range"
           className="spring-picker__input"
-          aria-label="Brand hue"
+          aria-label={`${name} hue`}
           aria-valuetext={`${Math.round(x)} degrees`}
           min={0}
           max={360}
@@ -168,7 +174,7 @@ export function ColorPicker({
         <input
           type="range"
           className="spring-picker__input"
-          aria-label={`Brand ${second}`}
+          aria-label={`${name} ${second}`}
           aria-valuetext={`${Math.round(y * 100)}%`}
           min={0}
           max={1}

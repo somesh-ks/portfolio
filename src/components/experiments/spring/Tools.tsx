@@ -155,7 +155,7 @@ function ExportMenu({ system }: { system: System }) {
       <Menu.Root>
         <Menu.Trigger
           className="button button--primary spring-split__more"
-          aria-label="More export options"
+          aria-label="Export, import and reset"
         >
           <Chevron />
         </Menu.Trigger>
@@ -195,7 +195,7 @@ function ExportMenu({ system }: { system: System }) {
                     resetInput();
                 }}
               >
-                <span className="select__text">Start over</span>
+                <span className="select__text spring-menu__danger">Start over</span>
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>
@@ -500,6 +500,31 @@ export function SpringApp() {
         </span>
       </header>
       <AuditDialog />
+      {/* The panel first: it follows its tabs for keyboards and screen readers; the grid places it. */}
+      <aside
+        role="tabpanel"
+        id={`${tabsId}-panel`}
+        aria-labelledby={`${tabsId}-${tab}`}
+        className="spring-app__side"
+      >
+        {tab === "color" ? (
+          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+        ) : null}
+        {tab === "type" ? (
+          <TypeControls
+            {...spring}
+            onBrowse={(r) => {
+              setBrowse(r);
+              setView("output");
+            }}
+          />
+        ) : null}
+        {tab === "space" ? <ShapeControls {...spring} /> : null}
+        {tab === "motion" ? (
+          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+        ) : null}
+        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
+      </aside>
       <section
         className="spring-app__canvas"
         aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
@@ -590,30 +615,6 @@ export function SpringApp() {
           </>
         )}
       </section>
-      <aside
-        role="tabpanel"
-        id={`${tabsId}-panel`}
-        aria-labelledby={`${tabsId}-${tab}`}
-        className="spring-app__side"
-      >
-        {tab === "color" ? (
-          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
-        ) : null}
-        {tab === "type" ? (
-          <TypeControls
-            {...spring}
-            onBrowse={(r) => {
-              setBrowse(r);
-              setView("output");
-            }}
-          />
-        ) : null}
-        {tab === "space" ? <ShapeControls {...spring} /> : null}
-        {tab === "motion" ? (
-          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
-        ) : null}
-        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
-      </aside>
     </div>
   );
 }
@@ -934,7 +935,7 @@ function TypeControls({
   return (
     <>
       <Dial
-        label="Body size"
+        label="body size"
         reset={16}
         value={t.base}
         min={12}
@@ -963,7 +964,7 @@ function TypeControls({
       />
       {hi > lo ? (
         <Dial
-          label="Heading weight"
+          label="heading weight"
           value={t.headingWeight}
           min={lo}
           max={hi}
@@ -1027,7 +1028,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
   return (
     <>
       <Dial
-        label="Density"
+        label="density"
         scale={100}
         reset={DEFAULT_INPUT.density}
         value={input.density}
@@ -1038,7 +1039,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
         onChange={(v) => setInput((i) => ({ ...i, density: v }))}
       />
       <Dial
-        label="Roundness"
+        label="roundness"
         scale={100}
         reset={DEFAULT_INPUT.roundness}
         value={input.roundness}
@@ -1090,7 +1091,7 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
   return (
     <>
       <Dial
-        label="Energy"
+        label="energy"
         scale={100}
         reset={DEFAULT_INPUT.motion}
         value={input.motion}

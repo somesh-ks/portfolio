@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import {
   CHART_MAX,
@@ -44,14 +44,12 @@ function ValueField({
   label,
   hex,
   format,
-  placeholder,
   onHex,
   onClear,
 }: {
   label: string;
   hex: string;
   format: ColorFormat;
-  placeholder?: string;
   onHex: (hex: string) => void;
   onClear?: () => void;
 }) {
@@ -69,7 +67,6 @@ function ValueField({
       className="spring-strip__hex"
       aria-label={label}
       value={draft ?? (hex ? formatColor(hex, format) : "")}
-      placeholder={placeholder}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={apply}
       onKeyDown={(e) => {
@@ -90,12 +87,14 @@ function PickSwatch({
   format,
   setFormat,
   onHex,
+  onClear,
 }: {
   name: string;
   hex: string;
   format: ColorFormat;
   setFormat: (f: ColorFormat) => void;
   onHex: (hex: string) => void;
+  onClear?: () => void;
 }) {
   const c = parseColor(hex) ?? { l: 0.6, c: 0.1, h: 0 };
   return (
@@ -120,6 +119,7 @@ function PickSwatch({
                 onHex(oklchToHex(clampChroma({ l: c.l, c: p.chroma ?? c.c, h: p.hue ?? c.h })))
               }
               onHex={onHex}
+              onClear={onClear}
             />
           </Popover.Popup>
         </Popover.Positioner>
@@ -179,8 +179,33 @@ function Steps({
   solid?: number;
   mark?: number;
 } & { copy: Copy }) {
+  // One tab stop per strip: arrows, Home and End move along it, like a toolbar.
+  const [active, setActive] = useState(0);
+  const roam = (e: KeyboardEvent<HTMLSpanElement>) => {
+    const last = scale.length - 1;
+    const to =
+      e.key === "ArrowRight"
+        ? Math.min(last, active + 1)
+        : e.key === "ArrowLeft"
+          ? Math.max(0, active - 1)
+          : e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? last
+              : null;
+    if (to === null) return;
+    e.preventDefault();
+    setActive(to);
+    (e.currentTarget.children[to] as HTMLElement | undefined)?.focus();
+  };
   return (
-    <span className="spring-scale__steps">
+    <span
+      role="toolbar"
+      tabIndex={-1}
+      aria-label={`${name} steps`}
+      className="spring-scale__steps"
+      onKeyDown={roam}
+    >
       {scale.map((sw, i, all) => {
         const key = `${id}-${sw.step}`;
         const value = formatColor(sw.hex, format);
@@ -200,6 +225,8 @@ function Steps({
             data-solid={sw.step === solid || undefined}
             data-mark={sw.step === mark || undefined}
             data-key={keyStep || undefined}
+            tabIndex={i === active ? 0 : -1}
+            onFocus={() => setActive(i)}
             onClick={() => copy.copy(key, value)}
           >
             <span className="sr-only">
@@ -349,8 +376,15 @@ export function ColorOutput({
       {...extra}
     />
   );
-  const pick = (name: string, hex: string, onHex: (hex: string) => void) => (
-    <PickSwatch name={name} hex={hex} format={format} setFormat={setFormat} onHex={onHex} />
+  const pick = (name: string, hex: string, onHex: (hex: string) => void, onClear?: () => void) => (
+    <PickSwatch
+      name={name}
+      hex={hex}
+      format={format}
+      setFormat={setFormat}
+      onHex={onHex}
+      onClear={onClear}
+    />
   );
   const primaryHex = system.scales.primary.light[system.scales.primary.anchor.light - 1]!.hex;
   const setPrimary = (hex: string) => {
@@ -387,30 +421,46 @@ export function ColorOutput({
           </filter>
         ))}
       </svg>
-      <div className="spring-vision">
-        <Select
-          label="Color vision"
-          hideLabel
-          value={vision}
-          options={VISIONS.map((v) => ({ value: v, label: VISION_LABEL[v] }))}
-          onChange={setVision}
-        />
-        <Info label="Color vision types">
-          <dl className="spring-dl">
-            {(Object.keys(VISION_INFO) as (keyof typeof VISION_INFO)[]).map((v) => (
-              <div key={v}>
-                <dt>{VISION_LABEL[v]}</dt>
-                <dd>{VISION_INFO[v]}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="spring-meta">
-            Pick one to see the whole palette through it. Spring simulates each at full strength.
-          </p>
-        </Info>
+      <div className="spring-head">
+        <h2 className="spring-section">ui</h2>
+        <p className="spring-meta spring-legend">
+          <span className="spring-legend__brand">your color</span>
+          <span className="spring-legend__solid">button fill</span>
+          <span>
+            {apca ? "Lc" : "WCAG ratio"} on bg ·{" "}
+            <button
+              type="button"
+              className="spring-link"
+              aria-pressed={allValues}
+              onClick={() => setAllValues((v) => !v)}
+            >
+              {allValues ? "key steps only" : "show every step"}
+            </button>
+          </span>
+        </p>
+        <div className="spring-vision">
+          <Select
+            label="Color vision"
+            hideLabel
+            value={vision}
+            options={VISIONS.map((v) => ({ value: v, label: VISION_LABEL[v] }))}
+            onChange={setVision}
+          />
+          <Info label="Color vision types">
+            <dl className="spring-dl">
+              {(Object.keys(VISION_INFO) as (keyof typeof VISION_INFO)[]).map((v) => (
+                <div key={v}>
+                  <dt>{VISION_LABEL[v]}</dt>
+                  <dd>{VISION_INFO[v]}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="spring-meta">
+              Pick one to see the whole palette through it. Spring simulates each at full strength.
+            </p>
+          </Info>
+        </div>
       </div>
-
-      <h2 className="spring-section">ui</h2>
       <div className="spring-scales" data-all={allValues || undefined} style={filter}>
         <StepHeads />
         <StripRow
@@ -452,15 +502,22 @@ export function ColorOutput({
               name={n}
               head={
                 <>
-                  {pick(n, input.status?.[n] ?? auto, (hex) => setStatus(n, hex))}
-                  <ValueField
-                    label={`${n} color, blank for auto`}
-                    hex={input.status?.[n] ?? ""}
-                    placeholder="auto"
-                    format={format}
-                    onHex={(hex) => setStatus(n, hex)}
-                    onClear={() => setStatus(n, undefined)}
-                  />
+                  {pick(
+                    n,
+                    input.status?.[n] ?? auto,
+                    (hex) => setStatus(n, hex),
+                    () => setStatus(n, undefined),
+                  )}
+                  {/* Derived from the brand until picked; a picked one can be typed or cleared back. */}
+                  {input.status?.[n] ? (
+                    <ValueField
+                      label={`${n} color, blank for auto`}
+                      hex={input.status[n]}
+                      format={format}
+                      onHex={(hex) => setStatus(n, hex)}
+                      onClear={() => setStatus(n, undefined)}
+                    />
+                  ) : null}
                 </>
               }
             >
@@ -515,21 +572,6 @@ export function ColorOutput({
           + Add color
         </button>
       ) : null}
-      <p className="spring-meta spring-legend">
-        <span className="spring-legend__brand">your color</span>
-        <span className="spring-legend__solid">button fill</span>
-        <span>
-          {apca ? "Lc" : "WCAG ratio"} on bg ·{" "}
-          <button
-            type="button"
-            className="spring-link"
-            aria-pressed={allValues}
-            onClick={() => setAllValues((v) => !v)}
-          >
-            {allValues ? "key steps only" : "show every step"}
-          </button>
-        </span>
-      </p>
       <Contrast
         system={system}
         mode={mode}
@@ -620,7 +662,7 @@ function DataSection({
         Series colors are strips on the same curve. A chart draws each one&apos;s mark (the outlined
         step): its own color, moved darker until it reaches 3:1 on the page.
       </p>
-      <span className="spring-export__row">
+      <span className="spring-export__row spring-data__actions">
         <button
           type="button"
           className="button"
@@ -631,7 +673,7 @@ function DataSection({
         {data.length < CHART_MAX ? (
           <button
             type="button"
-            className="button"
+            className="spring-link spring-strip__add"
             onClick={() =>
               setData((d) => [...d, newColor((input.primary.hue + 60 * (d.length + 1)) % 360)])
             }
