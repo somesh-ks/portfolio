@@ -3180,6 +3180,7 @@ claude-mascot:defined > * {
 }
 .tune-panel__actions {
   display: flex;
+  gap: var(--space-2);
 }
 .tune-panel__title {
   margin: 0;
@@ -3224,6 +3225,10 @@ claude-mascot:defined > * {
   }
 }
 .tune-panel__credit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-right: var(--space-3);
   color: var(--text-secondary);
   text-decoration: none;
 }
@@ -3299,7 +3304,7 @@ claude-mascot:defined > * {
     min-height: 1.75rem;
   }
 }
-/* Phones: a square "$_" button, and the panel as a short bottom sheet in two columns. */
+/* Phones: a square "$_" button, and the panel as a bottom sheet, one control per row. */
 @media (max-width: 39.999rem) {
   .tune-button {
     right: max(var(--space-4), env(safe-area-inset-right));
@@ -3326,8 +3331,8 @@ claude-mascot:defined > * {
     bottom: 0;
     left: 0;
     width: auto;
-    max-height: 50vh;
-    max-height: 50dvh;
+    max-height: 75vh;
+    max-height: 75dvh;
     overflow-y: auto;
     border-width: 1px 0 0;
     padding-bottom: env(safe-area-inset-bottom);
@@ -3337,32 +3342,33 @@ claude-mascot:defined > * {
   .tune-panel[data-ending-style] {
     transform: translateY(1.5rem);
   }
-  /* A hairline list instead of boxed rows: 44px targets without the weight. */
+  /* Head, body and foot share one 16px edge. */
+  .tune-panel__head,
+  .tune-panel__foot {
+    padding-left: var(--space-4);
+  }
+  .tune-panel__close {
+    padding-right: var(--space-4);
+  }
+  /* One control per row, with air between rows and between segments, so no two targets touch. */
   .tune-panel__body {
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    padding: 0;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) var(--space-5);
   }
-  .tune-panel__body > .tune-hue {
-    grid-column: 1 / -1;
+  .tune-panel__body > .dial,
+  .tune-panel__row {
+    min-height: 3rem;
   }
-  .tune-panel__body > *,
-  .tune-panel__body > .dial:hover {
-    padding-inline: var(--space-3);
+  .tune-panel__row {
+    background: none;
     box-shadow: none;
   }
-  .tune-panel__body > :not(:nth-last-child(-n + 2)) {
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  .tune-panel__body > :nth-child(even) {
-    border-right: 1px solid var(--border-subtle);
+  .tune-panel .segmented {
+    gap: var(--space-2);
   }
   .tune-panel .segmented__item {
-    border-left-color: var(--border-subtle);
-  }
-  /* Segments reach the row's edge, so the row keeps no inset on that side. */
-  .tune-panel__body > .tune-panel__row {
-    padding-right: 0;
+    min-width: 3rem;
+    border: 1px solid var(--border-default);
   }
   /* Out of the way while a run is being played; back once the game loses focus. */
   body:has(.runner__screen[data-active]:focus) .tune-button {
