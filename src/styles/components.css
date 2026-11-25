@@ -3687,11 +3687,6 @@ claude-mascot:defined > * {
     opacity: 0;
     visibility: hidden;
   }
-  /* The runner's footer buttons end short of the corner button, so it never covers them:
-     the button's width, a gap, and the fullscreen icon's hit area overhanging its glyph. */
-  .page:has(.tune-button) .runner:not(:fullscreen, [data-immersive]) .runner__foot {
-    padding-right: calc(var(--space-4) + 2.75rem + var(--space-2) + (2.75rem - 18px) / 2);
-  }
   /* Room at the end so the button never covers the footer. */
   .page:has(.tune-button) {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
