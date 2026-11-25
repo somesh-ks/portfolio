@@ -28,8 +28,9 @@ export function rasterFrame(
   side?: number,
 ): { width: number; height: number; data: Uint8Array } {
   const b = bounds(look);
-  const iw = b.w * scale;
-  const ih = b.h * scale;
+  // Bounds can be half cells (the outline), so round up to whole pixels.
+  const iw = Math.ceil(b.w * scale);
+  const ih = Math.ceil(b.h * scale);
   const width = square ? (side ?? Math.max(iw, ih)) : iw;
   const height = square ? (side ?? Math.max(iw, ih)) : ih;
   const offX = Math.floor((width - iw) / 2) - b.x * scale;

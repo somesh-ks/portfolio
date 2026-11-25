@@ -305,3 +305,13 @@ describe("outputs", () => {
     expect(gm.pages).toBe(frameCount(DEFAULT_LOOK));
   });
 });
+
+describe("raster sizes", () => {
+  test("half-cell outline bounds still give whole-pixel buffers", () => {
+    for (const scale of [33, 17, 7]) {
+      const r = rasterFrame({ move: "wave", props: [], outline: true }, 0, scale, false);
+      expect(Number.isInteger(r.width) && Number.isInteger(r.height)).toBe(true);
+      expect(r.data.length).toBe(r.width * r.height * 4);
+    }
+  });
+});

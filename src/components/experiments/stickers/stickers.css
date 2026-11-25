@@ -199,3 +199,6 @@
   min-width: 3.75em;
   text-align: center;
 }
+.stickers-stage[data-offscreen] * {
+  animation-play-state: paused;
+}

@@ -120,6 +120,7 @@ export function StickerStudio() {
   const [tab, setTab] = useState<Tab>("static");
   const [frame, setFrame] = useState<number | null>(null);
   const [playing, setPlaying] = useState(true);
+  const [onScreen, setOnScreen] = useState(true);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -156,7 +157,23 @@ export function StickerStudio() {
       if (e) setBox({ w: e.contentRect.width, h: e.contentRect.height });
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    // Off-screen (phone, panel scrolled up), the loop pauses.
+    const io = new IntersectionObserver(([e]) => setOnScreen(e?.isIntersecting ?? true));
+    io.observe(el);
+    return () => {
+      ro.disconnect();
+      io.disconnect();
+    };
+  }, []);
+
+  // Turning reduced motion on mid-play stops the loop; Play still starts it on purpose.
+  useEffect(() => {
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    const stop = () => {
+      if (motion.matches) setPlaying(false);
+    };
+    motion.addEventListener("change", stop);
+    return () => motion.removeEventListener("change", stop);
   }, []);
 
   const b = bounds(look);
@@ -326,7 +343,12 @@ export function StickerStudio() {
         aria-labelledby={`${tabsId}-${tab}`}
         className="spring-app__canvas stickers-canvas"
       >
-        <div ref={stage} className="stickers-stage" data-ready={ready}>
+        <div
+          ref={stage}
+          className="stickers-stage"
+          data-ready={ready}
+          data-offscreen={!onScreen || undefined}
+        >
           <div
             ref={art}
             className="stickers-art"

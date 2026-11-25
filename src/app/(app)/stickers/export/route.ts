@@ -8,9 +8,9 @@ import { gifBuffer, pngBuffer } from "@/lib/stickers/export";
 
 export const runtime = "nodejs";
 
-// Same URL, same bytes: the CDN keeps them across deploys' worth of requests and
-// browsers for a week, so a redrawn prop shows up without a cache-busting param.
-const CACHE = "public, max-age=604800, s-maxage=31536000";
+// Same URL, same bytes. Browsers and the CDN keep them for a week, so a redrawn prop
+// shows up within a week without a cache-busting param.
+const CACHE = "public, max-age=604800, s-maxage=604800";
 
 const FORMATS = {
   png: "image/png",
@@ -22,7 +22,7 @@ const FORMATS = {
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams;
   const format = (q.get("f") ?? "png") as keyof typeof FORMATS;
-  if (!(format in FORMATS)) {
+  if (!Object.hasOwn(FORMATS, format)) {
     return Response.json({ error: "f must be png, gif, svg or json" }, { status: 400 });
   }
   const look = lookFromQuery(q);
