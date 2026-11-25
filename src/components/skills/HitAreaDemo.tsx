@@ -73,8 +73,7 @@ export function HitAreaDemo() {
   return (
     <BeforeAfter
       ref={ref}
-      title="Hover with no dead zones"
-      line="Follow the cursor: in the striped gaps between tabs, a typical bar hovers nothing."
+      label="Tabs with no hover dead zones"
       before={<Tabs flush={false} sweeping={playing} onReal={stop} />}
       after={<Tabs flush sweeping={playing} onReal={stop} />}
     />

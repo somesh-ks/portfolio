@@ -25,14 +25,14 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
     "Side-by-side comparison of a spinner-and-dump response and an interruptible, staged agent response with an approval gate.",
   HitAreaDemo:
     "Before and after: tabs spaced with gap, where hover drops in the gaps, next to flush tabs with the spacing inside each tab.",
+  DarkSurfaceDemo:
+    "Before and after: a dark mode card that is black on a black page with an invisible shadow, next to one raised with a lighter surface step.",
   StableButtonDemo:
     "Before and after: a Save button that resizes as its spinner and label swap, next to one that stacks every state in one grid cell.",
-  SpinnerDemo:
-    "Before and after: a spinner that wobbles because it rotates an inline-block wrapper taller than the icon, next to one whose wrapper hugs the icon.",
-  IconSwapDemo:
-    "Before and after: a copy icon that pops to a check, next to one that cross-fades with scale and blur.",
-  TabularNumbersDemo:
-    "Before and after: a stopwatch whose proportional digits wobble, next to one with tabular-nums.",
+  TargetSizeDemo:
+    "Before and after: a formatting toolbar with 32×32 tap targets 4px apart, next to one with 44×44 targets (the iOS default); the glyphs stay 16px.",
+  AuditDemo:
+    "Before and after: the same audit prompt run without the skill (unscored prose notes) and with it (graded path:line findings or a scored 18-domain card).",
   Figure: "Figure.",
 };
 
@@ -42,6 +42,10 @@ function describe(name: string, block: string): string {
   if (name === "Command") {
     const command = /command="([^"]*)"/.exec(block)?.[1];
     if (command) return `\`\`\`bash\n${command}\n\`\`\``;
+  }
+  if (name === "SkillHeading") {
+    const skill = /name="([^"]*)"/.exec(block)?.[1];
+    if (skill) return `## ${skill}`;
   }
   if (name === "Figure") {
     const alt = /alt="([^"]*)"/.exec(block)?.[1];

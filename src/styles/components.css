@@ -2997,45 +2997,65 @@ claude-mascot:defined > * {
   --shiki-token-punctuation: var(--text-primary);
 }
 
-/* ---------- Skill page: before / after examples ---------- */
-.before-after {
-  margin-block: var(--space-12);
+/* ---------- Skill page: sections and before / after examples ---------- */
+/* `/ name` and a hairline to the edge, like a terminal section rule. */
+.prose > .skill-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-20);
+  font-family: var(--font-mono);
+  font-size: var(--step-base);
+  font-weight: 500;
 }
-.before-after__line {
-  margin-top: var(--space-1);
+.skill-heading > span {
+  margin-right: calc(var(--space-3) * -1 + 0.5ch);
   color: var(--text-secondary);
 }
-.before-after__pair {
-  display: grid;
-  gap: var(--space-3);
+.prose > .skill-heading + p {
   margin-top: var(--space-4);
 }
+.skill-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+.before-after {
+  display: grid;
+  gap: var(--space-4);
+  margin-block: var(--space-8) 0;
+}
 @media (min-width: 40rem) {
-  .before-after__pair {
+  .before-after {
     grid-template-columns: 1fr 1fr;
   }
   .before-after__stage {
-    min-height: 10rem;
+    min-height: 16rem;
   }
 }
 @media (min-width: 60rem) {
-  .prose > .before-after .before-after__pair {
+  .prose > .before-after,
+  .prose > .skill-heading {
     margin-right: -8rem;
   }
 }
 .before-after__panel {
   --side: var(--illustration-bad);
+  --mark: "✕";
   position: relative;
+  display: grid;
 }
 .before-after__panel[data-side="after"] {
   --side: var(--illustration-good);
+  --mark: "✓";
 }
 /* A dotted workbench: the demos read as specimens, not page chrome. */
 .before-after__stage {
   display: grid;
   place-items: center;
-  min-height: 8rem;
-  padding: var(--space-10) var(--space-3) var(--space-6);
+  min-height: 12rem;
+  padding: var(--space-16) var(--space-5) var(--space-10);
   border-radius: var(--radius-lg);
   background:
     radial-gradient(circle at 1px 1px, var(--illustration-grid) 1px, transparent 0) 0 0 / 14px 14px,
@@ -3044,8 +3064,8 @@ claude-mascot:defined > * {
 }
 .before-after__panel figcaption {
   position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
+  top: var(--space-4);
+  left: var(--space-4);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -3054,10 +3074,107 @@ claude-mascot:defined > * {
   font-size: var(--step-xs);
 }
 .before-after__panel figcaption::before {
+  content: var(--mark);
+  color: var(--side);
+  font-size: var(--step-sm);
+  font-weight: 700;
+}
+
+/* Target sizes: the glyph stays put, the dashed box is the tap target. */
+.target-demo {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.target-demo__bar {
+  display: flex;
+  gap: 4px;
+}
+.target-demo__bar[data-size="44"] {
+  gap: 0;
+}
+.target-demo__button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-primary);
+  outline: 1px dashed var(--side);
+  outline-offset: -1px;
+}
+[data-size="44"] .target-demo__button {
+  width: 44px;
+  height: 44px;
+}
+.target-demo__readout {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+
+/* Dark surfaces: fixed dark colours, since the point is dark mode in either site theme. */
+.surface-demo {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.surface-demo__page {
+  display: grid;
+  place-items: center;
+  width: 12rem;
+  height: 7rem;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+.surface-demo__card {
+  display: grid;
+  gap: 6px;
+  width: 8rem;
+  padding: 12px;
+  background: #000;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.3);
+}
+.surface-demo__card::before,
+.surface-demo__card::after {
   content: "";
-  width: 0.5rem;
-  height: 0.5rem;
-  background: var(--side);
+  height: 6px;
+  background: #3a3a3a;
+}
+.surface-demo__card::after {
+  width: 60%;
+}
+[data-elevated="true"] .surface-demo__page {
+  background: oklch(14.5% 0 0);
+}
+[data-elevated="true"] .surface-demo__card {
+  background: oklch(21% 0 0);
+  box-shadow: none;
+}
+
+/* Audits: a trimmed transcript of a real run. */
+.audit-demo {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+}
+.audit-demo__text {
+  margin: 0;
+  overflow-x: auto;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  line-height: 1.7;
+  white-space: pre;
+}
+.audit-demo__prompt {
+  color: var(--text-primary);
+}
+/* Transcripts start at the top, so both sides' prompts line up. */
+.before-after__stage:has(.audit-demo) {
+  align-content: start;
+}
+.audit-demo .target-demo__readout::before {
+  content: "→ ";
 }
 
 .hit-demo {
@@ -3186,110 +3303,6 @@ claude-mascot:defined > * {
 @media (prefers-reduced-motion: reduce) {
   .stable-button__spin {
     animation-duration: 2.4s;
-  }
-}
-
-/* Icon swap: a share field with a copy button; the icons share one cell and
-   cross-fade with scale and blur. */
-.share-field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-inline-start: var(--space-3);
-  background: var(--surface-canvas);
-  box-shadow: 0 0 0 1px var(--border-default);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
-.icon-swap {
-  width: 2.75rem;
-  height: 2.75rem;
-  box-shadow: -1px 0 0 var(--border-default);
-}
-.icon-swap__cell {
-  display: grid;
-}
-.icon-swap__check {
-  color: var(--illustration-good);
-}
-.icon-swap__cell > * {
-  grid-area: 1 / 1;
-  transition:
-    opacity var(--duration-popover) var(--ease-out),
-    transform var(--duration-popover) var(--ease-out),
-    filter var(--duration-popover) var(--ease-out);
-}
-.icon-swap__cell > [data-visible="false"] {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
-}
-
-/* Spinner: the before wrapper is inline-block, so the line box sets its height
-   and the rotation centre falls below the icon's. The after wrapper hugs it. */
-.spinner-demo {
-  color: var(--text-secondary);
-  font-size: var(--step-lg);
-  line-height: 2.5;
-}
-.spinner-demo__wrap {
-  margin-right: var(--space-3);
-  color: var(--text-primary);
-  vertical-align: middle;
-  animation: spin 0.9s linear infinite;
-}
-/* Icons are inline by default outside a CSS reset; this site's reset makes them block. */
-.spinner-demo__wrap svg {
-  display: inline;
-}
-.before-after[data-paused="true"] .spinner-demo__wrap {
-  animation-play-state: paused;
-}
-.spinner-demo__track {
-  stroke: var(--border-default);
-}
-.spinner-demo__arc {
-  stroke: var(--illustration-live);
-}
-.spinner-demo__dot {
-  fill: var(--side);
-}
-.spinner-demo__wrap--inline {
-  display: inline-block;
-}
-.spinner-demo__wrap--grid {
-  display: inline-grid;
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner-demo__wrap {
-    animation-duration: 2.4s;
-  }
-}
-
-/* Stopwatch: proportional digits change width every tick; tabular ones do not. */
-.stopwatch {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-.stopwatch__time {
-  padding: 0 var(--space-2);
-  outline: 1px dashed var(--side);
-  outline-offset: 2px;
-  font-size: var(--step-2xl);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: proportional-nums;
-}
-.stopwatch__time--tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .copy-button__icons > [data-visible="false"],
-  .icon-swap__cell > [data-visible="false"] {
-    transform: none;
-    filter: none;
   }
 }
 
