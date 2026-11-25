@@ -28,3 +28,6 @@ content/protected/
 
 # Spring CLI bundle (scripts/build-spring-cli.ts)
 /dist
+
+# Built from GitHub's public contribution calendar (scripts/github-contributions.ts)
+/.cache

@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EntryArticle } from "@/components/editorial/EntryArticle";
 import { Mdx } from "@/components/mdx/Mdx";
-import { entriesOf, findEntry } from "./content";
+import { findEntry, pagesOf } from "./content";
 import { entryMetadata } from "./metadata";
 import type { Kind } from "./schema";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export function publicEntryRoute(kind: Kind) {
-  const publicEntries = () => entriesOf(kind).filter((entry) => !entry.meta.protected);
+  const publicEntries = () => pagesOf(kind).filter((entry) => !entry.meta.protected);
   return {
     generateStaticParams: () => publicEntries().map((entry) => ({ slug: entry.meta.slug })),
     async generateMetadata({ params }: Params): Promise<Metadata> {
@@ -21,7 +21,7 @@ export function publicEntryRoute(kind: Kind) {
       const entry = findEntry(kind, (await params).slug);
       // Locked case studies have their own dynamic routes; never render them here.
       if (!entry || entry.meta.protected) notFound();
-      const all = entriesOf(kind);
+      const all = pagesOf(kind);
       const next = all[(all.indexOf(entry) + 1) % all.length];
       return (
         <EntryArticle entry={entry} next={next === entry ? undefined : next}>

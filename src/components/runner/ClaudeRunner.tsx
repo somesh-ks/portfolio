@@ -210,6 +210,8 @@ export function ClaudeRunner() {
   /** The last input used, so hints say TAP or [SPACE] to match. */
   const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
   const [ready, setReady] = useState(false);
+  /** A score is waiting for a name: the crash scene holds until it's saved. */
+  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
   const [announcement, setAnnouncement] = useState("");
   const nameId = useId();
 
@@ -305,6 +307,17 @@ export function ClaudeRunner() {
     return () => clearTimeout(timer);
   }, [ensureEngine]);
 
+  /** Unless the player chose one, each run gets a new character. */
+  const rotateCostume = useCallback(() => {
+    if (picked.current) return;
+    const others = COSTUMES.filter((option) => option !== costumeRef.current);
+    chooseCostume(others[Math.floor(Math.random() * others.length)] ?? "walk");
+  }, [chooseCostume]);
+  /** Mirrors canSubmit for timers and handlers: the crash scene is held. */
+  const holding = useRef(false);
+  /** A swap skipped while the crash scene was held, done once it's let go. */
+  const swapLater = useRef(false);
+
   const starting = useRef(false);
   const startRun = useCallback(async () => {
     // One start at a time: presses during the engine load or the token
@@ -312,6 +325,11 @@ export function ClaudeRunner() {
     if (starting.current) return;
     starting.current = true;
     playRef.current("start");
+    // A retry straight from the name form still gets its new character.
+    if (swapLater.current) {
+      swapLater.current = false;
+      rotateCostume();
+    }
     // What you see is what you ride: the character on screen runs.
     const next = costumeRef.current;
     setPoints(0);
@@ -351,23 +369,31 @@ export function ClaudeRunner() {
     setPhase("running");
     screen.current?.focus({ preventScroll: true });
     loaded.start((Math.random() * 2 ** 31) | 0, next);
-  }, [ensureEngine]);
+  }, [ensureEngine, rotateCostume]);
 
   // A beat after a crash before a press restarts, so a jump pressed as
-  // Claude hit something doesn't skip the result.
+  // Claude hit something doesn't skip the result. The new character walks
+  // in as the crash clears; while a score waits for a name, the crash
+  // scene stays with the same character in it.
   useEffect(() => {
     if (phase !== "over") return;
     const timer = window.setTimeout(() => {
       setReady(true);
-      // Unless the player chose one, the next run gets a new character,
-      // shown walking as soon as the crash clears.
-      if (!picked.current) {
-        const others = COSTUMES.filter((option) => option !== costumeRef.current);
-        chooseCostume(others[Math.floor(Math.random() * others.length)] ?? "walk");
-      }
+      if (holding.current) swapLater.current = true;
+      else rotateCostume();
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [phase, chooseCostume]);
+  }, [phase, rotateCostume]);
+
+  // Hold the crash scene until the name is saved (or the form goes away).
+  useEffect(() => {
+    holding.current = canSubmit;
+    engine.current?.hold(canSubmit);
+    if (!canSubmit && swapLater.current) {
+      swapLater.current = false;
+      rotateCostume();
+    }
+  }, [canSubmit, rotateCostume]);
 
   const press = useCallback(() => {
     if (phase === "running") engine.current?.jump();
@@ -375,6 +401,8 @@ export function ClaudeRunner() {
   }, [phase, ready, startRun]);
 
   const cycleCostume = useCallback(() => {
+    // The crash scene holds still while a name is typed.
+    if (holding.current) return;
     const next = COSTUMES[(COSTUMES.indexOf(costumeRef.current) + 1) % COSTUMES.length] ?? "walk";
     picked.current = next;
     chooseCostume(next);
@@ -461,8 +489,6 @@ export function ClaudeRunner() {
     }
   }
 
-  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
-
   return (
     <section
       ref={frame}
@@ -545,7 +571,9 @@ export function ClaudeRunner() {
             onClick={() => void startRun()}
             disabled={phase === "loading"}
           >
-            <Key click="CLICK TO" touch="TAP TO" /> PLAY
+            <span className="runner__play">
+              <Key click="CLICK TO" touch="TAP TO" /> PLAY
+            </span>
           </button>
         ) : null}
 
@@ -591,8 +619,12 @@ export function ClaudeRunner() {
                   spellCheck={false}
                   required
                 />
-                <button type="submit" className="runner__action" disabled={submitted === "sending"}>
-                  <Key keyName="ENTER" /> SAVE
+                <button
+                  type="submit"
+                  className="runner__action runner__save"
+                  disabled={submitted === "sending"}
+                >
+                  SAVE
                 </button>
                 {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
               </form>

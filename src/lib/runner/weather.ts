@@ -20,12 +20,22 @@ export interface Weather {
  * screen-share. The condition and temperature can be checked out the window. */
 export const SHOW_CITY = false;
 
-/** The caption under the play prompt, e.g. `RAIN · 12°C`. */
+/** How each sky reads in a sentence; a clear night isn't sunny. */
+const FEELS: Record<Sky, string> = {
+  clear: "sunny",
+  cloudy: "cloudy",
+  fog: "foggy",
+  rain: "rainy",
+  snow: "snowy",
+};
+
+/** The caption under the play prompt, e.g. `RAINY, 12°C`. */
 export function weatherLabel(weather: Weather): string | null {
   if (weather.temp === null) return null;
-  const parts = [weather.sky, `${weather.temp}°${weather.unit ?? "C"}`];
+  const feel = weather.sky === "clear" && weather.night ? "clear" : FEELS[weather.sky];
+  const parts = [feel, `${weather.temp}°${weather.unit ?? "C"}`];
   if (SHOW_CITY && weather.city) parts.unshift(weather.city);
-  return parts.join(" · ").toUpperCase();
+  return parts.join(", ").toUpperCase();
 }
 
 /** WMO weather interpretation codes, as Open-Meteo reports them. */

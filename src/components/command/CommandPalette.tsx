@@ -45,7 +45,13 @@ export default function CommandPalette({
   const sound = useSound();
 
   const rows: Row[] = [
-    ...links.map((link) => ({ ...link, run: () => router.push(link.href as Route) })),
+    ...links.map((link) => ({
+      ...link,
+      run: () =>
+        /^https?:/.test(link.href)
+          ? window.open(link.href, "_blank", "noopener")
+          : router.push(link.href as Route),
+    })),
     ...modes.map((mode) => ({
       label: THEME_LABELS[mode],
       group: "Actions",
