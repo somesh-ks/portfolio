@@ -737,23 +737,25 @@
 .spring-split {
   align-items: stretch;
 }
-/* Flat hairlines, no fill or drop shadow: the strip stays quiet, Export included. */
+/* Bar cells: full bar height, flat, split by one hairline each. The bar's own
+   bottom border closes them, so nothing floats with padding above or below. */
 .spring-app__actions .button,
 .spring-app__format .select__trigger {
-  min-height: 2.25rem;
+  min-height: 0;
+  height: 100%;
   border-radius: 0;
   background: transparent;
-  /* Inset, so neighbours that overlap by 1px share one hairline. */
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  box-shadow: inset 1px 0 0 var(--border-subtle);
   font-weight: 400;
+}
+.spring-app__format .select__trigger {
+  box-shadow:
+    inset 1px 0 0 var(--border-subtle),
+    inset -1px 0 0 var(--border-subtle);
 }
 .spring-app__actions .button:hover,
 .spring-app__format .select__trigger:hover {
   background: var(--surface-hover);
-}
-.spring-app__actions > * + *,
-.spring-split > * + * {
-  margin-left: -1px;
 }
 .spring-app__actions .button:focus-visible {
   position: relative;
@@ -776,11 +778,13 @@
     flex-wrap: wrap;
     row-gap: 0;
   }
+  /* Row one is as tall as the strip; a hairline splits it from the tabs row. */
   .spring-app__actions {
-    padding-top: var(--space-2);
+    min-height: 2.75rem;
   }
-  .spring-app__name {
-    padding-top: var(--space-2);
+  .spring-tabs,
+  .spring-app__format {
+    border-top: 1px solid var(--border-subtle);
   }
   /* Row one: name and the strip. Row two: tabs, then the format as its mark. */
   .spring-app__format {
@@ -824,7 +828,6 @@
 /* Preview on: the button reads as held down. */
 .spring-app__actions .button[aria-pressed="true"] {
   background: var(--surface-sunken, var(--input-bg));
-  box-shadow: inset 0 0 0 1px var(--text-primary);
   color: var(--text-primary);
 }
 
@@ -1198,12 +1201,13 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  align-items: center;
-  padding: 0 var(--space-4);
+  align-items: stretch;
+  padding: 0 0 0 var(--space-4);
   padding-top: env(safe-area-inset-top);
 }
 .spring-app__name {
   flex: none;
+  align-self: center;
   margin-block: 0;
   line-height: inherit;
   margin-right: var(--space-3);
@@ -1228,9 +1232,6 @@
 }
 .spring-split__main > span[data-on] {
   visibility: visible;
-}
-.spring-app__actions {
-  align-items: center;
 }
 .spring-app__canvas {
   grid-area: canvas;
@@ -1273,6 +1274,12 @@
 .spring-split {
   display: inline-flex;
 }
+.spring-app__actions,
+.spring-app__format,
+.spring-app__format > *,
+.spring-app__actions .spring-split {
+  display: flex;
+}
 .spring-split__more {
   padding-inline: var(--space-2);
 }
@@ -1281,13 +1288,15 @@
   min-width: 10rem;
 }
 @media (min-width: 40.01rem) and (max-width: 59.99rem) {
+  /* Beside the strip: share its first hairline. */
   .spring-app__format {
-    margin-right: var(--space-4);
+    margin-right: -1px;
   }
 }
 @media (min-width: 60rem) {
   .spring-app__format {
     position: absolute;
+    inset-block: 0;
     left: 50%;
     translate: -50% 0;
   }
