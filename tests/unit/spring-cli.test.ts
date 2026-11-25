@@ -123,6 +123,27 @@ describe("spring scan findings and --open", () => {
 });
 
 describe("scan-only build (design-sys skill)", () => {
+  test("scan prints no audit findings", () => {
+    process.env.SPRING_SCAN_ONLY = "1";
+    const dir = mkdtempSync(join(tmpdir(), "spring-cli-"));
+    writeFileSync(join(dir, "tokens.css"), ":root { --bg: #fff; --text: #999; }");
+    let printed = "";
+    const out = spyOn(process.stdout, "write").mockImplementation((s) => {
+      printed += String(s);
+      return true;
+    });
+    try {
+      main(["scan", dir]);
+      main(["scan", dir, "--json"]);
+    } finally {
+      out.mockRestore();
+      delete process.env.SPRING_SCAN_ONLY;
+    }
+    expect(printed).toContain("Spring scan of");
+    expect(printed).not.toContain("Findings");
+    expect(printed).not.toContain('"findings"');
+  });
+
   test("refuses build and prints only the scan commands", () => {
     process.env.SPRING_SCAN_ONLY = "1";
     let printed = "";

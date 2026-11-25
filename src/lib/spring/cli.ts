@@ -332,7 +332,7 @@ function summary(
   dir: string,
   link: string | null,
   file: string | null,
-  findings: Findings = { items: [] },
+  findings?: Findings,
 ): string {
   const lines = [`Spring scan of ${dir}`];
   if (!view.sources.length) {
@@ -395,7 +395,7 @@ function summary(
         )})`,
       );
   }
-  lines.push(...findingLines(findings));
+  if (findings) lines.push(...findingLines(findings));
   for (const n of view.notes ?? []) lines.push(`Note: ${n}`);
   if (link) lines.push(`View: ${link}`);
   if (file)
@@ -548,7 +548,9 @@ export function main(argv = process.argv.slice(2), deps: Deps = {}) {
     const view = extract(src, basename(dir));
     if (!args.flags.has("no-usage"))
       view.usage = usage(dir, all, view, new Set(src.map((s) => s.path)));
-    const findings = findingsOf(view);
+    // The design-sys skill's scan-only build leaves findings out: the audit
+    // engine reports false passes on dark themes (2026-11-24 eval).
+    const findings = process.env.SPRING_SCAN_ONLY === "1" ? undefined : findingsOf(view);
     const json = args.flags.has("json");
     const open = (url: string) => {
       if (!args.flags.has("open")) return;
@@ -561,7 +563,8 @@ export function main(argv = process.argv.slice(2), deps: Deps = {}) {
       }
     };
     if (json) {
-      const text = JSON.stringify({ ...view, findings: findings.items }, null, 2) + "\n";
+      const text =
+        JSON.stringify(findings ? { ...view, findings: findings.items } : view, null, 2) + "\n";
       if (args.opts.out) writeFileSync(args.opts.out, text);
       process.stdout.write(text);
       open(VIEW_URL);
