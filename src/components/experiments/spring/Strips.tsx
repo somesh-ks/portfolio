@@ -18,6 +18,8 @@ import {
   CONTRAST_LABEL,
   MAX_STRIPS,
   type ContrastTarget,
+  buildSystem,
+  suggestData,
   type System,
   type SystemInput,
 } from "@/lib/spring/system";
@@ -46,12 +48,15 @@ function ValueField({
   format,
   onHex,
   onClear,
+  auto,
 }: {
   label: string;
   hex: string;
   format: ColorFormat;
   onHex: (hex: string) => void;
   onClear?: () => void;
+  /** Derived, not picked: shown muted until typed over. */
+  auto?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const apply = () => {
@@ -65,6 +70,7 @@ function ValueField({
   return (
     <input
       className="spring-strip__hex"
+      data-auto={auto || undefined}
       aria-label={label}
       value={draft ?? (hex ? formatColor(hex, format) : "")}
       onChange={(e) => setDraft(e.target.value)}
@@ -439,6 +445,15 @@ export function ColorOutput({
           </span>
         </p>
         <div className="spring-vision">
+          {system.custom.length < MAX_STRIPS ? (
+            <button
+              type="button"
+              className="button"
+              onClick={() => setColors((cs) => [...cs, newColor((input.primary.hue + 150) % 360)])}
+            >
+              Add color
+            </button>
+          ) : null}
           <Select
             label="Color vision"
             hideLabel
@@ -467,8 +482,13 @@ export function ColorOutput({
           name="primary"
           head={
             <>
-              {/* Its typed value lives once, in the brand color panel beside it. */}
               {pick("primary", primaryHex, setPrimary)}
+              <ValueField
+                label="Primary color"
+                hex={primaryHex}
+                format={format}
+                onHex={setPrimary}
+              />
             </>
           }
         >
@@ -503,16 +523,15 @@ export function ColorOutput({
                     (hex) => setStatus(n, hex),
                     () => setStatus(n, undefined),
                   )}
-                  {/* Derived from the brand until picked; a picked one can be typed or cleared back. */}
-                  {input.status?.[n] ? (
-                    <ValueField
-                      label={`${n} color, blank for auto`}
-                      hex={input.status[n]}
-                      format={format}
-                      onHex={(hex) => setStatus(n, hex)}
-                      onClear={() => setStatus(n, undefined)}
-                    />
-                  ) : null}
+                  {/* Derived from the brand (muted) until typed or picked; blank goes back to auto. */}
+                  <ValueField
+                    label={`${n} color, blank for auto`}
+                    hex={input.status?.[n] ?? auto}
+                    auto={!input.status?.[n]}
+                    format={format}
+                    onHex={(hex) => setStatus(n, hex)}
+                    onClear={() => setStatus(n, undefined)}
+                  />
                 </>
               }
             >
@@ -558,15 +577,6 @@ export function ColorOutput({
           </StripRow>
         ))}
       </div>
-      {system.custom.length < MAX_STRIPS ? (
-        <button
-          type="button"
-          className="spring-link spring-strip__add"
-          onClick={() => setColors((cs) => [...cs, newColor((input.primary.hue + 150) % 360)])}
-        >
-          + Add color
-        </button>
-      ) : null}
       <Contrast
         system={system}
         mode={mode}
@@ -644,42 +654,52 @@ function DataSection({
     );
   const checks = c.checks[mode];
   const passed = checks.filter((x) => x.status === "pass").length;
-  // Folded on first load: the UI strips are the main job, series colors come second.
+  // Each press is a new set; one with a failed check (marks too close) is skipped.
+  const [variant, setVariant] = useState(0);
+  const suggestNew = () => {
+    const now = JSON.stringify(data.map((d) => d.hex));
+    for (let n = variant + 1; n < variant + 24; n++) {
+      const next = suggestData(input, n);
+      if (JSON.stringify(next.map((d) => d.hex)) === now) continue;
+      const { charts } = buildSystem({ ...input, data: next, ramps: undefined });
+      if (
+        (["light", "dark"] as Mode[]).every((m) =>
+          charts.checks[m].every((x) => x.status !== "fail"),
+        )
+      ) {
+        setVariant(n);
+        setInput((i) => ({ ...i, data: next, ramps: undefined }));
+        return;
+      }
+    }
+  };
   return (
-    <details className="spring-reveal">
-      <summary>
+    <section className="spring-data">
+      <div className="spring-head">
         <h2 className="spring-section">data viz</h2>
         <span className="spring-meta">
-          {data.length} colors{checks.length ? ` · ${passed}/${checks.length} checks pass` : ""}
-        </span>
-      </summary>
-      <p className="spring-meta">
-        Series colors are strips on the same curve. A chart draws each one&apos;s mark (the outlined
-        step): its own color, moved darker until it reaches 3:1 on the page.
-      </p>
-      <span className="spring-export__row spring-data__actions">
-        <button
-          type="button"
-          className="button"
-          onClick={() => setInput((i) => ({ ...i, data: undefined, ramps: undefined }))}
-        >
-          Suggest colors
-        </button>
-        {data.length < CHART_MAX ? (
-          <button
-            type="button"
-            className="spring-link spring-strip__add"
-            onClick={() =>
-              setData((d) => [...d, newColor((input.primary.hue + 60 * (d.length + 1)) % 360)])
-            }
-          >
-            + Add color
+          {checks.length ? `${passed}/${checks.length} checks pass · ` : ""}
+          <button type="button" className="spring-link" onClick={onPreview}>
+            see in charts
           </button>
-        ) : null}
-        {input.data === undefined ? (
-          <span className="spring-meta">suggested from your primary</span>
-        ) : null}
-      </span>
+        </span>
+        <span className="spring-vision">
+          <button type="button" className="button" onClick={suggestNew}>
+            Suggest colors
+          </button>
+          {data.length < CHART_MAX ? (
+            <button
+              type="button"
+              className="button"
+              onClick={() =>
+                setData((d) => [...d, newColor((input.primary.hue + 60 * (d.length + 1)) % 360)])
+              }
+            >
+              Add color
+            </button>
+          ) : null}
+        </span>
+      </div>
       <div className="spring-scales" style={filter}>
         {data.map((d, k) => (
           <StripRow
@@ -738,25 +758,18 @@ function DataSection({
         ))}
       </div>
       {data.length ? (
-        <>
-          <p className="spring-meta">
-            <button type="button" className="spring-link" onClick={onPreview}>
-              See them in charts
-            </button>{" "}
-            : bars, a heatmap from the amounts ramp, and above / below from the diverging one.
-          </p>
-          <Checks checks={checks} />
-        </>
+        <Checks checks={checks.filter((x) => x.status !== "pass")} />
       ) : (
         <p className="spring-meta">No data colors. Suggest some, or add your own.</p>
       )}
-    </details>
+    </section>
   );
 }
 
 const MARK = { pass: "✓", warn: "!", fail: "✕" } as const;
 
 function Checks({ checks }: { checks: ChartCheck[] }) {
+  if (!checks.length) return null;
   return (
     <ul className="spring-findings">
       {checks.map((c) => (
@@ -785,12 +798,11 @@ function Contrast({
   format: ColorFormat;
   target: ContrastTarget;
 }) {
-  const [open, setOpen] = useState(false);
   const checks = system.checks[mode];
   const role = Object.fromEntries(system.roles[mode].map((r) => [r.name, r.hex]));
-  const shown = open ? checks : checks.filter((c) => !c.pass);
+  // One line when everything passes; a pair is listed only when it falls short.
+  const shown = checks.filter((c) => !c.pass);
   const required = checks.filter((c) => !c.advisory);
-  const advisory = checks.filter((c) => c.advisory && !c.pass).length;
   const chip = (name: string) => (
     <span className="spring-pair__chip">
       <span className="spring-pair__dot" style={{ backgroundColor: role[name] }} aria-hidden />
@@ -800,19 +812,9 @@ function Contrast({
   );
   return (
     <>
-      <h3 className="spring-group">role pairs your tokens draw together</h3>
-      <p className="spring-meta">
-        {required.filter((c) => c.pass).length}/{required.length} required pairs pass{" "}
+      <p className="spring-meta spring-pairs">
+        {required.filter((c) => c.pass).length}/{required.length} role pairs pass{" "}
         {CONTRAST_LABEL[target]} in {mode}
-        {advisory ? `; ${advisory} advisory pair below the UI bar, listed below` : ""}.{" "}
-        <button
-          type="button"
-          className="spring-link"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
-          {open ? "Hide pairs" : "Show all pairs"}
-        </button>
       </p>
       {shown.length ? (
         <ul className="spring-contrast">

@@ -1004,6 +1004,13 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
 }
+.spring-fold__head {
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+  margin: 0;
+  padding-inline: var(--space-4);
+}
 .spring-fold__body {
   display: grid;
   gap: var(--space-2);
@@ -1610,13 +1617,35 @@
 .spring-menu__danger {
   color: var(--text-danger);
 }
-.spring-data__actions {
-  margin-bottom: var(--space-2);
+.spring-head .button {
+  min-height: 1.75rem;
+}
+.spring-strip__hex[data-auto] {
+  color: var(--text-secondary);
+}
+.spring-data {
+  margin-top: var(--space-6);
 }
 /* Phone: when the panel ends on a fold, that fold's rule closes it; no second band below. */
 @media (max-width: 59.99rem) {
   .spring-app__side:has(> .spring-fold:last-child) {
     padding-bottom: 0;
     border-bottom: 0;
+  }
+}
+
+.spring-data .spring-findings {
+  margin-top: var(--space-2);
+}
+.spring-pairs {
+  margin-top: var(--space-4);
+}
+/* Phone: the value field takes the free width; the row number goes, the arrows still order. */
+@media (max-width: 40rem) {
+  .spring-strip {
+    grid-template-columns: minmax(3.5rem, auto) 1.5rem minmax(0, 1fr) auto;
+  }
+  .spring-strip__tools > .spring-meta {
+    display: none;
   }
 }

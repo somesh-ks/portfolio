@@ -160,9 +160,19 @@ export function suggest(
   count: number,
   pages: Record<Mode, string>,
   curve?: Curve,
+  /** 0 is the default pick; each higher number shifts the hue grid and the second color for a fresh set. */
+  variant = 0,
 ): string[] {
   // A system with no data colors set rebuilds on every change; the pick only depends on these.
-  const key = JSON.stringify([primary.hue, primary.chroma, primary.solidL, count, pages, curve]);
+  const key = JSON.stringify([
+    primary.hue,
+    primary.chroma,
+    primary.solidL,
+    count,
+    pages,
+    curve,
+    variant,
+  ]);
   if (memo?.key === key) return memo.seeds;
   type Cand = { seed: string; see: Record<Mode, Record<Vision, Lab>> };
   const cand = (h: number, l: number, c: number): Cand => {
@@ -175,7 +185,9 @@ export function suggest(
   };
   const c = Math.max(0.12, Math.min(0.2, primary.chroma));
   const pool: Cand[] = [];
-  for (let h = 0; h < 360; h += 15) for (const l of [0.45, 0.58, 0.72]) pool.push(cand(h, l, c));
+  const shift = (variant * 7) % 15;
+  for (let h = shift; h < 360; h += 15)
+    for (const l of [0.45, 0.58, 0.72]) pool.push(cand(h, l, c));
   // A gray brand makes a poor first series; start from a plain blue instead.
   const chosen = [
     primary.chroma < 0.05
@@ -190,12 +202,9 @@ export function suggest(
     return min;
   };
   while (chosen.length < Math.min(count, CHART_MAX)) {
-    let best = pool[0]!;
-    let score = -1;
-    for (const p of pool) {
-      const s = gap(p);
-      if (s > score) [best, score] = [p, s];
-    }
+    // The second color starts the set's character: a variant takes a lower-ranked one, the rest stay greedy.
+    const rank = chosen.length === 1 ? variant % 8 : 0;
+    const best = pool.map((p) => ({ p, s: gap(p) })).sort((a, b) => b.s - a.s)[rank]!.p;
     chosen.push(best);
   }
   memo = { key, seeds: chosen.map((p) => p.seed) };

@@ -35,7 +35,6 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
 
 test("data colors reorder with their move buttons", async ({ page }) => {
   await page.goto("/spring");
-  await page.locator(".spring-reveal > summary").click();
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
@@ -52,8 +51,7 @@ test("the audit stays reachable at #audit", async ({ page }) => {
 
 test("the color page opens its charts in Preview", async ({ page }) => {
   await page.goto("/spring");
-  await page.locator(".spring-reveal > summary").click();
-  await page.getByRole("button", { name: "See them in charts" }).click();
+  await page.getByRole("button", { name: "see in charts" }).click();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -63,7 +61,6 @@ test("the color page opens its charts in Preview", async ({ page }) => {
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
-  await page.locator(".spring-reveal > summary").click();
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
@@ -282,13 +279,29 @@ test("a strip is one tab stop; arrows walk its steps", async ({ page }, testInfo
 test("a picked status color clears back to auto from its picker", async ({ page }) => {
   await page.goto("/spring");
   const field = page.getByRole("textbox", { name: "danger color, blank for auto" });
-  await expect(field).toHaveCount(0);
+  await expect(field).toHaveAttribute("data-auto", "true");
   await page.getByRole("button", { name: "Pick danger color" }).click();
   const hex = page.getByRole("textbox", { name: "danger color", exact: true });
   await hex.fill("#ff00ff");
   await hex.press("Enter");
-  await expect(field).toHaveCount(1);
+  await expect(field).not.toHaveAttribute("data-auto");
   await hex.fill("");
   await hex.press("Enter");
-  await expect(field).toHaveCount(0);
+  await expect(field).toHaveAttribute("data-auto", "true");
+});
+
+test("every strip shows its color value", async ({ page }) => {
+  await page.goto("/spring");
+  for (const name of ["Primary color", "Neutral color", "info color, blank for auto"])
+    await expect(page.getByRole("textbox", { name, exact: true })).not.toHaveValue("");
+});
+
+test("Suggest colors gives a new set each press", async ({ page }) => {
+  await page.goto("/spring");
+  const names = page.locator(".spring-data .spring-strip__rename");
+  const before = await names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
+  await page.getByRole("button", { name: "Suggest colors" }).click();
+  await expect
+    .poll(() => names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value)))
+    .not.toEqual(before);
 });

@@ -415,6 +415,15 @@ function runChecks(roles: Role[], m: Meter, custom: CustomStrip[]): Check[] {
 }
 
 /** Plain hue names for suggested seeds, each kept clear of the ones before it. */
+/** Suggested data colors for this input; each `variant` gives a different set (0 is the default). */
+export function suggestData(input: SystemInput, variant = 0): DataColor[] {
+  const flat = input.curve ? { ...input.curve, hueShift: 0 } : undefined;
+  const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
+  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
+  const count = input.data?.length || CHART_SUGGESTED;
+  return named(suggest(input.primary, count, pages, input.curve, variant));
+}
+
 function named(seeds: string[]): DataColor[] {
   const out: DataColor[] = [];
   for (const hex of seeds)
@@ -443,8 +452,7 @@ export function buildSystem(input: SystemInput): System {
     });
   };
   const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
-  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
-  const dataIn = input.data ?? named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
+  const dataIn = input.data ?? suggestData(input);
   const colorsIn = input.colors ?? [];
   // UI and data strips share one token namespace, so "blue" in both becomes blue and blue-2.
   const keys = stripKeys([...colorsIn, ...dataIn]);
