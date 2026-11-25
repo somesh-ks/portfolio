@@ -627,10 +627,28 @@ export function ClaudeRunner() {
 
         {phase === "over" ? (
           <div className="runner__over">
-            <p className="runner__final">{pad(points)}</p>
+            {/* Share sits with the score it shares; retry is the one boxed action. */}
+            <div className="runner__head">
+              <p className="runner__final">{pad(points)}</p>
+              {points > 0 ? (
+                <button
+                  type="button"
+                  className="runner__action runner__share"
+                  aria-keyshortcuts="S"
+                  onClick={(event) => {
+                    void share();
+                    // A pointer click hands focus back so Space and Enter retry.
+                    if (event.detail > 0) screen.current?.focus({ preventScroll: true });
+                  }}
+                >
+                  <Key keyName="S" />{" "}
+                  {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}
+                </button>
+              ) : null}
+            </div>
             {board.enabled && board.top.length > 0 ? (
               <ol className="runner__board" aria-label="Top scores">
-                {board.top.slice(0, 5).map((entry, rank) => (
+                {board.top.slice(0, canSubmit ? 3 : 5).map((entry, rank) => (
                   // Rank is the identity here: the same name can hold two places.
                   // oxlint-disable-next-line react/no-array-index-key
                   <li key={rank}>
@@ -667,30 +685,15 @@ export function ClaudeRunner() {
                 {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
               </form>
             ) : null}
-            <span className="runner__row">
-              <button
-                type="button"
-                className="runner__action"
-                onClick={() => ready && void startRun()}
-              >
+            <button
+              type="button"
+              className="runner__action runner__retry"
+              onClick={() => ready && void startRun()}
+            >
+              <span className="runner__play">
                 <Key click="CLICK TO" touch="TAP TO" /> RETRY
-              </button>
-              {points > 0 ? (
-                <button
-                  type="button"
-                  className="runner__action"
-                  aria-keyshortcuts="S"
-                  onClick={(event) => {
-                    void share();
-                    // A pointer click hands focus back so Space and Enter retry.
-                    if (event.detail > 0) screen.current?.focus({ preventScroll: true });
-                  }}
-                >
-                  <Key keyName="S" />{" "}
-                  {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}
-                </button>
-              ) : null}
-            </span>
+              </span>
+            </button>
           </div>
         ) : null}
       </div>
