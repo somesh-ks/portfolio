@@ -42,31 +42,30 @@ function placed([look, cx, cy, height, deg]: (typeof SHEET)[number]) {
 }
 
 /**
- * An original masked hero leaping out of a book, fist first:
- * `K` ink line, `M` mask band and `W` eyes (fixed black and white, so the mask reads in both themes),
- * `S` suit, `C` cape, `Y` chevron and belt, `G` gloves and boots.
+ * The Black Terror (Nedor Comics, 1940s, public domain) in his Golden Age look, leaping out of a book:
+ * `K` ink line, `S` black suit, hair and domino mask, `W` eyes and the skull-and-crossbones, `F` skin.
  */
 const HERO = [
   "................KK.",
-  "...............KGGK",
-  "..............KGGK.",
+  "...............KFFK",
+  "..............KFFK.",
   ".............KSSK..",
   ".....KKKKKK.KSSK...",
   "....KSSSSSSKSSK....",
-  "....KMMMMMMKSK.....",
-  "....KWWMMWWKK......",
-  "....KSSSSSSK.......",
-  "..CCKKSSSSKKK......",
-  ".CCCKSYSSSYSSK.....",
-  "CCCCKSSYSYSSGGK....",
-  "CCCCKSSSYSSSGGK....",
-  ".CCCKSSSSSSSKK.....",
-  "..CCKYYYYYYYK......",
-  "...CKSSSKSSSK......",
-  "....KSSSK.KSSK.....",
-  "...KSSSK...KSSK....",
-  "..KGGGK.....KGGK...",
-  "..KKKK.......KKK...",
+  "....KSWSSWSKSK.....",
+  "....KFFFFFFKK......",
+  ".....KFFFFK........",
+  "...KKKSSSSKKK......",
+  "..KSSSSWWWSSSK.....",
+  ".KSSSSWSWSSSSK.....",
+  "KSSK.KSWWWSK.......",
+  "KFFK.KWSSSWK.......",
+  ".KK..KSSSSSK.......",
+  ".....KSSKSSSK......",
+  "....KSSK.KSSK......",
+  "...KSSK...KSSK.....",
+  "..KSSSK.....KSSK...",
+  "..KKKKK.....KKKK...",
 ];
 
 /** A tick drawn as a path, since the mono font may not carry ✓. */
@@ -259,7 +258,7 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // A comic panel: an original masked hero bursting out of a novel's pages, with a POW.
+  // A comic panel: the Black Terror (public domain) bursting out of a novel's pages, with a POW.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
@@ -271,11 +270,19 @@ export const THUMBS: Record<string, ThumbArt> = {
       return (
         <>
           <defs>
-            <Dither id="comics-tone" level={2} tone={tint(55)} />
+            <Dither id="comics-tone" level={2} tone={tint(55, "var(--thumb-ramp-high)")} />
             <clipPath id="comics-panel">
               <rect x={24} y={24} width={272} height={152} />
             </clipPath>
           </defs>
+          {/* A fixed light paper, so the black-suited hero reads the same in both themes. */}
+          <rect
+            x={24}
+            y={24}
+            width={272}
+            height={152}
+            style={{ fill: tint(18, "var(--thumb-ramp-high)") }}
+          />
           <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
           <g clipPath="url(#comics-panel)">
             <Pixels
@@ -284,37 +291,59 @@ export const THUMBS: Record<string, ThumbArt> = {
               y={30}
               cell={7}
               palette={{
-                K: "ink",
-                M: "var(--thumb-ramp-low)",
+                K: "var(--thumb-ramp-low)",
+                S: "var(--thumb-ramp-low)",
                 W: "var(--thumb-ramp-high)",
-                S: "var(--thumb-comics-suit)",
-                C: tint(45),
-                Y: "accent",
-                G: "accent",
+                F: "var(--thumb-comics-skin)",
               }}
             />
-            {/* The open book: drawn over the hero's boots, so the hero leaps out of it. */}
+            {/* Speed lines: he's leaping, not standing. */}
+            {["M84 150 L64 132", "M98 154 L82 140", "M196 148 L216 128", "M208 154 L230 136"].map(
+              (d) => (
+                <path key={d} d={d} style={{ stroke: "var(--thumb-ramp-low)" }} strokeWidth={3} />
+              ),
+            )}
+            {/* The open book, drawn over his boots so he bursts out of its pages. */}
+            {[
+              "M160 160 Q130 144 98 150 L92 176 L160 176 Z",
+              "M160 160 Q190 144 222 150 L228 176 L160 176 Z",
+            ].map((d) => (
+              <path
+                key={d}
+                d={d}
+                style={{ fill: "var(--thumb-ramp-high)", stroke: "var(--thumb-ramp-low)" }}
+                strokeWidth={3}
+                shapeRendering="geometricPrecision"
+              />
+            ))}
             <path
-              d="M160 164 L104 156 L98 176 L160 176 Z"
-              className="thumb-bg thumb-stroke-ink"
-              strokeWidth={3}
-            />
-            <path
-              d="M160 164 L216 156 L222 176 L160 176 Z"
-              className="thumb-bg thumb-stroke-ink"
+              d="M160 160 L160 176"
+              style={{ stroke: "var(--thumb-ramp-low)" }}
               strokeWidth={3}
             />
             {[0, 1].map((k) => (
               <g key={k}>
-                <Box x={112 - k * 2} y={164 + k * 6} w={36} h={2} tone="muted" />
-                <Box x={172} y={164 + k * 6} w={36 + k * 2} h={2} tone="muted" />
+                <Box x={110 - k * 2} y={160 + k * 7} w={38} h={2} tone="var(--thumb-ramp-low)" />
+                <Box x={172} y={160 + k * 7} w={38 + k * 2} h={2} tone="var(--thumb-ramp-low)" />
               </g>
             ))}
           </g>
-          <polygon points={burst} className="thumb-accent thumb-stroke-ink" strokeWidth={3} />
-          <Display x={248} y={84} size={22} anchor="middle">
+          <polygon
+            points={burst}
+            className="thumb-accent"
+            style={{ stroke: "var(--thumb-ramp-low)" }}
+            strokeWidth={3}
+          />
+          <text
+            x={248}
+            y={84}
+            fontSize={22}
+            textAnchor="middle"
+            className="thumb-display"
+            style={{ fill: "var(--thumb-ramp-low)" }}
+          >
             POW
-          </Display>
+          </text>
           <Box x={24} y={24} w={272} h={152} stroke={3} />
         </>
       );

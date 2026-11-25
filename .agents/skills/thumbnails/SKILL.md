@@ -55,8 +55,8 @@ Fixed scales, so the set reads as one family:
 | Tints | 25% or more of the accent against the canvas, or it vanishes in dark mode. |
 
 - Text sits fully inside its shape (a POW inside its burst) and clear of strokes and markers.
-- Sprites pass the silhouette test: at 160×100, without the row title, can someone name it? A mask is an ink band with canvas eyes, a cape in muted or a tint, never a stray white block that reads as something else. Draw original characters, never a franchise one (no Spider-Man, Batman, Mario): it's a public repo.
-- One accent per thumb. Ink and muted do the rest. A character may add one secondary token for its suit (`--thumb-comics-suit`) when the accent is already the burst; real objects drawn by their own renderer keep their own colours. No shadows, gradients, rounded cards or emoji: square corners and hairlines, like the rest of the site.
+- Sprites pass the silhouette test: at 160×100, without the row title, can someone name it? A mask is an ink band with canvas eyes, a cape in muted or a tint, never a stray white block that reads as something else. Draw original or public-domain characters only (comics uses the Golden Age Black Terror), never a franchise one under copyright.
+- One accent per thumb. Ink and muted do the rest. A character may add one secondary token (`--thumb-comics-skin`) when the accent is already the burst; real objects drawn by their own renderer keep their own colours. No shadows, gradients, rounded cards or emoji: square corners and hairlines, like the rest of the site.
 - One idea per thumb; if it needs a legend, it's the wrong object.
 - Same weight as its neighbours: compare against the other rows before you finish, in light and dark.
 - Have a second agent review it against this file before you push.
