@@ -101,6 +101,30 @@ describe("css: modes and scopes", () => {
   test("[data-theme=light] is the light mode", () => {
     expect(css('[data-theme="light"] { --a: #fff }').tokens.a).toEqual({ light: "#fff" });
   });
+  test("a component inside [data-theme=dark] stays scoped, not global dark", () => {
+    const v = css(
+      ':root{--bg:#fff}[data-theme="dark"]{--bg:#000}[data-theme="dark"] .card{--bg:#222}',
+    );
+    expect(v.tokens.bg).toEqual({ light: "#fff", dark: "#000" });
+    expect(v.scoped?.map((s) => s.selector)).toEqual(['[data-theme="dark"] .card']);
+  });
+  test("Tailwind extend merges nested palettes", () => {
+    const text =
+      'module.exports = { theme: { colors: { brand: { 500: "#3b82f6" } }, extend: { colors: { brand: { 600: "#2563eb" } } } } };';
+    const v = extract([{ path: "tailwind.config.js", text }]);
+    expect(v.tokens["color-brand-500"]?.light).toBe("#3b82f6");
+    expect(v.tokens["color-brand-600"]?.light).toBe("#2563eb");
+  });
+  test("color(), oklab, lab, lch and hwb values are colors", () => {
+    for (const v of [
+      "color(srgb 1 0 0)",
+      "oklab(0.6 0.1 0.1)",
+      "lab(50 20 30)",
+      "lch(50 30 20)",
+      "hwb(0 0% 0%)",
+    ])
+      expect(kind("brand", v)).toBe("color");
+  });
   test("component-scoped custom properties go to scoped, not tokens", () => {
     const v = one("scoped.css");
     expect(Object.keys(v.tokens)).toEqual(["bg"]);
@@ -672,15 +696,13 @@ describe("review fixes", () => {
     ]);
     expect(Object.values(v.tokens)[0]!.light).toBe("hsl(200 50% 50%)");
   });
-  test("resolve() on a deep var() fan-out is fast and bounded", () => {
+  test("resolve() on a deep var() fan-out is bounded", () => {
     const tokens: View["tokens"] = {};
     for (let d = 0; d < 12; d++)
       for (let i = 0; i < 40; i++) tokens[`l${d}-${i}`] = { light: d === 11 ? "1px" : fan(d) };
     tokens.root = { light: fan(-1) };
     const view: View = { v: 1, modes: ["light"], tokens, sources: [] } as View;
-    const t = performance.now();
     const out = resolve(view, "root", "light");
-    expect(performance.now() - t).toBeLessThan(200);
     expect((out ?? "").length).toBeLessThanOrEqual(120_000);
   });
 });

@@ -222,6 +222,12 @@ describe("hand-edited links", () => {
   test("ramps on the suggested strips survive without a[14]", () => {
     expect(decodeInput(edited(DEFAULT_INPUT, 15, [3, null]))!.ramps!.seq).toBe(3);
   });
+  test("without a[14], a ramp past the six suggested strips is dropped", () => {
+    expect(decodeInput(edited(DEFAULT_INPUT, 15, [6, [5, 7]]))!.ramps).toEqual({
+      seq: undefined,
+      div: undefined,
+    });
+  });
   test("unknown component or icon library falls back and exports still build", () => {
     const st = ["app", "own", "tailwind", "nope", "__proto__"];
     const back = decodeInput(edited(DEFAULT_INPUT, 8, st))!;

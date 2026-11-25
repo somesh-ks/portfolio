@@ -84,11 +84,31 @@ export function GET(request: Request) {
   return respond(read.input, [...fontNotes, ...read.notes], q.get("file"), true);
 }
 
+/** The body as text, or null once it passes MAX_BODY bytes (stops reading there). */
+async function readCapped(request: Request): Promise<string | null> {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const pump = async (): Promise<boolean> => {
+    const { done, value } = await reader.read();
+    if (done) return true;
+    size += value.byteLength;
+    if (size > MAX_BODY) {
+      await reader.cancel();
+      return false;
+    }
+    chunks.push(value);
+    return pump();
+  };
+  return (await pump()) ? new TextDecoder().decode(Buffer.concat(chunks)) : null;
+}
+
 export async function POST(request: Request) {
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY)
     return error(413, "spring.json is over 64 KB.");
-  const text = await request.text();
-  if (text.length > MAX_BODY) return error(413, "spring.json is over 64 KB.");
+  const text = await readCapped(request);
+  if (text === null) return error(413, "spring.json is over 64 KB.");
   let json: unknown;
   try {
     json = JSON.parse(text);

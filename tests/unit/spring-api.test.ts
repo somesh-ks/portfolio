@@ -75,5 +75,20 @@ describe("/api/spring", () => {
   test("POST rejects bodies that aren't JSON or are too big", async () => {
     expect((await post("nope")).status).toBe(400);
     expect((await post("x".repeat(70_000))).status).toBe(413);
+    // Counted in bytes, and a streamed body without Content-Length stops at the cap.
+    expect((await post("é".repeat(40_000))).status).toBe(413);
+    const stream = new ReadableStream({
+      pull(c) {
+        c.enqueue(new Uint8Array(16 * 1024).fill(32));
+      },
+    });
+    const res = await POST(
+      new Request("https://x/api/spring", {
+        method: "POST",
+        body: stream,
+        duplex: "half",
+      } as RequestInit),
+    );
+    expect(res.status).toBe(413);
   });
 });

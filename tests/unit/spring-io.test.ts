@@ -197,3 +197,17 @@ describe("inputFromParams", () => {
     expect(r.notes.join("\n")).toContain("type.base");
   });
 });
+
+describe("withFonts", () => {
+  test("type.extra keeps only fonts a role uses", async () => {
+    const { withFonts } = await import("@/lib/spring/fonts-any");
+    const old = { tag: "sans" as const, weights: [400], variable: null };
+    const raw: Record<string, unknown> = {
+      type: { body: "Lobster", heading: "Pacifico", extra: { Gone: old, Other: old } },
+    };
+    withFonts(raw, []);
+    const extra = (raw.type as { extra?: Record<string, unknown> }).extra ?? {};
+    expect(Object.keys(extra).sort()).toEqual(["Lobster", "Pacifico"]);
+    expect(readInput(raw).input.type.body).toBe("Lobster");
+  });
+});

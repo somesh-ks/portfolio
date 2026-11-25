@@ -231,6 +231,7 @@ function ImportDialog({
   onOpenChange: (o: boolean) => void;
   initial: Dropped;
 }) {
+  const textId = useId();
   const [value, setValue] = useState("");
   const [result, setResult] = useState<{ error?: string; lines: string[] } | null>(null);
   // An import replaces the whole system, so keep the one before it for Undo.
@@ -295,11 +296,14 @@ function ImportDialog({
             <Dialog.Close className="button">Close</Dialog.Close>
           </div>
           <Dialog.Description className="spring-meta">
-            Paste or drop spring.json, CSS, tokens or a Tailwind config.
+            {/* The description doubles as the textarea's visible label. */}
+            <label htmlFor={textId}>
+              Paste or drop spring.json, CSS, tokens or a Tailwind config.
+            </label>
           </Dialog.Description>
           <textarea
+            id={textId}
             className="spring-audit-input spring-code"
-            aria-label="Import text"
             placeholder=":root { --primary: … }"
             value={value}
             spellCheck={false}
@@ -680,8 +684,9 @@ function ColorControls({
             flash={flash > 0}
             label={dark ? "chroma, dark" : "chroma"}
             value={chroma}
-            min={dark ? a.chroma * 0.4 : 0.02}
-            max={dark ? a.chroma * 1.2 : 0.3}
+            // A gray brand has no chroma to scale, so it gets the light range in dark too.
+            min={dark && a.chroma > 0 ? a.chroma * 0.4 : 0.02}
+            max={dark && a.chroma > 0 ? a.chroma * 1.2 : 0.3}
             step={0.001}
             show={chroma.toFixed(3)}
             reset={dark ? a.chroma : undefined}

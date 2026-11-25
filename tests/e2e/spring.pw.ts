@@ -101,7 +101,7 @@ test("Import reads a spring.json", async ({ page }) => {
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
-    .getByLabel("Import text")
+    .getByLabel(/Paste or drop/)
     .fill(
       JSON.stringify({ $schema: "https://someshks.com/spring/schema.json", name: "Importtest" }),
     );
@@ -118,7 +118,7 @@ test("Import turns CSS variables into a starting point", async ({ page }) => {
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
-    .getByLabel("Import text")
+    .getByLabel(/Paste or drop/)
     .fill(
       ":root{--background:0 0% 100%;--foreground:222 47% 11%;--primary:346 77% 49%;--radius:0.5rem}",
     );
@@ -130,7 +130,7 @@ const importText = async (page: import("@playwright/test").Page, text: string) =
   await page.getByRole("button", { name: "Export one area" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
-  await dialog.getByLabel("Import text").fill(text);
+  await dialog.getByLabel(/Paste or drop/).fill(text);
   await dialog.getByRole("button", { name: "Import", exact: true }).click();
   return dialog;
 };
@@ -209,12 +209,10 @@ test("a Dial's value field takes typed digits after Enter without appending", as
 test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   const errors: Error[] = [];
   page.on("pageerror", (e) => errors.push(e));
+  // Dark through the system theme: clicking the toggle in a loop raced its
+  // view transition on slow runners and could land one click past dark.
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/spring?primary=%23808080");
-  const toggle = page.getByRole("button", { name: /Switch to/ });
-  for (let i = 0; i < 3; i++) {
-    if ((await page.locator("html").getAttribute("data-theme")) === "dark") break;
-    await toggle.click();
-  }
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const field = page.getByLabel("chroma, dark, type a value");
   await field.scrollIntoViewIfNeeded();

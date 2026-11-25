@@ -68,8 +68,25 @@ export async function decodePayload(d: string): Promise<View> {
   return readView(json);
 }
 
+/** A downloaded .view.json read back as itself, or null when the text is something else. */
+export function asView(text: string): View | null {
+  if (!text.trimStart().startsWith("{")) return null;
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const o = json as { v?: unknown; tokens?: unknown } | null;
+  return o?.v === 1 && o.tokens && typeof o.tokens === "object" ? readView(json) : null;
+}
+
 export async function encodePayload(view: View): Promise<string> {
-  const stream = new Blob([JSON.stringify(view)])
+  const json = new TextEncoder().encode(JSON.stringify(view));
+  // decodePayload would refuse it, so don't hand out a link that can't open.
+  if (json.length > MAX_PAYLOAD)
+    throw new Error("Too big for a link (over 2 MB). Use Download JSON instead.");
+  const stream = new Blob([json as BlobPart])
     .stream()
     .pipeThrough(new CompressionStream("deflate-raw"));
   return b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
@@ -84,7 +101,8 @@ const prefixed = (v: string) => v.replace(/var\(\s*--/gi, "var(--sv-");
 export function valuesFor(view: View, mode: string): [string, string][] {
   const out: [string, string][] = [];
   for (const [name, per] of Object.entries(view.tokens)) {
-    const v = per[mode] ?? per[view.modes[0]!];
+    const own = (m: string) => (Object.hasOwn(per, m) ? per[m] : undefined);
+    const v = own(mode) ?? own(view.modes[0]!);
     if (v !== undefined) out.push([prop(name), prefixed(v)]);
   }
   return out;

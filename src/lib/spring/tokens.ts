@@ -94,8 +94,10 @@ function themeOf(ctx: string[]): { mode: string } | { scoped: string } | null {
   if (parts.some((p) => DARK_PART.test(p))) return { mode: "dark" };
   for (const p of parts) {
     const m =
-      p.match(/\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?([\w-]+)/i) ??
-      p.match(/^(?:html|:root|body)?\.theme-([\w-]+)$/i);
+      // The whole selector is the theme; "[data-theme=x] .card" is a component inside it.
+      p.match(
+        /^(?:html|:root|body|:host)?\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?([\w-]+)["']?\]$/i,
+      ) ?? p.match(/^(?:html|:root|body)?\.theme-([\w-]+)$/i);
     if (m) return { mode: m[1]!.toLowerCase() === "light" ? "light" : m[1]!.toLowerCase() };
     if (/^(?:html|:root)?\.light$/i.test(p)) return { mode: "light" };
   }
@@ -345,11 +347,14 @@ function readTailwind(text: string, path: string, acc: Acc) {
     return 0;
   }
   const before = acc.tokens.size;
-  // extend adds to each key rather than replacing it.
-  const t: Obj = { ...theme };
-  if (isObj(theme.extend))
-    for (const [k, v] of Object.entries(theme.extend))
-      t[k] = isObj(t[k]) && isObj(v) ? { ...t[k], ...v } : v;
+  // extend adds to each key at every depth rather than replacing it; its leaves win.
+  const merge = (a: Obj, b: Obj): Obj => {
+    const out: Obj = { ...a };
+    for (const [k, v] of Object.entries(b))
+      if (k !== "__proto__") out[k] = isObj(out[k]) && isObj(v) ? merge(out[k] as Obj, v) : v;
+    return out;
+  };
+  const t: Obj = isObj(theme.extend) ? merge(theme, theme.extend) : { ...theme };
   for (const [key, ns] of Object.entries(TW_NS)) {
     const flat = (o: unknown, trail: string[]) => {
       if (isObj(o)) {
@@ -681,9 +686,12 @@ export function kind(name: string, value: string | undefined): Kind {
   return "other";
 }
 
-/** A color value Spring can read (hex, rgb, hsl, oklch, names, bare shadcn HSL channels). */
+/**
+ * A color value: one Spring can read (hex, rgb, hsl, oklch, names, bare shadcn
+ * HSL channels), or one only a browser can (color(), oklab, lab, lch, hwb).
+ */
 export function isColor(v: string): boolean {
-  return !!colorOf(v);
+  return !!colorOf(v) || /^(color|oklab|lab|lch|hwb)\(/i.test(v.trim());
 }
 
 /** A resolved value as something parseColorCss reads, or undefined. */

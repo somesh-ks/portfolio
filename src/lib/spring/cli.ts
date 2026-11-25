@@ -142,7 +142,7 @@ const UTIL = new RegExp(
 const PALETTE =
   "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
 const OFF = new RegExp(
-  String.raw`(?<![\w-])(?:[\w-]+:)*(?:${COLOR_UTIL})-(?:(${PALETTE})-(?:50|[1-9]00|950)|\[(?:#[0-9a-f]{3,8}|(?:rgb|hsl|oklch)a?\([^\]]*\))\])(?:\/[\w.]+)?(?![\w-])`,
+  String.raw`(?<![\w-])(?:[\w-]+:)*(?:${COLOR_UTIL})-(?:((?:${PALETTE})-(?:50|[1-9]00|950))|\[(?:#[0-9a-f]{3,8}|(?:rgb|hsl|oklch)a?\([^\]]*\))\])(?:\/[\w.]+)?(?![\w-])`,
   "gi",
 );
 const LITERAL =
@@ -172,9 +172,6 @@ function candidates(util: string, x: string): string[] {
 function usage(root: string, files: string[], view: View, defs: Set<string>): Usage {
   const names = new Set(Object.keys(view.tokens));
   const refs: Record<string, number> = Object.fromEntries([...names].map((n) => [n, 0]));
-  const groups = new Set(
-    Object.keys(view.tokens).map((n) => n.replace(/^color-/, "").split("-")[0]!),
-  );
   const raw: Hit[] = [];
   const offSystem: Hit[] = [];
   let rawCount = 0;
@@ -201,7 +198,9 @@ function usage(root: string, files: string[], view: View, defs: Set<string>): Us
         for (const m of line.matchAll(UTIL))
           for (const c of candidates(m[1]!, m[2]!)) if (names.has(c)) refs[c]!++;
       for (const m of line.matchAll(OFF)) {
-        if (m[1] && groups.has(m[1].toLowerCase())) continue;
+        // On-system only when the system defines that exact step.
+        const step = m[1]?.toLowerCase();
+        if (step && (names.has(`color-${step}`) || names.has(step))) continue;
         offSystemCount++;
         if (offSystem.length < 100) offSystem.push({ value: m[0], at: `${path}:${i + 1}` });
       }
@@ -215,13 +214,17 @@ function usage(root: string, files: string[], view: View, defs: Set<string>): Us
     });
   }
   // A token another token points at is used through it (shadcn's @theme inline aliases).
-  for (let pass = 0; pass < 3; pass++)
-    for (const [n, modes] of Object.entries(view.tokens)) {
-      if (!refs[n]) continue;
-      for (const v of Object.values(modes))
-        for (const m of v.matchAll(/var\(\s*--([\w-]+)/g))
-          if (names.has(m[1]!) && refs[m[1]!] === 0) refs[m[1]!] = refs[n]!;
-    }
+  // Walk alias chains to the end; a token already counted isn't queued again, so cycles stop.
+  const queue = Object.keys(refs).filter((n) => refs[n]);
+  while (queue.length) {
+    const n = queue.pop()!;
+    for (const v of Object.values(view.tokens[n] ?? {}))
+      for (const m of v.matchAll(/var\(\s*--([\w-]+)/g))
+        if (names.has(m[1]!) && refs[m[1]!] === 0) {
+          refs[m[1]!] = refs[n]!;
+          queue.push(m[1]!);
+        }
+  }
   return { files: scanned, refs, raw, rawCount, offSystem, offSystemCount };
 }
 
@@ -479,6 +482,7 @@ export function main(argv = process.argv.slice(2)) {
     if (!args.flags.has("no-usage"))
       view.usage = usage(dir, all, view, new Set(src.map((s) => s.path)));
     if (args.flags.has("json")) {
+      if (args.opts.out) writeFileSync(args.opts.out, JSON.stringify(view, null, 2) + "\n");
       process.stdout.write(JSON.stringify(view, null, 2) + "\n");
       return;
     }

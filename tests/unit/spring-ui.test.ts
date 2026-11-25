@@ -4,7 +4,9 @@ import { VIEW_SCHEMA_URL } from "@/lib/spring/tokens";
 import { DEFAULT_INPUT } from "@/lib/spring/system";
 import { importRoute } from "@/components/experiments/spring/store";
 import {
+  asView,
   defaultMode,
+  encodePayload,
   LENGTH_SENTINEL,
   lengthOf,
   looksBinary,
@@ -68,6 +70,33 @@ describe("view helpers", () => {
       tokens: { a: { light: "VAR(--b)" } },
     };
     expect(valuesFor(view as never, "light")).toEqual([["--sv-a", "var(--sv-b)"]]);
+  });
+  test("a mode named like an Object method falls back to the default mode", () => {
+    const view = {
+      v: 1,
+      name: "",
+      modes: ["light", "toString"],
+      sources: [],
+      tokens: { a: { light: "red" } },
+    };
+    expect(valuesFor(view as never, "toString")).toEqual([["--sv-a", "red"]]);
+  });
+  test("a downloaded .view.json reads back as itself", () => {
+    const file = {
+      $schema: VIEW_SCHEMA_URL,
+      v: 1,
+      modes: ["light"],
+      tokens: { primary: { light: "#e11d48" } },
+    };
+    expect(asView(JSON.stringify(file))?.tokens).toEqual({ primary: { light: "#e11d48" } });
+    expect(asView(":root { --a: 1px; }")).toBeNull();
+    expect(asView('{"color":{"$value":"#000"}}')).toBeNull();
+  });
+  test("no share link for a view the decoder would refuse", async () => {
+    const tokens: Record<string, Record<string, string>> = {};
+    for (let i = 0; i < 3000; i++) tokens[`t${i}`] = { light: "x".repeat(800) };
+    const view = { v: 1 as const, name: "", modes: ["light"], sources: [], tokens };
+    await expect(encodePayload(view as never)).rejects.toThrow("Download JSON");
   });
 });
 

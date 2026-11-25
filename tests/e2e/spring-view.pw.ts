@@ -59,7 +59,9 @@ test("hostile values render without page errors", async ({ page }) => {
   const payload = deflateRawSync(Buffer.from(json)).toString("base64url");
   await page.goto(`/spring/view#d=${payload}`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForTimeout(300);
+  // Measured and drawn: the color shows, the url() value never does.
+  await expect(page.getByRole("button", { name: /^color-ok / })).toBeVisible();
+  await expect(page.getByRole("button", { name: /bg-image/ })).toHaveCount(0);
   expect(errors.map((e) => e.message)).toEqual([]);
 });
 

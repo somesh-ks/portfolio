@@ -25,6 +25,10 @@ export function withFonts(raw: Record<string, unknown>, notes: string[]) {
     type[role] = r[0];
     extra[r[0]] = { tag: TAG[r[1]] ?? "sans", weights: r[2], variable: r[3] || null };
   }
+  // Only the fonts a role still uses: the share code keeps three extras at most.
+  const used = new Set(["body", "heading", "mono"].map((r) => type[r]));
+  for (const n of Object.keys(extra)) if (!used.has(n)) delete extra[n];
   if (Object.keys(extra).length) type.extra = extra;
+  else delete type.extra;
   raw.type = type;
 }

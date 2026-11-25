@@ -3,7 +3,7 @@
  * generated values, so links stay short and always rebuild with the
  * current engine. `v` lets a future engine migrate old links.
  */
-import { CHART_MAX } from "./charts";
+import { CHART_MAX, CHART_SUGGESTED } from "./charts";
 import {
   DEFAULT_INPUT,
   MAX_STRIPS,
@@ -204,7 +204,7 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
       ...(data ? { data } : {}),
       // Without a[14] the ramps point at the suggested strips; a rejected a[14] drops them too.
       ...(Array.isArray(a[15]) && (data || !Array.isArray(a[14]))
-        ? { ramps: ramps(a[15], data?.length ?? CHART_MAX) }
+        ? { ramps: ramps(a[15], data?.length ?? CHART_SUGGESTED) }
         : {}),
     };
   } catch {

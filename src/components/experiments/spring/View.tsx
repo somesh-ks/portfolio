@@ -31,6 +31,7 @@ import {
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Segmented } from "../Segmented";
 import {
+  asView,
   decodePayload,
   defaultMode,
   encodePayload,
@@ -230,16 +231,20 @@ export function SpringView() {
   const [view, setView] = useState<View | null>(null);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
+  // Bumped by each load and open; a link load that finishes after a newer one is dropped.
+  const seq = useRef(0);
 
   useEffect(() => {
     const load = async (d: string) => {
+      const n = ++seq.current;
       try {
         const v = await decodePayload(d);
+        if (n !== seq.current) return;
         setView(v);
         setError("");
         keep(v);
       } catch (e) {
-        setError((e as Error).message);
+        if (n === seq.current) setError((e as Error).message);
       }
     };
     const init = async () => {
@@ -266,7 +271,9 @@ export function SpringView() {
 
   const open = (files: { path: string; text: string }[], name?: string, note = "") => {
     try {
-      const v = readView(extract(files, name));
+      seq.current++; // a link still decoding must not replace this
+      const own = files.length === 1 ? asView(files[0]!.text) : null;
+      const v = own ?? readView(extract(files, name));
       if (!Object.keys(v.tokens).length) {
         setError(
           "Found no tokens in that. Try CSS variables, tokens JSON, a Tailwind config or DESIGN.md.",
@@ -785,8 +792,13 @@ function Actions({
           type="button"
           className="button pressable"
           onClick={async () => {
-            const d = await encodePayload(view);
-            copy("link", `${location.origin}/spring/view#d=${d}`);
+            setNote("");
+            try {
+              const d = await encodePayload(view);
+              copy("link", `${location.origin}/spring/view#d=${d}`);
+            } catch (e) {
+              setNote((e as Error).message);
+            }
           }}
         >
           Copy link
