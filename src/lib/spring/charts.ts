@@ -1,20 +1,13 @@
 /**
- * Chart palettes from the brand: categorical (series), sequential (amounts)
- * and diverging (above and below a midpoint). Built the way data-viz systems
- * do it, not like UI scales:
- * - Categorical colors vary in lightness and are picked greedily so the
- *   closest pair stays as far apart as possible for normal vision and the
- *   three color-blindness types (Glasbey / iWantHue style). The order is
- *   prefix-stable, so --chart-1..3 don't change when you show 8.
- * - Every mark clears 3:1 against the page (WCAG 1.4.11).
- * - Hues and order are fixed once; light and dark only move lightness, so a
- *   series keeps its color when the theme flips.
+ * Chart colors are ordinary strips: each data color is a 12-step scale on the
+ * same curve as the UI, and its mark is the step a chart draws. This file only
+ * adds what data needs on top: the color-blindness math, a Suggest that picks
+ * seeds whose marks stay apart for everyone, the two ramps, and the checks.
  */
 import { clampChroma, linearToOklch, oklchToHex, oklchToLinear, wcagContrast } from "./colormath";
-import type { Mode } from "./color";
+import { buildScale, type BuiltScale, type Curve, type Mode, type Step } from "./color";
 
 export const CHART_MAX = 10;
-const CHART_STEPS = 9;
 export type Vision = "normal" | "protan" | "deutan" | "tritan";
 export const VISIONS: Vision[] = ["normal", "protan", "deutan", "tritan"];
 export const VISION_LABEL: Record<Vision, string> = {
@@ -69,13 +62,16 @@ function seen(l: number, c: number, h: number): Record<Vision, Lab> {
   return out;
 }
 
-export interface ChartInput {
-  /** How many categorical colors to show and grade, 4 to 10. All 10 are always exported. */
-  count?: number;
-  /** Hue of the diverging scale's other end. Defaults to opposite the brand. */
-  diverge?: number;
+/** A data color the user keeps: a name and a seed, built like any strip. */
+export interface DataColor {
+  name: string;
+  hex: string;
 }
-const DEFAULT_COUNT = 8;
+/** Which data strips the ramps use, by position. */
+export interface Ramps {
+  seq?: number;
+  div?: [number, number];
+}
 
 export interface ChartCheck {
   id: string;
@@ -85,226 +81,214 @@ export interface ChartCheck {
 }
 
 export interface Charts {
-  count: number;
-  /** The hue the diverging scale's other end uses (picked, or the one set). */
-  divergeHue: number;
-  categorical: Record<Mode, string[]>;
+  /** Data strip keys in chart order; their scales live in System.scales. */
+  keys: string[];
+  /** The step each strip's mark uses: its brand step, moved toward contrast until it clears 3:1. */
+  markStep: Record<Mode, Step[]>;
+  marks: Record<Mode, string[]>;
+  /** Ramps as the strip keys they come from, after clamping to the strips that exist. */
+  seq?: string;
+  div?: [string, string];
   sequential: Record<Mode, string[]>;
   diverging: Record<Mode, string[]>;
   /** For "other" and baseline series; the system fills it with the neutral solid. */
   other: Record<Mode, string>;
-  /** Closest categorical pair per vision type (OKLab), over the shown count. */
+  /** Closest pair of marks per vision type (OKLab). */
   closest: Record<Mode, Record<Vision, { a: number; b: number; d: number }>>;
   checks: Record<Mode, ChartCheck[]>;
 }
 
-// Light marks sit in L 0.45–0.66 (0.66 is about 3:1 on white); dark in 0.60–0.88.
-const BAND: Record<Mode, [number, number]> = { light: [0.45, 0.66], dark: [0.6, 0.88] };
-const toDark = (l: number) => 0.6 + ((l - 0.45) / 0.21) * 0.28;
-const vivid = (l: number, h: number, cap: number) =>
-  Math.min(cap, clampChroma({ l, c: 0.4, h }).c * 0.9);
+/** Sequential uses steps 3–11: step 1–2 vanish into the page, 12 is text. */
+export const SEQ_STEPS: Step[] = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+/** Diverging: arm A from strong to light, a neutral middle, arm B back to strong. */
+export const DIV_STEPS: Step[] = [10, 8, 6, 4];
 
-/** Move L toward more contrast until the mark clears 3:1 on the page. */
-function fit(l: number, c: number, h: number, bg: string, mode: Mode) {
-  for (let i = 0; i < 40; i++) {
+/** A strip's mark: its brand step, or the first step past it that clears 3:1 on the page. */
+function markStep(scale: BuiltScale, mode: Mode, page: string): Step {
+  let k = scale.anchor[mode];
+  while (k < 12 && wcagContrast(scale[mode][k - 1]!.hex, page) < 3) k++;
+  return k as Step;
+}
+
+const seeOf = (hex: string) => seen(...lch(hex));
+
+function closestPairs(marks: string[]) {
+  const see = marks.map(seeOf);
+  const out = {} as Record<Vision, { a: number; b: number; d: number }>;
+  for (const v of VISIONS) {
+    let best = { a: 0, b: 1, d: Infinity };
+    for (let i = 0; i < see.length; i++)
+      for (let j = i + 1; j < see.length; j++) {
+        const d = dist(see[i]![v], see[j]![v]);
+        if (d < best.d) best = { a: i, b: j, d };
+      }
+    out[v] = best;
+  }
+  return out;
+}
+
+/**
+ * Seeds for `count` data colors, starting from the primary. Candidates are
+ * hues every 15° at three lightnesses; each is built as a strip and scored on
+ * its actual marks in both modes, so the pick keeps the closest pair as far
+ * apart as possible for normal vision and the three color-blindness types.
+ */
+let memo: { key: string; seeds: string[] } | undefined;
+
+export function suggest(
+  primary: { hue: number; chroma: number; solidL?: number },
+  count: number,
+  pages: Record<Mode, string>,
+  curve?: Curve,
+): string[] {
+  // A system with no data colors set rebuilds on every change; the pick only depends on these.
+  const key = JSON.stringify([primary.hue, primary.chroma, primary.solidL, count, pages, curve]);
+  if (memo?.key === key) return memo.seeds;
+  type Cand = { seed: string; see: Record<Mode, Record<Vision, Lab>> };
+  const cand = (h: number, l: number, c: number): Cand => {
     const cc = Math.min(c, clampChroma({ l, c, h }).c);
-    const hex = oklchToHex({ l, c: cc, h });
-    if (wcagContrast(hex, bg) >= 3) return { l, c: cc, hex };
-    l += mode === "light" ? -0.01 : 0.01;
-  }
-  const cc = clampChroma({ l, c, h }).c;
-  return { l, c: cc, hex: oklchToHex({ l, c: cc, h }) };
-}
-
-interface Pick {
-  h: number;
-  l: Record<Mode, number>;
-  c: Record<Mode, number>;
-  hex: Record<Mode, string>;
-  see: Record<Mode, Record<Vision, Lab>>;
-}
-
-function candidate(h: number, lLight: number, cap: number, bg: Record<Mode, string>): Pick {
-  const p = { h, l: {}, c: {}, hex: {}, see: {} } as Pick;
-  for (const mode of ["light", "dark"] as Mode[]) {
-    const l0 = mode === "light" ? lLight : toDark(lLight);
-    const f = fit(l0, vivid(l0, h, cap), h, bg[mode], mode);
-    p.l[mode] = f.l;
-    p.c[mode] = f.c;
-    p.hex[mode] = f.hex;
-    p.see[mode] = seen(f.l, f.c, h);
-  }
-  return p;
-}
-
-/** The smallest distance from p to any chosen color, over both modes and every vision type. */
-const gap = (p: Pick, chosen: Pick[]) => {
-  let min = Infinity;
-  for (const q of chosen)
+    const scale = buildScale({ hue: h, chroma: cc, solidL: l, curve });
+    const see = {} as Cand["see"];
     for (const mode of ["light", "dark"] as Mode[])
-      for (const v of VISIONS) min = Math.min(min, dist(p.see[mode][v], q.see[mode][v]));
-  return min;
-};
-
-// The pool is fitted against a plain page once; final colors are re-fitted to the real page.
-const PAGE: Record<Mode, string> = { light: "#fdfdfd", dark: "#131313" };
-const CAP = 0.22;
-let pool: Pick[] | undefined;
-
-function categorical(hue: number): Pick[] {
-  const [lo, hi] = BAND.light;
-  if (!pool) {
-    pool = [];
-    for (let h = 0; h < 360; h += 12)
-      for (let l = lo; l <= hi + 1e-9; l += 0.042) pool.push(candidate(h, l, CAP, PAGE));
-  }
-  const chosen = [candidate(hue, 0.55, CAP, PAGE)];
-  while (chosen.length < CHART_MAX) {
+      see[mode] = seeOf(scale[mode][markStep(scale, mode, pages[mode]) - 1]!.hex);
+    return { seed: oklchToHex({ l, c: cc, h }), see };
+  };
+  const c = Math.max(0.12, Math.min(0.2, primary.chroma));
+  const pool: Cand[] = [];
+  for (let h = 0; h < 360; h += 15) for (const l of [0.45, 0.58, 0.72]) pool.push(cand(h, l, c));
+  // A gray brand makes a poor first series; start from a plain blue instead.
+  const chosen = [
+    primary.chroma < 0.05
+      ? cand(250, 0.5, c)
+      : cand(primary.hue, primary.solidL ?? 0.55, primary.chroma),
+  ];
+  const gap = (p: Cand) => {
+    let min = Infinity;
+    for (const q of chosen)
+      for (const mode of ["light", "dark"] as Mode[])
+        for (const v of VISIONS) min = Math.min(min, dist(p.see[mode][v], q.see[mode][v]));
+    return min;
+  };
+  while (chosen.length < Math.min(count, CHART_MAX)) {
     let best = pool[0]!;
     let score = -1;
     for (const p of pool) {
-      const s = gap(p, chosen);
+      const s = gap(p);
       if (s > score) [best, score] = [p, s];
     }
     chosen.push(best);
   }
-  return chosen;
-}
-
-/** The other end of the diverging scale: the hue whose end color stays furthest from the brand's for everyone. */
-function divergeHue(hue: number, end: Record<Mode, number>): number {
-  let best = (hue + 180) % 360;
-  let score = -1;
-  const ends = (h: number) =>
-    (["light", "dark"] as Mode[]).map((m) => seen(end[m], vivid(end[m], h, 0.2), h));
-  const a = ends(hue);
-  for (let d = 90; d <= 270; d += 10) {
-    const h = (hue + d) % 360;
-    const b = ends(h);
-    const s = Math.min(...[0, 1].flatMap((i) => VISIONS.map((v) => dist(a[i]![v], b[i]![v]))));
-    if (s > score) [best, score] = [h, s];
-  }
-  return best;
-}
-
-function ramp(n: number, f: (t: number) => { l: number; c: number; h: number }) {
-  return Array.from({ length: n }, (_, i) => {
-    const o = f(i / (n - 1));
-    return oklchToHex(clampChroma({ l: o.l, c: o.c, h: o.h }));
-  });
+  memo = { key, seeds: chosen.map((p) => p.seed) };
+  return memo.seeds;
 }
 
 function check(id: string, title: string, value: string, ok: boolean, warn = false): ChartCheck {
   return { id, title, value, status: ok ? "pass" : warn ? "warn" : "fail" };
 }
 
-let memo: { hue: number; picks: Pick[]; other: number } | undefined;
-
+/** Marks, ramps and checks for the data strips, which the system has already built. */
 export function buildCharts(
-  accent: { hue: number; chroma: number },
-  bg: Record<Mode, string>,
-  input: ChartInput = {},
-): Charts {
-  const count = Math.min(CHART_MAX, Math.max(4, Math.round(input.count ?? DEFAULT_COUNT)));
-  const hue = Math.round(accent.hue);
-  const END: Record<Mode, number> = { light: 0.38, dark: 0.85 };
-  // The greedy pick and the diverging search are the costly parts; they only depend on the hue.
-  if (memo?.hue !== hue) memo = { hue, picks: categorical(hue), other: divergeHue(hue, END) };
-  const other = input.diverge === undefined || input.diverge < 0 ? memo.other : input.diverge;
-  // Re-fit the picked hues to the real page, keeping hue and order.
-  const picks = memo.picks.map((p) => {
-    const q: Pick = { h: p.h, see: p.see, l: { ...p.l }, c: { ...p.c }, hex: { ...p.hex } };
-    for (const mode of ["light", "dark"] as Mode[]) {
-      const f = fit(p.l[mode], p.c[mode], p.h, bg[mode], mode);
-      q.l[mode] = f.l;
-      q.c[mode] = f.c;
-      q.hex[mode] = f.hex;
-    }
-    return q;
-  });
-  const c = Math.max(0.08, Math.min(0.2, accent.chroma));
+  keys: string[],
+  scales: Partial<Record<string, BuiltScale>>,
+  neutral: BuiltScale,
+  pages: Record<Mode, string>,
+  ramps: Ramps = {},
+): Omit<Charts, "other"> {
+  const at = (i: number | undefined) => (i !== undefined && keys[i] ? keys[i] : undefined);
+  const seq = at(ramps.seq ?? 0);
+  const a = at(ramps.div?.[0] ?? 0);
+  const b = at(ramps.div?.[1] ?? 1);
+  const div: [string, string] | undefined = a && b && a !== b ? [a, b] : undefined;
   const out = {
-    count,
-    divergeHue: other,
-    categorical: {},
+    keys,
+    seq,
+    div,
+    markStep: {},
+    marks: {},
     sequential: {},
     diverging: {},
-    other: {},
     closest: {},
     checks: {},
-  } as Charts;
+  } as Omit<Charts, "other">;
   for (const mode of ["light", "dark"] as Mode[]) {
-    const light = mode === "light";
-    out.categorical[mode] = picks.map((p) => p.hex[mode]);
-    // Sequential: lightness falls steadily from near the page to strong; chroma peaks mid-ramp.
-    out.sequential[mode] = ramp(CHART_STEPS, (t) => ({
-      l: light ? 0.95 - 0.65 * t : 0.3 + 0.62 * t,
-      c: c * (0.25 + 0.75 * Math.sin(Math.PI * Math.min(1, t * 0.85 + 0.1))),
-      h: hue,
-    }));
-    // Diverging: two arms symmetric in lightness, a near-neutral middle.
-    const mid = light ? 0.96 : 0.3;
-    const end = END[mode];
-    out.diverging[mode] = ramp(CHART_STEPS, (t) => {
-      const s = Math.abs(t - 0.5) * 2;
-      const h = t < 0.5 ? hue : other;
-      return { l: mid + (end - mid) * s, c: 0.01 + (vivid(end, h, 0.2) - 0.01) * s ** 0.8, h };
-    });
+    const page = pages[mode];
+    const steps = keys.map((k) => markStep(scales[k]!, mode, page));
+    const marks = keys.map((k, i) => scales[k]![mode][steps[i]! - 1]!.hex);
+    out.markStep[mode] = steps;
+    out.marks[mode] = marks;
+    out.sequential[mode] = seq ? SEQ_STEPS.map((s) => scales[seq]![mode][s - 1]!.hex) : [];
+    const arm = (k: string, order: Step[]) => order.map((s) => scales[k]![mode][s - 1]!.hex);
+    out.diverging[mode] = div
+      ? [...arm(div[0], DIV_STEPS), neutral[mode][1]!.hex, ...arm(div[1], DIV_STEPS.toReversed())]
+      : [];
 
-    const shown = picks.slice(0, count);
-    const closest = {} as Record<Vision, { a: number; b: number; d: number }>;
-    for (const v of VISIONS) {
-      let best = { a: 0, b: 1, d: Infinity };
-      for (let i = 0; i < shown.length; i++)
-        for (let j = i + 1; j < shown.length; j++) {
-          const d = dist(shown[i]!.see[mode][v], shown[j]!.see[mode][v]);
-          if (d < best.d) best = { a: i, b: j, d };
-        }
-      closest[v] = best;
-    }
+    const closest = closestPairs(marks);
     out.closest[mode] = closest;
-    const low = Math.min(...shown.map((p) => wcagContrast(p.hex[mode], bg[mode])));
-    const flatPairs = shown
-      .slice(1)
-      .filter((p, i) => Math.abs(p.l[mode] - shown[i]!.l[mode]) < 0.06).length;
-    const ends = seen(...lch(out.diverging[mode][0]!));
-    const ends2 = seen(...lch(out.diverging[mode][CHART_STEPS - 1]!));
-    const endGap = Math.min(...VISIONS.map((v) => dist(ends[v], ends2[v])));
-    const n = closest.normal.d;
-    const cvd = Math.min(closest.protan.d, closest.deutan.d, closest.tritan.d);
-    out.checks[mode] = [
-      check("contrast", "Marks on the page", `${low.toFixed(2)}:1 lowest, needs 3:1`, low >= 3),
-      check(
-        "normal",
-        "Series apart, normal vision",
-        `ΔE ${n.toFixed(3)}, needs 0.10`,
-        n >= 0.1,
-        n >= 0.06,
-      ),
-      check(
-        "cvd",
-        "Series apart, color blindness",
-        `ΔE ${cvd.toFixed(3)}, needs 0.06`,
-        cvd >= 0.06,
-        cvd >= 0.04,
-      ),
-      check(
-        "gray",
-        "Neighbours differ in lightness",
-        flatPairs
-          ? `${flatPairs} neighbouring pair${flatPairs > 1 ? "s" : ""} under ΔL 0.06`
-          : "every neighbour ΔL ≥ 0.06",
-        !flatPairs,
-        true,
-      ),
-      check(
-        "diverge",
-        "Diverging ends apart for everyone",
-        `ΔE ${endGap.toFixed(3)}, needs 0.06`,
-        endGap >= 0.06,
-        endGap >= 0.04,
-      ),
-    ];
+    const checks: ChartCheck[] = [];
+    if (marks.length) {
+      const low = Math.min(...marks.map((h) => wcagContrast(h, page)));
+      checks.push(
+        check("contrast", "Marks on the page", `${low.toFixed(2)}:1 lowest, needs 3:1`, low >= 3),
+      );
+    }
+    if (marks.length > 1) {
+      const n = closest.normal.d;
+      const cvd = Math.min(closest.protan.d, closest.deutan.d, closest.tritan.d);
+      const ls = marks.map((h) => lch(h)[0]);
+      const flat = ls.slice(1).filter((l, i) => Math.abs(l - ls[i]!) < 0.06).length;
+      checks.push(
+        check(
+          "normal",
+          "Apart, normal vision",
+          `ΔE ${n.toFixed(3)}, needs 0.10`,
+          n >= 0.1,
+          n >= 0.06,
+        ),
+        check(
+          "cvd",
+          "Apart, color blindness",
+          `ΔE ${cvd.toFixed(3)}, needs 0.06`,
+          cvd >= 0.06,
+          cvd >= 0.04,
+        ),
+        check(
+          "gray",
+          "Neighbours differ in lightness",
+          flat
+            ? `${flat} neighbouring pair${flat > 1 ? "s" : ""} under ΔL 0.06`
+            : "every neighbour ΔL ≥ 0.06",
+          !flat,
+          true,
+        ),
+      );
+    }
+    if (div) {
+      const d = out.diverging[mode];
+      const ends = [seeOf(d[0]!), seeOf(d[d.length - 1]!)];
+      const endGap = Math.min(...VISIONS.map((v) => dist(ends[0]![v], ends[1]![v])));
+      const skew = Math.max(
+        ...DIV_STEPS.map((s) =>
+          Math.abs(scales[div[0]]![mode][s - 1]!.oklch.l - scales[div[1]]![mode][s - 1]!.oklch.l),
+        ),
+      );
+      checks.push(
+        check(
+          "diverge",
+          "Diverging ends apart for everyone",
+          `ΔE ${endGap.toFixed(3)}, needs 0.06`,
+          endGap >= 0.06,
+          endGap >= 0.04,
+        ),
+        check(
+          "balance",
+          "Diverging arms balanced",
+          `ΔL ${skew.toFixed(3)} at worst, keep under 0.04`,
+          skew < 0.04,
+          true,
+        ),
+      );
+    }
+    out.checks[mode] = checks;
   }
   return out;
 }

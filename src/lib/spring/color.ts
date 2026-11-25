@@ -180,11 +180,46 @@ export function buildScale({ hue, chroma, solidL, curve = DEFAULT_CURVE }: Scale
   return out;
 }
 
-/** A gray tinted toward the accent hue. tint 0 = pure gray, 1 = clearly tinted. */
+/** A gray tinted toward the primary hue. tint 0 = pure gray, 1 = clearly tinted. */
 export function buildNeutral(hue: number, tint: number, curve?: Curve): BuiltScale {
   return buildScale({ hue, chroma: 0.004 + tint * 0.026, solidL: 0.62, curve });
 }
 
 export function contrast(a: string, b: string): number {
   return wcagContrast(a, b);
+}
+
+// Where each plain hue name starts on the OKLCH wheel; low chroma reads as gray.
+const HUE_NAMES: [number, string][] = [
+  [0, "pink"],
+  [15, "red"],
+  [45, "orange"],
+  [70, "amber"],
+  [95, "yellow"],
+  [115, "lime"],
+  [135, "green"],
+  [170, "teal"],
+  [205, "cyan"],
+  [235, "blue"],
+  [270, "indigo"],
+  [295, "violet"],
+  [330, "pink"],
+];
+
+/** A plain lowercase name for a color, for new strips: "teal", "violet", "gray". */
+export function hueName({ c, h }: Pick<Oklch, "c" | "h">): string {
+  if (c < 0.03) return "gray";
+  const d = ((h % 360) + 360) % 360;
+  return HUE_NAMES.reduce((name, [from, n]) => (d >= from ? n : name), "pink");
+}
+
+/** hueName, kept clear of names already taken: "light blue", then "blue 2". */
+export function freshName(color: Oklch, taken: string[]): string {
+  const base = hueName(color);
+  if (!taken.includes(base)) return base;
+  const shade = `${color.l > 0.62 ? "light" : color.l < 0.5 ? "dark" : "deep"} ${base}`;
+  if (!taken.includes(shade)) return shade;
+  let n = 2;
+  while (taken.includes(`${base} ${n}`)) n++;
+  return `${base} ${n}`;
 }

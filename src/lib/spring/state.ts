@@ -34,10 +34,10 @@ export function encodeInput(input: SystemInput): string {
     i.v,
     i.name,
     [
-      Math.round(i.accent.hue * 10) / 10,
-      r4(i.accent.chroma),
-      i.accent.solidL === undefined ? null : r4(i.accent.solidL),
-      i.accent.label ?? "auto",
+      Math.round(i.primary.hue * 10) / 10,
+      r4(i.primary.chroma),
+      i.primary.solidL === undefined ? null : r4(i.primary.solidL),
+      i.primary.label ?? "auto",
     ],
     i.neutralHue === undefined ? r3(i.neutralTint) : [r3(i.neutralTint), Math.round(i.neutralHue)],
     [
@@ -72,7 +72,10 @@ export function encodeInput(input: SystemInput): string {
     i.status ? STATUSES.map((n) => i.status?.[n] ?? null) : null,
     i.contrast ?? null,
     i.colors?.length ? i.colors.map((c) => [c.name, c.hex]) : null,
-    i.charts ? [i.charts.count ?? null, i.charts.diverge ?? null] : null,
+    // a[13] held the old chart settings; links that carry it ignore it now.
+    null,
+    i.data ? i.data.map((c) => [c.name, c.hex]) : null,
+    i.ramps ? [i.ramps.seq ?? null, i.ramps.div ?? null] : null,
   ];
   // Old links end at the curve; keep new ones as short when the extras are unset.
   while (compact.length > 9 && compact.at(-1) === null) compact.pop();
@@ -81,10 +84,24 @@ export function encodeInput(input: SystemInput): string {
 
 const finite = (v: unknown, lo: number, hi: number) =>
   typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
-const charts = ([count, diverge]: unknown[]) => ({
-  count: finite(count, 4, CHART_MAX),
-  diverge: finite(diverge, -1, 359),
-});
+const index = (v: unknown) => {
+  const n = finite(v, 0, CHART_MAX - 1);
+  return n === undefined ? undefined : Math.round(n);
+};
+const ramps = ([seq, div]: unknown[]) => {
+  const a = Array.isArray(div) ? [index(div[0]), index(div[1])] : [];
+  return {
+    seq: index(seq),
+    div: a[0] !== undefined && a[1] !== undefined ? ([a[0], a[1]] as [number, number]) : undefined,
+  };
+};
+const strips = (v: unknown[], max: number) =>
+  v
+    .slice(0, max)
+    .filter(
+      (c): c is [string, string] => Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]),
+    )
+    .map(([name, hex]) => ({ name: name.slice(0, 24), hex }));
 
 const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
 const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
@@ -127,9 +144,9 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
     return {
       v: 1,
       name: typeof a[1] === "string" ? a[1].slice(0, 60) : D.name,
-      accent: {
-        hue: num(acc?.[0], 0, 360, D.accent.hue),
-        chroma: num(acc?.[1], 0, 0.4, D.accent.chroma),
+      primary: {
+        hue: num(acc?.[0], 0, 360, D.primary.hue),
+        chroma: num(acc?.[1], 0, 0.4, D.primary.chroma),
         solidL: typeof acc?.[2] === "number" ? num(acc[2], 0.2, 0.95, 0.55) : undefined,
         label: oneOf(acc?.[3], ["auto", "white", "ink"] as const, "auto"),
       },
@@ -180,18 +197,9 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
           }
         : {}),
       ...(a[11] === "aaa" || a[11] === "apca" ? { contrast: a[11] } : {}),
-      ...(Array.isArray(a[12])
-        ? {
-            colors: a[12]
-              .slice(0, MAX_STRIPS)
-              .filter(
-                (c): c is [string, string] =>
-                  Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]),
-              )
-              .map(([name, hex]) => ({ name: name.slice(0, 24), hex })),
-          }
-        : {}),
-      ...(Array.isArray(a[13]) ? { charts: charts(a[13]) } : {}),
+      ...(Array.isArray(a[12]) ? { colors: strips(a[12], MAX_STRIPS) } : {}),
+      ...(Array.isArray(a[14]) ? { data: strips(a[14], CHART_MAX) } : {}),
+      ...(Array.isArray(a[15]) ? { ramps: ramps(a[15]) } : {}),
     };
   } catch {
     return null;

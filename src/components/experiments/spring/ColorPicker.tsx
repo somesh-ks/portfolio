@@ -17,7 +17,12 @@ const MIN_C = 0.02;
 // Painted small and stretched by CSS: the field is smooth, so 120×40 is plenty.
 const W = 120;
 const H = 40;
-const FORMAT_LABEL: Record<ColorFormat, string> = { oklch: "OKLCH", hsl: "HSL", hex: "Hex" };
+const FORMAT_LABEL: Record<ColorFormat, string> = {
+  oklch: "OKLCH",
+  hsl: "HSL",
+  rgb: "RGB",
+  hex: "Hex",
+};
 
 /**
  * Every hue across. Down the field: OKLCH chroma (vivid to gray) at the brand's
@@ -69,7 +74,10 @@ export function ColorPicker({
   setFormat,
   onPick,
   onHex,
+  label = "Brand color",
 }: {
+  /** The field's visible name. */
+  label?: string;
   hue: number;
   chroma: number;
   /** The brand step's hex, shown in the field and swatch. */
@@ -120,7 +128,7 @@ export function ColorPicker({
   return (
     <div className="field spring-picker">
       <label className="field__label" htmlFor={`${id}-hex`}>
-        Color
+        {label}
       </label>
       <div
         ref={frame}
@@ -173,7 +181,7 @@ export function ColorPicker({
             label="Color format"
             hideLabel
             value={format}
-            options={(["oklch", "hsl", "hex"] as const).map((f) => ({
+            options={(["oklch", "hsl", "rgb", "hex"] as const).map((f) => ({
               value: f,
               label: FORMAT_LABEL[f],
             }))}

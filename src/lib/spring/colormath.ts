@@ -184,11 +184,12 @@ export function hslToHex(h: number, s: number, l: number): string {
   return `#${hexByte(f(0))}${hexByte(f(8))}${hexByte(f(4))}`;
 }
 
-export type ColorFormat = "oklch" | "hsl" | "hex";
+export type ColorFormat = "oklch" | "hsl" | "rgb" | "hex";
 
 /** One color written the way the visitor chose to read colors. */
 export function formatColor(hex: string, format: ColorFormat): string {
   if (format === "hex") return hex;
+  if (format === "rgb") return `rgb(${channelsOf(hex, "rgb").join(" ")})`;
   if (format === "hsl") {
     const [h, s, l] = hexToHsl(hex);
     return `hsl(${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
@@ -231,4 +232,56 @@ export function over(fg: string, bg: string): string {
   const [br, bgr, bb] = gamma(b);
   const mix = (x: number, y: number) => ((x * a + y * (1 - a)) * 255).toFixed(3);
   return `rgb(${mix(fr!, br!)} ${mix(fgr!, bgr!)} ${mix(fb!, bb!)})`;
+}
+
+/** A color's three channels as people read them in a format. Hex reads as RGB. */
+export interface Channel {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+}
+
+const RGB_CH: Channel[] = ["red", "green", "blue"].map((label) => ({
+  label,
+  min: 0,
+  max: 255,
+  step: 1,
+  unit: "",
+}));
+export const CHANNELS: Record<ColorFormat, Channel[]> = {
+  oklch: [
+    { label: "lightness", min: 0, max: 100, step: 0.1, unit: "%" },
+    { label: "chroma", min: 0, max: 0.37, step: 0.001, unit: "" },
+    { label: "hue", min: 0, max: 360, step: 1, unit: "°" },
+  ],
+  hsl: [
+    { label: "hue", min: 0, max: 360, step: 1, unit: "°" },
+    { label: "saturation", min: 0, max: 100, step: 1, unit: "%" },
+    { label: "lightness", min: 0, max: 100, step: 1, unit: "%" },
+  ],
+  rgb: RGB_CH,
+  hex: RGB_CH,
+};
+
+/** The channel values of `hex` in `format`, rounded to each channel's step. */
+export function channelsOf(hex: string, format: ColorFormat): [number, number, number] {
+  if (format === "hsl") {
+    const [h, s, l] = hexToHsl(hex);
+    return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+  }
+  if (format === "oklch") {
+    const c = parseCss(hex) ?? { l: 0, c: 0, h: 0 };
+    return [Math.round(c.l * 1000) / 10, Math.round(c.c * 1000) / 1000, Math.round(c.h)];
+  }
+  const rgb = hexToRgb(hex) ?? [0, 0, 0];
+  return rgb.map((v) => Math.round(v * 255)) as [number, number, number];
+}
+
+/** The hex for channel values in `format`; OKLCH out of sRGB keeps its hue and lightness. */
+export function fromChannels(format: ColorFormat, [a, b, c]: number[]): string {
+  if (format === "hsl") return hslToHex(a!, b! / 100, c! / 100);
+  if (format === "oklch") return oklchToHex(clampChroma({ l: a! / 100, c: b!, h: c! }));
+  return `#${[a!, b!, c!].map((v) => hexByte(v / 255)).join("")}`;
 }

@@ -13,7 +13,7 @@ import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/syste
 const STARTER: SystemInput = {
   ...DEFAULT_INPUT,
   name: "Acme",
-  accent: { hue: 255, chroma: 0.17 },
+  primary: { hue: 255, chroma: 0.17 },
   neutralTint: 0.2,
   type: {
     ...DEFAULT_INPUT.type,

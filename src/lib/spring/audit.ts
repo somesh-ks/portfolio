@@ -886,13 +886,13 @@ function inferInput(p: Parsed): SystemInput {
   return {
     ...DEFAULT_INPUT,
     name: p.name ?? "Audited system",
-    accent: bc
+    primary: bc
       ? {
           hue: Math.round(bc.h || 0),
           chroma: Math.max(0.02, Math.min(0.3, bc.c)),
           solidL: Math.min(0.9, Math.max(0.3, bc.l)),
         }
-      : DEFAULT_INPUT.accent,
+      : DEFAULT_INPUT.primary,
     // Invert buildNeutral from the text color (step 12 carries half the neutral's
     // peak chroma); near-white backgrounds lose too much chroma to hex rounding.
     neutralTint: ink

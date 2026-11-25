@@ -1,16 +1,14 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import { Menu } from "@base-ui/react/menu";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import {
-  CONTRAST_LABEL,
   DEFAULT_INPUT,
   inputFromSeed,
-  MAX_STRIPS,
   slug,
-  type ContrastTarget,
   type System,
   type SystemInput,
 } from "@/lib/spring/system";
@@ -24,16 +22,16 @@ import {
   type FontName,
   type TypeInput,
 } from "@/lib/spring/type";
-import { contrast, DEFAULT_CURVE, parseColor, type Mode } from "@/lib/spring/color";
-import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
-import { apcaContrast, formatColor, oklchToHex, type ColorFormat } from "@/lib/spring/colormath";
+import { DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
+import { CHANNELS, channelsOf, fromChannels, type ColorFormat } from "@/lib/spring/colormath";
 import { Chevron, Select } from "@/components/ui/Select";
 import { Dial } from "@/components/ui/Dial";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Segmented } from "../Segmented";
 import { ColorPicker } from "./ColorPicker";
 import { CurveEditor } from "./CurveEditor";
 import dynamic from "next/dynamic";
-import { ChartControls, ChartOutput } from "./Charts";
+import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, Components, Homepage, Ladder } from "./Preview";
 import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
@@ -70,50 +68,60 @@ function save(name: string, blob: Blob) {
 }
 const text = (s: string, type: string) => new Blob([s], { type });
 
-/** Each tool's own slice of the system, as CSS or DTCG JSON. */
-function AreaExport({ system, area }: { system: System; area: Area }) {
-  const [copied, copy, said] = useCopy();
-  // Built on click, not on every change: the files are only needed when copied or saved.
-  const build = () => exportArea(system, area);
+const AREAS: { area: Area; label: string }[] = [
+  { area: "color", label: "Color" },
+  { area: "type", label: "Type" },
+  { area: "space", label: "Space" },
+  { area: "motion", label: "Motion" },
+];
+
+/**
+ * A split button: the main press downloads every file as one zip; the menu
+ * downloads one area's CSS and DTCG JSON, or copies a share link.
+ */
+function ExportMenu({ system }: { system: System }) {
+  const [, copy, said] = useCopy();
+  const name = slug(system.input.name);
+  const all = () =>
+    save(`${name}.zip`, zip(exportAll(system).map((x) => ({ path: x.path, content: x.content }))));
+  const area = (a: Area) => {
+    const { css, json } = exportArea(system, a);
+    save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
+  };
   return (
-    <div className="spring-export">
-      <span className="field__label">Export {area === "color" ? "colors" : area}</span>
-      <span className="spring-export__row">
-        <button
-          type="button"
-          className="button"
-          onClick={() => {
-            const { css } = build();
-            copy("css", css.content);
-          }}
+    <span className="spring-split">
+      <button type="button" className="button button--primary" onClick={all}>
+        Export
+      </button>
+      <Menu.Root>
+        <Menu.Trigger
+          className="button button--primary spring-split__more"
+          aria-label="Export one area"
         >
-          {copied === "css" ? "Copied" : "Copy CSS"}
-        </button>
-        <button
-          type="button"
-          className="button"
-          onClick={() => {
-            const { css } = build();
-            save(css.path, text(css.content, "text/css"));
-          }}
-        >
-          <span aria-hidden>↓</span>
-          <span className="sr-only">Download</span> .css
-        </button>
-        <button
-          type="button"
-          className="button"
-          onClick={() => {
-            const { json } = build();
-            save(json.path, text(json.content, "application/json"));
-          }}
-        >
-          <span aria-hidden>↓</span>
-          <span className="sr-only">Download DTCG</span> .json
-        </button>
-      </span>
+          <Chevron />
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
+            <Menu.Popup className="select__popup">
+              <Menu.Item className="select__item" onClick={all}>
+                <span className="select__text">Everything</span>
+                <span className="select__hint">.zip</span>
+              </Menu.Item>
+              {AREAS.map((a) => (
+                <Menu.Item key={a.area} className="select__item" onClick={() => area(a.area)}>
+                  <span className="select__text">{a.label}</span>
+                  <span className="select__hint">.css + .json</span>
+                </Menu.Item>
+              ))}
+              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
+                <span className="select__text">Copy share link</span>
+              </Menu.Item>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
       <output className="sr-only">{said}</output>
-    </div>
+    </span>
   );
 }
 
@@ -157,11 +165,11 @@ const TAB_LABEL: Record<Tab, string> = {
 };
 
 /**
- * Spring as one workbench: a tool's controls on the left; on the right, that
- * tool's output or a live preview of the whole system. One system, so every
- * tab edits what the preview shows.
+ * Spring as its own app: tabs and actions on top, the active tool's output (or
+ * a live preview) in the middle, and that tool's controls in a sidebar on the
+ * right. One system, so every tab edits what the preview shows.
  */
-export function SpringWorkbench() {
+export function SpringApp() {
   const spring = useSpring();
   const { input, system, setInput } = spring;
   const mode = useMode();
@@ -170,7 +178,6 @@ export function SpringWorkbench() {
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
-  const [colorView, setColorView] = useState<"interface" | "charts">("interface");
   // Starts at 1 so the curves play as soon as the Motion tab opens.
   const [run, setRun] = useState(1);
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
@@ -183,9 +190,10 @@ export function SpringWorkbench() {
   const tabsId = useId();
 
   return (
-    <div className="spring spring-wb">
+    <div className="spring spring-app__shell">
       <Fonts type={input.type} />
-      <div className="spring-wb__tabs">
+      <header className="spring-app__bar">
+        <span className="spring-app__name">Spring</span>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (
             <button
@@ -220,139 +228,126 @@ export function SpringWorkbench() {
             </button>
           ))}
         </div>
-        <span className="spring-wb__actions">
+        <span className="spring-app__actions">
           <button
             type="button"
-            className="button spring-audit-trigger"
+            className="button"
             aria-pressed={view === "preview"}
             onClick={() => setView((v) => (v === "preview" ? "output" : "preview"))}
           >
             Preview
           </button>
-          <AuditDialog />
+          <ExportMenu system={system} />
+          <ThemeToggle />
         </span>
-      </div>
-      <div className="spring-wb__grid">
-        <div
-          role="tabpanel"
-          id={`${tabsId}-panel`}
-          aria-labelledby={`${tabsId}-${tab}`}
-          className="spring-wb__panel"
-        >
-          {tab === "color" ? (
+      </header>
+      <AuditDialog />
+      <section
+        className="spring-app__canvas"
+        aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
+      >
+        {view === "preview" ? (
+          <div className="spring-wb__bar">
             <Segmented
-              label="Color system"
-              options={["interface", "charts"] as const}
-              value={colorView}
-              onChange={setColorView}
-              render={(v) => (v === "interface" ? "Interface" : "Charts")}
+              label="Screen"
+              options={["site", "app"] as const}
+              value={building === "site" ? "site" : "app"}
+              onChange={(v) =>
+                setInput((i) => ({
+                  ...i,
+                  stack: { ...i.stack, building: v, components: undefined, icons: undefined },
+                }))
+              }
+              render={(v) => (v === "site" ? "Site" : "App")}
             />
-          ) : null}
-          {tab === "color" && colorView === "interface" ? (
-            <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
-          ) : null}
-          {tab === "color" && colorView === "charts" ? <ChartControls {...spring} /> : null}
-          {tab === "type" ? (
-            <TypeControls
-              {...spring}
-              onBrowse={(r) => {
-                setBrowse(r);
-                setView("output");
-              }}
+            <Segmented
+              label="Width"
+              options={["phone", "tablet", "desktop"] as const}
+              value={width}
+              onChange={setWidth}
+              render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
             />
-          ) : null}
-          {tab === "space" ? <ShapeControls {...spring} /> : null}
-          {tab === "motion" ? (
-            <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
-          ) : null}
-          {tab !== "tokens" ? <AreaExport system={system} area={tab} /> : null}
-          {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
-        </div>
-        <section
-          className="spring-wb__stage"
-          aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
-        >
-          {view === "preview" ? (
-            <div className="spring-wb__bar">
-              <Segmented
-                label="Screen"
-                options={["site", "app"] as const}
-                value={building === "site" ? "site" : "app"}
-                onChange={(v) =>
-                  setInput((i) => ({
-                    ...i,
-                    stack: { ...i.stack, building: v, components: undefined, icons: undefined },
-                  }))
+          </div>
+        ) : null}
+        {view === "preview" ? (
+          // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
+          <div className="spring-frame" data-width={width}>
+            {building === "site" ? (
+              <Homepage system={system} mode={mode} line={spring.line} />
+            ) : (
+              <AppScreen system={system} mode={mode} />
+            )}
+          </div>
+        ) : (
+          <>
+            {tab === "color" ? (
+              <ColorOutput
+                system={system}
+                input={input}
+                setInput={setInput}
+                mode={mode}
+                format={format}
+                setFormat={setFormat}
+              />
+            ) : null}
+            {tab === "type" && browse ? (
+              <FontBrowser
+                role={browse}
+                setRole={setBrowse}
+                current={input.type}
+                sample={{
+                  heading: `${input.name || "Your name"} ships calm, quick software`,
+                  body: spring.line.trim() || "A short line about what it does and who it helps.",
+                  mono: "const total = 5517.60;",
+                }}
+                onPick={(r, n, meta) =>
+                  setInput((i) => ({ ...i, type: withFont(i.type, r, n, meta) }))
                 }
-                render={(v) => (v === "site" ? "Site" : "App")}
+                onDone={() => setBrowse(null)}
               />
-              <Segmented
-                label="Width"
-                options={["phone", "tablet", "desktop"] as const}
-                value={width}
-                onChange={setWidth}
-                render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
+            ) : tab === "type" ? (
+              <TypeOutput system={system} mode={mode} />
+            ) : null}
+            {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
+            {tab === "motion" ? (
+              <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
+            ) : null}
+            {f ? (
+              <textarea
+                className="spring-audit-input spring-code"
+                value={f.content}
+                readOnly
+                aria-label={f.path}
+                spellCheck={false}
               />
-            </div>
-          ) : null}
-          {view === "preview" ? (
-            // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
-            <div className="spring-frame" data-width={width}>
-              {building === "site" ? (
-                <Homepage system={system} mode={mode} line={spring.line} />
-              ) : (
-                <AppScreen system={system} mode={mode} />
-              )}
-            </div>
-          ) : (
-            <>
-              {tab === "color" && colorView === "charts" ? (
-                <ChartOutput system={system} mode={mode} format={format} />
-              ) : null}
-              {tab === "color" && colorView === "interface" ? (
-                <ColorOutput
-                  system={system}
-                  input={input}
-                  setInput={setInput}
-                  mode={mode}
-                  format={format}
-                />
-              ) : null}
-              {tab === "type" && browse ? (
-                <FontBrowser
-                  role={browse}
-                  setRole={setBrowse}
-                  current={input.type}
-                  sample={{
-                    heading: `${input.name || "Your name"} ships calm, quick software`,
-                    body: spring.line.trim() || "A short line about what it does and who it helps.",
-                    mono: "const total = 5517.60;",
-                  }}
-                  onPick={(r, n, meta) =>
-                    setInput((i) => ({ ...i, type: withFont(i.type, r, n, meta) }))
-                  }
-                  onDone={() => setBrowse(null)}
-                />
-              ) : tab === "type" ? (
-                <TypeOutput system={system} mode={mode} />
-              ) : null}
-              {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
-              {tab === "motion" ? (
-                <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
-              ) : null}
-              {f ? (
-                <textarea
-                  className="spring-audit-input spring-code"
-                  value={f.content}
-                  readOnly
-                  aria-label={f.path}
-                  spellCheck={false}
-                />
-              ) : null}
-            </>
-          )}
-        </section>
-      </div>
+            ) : null}
+          </>
+        )}
+      </section>
+      <aside
+        role="tabpanel"
+        id={`${tabsId}-panel`}
+        aria-labelledby={`${tabsId}-${tab}`}
+        className="spring-app__side"
+      >
+        {tab === "color" ? (
+          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+        ) : null}
+        {tab === "type" ? (
+          <TypeControls
+            {...spring}
+            onBrowse={(r) => {
+              setBrowse(r);
+              setView("output");
+            }}
+          />
+        ) : null}
+        {tab === "space" ? <ShapeControls {...spring} /> : null}
+        {tab === "motion" ? (
+          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+        ) : null}
+        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
+      </aside>
     </div>
   );
 }
@@ -384,16 +379,34 @@ function ColorControls({
   format,
   setFormat,
 }: Spring & { mode: Mode; format: ColorFormat; setFormat: (f: ColorFormat) => void }) {
-  const accent = system.scales.accent;
-  const brand = accent[mode][accent.anchor[mode] - 1]!;
+  const primary = system.scales.primary;
+  const brand = primary[mode][primary.anchor[mode] - 1]!;
   const curve = input.curve ?? DEFAULT_CURVE;
-  const a = input.accent;
+  const a = input.primary;
   const setCurve = (p: Partial<typeof curve>) =>
     setInput((i) => ({ ...i, curve: { ...(i.curve ?? DEFAULT_CURVE), ...p } }));
-  const grayHue = input.neutralHue ?? a.hue;
+  const setSeed = (hex: string) =>
+    setInput((i) => ({ ...i, primary: { ...i.primary, ...inputFromSeed(hex).primary } }));
+  const dark = mode === "dark";
+  const darkChroma = curve.darkChroma ?? 1;
+  // One chroma dial per theme: in dark it reads and sets chroma × darkChroma.
+  const chroma = dark ? a.chroma * darkChroma : a.chroma;
+  const setChroma = (v: number) =>
+    dark
+      ? setCurve({ darkChroma: Math.round(Math.min(1.2, Math.max(0.4, v / a.chroma)) * 100) / 100 })
+      : setInput((i) => ({ ...i, primary: { ...i.primary, chroma: v } }));
+  // A theme switch can change what the chroma dial shows; pulse it so the change is seen.
+  const [flash, setFlash] = useState(0);
+  const [seenMode, setSeenMode] = useState(mode);
+  if (seenMode !== mode) {
+    setSeenMode(mode);
+    if (darkChroma !== 1) setFlash((n) => n + 1);
+  }
+  const ch = CHANNELS[format];
+  const vals = channelsOf(brand.hex, format);
   const grays =
     input.neutralHue === undefined
-      ? "brand"
+      ? "primary"
       : input.neutralHue === GRAY_SNAP.warm
         ? "warm"
         : input.neutralHue === GRAY_SNAP.cool
@@ -401,7 +414,6 @@ function ColorControls({
           : null;
   return (
     <>
-      <p className="spring-group">brand</p>
       <ColorPicker
         hue={a.hue}
         chroma={a.chroma}
@@ -409,35 +421,81 @@ function ColorControls({
         lightness={brand.oklch.l}
         format={format}
         setFormat={setFormat}
-        onPick={(p) => setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }))}
-        onHex={(hex) =>
-          setInput((i) => ({ ...i, accent: { ...i.accent, ...inputFromSeed(hex).accent } }))
-        }
+        onPick={(p) => setInput((i) => ({ ...i, primary: { ...i.primary, ...p } }))}
+        onHex={setSeed}
       />
-      <Dial
-        label="hue"
-        value={a.hue}
-        min={0}
-        max={360}
-        step={1}
-        show={deg(a.hue)}
-        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, hue: v } }))}
-      />
-      <Dial
-        label="chroma"
-        value={a.chroma}
-        min={0.02}
-        max={0.3}
-        step={0.001}
-        show={a.chroma.toFixed(3)}
-        onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, chroma: v } }))}
-      />
+      {format === "oklch" ? (
+        <>
+          <Dial
+            label="lightness"
+            value={Math.round(brand.oklch.l * 1000) / 10}
+            min={35}
+            max={90}
+            step={0.5}
+            show={`${(brand.oklch.l * 100).toFixed(1)}%`}
+            onChange={(v) =>
+              setInput((i) => ({ ...i, primary: { ...i.primary, solidL: v / 100 } }))
+            }
+          />
+          <Dial
+            key={flash}
+            flash={flash > 0}
+            label={dark ? "chroma, dark" : "chroma"}
+            value={chroma}
+            min={dark ? a.chroma * 0.4 : 0.02}
+            max={dark ? a.chroma * 1.2 : 0.3}
+            step={0.001}
+            show={chroma.toFixed(3)}
+            reset={dark ? a.chroma : undefined}
+            onChange={setChroma}
+          />
+          <Dial
+            label="hue"
+            value={a.hue}
+            min={0}
+            max={360}
+            step={1}
+            show={deg(a.hue)}
+            onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, hue: v } }))}
+          />
+          {dark ? (
+            <p className="spring-meta">
+              Dark chroma applies to every strip, grays and status colors too.
+            </p>
+          ) : null}
+        </>
+      ) : (
+        ch.map((c, k) => (
+          <Dial
+            key={`${format}-${c.label}`}
+            label={c.label}
+            value={vals[k]!}
+            min={c.min}
+            max={c.max}
+            step={c.step}
+            show={`${vals[k]}${c.unit}`}
+            onChange={(v) =>
+              setSeed(
+                fromChannels(
+                  format,
+                  vals.map((x, j) => (j === k ? v : x)),
+                ),
+              )
+            }
+          />
+        ))
+      )}
       <hr className="spring-rule" />
       <p className="spring-group">scale</p>
       <CurveEditor
         curve={curve}
         mode={mode}
-        steps={accent[mode]}
+        strips={[
+          primary[mode],
+          ...Object.entries(system.scales)
+            .filter(([k]) => k !== "primary")
+            .map(([, sc]) => sc![mode]),
+        ]}
         onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
       />
       <Dial
@@ -455,23 +513,14 @@ function ColorControls({
       <Row label="lean">
         <Segmented
           label="Gray hue"
-          options={["brand", "warm", "cool"] as const}
-          value={grays ?? ("" as "brand")}
+          options={["primary", "warm", "cool"] as const}
+          value={grays ?? ("" as "primary")}
           onChange={(v) =>
-            setInput((i) => ({ ...i, neutralHue: v === "brand" ? undefined : GRAY_SNAP[v] }))
+            setInput((i) => ({ ...i, neutralHue: v === "primary" ? undefined : GRAY_SNAP[v] }))
           }
           render={(v) => v[0]!.toUpperCase() + v.slice(1)}
         />
       </Row>
-      <Dial
-        label="gray hue"
-        value={grayHue}
-        min={0}
-        max={360}
-        step={1}
-        show={deg(grayHue)}
-        onChange={(v) => setInput((i) => ({ ...i, neutralHue: v }))}
-      />
       <Dial
         label="tint"
         scale={100}
@@ -496,286 +545,27 @@ function ColorControls({
       </Row>
       <Row label="button text">
         <Segmented
-          label="Button label"
+          label="Text on primary buttons"
           options={["auto", "white", "ink"] as const}
           value={a.label ?? "auto"}
-          onChange={(v) => setInput((i) => ({ ...i, accent: { ...i.accent, label: v } }))}
+          onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, label: v } }))}
           render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
         />
       </Row>
-      <details className="spring-more">
-        <summary>
-          <Chevron dir="right" /> Advanced
-        </summary>
-        <Dial
-          label="dark chroma"
-          scale={100}
-          reset={1}
-          value={curve.darkChroma ?? 1}
-          min={0.4}
-          max={1.2}
-          step={0.05}
-          show={`${Math.round((curve.darkChroma ?? 1) * 100)}%`}
-          onChange={(v) => setCurve({ darkChroma: v })}
-        />
-      </details>
-    </>
-  );
-}
-
-const CVD = CVD_FILTER;
-const VISION = VISIONS;
-
-/** A color typed into a strip: any CSS color, stored as hex. Empty clears it when `onClear` is given. */
-function HexField({
-  label,
-  value,
-  placeholder,
-  onHex,
-  onClear,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onHex: (hex: string) => void;
-  onClear?: () => void;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const apply = () => {
-    if (draft !== null) {
-      const c = parseColor(draft.trim());
-      if (c) onHex(oklchToHex(c));
-      else if (!draft.trim() && onClear) onClear();
-    }
-    setDraft(null);
-  };
-  return (
-    <input
-      className="spring-strip__hex"
-      aria-label={label}
-      value={draft ?? value}
-      placeholder={placeholder}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={apply}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") apply();
-        if (e.key === "Escape") setDraft(null);
-      }}
-      aria-invalid={draft !== null && draft.trim() !== "" && !parseColor(draft.trim())}
-      autoComplete="off"
-      spellCheck={false}
-    />
-  );
-}
-
-const STATUS_NAMES = ["danger", "warning", "success", "info"] as const;
-
-function ColorOutput({
-  system,
-  input,
-  setInput,
-  mode,
-  format,
-}: Pick<Spring, "system" | "input" | "setInput"> & {
-  mode: Mode;
-  format: ColorFormat;
-}) {
-  const [copied, copy, said] = useCopy();
-  const [vision, setVision] = useState<(typeof VISION)[number]>("normal");
-  const [allValues, setAllValues] = useState(false);
-  const apca = system.input.contrast === "apca";
-  const page = system.scales.neutral[mode][0]!.hex;
-  const colors = input.colors ?? [];
-  const setColors = (f: (c: NonNullable<SystemInput["colors"]>) => SystemInput["colors"]) =>
-    setInput((i) => {
-      const next = f(i.colors ?? []);
-      return { ...i, colors: next?.length ? next : undefined };
-    });
-  const setStatus = (name: (typeof STATUS_NAMES)[number], hex: string | undefined) =>
-    setInput((i) => {
-      const status = { ...i.status, [name]: hex };
-      if (!hex) delete status[name];
-      return { ...i, status: Object.keys(status).length ? status : undefined };
-    });
-  const rows: { key: string; name: string; head: React.ReactNode }[] = [
-    {
-      key: "accent",
-      name: "accent",
-      head: (
-        <HexField
-          label="Accent color"
-          value={system.scales.accent.light[system.scales.accent.anchor.light - 1]!.hex}
-          onHex={(hex) =>
-            setInput((i) => ({ ...i, accent: { ...i.accent, ...inputFromSeed(hex).accent } }))
-          }
-        />
-      ),
-    },
-    { key: "neutral", name: "neutral", head: null },
-    ...STATUS_NAMES.map((n) => ({
-      key: n,
-      name: n,
-      head: (
-        <HexField
-          label={`${n} color, blank for auto`}
-          value={input.status?.[n] ?? ""}
-          placeholder="auto"
-          onHex={(hex) => setStatus(n, hex)}
-          onClear={() => setStatus(n, undefined)}
-        />
-      ),
-    })),
-    ...system.custom.map((c, k) => ({
-      key: c.key,
-      name: c.name,
-      head: (
-        <>
-          <HexField
-            label={`${c.name} color`}
-            value={c.hex}
-            onHex={(hex) => setColors((cs) => cs.map((x, j) => (j === k ? { ...x, hex } : x)))}
-          />
-          <button
-            type="button"
-            className="spring-strip__remove"
-            aria-label={`Remove ${c.name}`}
-            onClick={() => setColors((cs) => cs.filter((_, j) => j !== k))}
-          >
-            ×
-          </button>
-        </>
-      ),
-    })),
-  ];
-  const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
-  return (
-    <>
-      <svg width="0" height="0" className="absolute" aria-hidden>
-        {Object.entries(CVD).map(([k, m]) => (
-          <filter key={k} id={`${filterId}-${k}`} colorInterpolationFilters="linearRGB">
-            <feColorMatrix type="matrix" values={m} />
-          </filter>
-        ))}
-      </svg>
-      <span className="spring-vision">
-        <Select
-          label="Color vision"
-          hideLabel
-          value={vision}
-          options={VISION.map((v) => ({ value: v, label: VISION_LABEL[v] }))}
-          onChange={setVision}
-        />
-      </span>
-      <div
-        className="spring-scales"
-        data-all={allValues || undefined}
-        style={vision === "normal" ? undefined : { filter: `url(#${filterId}-${vision})` }}
-      >
-        <div className="spring-scale spring-scale--head" aria-hidden>
-          <span>step</span>
-          <span className="spring-bands spring-bands--steps">
-            {Array.from({ length: 12 }, (_, i) => (
-              <span key={i}>{i + 1}</span>
-            ))}
-          </span>
-        </div>
-        <div className="spring-scale spring-scale--head" aria-hidden>
-          <span />
-          <span className="spring-bands">
-            <span style={{ gridColumn: "1 / 3" }}>bg</span>
-            <span style={{ gridColumn: "3 / 6" }}>fill</span>
-            <span style={{ gridColumn: "6 / 9" }}>border</span>
-            <span style={{ gridColumn: "11 / 13" }}>text</span>
-          </span>
-        </div>
-        {rows.map(({ key: s, name, head }) => {
-          const scale = system.scales[s]!;
-          const solid = s === "neutral" ? 0 : system.solid[s]![mode];
-          return (
-            <div key={s} className="spring-scale">
-              <span className="spring-strip">
-                <span className="spring-strip__name">{name}</span>
-                {head}
-              </span>
-              <span className="spring-scale__steps">
-                {scale[mode].map((sw, i, all) => {
-                  const key = `${s}-${sw.step}`;
-                  const wcag = contrast(sw.hex, page);
-                  const lc = apcaContrast(sw.hex, page);
-                  const keyStep = sw.step === scale.anchor[mode] || sw.step === solid || i >= 10;
-                  return (
-                    <button
-                      type="button"
-                      key={sw.step}
-                      style={{
-                        backgroundColor: sw.hex,
-                        // Whichever end of the strip reads better on this step.
-                        color:
-                          contrast(all[0]!.hex, sw.hex) > contrast(all[11]!.hex, sw.hex)
-                            ? all[0]!.hex
-                            : all[11]!.hex,
-                      }}
-                      title={`var(--${key}) ${formatColor(sw.hex, format)} · ${wcag.toFixed(2)}:1 WCAG · Lc ${Math.round(lc)} APCA on bg${sw.clipped ? " · clipped to sRGB" : ""}`}
-                      data-brand={(s !== "neutral" && sw.step === scale.anchor[mode]) || undefined}
-                      data-solid={(s !== "neutral" && sw.step === solid) || undefined}
-                      data-key={keyStep || undefined}
-                      onClick={() => copy(key, formatColor(sw.hex, format))}
-                    >
-                      <span className="sr-only">
-                        Copy {sw.hex}, {name} step {sw.step}
-                      </span>
-                      {copied === key ? (
-                        <span aria-hidden>✓</span>
-                      ) : (
-                        <span aria-hidden className="spring-step__ratio">
-                          {apca ? Math.round(lc) : wcag.toFixed(1)}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      {colors.length < MAX_STRIPS ? (
-        <button
-          type="button"
-          className="spring-link spring-strip__add"
-          onClick={() =>
-            setColors((cs) => [
-              ...cs,
-              {
-                name: cs.length ? `Color ${cs.length + 1}` : "Secondary",
-                hex: oklchToHex({ l: 0.6, c: 0.14, h: (input.accent.hue + 150) % 360 }),
-              },
-            ])
-          }
-        >
-          + Add color
-        </button>
-      ) : null}
-      <p className="spring-meta spring-legend">
-        <span className="spring-legend__brand">your color</span>
-        <span className="spring-legend__solid">button fill</span>
-        <span>
-          {apca ? "Lc" : "WCAG ratio"} on bg ·{" "}
-          <button
-            type="button"
-            className="spring-link"
-            aria-pressed={allValues}
-            onClick={() => setAllValues((v) => !v)}
-          >
-            {allValues ? "key steps only" : "show every step"}
-          </button>
-        </span>
-      </p>
       {system.adjustments.length ? (
-        <p className="toy__caption">{system.adjustments.join(" ")}</p>
-      ) : null}
-      <output className="sr-only">{said}</output>
-      <Contrast checks={system.checks[mode]} mode={mode} target={system.input.contrast ?? "aa"} />
+        <div className="spring-changed">
+          <p className="spring-group">what the rules changed</p>
+          <ul>
+            {system.adjustments.map((t) => (
+              <li key={t} className="spring-meta">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
+      )}
     </>
   );
 }
@@ -1108,8 +898,15 @@ function TokensControls({
 
 // ——— Audit ———
 
+/** Kept but unlinked: it opens only at /spring#audit. */
 function AuditDialog() {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const check = () => setOpen(location.hash === "#audit");
+    check();
+    addEventListener("hashchange", check);
+    return () => removeEventListener("hashchange", check);
+  }, []);
   // "fix all" replaces the whole system, so keep the visitor's own until they move on.
   const [before, setBefore] = useState<SystemInput | null>(null);
   return (
@@ -1128,10 +925,6 @@ function AuditDialog() {
             Undo
           </button>
         ) : null}
-        <Dialog.Trigger className="button spring-audit-trigger">
-          <span>Audit</span>
-          <span className="spring-wide">a system</span>
-        </Dialog.Trigger>
       </span>
       <Dialog.Portal>
         <Dialog.Backdrop className="palette-backdrop" />
@@ -1149,61 +942,6 @@ function AuditDialog() {
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
-  );
-}
-
-/** Every pair the system promises, with its ratio and the bar it has to clear. */
-function Contrast({
-  checks,
-  mode,
-  target,
-}: {
-  checks: System["checks"]["light"];
-  mode: string;
-  target: ContrastTarget;
-}) {
-  const [open, setOpen] = useState(false);
-  const shown = open ? checks : checks.filter((c) => !c.pass);
-  const required = checks.filter((c) => !c.advisory);
-  const advisory = checks.filter((c) => c.advisory && !c.pass).length;
-  return (
-    <>
-      <p className="spring-meta">
-        {required.filter((c) => c.pass).length}/{required.length} required pairs pass{" "}
-        {CONTRAST_LABEL[target]} in {mode}
-        {advisory ? `; ${advisory} advisory pair below the UI bar, listed below` : ""}.{" "}
-        <button
-          type="button"
-          className="spring-link"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
-          {open ? "Hide pairs" : "Show all pairs"}
-        </button>
-      </p>
-      {shown.length ? (
-        <ul className="spring-contrast">
-          {shown.map((c) => (
-            <li key={`${c.fg}-${c.bg}`}>
-              <span>
-                <span aria-hidden>{c.pass ? "✓" : c.advisory ? "!" : "✕"}</span>
-                <span className="sr-only">
-                  {c.pass ? "passes" : c.advisory ? "advisory, below" : "fails"}
-                </span>
-              </span>
-              <span>
-                {c.fg} <span className="spring-meta">on</span> {c.bg}
-              </span>
-              <span className="tabular">
-                {target === "apca" ? `Lc ${Math.round(c.ratio)}` : c.ratio.toFixed(2)}
-                <span className="spring-meta">/{c.min}</span>
-              </span>
-              <span className="spring-meta">{c.why}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </>
   );
 }
 

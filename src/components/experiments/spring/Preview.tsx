@@ -46,7 +46,7 @@ export function Components({ system, mode }: { system: System; mode: Mode }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="sp-badge sp-badge--accent">New</span>
+          <span className="sp-badge sp-badge--primary">New</span>
           <span className="sp-badge sp-badge--success">Paid</span>
           <span className="sp-badge sp-badge--warning">Pending</span>
           <span className="sp-badge sp-badge--danger">Failed</span>
@@ -77,7 +77,7 @@ const CHANGES = [
     "Recurring invoices",
     "Bill retainers on a schedule; edits apply to the next run.",
     "New",
-    "accent",
+    "primary",
   ],
   [
     "11 Nov",

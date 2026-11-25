@@ -10,7 +10,7 @@ import {
   type Mode,
   type Swatch,
 } from "@/lib/spring/color";
-import { Chevron, Select } from "@/components/ui/Select";
+import { Select } from "@/components/ui/Select";
 
 type Bezier = Curve["bezier"];
 /**
@@ -38,17 +38,19 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function CurveEditor({
   curve,
   mode,
-  steps,
+  strips,
   onChange,
 }: {
   curve: Curve;
   mode: Mode;
-  /** The accent scale in the current mode, drawn on the curve. */
-  steps: Swatch[];
+  /** Every strip in the current mode, primary first; all of them follow this curve. */
+  strips: Swatch[][];
   onChange: (c: Curve) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<0 | 1 | null>(null);
+  const [active, setActive] = useState<0 | 1 | null>(null);
+  const [moved, setMoved] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const id = useId();
   const b = curve.bezier;
@@ -73,22 +75,42 @@ export function CurveEditor({
     if (next) onChange({ ...curve, bezier: next });
     setDraft(null);
   };
+  const end = () => {
+    drag.current = null;
+    setActive(null);
+  };
   const handle = (i: 0 | 1, x: number, y: number, ax: number, ay: number) => (
-    <g key={i}>
+    <g key={i} className="spring-curve__grip" data-active={active === i || undefined}>
       <line x1={ax} y1={ay} x2={x * 100} y2={100 - y * 100} className="spring-curve__arm" />
+      {/* A wide invisible ring takes the pointer, so the small knob is easy to grab. */}
       <circle
         cx={x * 100}
         cy={100 - y * 100}
-        r={4}
-        className="spring-curve__handle"
+        r={10}
+        className="spring-curve__hit"
         onPointerDown={(e) => {
           e.preventDefault();
           drag.current = i;
+          setActive(i);
+          setMoved(true);
           svg.current!.setPointerCapture(e.pointerId);
         }}
       />
+      <circle cx={x * 100} cy={100 - y * 100} r={4} className="spring-curve__handle" />
     </g>
   );
+  const dots = (steps: Swatch[], k: number) =>
+    steps.map((sw, i) => (
+      <circle
+        key={`${k}-${sw.step}`}
+        cx={(i / 11) * 100}
+        // Real lightness, so the dots show where each color bends the curve.
+        cy={100 - ((from - sw.oklch.l) / (from - to)) * 100}
+        r={k ? 1.6 : 3}
+        fill={sw.hex}
+        className={k ? "spring-curve__dot spring-curve__dot--other" : "spring-curve__dot"}
+      />
+    ));
 
   return (
     <div className="field spring-curve">
@@ -104,55 +126,47 @@ export function CurveEditor({
           if (p) onChange({ ...curve, bezier: p.bezier });
         }}
       />
-      <details className="spring-more">
-        <summary>
-          <Chevron dir="right" /> Edit curve
-        </summary>
-        <svg
-          ref={svg}
-          viewBox="-6 -6 112 112"
-          className="spring-curve__plot"
-          aria-hidden
-          onPointerMove={move}
-          onPointerUp={() => (drag.current = null)}
-          onPointerCancel={() => (drag.current = null)}
-        >
-          <rect x={0} y={0} width={100} height={100} className="spring-curve__frame" />
-          <path d={path} className="spring-curve__line" />
-          {handle(0, b[0], b[1], 0, 100)}
-          {handle(1, b[2], b[3], 100, 0)}
-          {steps.map((s, i) => (
-            <circle
-              key={s.step}
-              cx={(i / 11) * 100}
-              // Real lightness, so the dots show where the brand bends the curve.
-              cy={100 - ((from - s.oklch.l) / (from - to)) * 100}
-              r={3}
-              fill={s.hex}
-              className="spring-curve__dot"
-            />
-          ))}
-        </svg>
-        <span className="field__input spring-curve__values">
-          <label className="field__unit" htmlFor={`${id}-bezier`}>
-            cubic-bezier
-          </label>
-          <input
-            id={`${id}-bezier`}
-            value={draft ?? b.join(", ")}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={apply}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") apply();
-              if (e.key === "Escape") setDraft(null);
-            }}
-            aria-invalid={draft !== null && !parseBezier(draft)}
-            inputMode="decimal"
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </span>
-      </details>
+      <svg
+        ref={svg}
+        viewBox="-8 -8 116 116"
+        className="spring-curve__plot"
+        aria-hidden
+        data-dragging={active !== null || undefined}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+      >
+        <rect x={0} y={0} width={100} height={100} className="spring-curve__frame" />
+        <path d={path} className="spring-curve__line" />
+        {strips.slice(1).map((st, k) => dots(st, k + 1))}
+        {dots(strips[0]!, 0)}
+        {handle(0, b[0], b[1], 0, 100)}
+        {handle(1, b[2], b[3], 100, 0)}
+      </svg>
+      <p className="spring-meta">
+        {moved
+          ? "Every strip follows this curve; the big dots are primary."
+          : "Drag the two handles to bend every strip. The big dots are primary."}
+      </p>
+      <span className="field__input spring-curve__values">
+        <label className="field__unit" htmlFor={`${id}-bezier`}>
+          cubic-bezier
+        </label>
+        <input
+          id={`${id}-bezier`}
+          value={draft ?? b.join(", ")}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={apply}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") apply();
+            if (e.key === "Escape") setDraft(null);
+          }}
+          aria-invalid={draft !== null && !parseBezier(draft)}
+          inputMode="decimal"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </span>
     </div>
   );
 }

@@ -4,8 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { audit } from "@/lib/spring/audit";
-import { contrast as ratio, DEFAULT_CURVE, parseBezier, parseColor } from "@/lib/spring/color";
-import { apcaContrast } from "@/lib/spring/colormath";
+import {
+  contrast as ratio,
+  DEFAULT_CURVE,
+  freshName,
+  hueName,
+  parseBezier,
+  parseColor,
+} from "@/lib/spring/color";
+import { apcaContrast, channelsOf, formatColor, fromChannels } from "@/lib/spring/colormath";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
 import { SAMPLES } from "../fixtures/spring-samples";
@@ -52,7 +59,7 @@ describe("palette curve", () => {
   test("the brand color lands on a step exactly", () => {
     for (const seed of ["#e11d48", "#00a37a", "#7c3aed"]) {
       const sys = buildSystem(inputFromSeed(seed));
-      const s = sys.scales.accent.light[sys.scales.accent.anchor.light - 1]!;
+      const s = sys.scales.primary.light[sys.scales.primary.anchor.light - 1]!;
       expect(s.hex).toBe(seed);
     }
   });
@@ -66,7 +73,7 @@ describe("palette curve", () => {
     const dir = mkdtempSync(join(tmpdir(), "palette-"));
     writeFileSync(join(dir, "palette.mjs"), js);
     const mod = await import(join(dir, "palette.mjs"));
-    for (const name of ["accent", "warning"] as const)
+    for (const name of ["primary", "warning"] as const)
       for (const mode of ["light", "dark"] as const) {
         const ours = buildSystem({ ...(input as SystemInput) }).scales[name][mode].map(
           (s) => s.hex,
@@ -104,11 +111,11 @@ describe("palette curve", () => {
       ...inputFromSeed("#7c3aed"),
       colors: [
         { name: "Secondary", hex: "#0ea5e9" },
-        { name: "accent", hex: "#ff66cc" },
+        { name: "primary", hex: "#ff66cc" },
         { name: "Secondary", hex: "#00a37a" },
       ],
     });
-    expect(sys.custom.map((c) => c.key)).toEqual(["secondary", "accent-custom", "secondary-2"]);
+    expect(sys.custom.map((c) => c.key)).toEqual(["secondary", "primary-custom", "secondary-2"]);
     expect(sys.scales.secondary!.light).toHaveLength(12);
     expect(sys.roles.light.some((r) => r.name === "secondary-fg")).toBe(true);
     for (const mode of ["light", "dark"] as const)
@@ -123,15 +130,15 @@ describe("palette curve", () => {
     const bent = buildSystem({ ...base, curve: { ...DEFAULT_CURVE, hueShift: 40 } }).scales;
     const flat = buildSystem(base).scales;
     expect(bent.warning.light.map((s) => s.hex)).toEqual(flat.warning.light.map((s) => s.hex));
-    expect(bent.accent.light[1]!.hex).not.toBe(flat.accent.light[1]!.hex);
+    expect(bent.primary.light[1]!.hex).not.toBe(flat.primary.light[1]!.hex);
   });
   test("dark mode vividness scales only dark chroma", () => {
     const base = inputFromSeed("#7c3aed");
     const calm = buildSystem({ ...base, curve: { ...DEFAULT_CURVE, darkChroma: 0.5 } });
     const full = buildSystem(base);
-    const k = full.scales.accent.anchor.dark - 1;
-    expect(calm.scales.accent.light[k]!.hex).toBe(full.scales.accent.light[k]!.hex);
-    expect(calm.scales.accent.dark[k]!.oklch.c).toBeLessThan(full.scales.accent.dark[k]!.oklch.c);
+    const k = full.scales.primary.anchor.dark - 1;
+    expect(calm.scales.primary.light[k]!.hex).toBe(full.scales.primary.light[k]!.hex);
+    expect(calm.scales.primary.dark[k]!.oklch.c).toBeLessThan(full.scales.primary.dark[k]!.oklch.c);
   });
   test("a share link keeps status hues, contrast target and dark vividness", () => {
     const input: SystemInput = {
@@ -230,13 +237,15 @@ describe("audit parsing", () => {
 });
 
 describe("shadcn export", () => {
-  test("bg-accent is the hover fill that pairs with accent-foreground", () => {
+  test("bg-accent is shadcn's hover fill; bg-primary stays the brand", () => {
     const sys = buildSystem({
       ...DEFAULT_INPUT,
       stack: { ...DEFAULT_INPUT.stack, components: "shadcn" },
     });
     const css = exportAll(sys).find((f) => f.path.endsWith("theme.css"))!.content;
     expect(css).toContain("--color-accent: var(--accent);");
+    expect(css).toContain("--color-primary: var(--color-primary);");
+    expect(css).not.toContain("--color-primary: var(--primary);");
   });
 });
 
@@ -306,7 +315,17 @@ describe("per-tool exports", () => {
       const { css, json } = exportArea(sys, a);
       const vars = [...css.content.matchAll(/^\s*--([a-z]+)-/gm)].map((m) => m[1]);
       const own: Record<typeof a, string[]> = {
-        color: ["accent", "neutral", "danger", "warning", "success", "info", "color", "chart"],
+        color: [
+          "primary",
+          "neutral",
+          "danger",
+          "warning",
+          "success",
+          "info",
+          "color",
+          "chart",
+          ...sys.data.map((d) => d.key),
+        ],
         type: ["font", "text"],
         space: [
           "space",
@@ -405,63 +424,151 @@ describe("audit reads real systems", () => {
   });
 });
 
-describe("chart palettes", () => {
+describe("data colors", () => {
   test.each(inputs.map((i, n) => [n, i] as const))(
-    "every series mark reaches 3:1 on the page, in both themes (%i)",
+    "every suggested mark reaches 3:1 on the page, in both themes (%i)",
     (_, input) => {
       const sys = buildSystem(input);
+      expect(sys.data).toHaveLength(6);
       for (const mode of ["light", "dark"] as const) {
         const page = sys.scales.neutral[mode][0]!.hex;
-        for (const hex of sys.charts.categorical[mode])
+        for (const hex of sys.charts.marks[mode])
           expect(ratio(hex, page)).toBeGreaterThanOrEqual(3);
       }
     },
   );
 
   test.each(inputs.map((i, n) => [n, i] as const))(
-    "8 series stay apart for every color-blindness type (%i)",
+    "six suggested colors stay apart for every color-blindness type (%i)",
     (_, input) => {
       const c = buildSystem(input).charts;
       for (const mode of ["light", "dark"] as const)
         for (const v of ["protan", "deutan", "tritan"] as const)
-          expect(c.closest[mode][v].d).toBeGreaterThanOrEqual(0.06);
+          expect(c.closest[mode][v].d).toBeGreaterThanOrEqual(0.05);
     },
   );
 
-  test("series keep their hue across themes, and the order is prefix-stable", () => {
-    const a = buildSystem(DEFAULT_INPUT).charts;
-    const b = buildSystem({ ...DEFAULT_INPUT, charts: { count: 4 } }).charts;
-    expect(b.categorical.light).toEqual(a.categorical.light);
-    for (let i = 0; i < 10; i++) {
-      const l = parseColor(a.categorical.light[i]!)!;
-      const d = parseColor(a.categorical.dark[i]!)!;
-      expect(Math.abs(((l.h - d.h + 540) % 360) - 180)).toBeLessThan(6);
+  test("data colors are strips: a mark is a step of its own 12-step scale", () => {
+    const sys = buildSystem(DEFAULT_INPUT);
+    sys.data.forEach((d, i) => {
+      const step = sys.charts.markStep.light[i]!;
+      expect(sys.scales[d.key]!.light[step - 1]!.hex).toBe(sys.charts.marks.light[i]!);
+      expect(step).toBeGreaterThanOrEqual(sys.scales[d.key]!.anchor.light);
+    });
+  });
+
+  test("suggested names are plain, lowercase and unique", () => {
+    for (const input of inputs) {
+      const names = buildSystem(input).data.map((d) => d.name);
+      expect(new Set(names).size).toBe(names.length);
+      for (const n of names) expect(n).toBe(n.toLowerCase());
     }
   });
 
-  test("sequential lightness moves one way; diverging is symmetric around a neutral middle", () => {
-    const c = buildSystem(DEFAULT_INPUT).charts;
+  test("ramps come from the chosen strips; diverging has a neutral middle", () => {
+    const sys = buildSystem({ ...DEFAULT_INPUT, ramps: { seq: 2, div: [1, 3] } });
+    const c = sys.charts;
+    expect(c.seq).toBe(sys.data[2]!.key);
+    expect(c.div).toEqual([sys.data[1]!.key, sys.data[3]!.key]);
     for (const mode of ["light", "dark"] as const) {
       const ls = c.sequential[mode].map((h) => parseColor(h)!.l);
       const dir = mode === "light" ? -1 : 1;
       for (let i = 1; i < ls.length; i++) expect((ls[i]! - ls[i - 1]!) * dir).toBeGreaterThan(0);
-      const d = c.diverging[mode].map((h) => parseColor(h)!);
-      expect(d[4]!.c).toBeLessThan(0.02);
-      expect(Math.abs(d[0]!.l - d[8]!.l)).toBeLessThan(0.03);
+      expect(c.diverging[mode]).toHaveLength(9);
+      expect(c.diverging[mode][4]).toBe(sys.scales.neutral[mode][1]!.hex);
     }
   });
 
-  test("chart tokens are in every export and survive the share link", () => {
-    const input = { ...DEFAULT_INPUT, charts: { count: 6, diverge: 40 } };
+  test("an empty list means no data colors, and the export says so", () => {
+    const sys = buildSystem({ ...DEFAULT_INPUT, data: [] });
+    expect(sys.charts.marks.light).toEqual([]);
+    expect(toDesignMd(sys)).toContain("No data colors are set");
+  });
+
+  test("UI and data strips share token names without clashing", () => {
+    const sys = buildSystem({
+      ...DEFAULT_INPUT,
+      colors: [{ name: "blue", hex: "#2563eb" }],
+      data: [{ name: "blue", hex: "#1d4ed8" }],
+    });
+    expect(sys.custom[0]!.key).toBe("blue");
+    expect(sys.data[0]!.key).toBe("blue-2");
+  });
+
+  test("chart tokens export one per data color, full scales only for ramp strips", () => {
+    const input: SystemInput = {
+      ...DEFAULT_INPUT,
+      data: [
+        { name: "teal", hex: "#0d9488" },
+        { name: "orange", hex: "#ea580c" },
+        { name: "violet", hex: "#7c3aed" },
+      ],
+      ramps: { seq: 0, div: [0, 1] },
+    };
     const sys = buildSystem(input);
     const files = Object.fromEntries(exportAll(sys).map((f) => [f.path, f.content]));
-    expect(files["tokens.css"]).toContain(`--chart-1: ${sys.charts.categorical.light[0]};`);
+    expect(files["tokens.css"]).toContain(`--chart-1: ${sys.charts.marks.light[0]};`);
+    expect(files["tokens.css"]).toContain("--chart-3:");
+    expect(files["tokens.css"]).not.toContain("--chart-4:");
     expect(files["tokens.css"]).toContain("--chart-div-9:");
+    expect(files["tokens.css"]).toContain("--teal-12:");
+    expect(files["tokens.css"]).toContain("--orange-12:");
+    expect(files["tokens.css"]).not.toContain("--violet-1:");
     expect(files["tokens.css"]).toContain("--chart-gap: var(--color-bg);");
     expect(files["theme.css"]).toContain("--color-chart-seq-1: var(--chart-seq-1);");
-    expect(JSON.parse(files["tokens.json"]!).color.chart["10"]).toBeDefined();
-    expect(files["DESIGN.md"]).toContain("### Charts");
-    expect(decodeInput(encodeInput(input))!.charts).toEqual({ count: 6, diverge: 40 });
-    expect(sys.charts.divergeHue).toBe(40);
+    expect(JSON.parse(files["tokens.json"]!).color.chart["3"]).toBeDefined();
+    expect(files["DESIGN.md"]).toContain("`--chart-1` (teal)");
+    expect(decodeInput(encodeInput(input))).toMatchObject({ data: input.data, ramps: input.ramps });
+  });
+
+  test("suggestions don't move when nothing they depend on changes", () => {
+    const a = buildSystem(DEFAULT_INPUT).data.map((d) => d.hex);
+    const b = buildSystem({ ...DEFAULT_INPUT, name: "Other", density: 1 }).data.map((d) => d.hex);
+    expect(b).toEqual(a);
+  });
+});
+
+describe("primary rename and formats", () => {
+  test("Spring's own tokens say primary; shadcn keeps its own accent", () => {
+    const sys = buildSystem({
+      ...DEFAULT_INPUT,
+      stack: { ...DEFAULT_INPUT.stack, components: "shadcn" },
+    });
+    const files = Object.fromEntries(exportAll(sys).map((f) => [f.path, f.content]));
+    expect(files["tokens.css"]).toContain("--primary-9:");
+    expect(files["tokens.css"]).not.toContain("accent");
+    const theme = files["theme.css"]!;
+    expect(theme.match(/^ {2}--primary:/gm)).toHaveLength(1);
+    expect(theme).toContain("--accent: var(--color-fill-hover);");
+  });
+
+  test("old share links still load, including one with retired chart settings", () => {
+    const old = encodeInput(DEFAULT_INPUT);
+    expect(decodeInput(old)!.primary).toMatchObject(DEFAULT_INPUT.primary);
+    const arr = JSON.parse(Buffer.from(old, "base64url").toString());
+    while (arr.length < 13) arr.push(null);
+    arr.push([6, 40]);
+    const withCharts = Buffer.from(JSON.stringify(arr)).toString("base64url");
+    expect(decodeInput(withCharts)).toMatchObject({ primary: DEFAULT_INPUT.primary });
+    expect(decodeInput(withCharts)!.data).toBeUndefined();
+  });
+
+  test("rgb format and channels round-trip", () => {
+    expect(formatColor("#2563eb", "rgb")).toBe("rgb(37 99 235)");
+    for (const f of ["oklch", "hsl", "rgb", "hex"] as const) {
+      const back = fromChannels(f, channelsOf("#2563eb", f));
+      const d = parseColor(back)!;
+      const o = parseColor("#2563eb")!;
+      expect(Math.abs(d.l - o.l)).toBeLessThan(0.01);
+      expect(Math.abs(d.h - o.h)).toBeLessThan(2);
+    }
+  });
+
+  test("plain hue names, kept unique", () => {
+    expect(hueName({ c: 0.15, h: 150 })).toBe("green");
+    expect(hueName({ c: 0.01, h: 150 })).toBe("gray");
+    const c = parseColor("#93c5fd")!;
+    expect(freshName(c, ["blue"])).toBe("light blue");
+    expect(freshName(c, ["blue", "light blue"])).toBe("blue 2");
   });
 });

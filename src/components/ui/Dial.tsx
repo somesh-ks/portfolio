@@ -22,6 +22,7 @@ export function Dial({
   scale = 1,
   reset,
   onCommit,
+  flash,
 }: {
   label: string;
   value: number;
@@ -37,6 +38,8 @@ export function Dial({
   reset?: number;
   /** Fires when a drag, key press or typed edit ends, for work too noisy for every tick. */
   onCommit?: () => void;
+  /** Pulses the row once, for a value that changed without the visitor moving it. Change the key to replay. */
+  flash?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const snap = (v: number) => {
@@ -68,7 +71,11 @@ export function Dial({
   const p = ((clamp(value, min, max) - min) / (max - min)) * 100;
 
   return (
-    <div className="dial" style={{ "--p": `${p}%` } as CSSProperties}>
+    <div
+      className="dial"
+      data-flash={flash || undefined}
+      style={{ "--p": `${p}%` } as CSSProperties}
+    >
       <input
         type="range"
         className="dial__range"

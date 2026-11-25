@@ -19,8 +19,6 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
     "Rect-based pixel mascot with switchable animations and an inspectable rect model.",
   ClaudeRunner:
     "Playable endless runner: Claude walks, skates, scoots, bikes, flies a kite or drives, jumping desk obstacles (Space or tap). Fullscreen, a local best and a shared top-10 leaderboard by first name.",
-  SpringWorkbench:
-    "Spring workbench: tabs for color (12-step OKLCH scales, WCAG 2.2 AA contrast), type (scale first, any Google font set in your own line, x-height), space and shape, motion, and tokens (DTCG, CSS, Tailwind, DESIGN.md, agent skill, zip, share link), beside a live site or app preview in light and dark. An audit dialog grades a pasted system.",
   OklchTokenInspector:
     "Generates an 11-step OKLCH ramp and checks WCAG 2.2 contrast as you change it.",
   AgenticStreamDemo:

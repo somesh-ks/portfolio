@@ -14,9 +14,14 @@ export interface ExportFile {
   content: string;
 }
 
-const SCALES: ScaleName[] = ["accent", "neutral", "danger", "warning", "success", "info"];
+const SCALES: ScaleName[] = ["primary", "neutral", "danger", "warning", "success", "info"];
 /** Built-in scales, then the strips the user added. */
-const scaleNames = (sys: System) => [...SCALES, ...sys.custom.map((c) => c.key)];
+/** Every exported scale: the built-ins, UI strips, and the data strips the ramps use. */
+const scaleNames = (sys: System) => [
+  ...SCALES,
+  ...sys.custom.map((c) => c.key),
+  ...new Set([sys.charts.seq, ...(sys.charts.div ?? [])].filter((k): k is string => !!k)),
+];
 const px = (n: number) => `${n}px`;
 
 /** Foundations every system needs that no slider changes: layers, states, sizes. */
@@ -52,11 +57,28 @@ function colorVars(sys: System, mode: Mode, indent = "  "): string {
   return lines.join("\n");
 }
 
-/** Chart colors as [token name, hex]: all ten series (the count only grades), both ramps, "other". */
+/** The DESIGN.md paragraph on charts, written from the data colors that exist. */
+function chartsDoc(sys: System): string {
+  const c = sys.charts;
+  const n = c.keys.length;
+  if (!n) return "No data colors are set; add some before drawing charts.";
+  const names = sys.data.map((d, i) => `\`--chart-${i + 1}\` (${d.name})`).join(", ");
+  const ramps = [
+    c.seq
+      ? `\`--chart-seq-1\` … \`--chart-seq-${c.sequential.light.length}\` are for amounts, light to strong, from ${c.seq}`
+      : "",
+    c.div
+      ? `\`--chart-div-1\` … \`--chart-div-${c.diverging.light.length}\` are for values above and below a midpoint (\`--chart-div-${Math.ceil(c.diverging.light.length / 2)}\`), from ${c.div[0]} to ${c.div[1]}`
+      : "",
+  ].filter(Boolean);
+  return `Data uses its own colors, never the UI roles. ${names} are series colors in a fixed order: use them in order and keep a series' color when filtering. Each is the mark step of a 12-step scale on the same curve as the UI, and every one reaches 3:1 on the page. Past ${n} series, group the rest as \`--chart-other\`.${ramps.length ? ` ${ramps.join("; ")}.` : ""} Separate touching bars and pie slices with a 1–2px \`--chart-gap\`. Label series directly where you can, so color is never the only cue.`;
+}
+
+/** Chart colors as [token name, hex]: one per data color in order, both ramps, "other". */
 function chartVars(sys: System, mode: Mode): [string, string][] {
   const c = sys.charts;
   return [
-    ...c.categorical[mode].map((h, i): [string, string] => [`chart-${i + 1}`, h]),
+    ...c.marks[mode].map((h, i): [string, string] => [`chart-${i + 1}`, h]),
     ...c.sequential[mode].map((h, i): [string, string] => [`chart-seq-${i + 1}`, h]),
     ...c.diverging[mode].map((h, i): [string, string] => [`chart-div-${i + 1}`, h]),
     ["chart-other", c.other[mode]],
@@ -358,8 +380,8 @@ function toTailwind(sys: System): string {
       "  --card-foreground: var(--color-text);",
       "  --popover: var(--color-bg);",
       "  --popover-foreground: var(--color-text);",
-      "  --primary: var(--color-accent);",
-      "  --primary-foreground: var(--color-accent-fg);",
+      "  --primary: var(--color-primary);",
+      "  --primary-foreground: var(--color-primary-fg);",
       "  --secondary: var(--color-fill);",
       "  --secondary-foreground: var(--color-text);",
       "  --muted: var(--color-fill);",
@@ -381,7 +403,6 @@ function toTailwind(sys: System): string {
         "card-foreground",
         "popover",
         "popover-foreground",
-        "primary",
         "primary-foreground",
         "secondary",
         "secondary-foreground",
@@ -392,8 +413,8 @@ function toTailwind(sys: System): string {
         "destructive",
         "input",
       ]
-        // bg-accent follows shadcn (a hover fill) so it pairs with text-accent-foreground;
-        // the brand color stays on bg-primary.
+        // bg-accent follows shadcn (a hover fill) so it pairs with text-accent-foreground.
+        // Spring's own --color-primary (the brand) is already in the theme above.
         .map((n) => `  --color-${n}: var(--${n});`),
       "}",
     );
@@ -574,11 +595,11 @@ export function toDesignMd(sys: System): string {
   const icon = ICONS[sys.stack.icons]!;
   const stroke = iconStroke(T.body!.weight);
   const tokenNames: Record<string, string> = {
-    primary: "accent",
-    "on-primary": "accent-fg",
-    "primary-hover": "accent-hover",
-    "primary-subtle": "accent-subtle",
-    "primary-text": "accent-text",
+    primary: "primary",
+    "on-primary": "primary-fg",
+    "primary-hover": "primary-hover",
+    "primary-subtle": "primary-subtle",
+    "primary-text": "primary-text",
     neutral: "bg",
     surface: "bg-subtle",
     fill: "fill",
@@ -723,23 +744,23 @@ export function toDesignMd(sys: System): string {
 
 ## Overview
 
-${sys.input.name} is a ${dens}, ${isRound} interface with ${mot} motion. One accent color carries every primary action; everything else is neutral. Light and dark themes are equal citizens: dark values are generated for dark backgrounds, not inverted.
+${sys.input.name} is a ${dens}, ${isRound} interface with ${mot} motion. One primary color carries every primary action; everything else is neutral. Light and dark themes are equal citizens: dark values are generated for dark backgrounds, not inverted.
 
 Source files: \`tokens.css\` (all values, both themes), \`tokens.json\` (DTCG), ${sys.stack.styling === "tailwind" ? "`theme.css` (Tailwind v4)" : "no framework layer"}. When a value isn't in these files, it isn't in the system: ask, don't invent.
 
 ## Colors
 
-The accent is **${l.accent!.hex}** (light) / **${d.accent!.hex}** (dark). Neutrals are tinted toward the accent hue so surfaces and brand feel related. Every text pair below passes ${CONTRAST_LABEL[sys.input.contrast ?? "aa"]} in both themes.
+The primary is **${l.primary!.hex}** (light) / **${d.primary!.hex}** (dark). Neutrals are tinted toward the primary hue so surfaces and brand feel related. Every text pair below passes ${CONTRAST_LABEL[sys.input.contrast ?? "aa"]} in both themes.
 
 | Role | Light | Dark | Use for |
 |---|---|---|---|
 ${sys.roles.light.map((r) => row(r.name, r.job)).join("\n")}
 
-Each color is also a 12-step scale (\`--accent-1\` … \`--accent-12\`). Steps run one way along a lightness curve and have jobs: 1–2 backgrounds, 3–5 component fills (rest, hover, pressed), 6–8 borders, 11–12 text. The brand color sits on step ${sys.scales.accent.anchor.light} and solid buttons use step ${sys.solid.accent.light} (light) / ${sys.solid.accent.dark} (dark); use the \`accent\` role rather than the step. \`palette.js\` regenerates every scale from the seed and curve.
+Each color is also a 12-step scale (\`--primary-1\` … \`--primary-12\`). Steps run one way along a lightness curve and have jobs: 1–2 backgrounds, 3–5 component fills (rest, hover, pressed), 6–8 borders, 11–12 text. The brand color sits on step ${sys.scales.primary.anchor.light} and solid buttons use step ${sys.solid.primary.light} (light) / ${sys.solid.primary.dark} (dark); use the \`primary\` role rather than the step. \`palette.js\` regenerates every scale from the seed and curve.
 
 ### Charts
 
-Data uses its own colors, never the UI roles. \`--chart-1\` … \`--chart-10\` are series colors in a fixed order: use them in order and keep a series' color when filtering. They vary in lightness and were picked to stay apart with protanopia, deuteranopia and tritanopia; every one reaches 3:1 on the page. ${sys.charts.count} or fewer series is the comfortable limit; past that, group the rest as \`--chart-other\`. \`--chart-seq-1\` … \`--chart-seq-9\` are for amounts (light to strong), \`--chart-div-1\` … \`--chart-div-9\` for values above and below a midpoint (\`--chart-div-5\`). Separate touching bars and pie slices with a 1–2px \`--chart-gap\`. Label series directly where you can, so color is never the only cue.
+${chartsDoc(sys)}
 
 ## Typography
 
@@ -776,11 +797,11 @@ Corners are ${isRound}: ${Object.entries(sys.shape.radius)
 
 Built with **${comp.name}** (${comp.url}). Icons: **${icon.name}** only${icon.strokeAware ? `, ${stroke}px stroke to match ${T.body!.weight} weight text` : ""}, sized to the text they sit beside (16px with body, 20px with h3). Styling: **${STYLING[sys.stack.styling].name}**.
 
-- **Primary button:** \`accent\` fill, \`accent-fg\` label, one per view.
+- **Primary button:** \`primary\` fill, \`primary-fg\` label, one per view.
 - **Secondary button:** \`fill\` with \`text\`; hover \`fill-hover\`, pressed \`fill-active\`.
 - **Input:** \`bg\` fill, \`border\` edge, \`border-strong\` on hover, \`ring\` on focus (2px, offset 2px); placeholder \`text-muted\`; error \`danger\` border with \`danger-text\` message.
 - **Card:** \`bg-subtle\`, \`border-subtle\` edge, \`lg\` radius, ${sys.space.gutter}px padding.
-- **Badge:** \`accent-subtle\` with \`accent-text\`; status badges use \`<status>-subtle\` with \`<status>-text\`.
+- **Badge:** \`primary-subtle\` with \`primary-text\`; status badges use \`<status>-subtle\` with \`<status>-text\`.
 
 ## Motion
 
@@ -793,9 +814,9 @@ Durations: ${Object.entries(sys.motion.duration)
 
 ## Do's and Don'ts
 
-- Do use one \`accent\` action per view; everything else is secondary.
+- Do use one \`primary\` action per view; everything else is secondary.
 - Do use roles (\`text\`, \`bg-subtle\`, \`border\`) in components, and raw scale steps only for one-off illustration.
-- Don't put \`text-muted\` on \`accent\`, or body text on any solid fill.
+- Don't put \`text-muted\` on \`primary\`, or body text on any solid fill.
 - Don't add colors, sizes, radii or shadows that aren't tokens. If one is missing, flag it.
 - Don't mix icon sets. ${icon.name} only.
 - Don't use the same radius on nested elements.
@@ -822,8 +843,8 @@ The system lives in \`DESIGN.md\` (rules and rationale) and \`tokens.css\` (ever
 ## Hard rules
 
 1. **Tokens only.** Every color, font size, line height, spacing, radius, shadow, duration and easing comes from a token. No hex codes, no arbitrary px, no Tailwind arbitrary values like \`p-[13px]\`. If a value is missing, say so and stop; don't invent one.
-2. **Roles before steps.** Use role tokens (\`bg\`, \`text\`, \`text-muted\`, \`fill\`, \`border\`, \`accent\`, \`accent-fg\`…). Raw scale steps (\`accent-3\`) only for their documented step job.
-3. **One primary action per view** uses \`accent\`. Everything else is secondary (\`fill\`) or ghost.
+2. **Roles before steps.** Use role tokens (\`bg\`, \`text\`, \`text-muted\`, \`fill\`, \`border\`, \`primary\`, \`primary-fg\`…). Raw scale steps (\`primary-3\`) only for their documented step job.
+3. **One primary action per view** uses \`primary\`. Everything else is secondary (\`fill\`) or ghost.
 4. **Type roles only:** display, h1, h2, h3, body-lg, body, label, caption, code. Never set font-size by hand.
 5. **Icons: ${icon.name} only.**${icon.strokeAware ? ` Stroke ${iconStroke(sys.type.tokens.find((t) => t.role === "body")!.weight)}px.` : ""} Never import a second icon library.
 6. **Components: ${comp.name}.** Extend it; don't add another component library.
@@ -893,7 +914,7 @@ function toPaletteJs(sys: System): string {
   const i = sys.input;
   const curve = i.curve ?? DEFAULT_CURVE;
   // Grays and statuses hold one hue; the brand and added strips bend with the hue shift.
-  const bends = new Set(["accent", ...sys.custom.map((c) => c.key)]);
+  const bends = new Set(["primary", ...sys.custom.map((c) => c.key)]);
   const scales = Object.fromEntries(
     scaleNames(sys).map((k) => [k, { ...sys.scales[k]!.seed, bend: bends.has(k) }]),
   );

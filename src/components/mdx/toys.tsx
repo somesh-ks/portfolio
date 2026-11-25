@@ -67,7 +67,3 @@ export const TabularNumbersDemo = dynamic(() =>
 export const ClaudeRunner = dynamic(() =>
   import("../runner/ClaudeRunner").then((m) => m.ClaudeRunner),
 );
-/** @public used by MDX through the namespace import */
-export const SpringWorkbench = dynamic(() =>
-  import("../experiments/spring/Tools").then((m) => m.SpringWorkbench),
-);

@@ -3,11 +3,12 @@
  * exports, audit fixes, the share link) goes through buildSystem, so the
  * input is the only state the app keeps.
  */
-import { buildCharts, type ChartInput, type Charts } from "./charts";
+import { buildCharts, suggest, type Charts, type DataColor, type Ramps } from "./charts";
 import {
   buildNeutral,
   buildScale,
   contrast,
+  freshName,
   parseColor,
   swatch,
   type BuiltScale,
@@ -36,21 +37,23 @@ export type ContrastTarget = "aa" | "aaa" | "apca";
 export interface SystemInput {
   v: 1;
   name: string;
-  accent: { hue: number; chroma: number; solidL?: number; label?: Label };
+  primary: { hue: number; chroma: number; solidL?: number; label?: Label };
   /** 0 = pure gray, 1 = clearly tinted. */
   neutralTint: number;
-  /** Hue the neutrals lean toward. Defaults to the accent hue; set it for warm or cool grays. */
+  /** Hue the neutrals lean toward. Defaults to the primary hue; set it for warm or cool grays. */
   neutralHue?: number;
   /** The palette's lightness curve and hue shift; DEFAULT_CURVE when absent. */
   curve?: Curve;
-  /** Status colors the user set, as hex; the rest stay clear of the accent on their own. */
+  /** Status colors the user set, as hex; the rest stay clear of the primary on their own. */
   status?: Partial<Record<StatusName, string>>;
   /** Extra color strips the user added: a name and a seed hex each. */
   colors?: { name: string; hex: string }[];
   /** "aa" when absent. */
   contrast?: ContrastTarget;
-  /** Chart palettes: how many series to grade, and the diverging scale's other hue. */
-  charts?: ChartInput;
+  /** Data colors in chart order. Absent: six suggested from the primary. Empty: none. */
+  data?: DataColor[];
+  /** Which data colors the sequential and diverging ramps use, by position. */
+  ramps?: Ramps;
   type: TypeInput;
   /** 0 compact, 0.5 default, 1 comfortable. */
   density: number;
@@ -64,7 +67,7 @@ export interface SystemInput {
 export const DEFAULT_INPUT: SystemInput = {
   v: 1,
   name: "Untitled",
-  accent: { hue: 264, chroma: 0.2 },
+  primary: { hue: 264, chroma: 0.2 },
   neutralTint: 0.3,
   type: {
     body: "Inter",
@@ -90,7 +93,7 @@ export function inputFromSeed(seed: string, name = "Untitled"): SystemInput {
   return {
     ...DEFAULT_INPUT,
     name,
-    accent: {
+    primary: {
       hue: Math.round((c.h || 0) * 10) / 10,
       // Rounded as the share link stores them, so a link rebuilds the same palette.
       chroma: r4(neutralish ? 0.02 : Math.min(0.3, Math.max(0.06, c.c))),
@@ -112,28 +115,28 @@ export const STATUS_RANGE: Record<StatusName, [number, number]> = {
 const hueGap = (a: number, b: number) => Math.abs(((((a - b) % 360) + 540) % 360) - 180);
 
 /**
- * A status hue that stays clear of the accent: a red brand still gets a
+ * A status hue that stays clear of the primary: a red brand still gets a
  * danger color you can tell apart from it, a green brand a distinct success.
  */
 function statusHue(
   name: StatusName,
-  accentHue: number,
-  accentChroma: number,
+  primaryHue: number,
+  primaryChroma: number,
   set?: number,
 ): number {
   const [lo0, hi0] = STATUS_RANGE[name];
   if (set !== undefined) return (Math.min(hi0, Math.max(lo0, set)) + 360) % 360;
   const base = STATUS_HUES[name];
-  if (accentChroma < 0.05 || hueGap(base, accentHue) >= 25) return base;
+  if (primaryChroma < 0.05 || hueGap(base, primaryHue) >= 25) return base;
   const [lo, hi] = STATUS_RANGE[name];
-  const best = hueGap(lo, accentHue) > hueGap(hi, accentHue) ? lo : hi;
+  const best = hueGap(lo, primaryHue) > hueGap(hi, primaryHue) ? lo : hi;
   return (best + 360) % 360;
 }
-export type ScaleName = "accent" | "neutral" | StatusName;
+export type ScaleName = "primary" | "neutral" | StatusName;
 
 /** Names a custom strip can't take: the built-in scales and the role words. */
 const RESERVED = new Set([
-  "accent",
+  "primary",
   "neutral",
   ...Object.keys(STATUS_HUES),
   "bg",
@@ -161,7 +164,7 @@ function stripKeys(colors: { name: string }[]): string[] {
 /** How many strips a person can add. */
 export const MAX_STRIPS = 6;
 
-/** A strip the user added, built like the accent. */
+/** A strip the user added, built like the primary. */
 interface CustomStrip {
   name: string;
   key: string;
@@ -172,7 +175,7 @@ interface Role {
   name: string;
   hex: string;
   css: string;
-  /** e.g. "neutral.12" or "on accent.9" */
+  /** e.g. "neutral.12" or "on primary.9" */
   from: string;
   job: string;
 }
@@ -204,7 +207,9 @@ export interface System {
   shape: Shape;
   shadows: Record<Mode, Shadow>;
   motion: Motion;
-  /** Categorical, sequential and diverging palettes for data, from the same brand. */
+  /** Data colors in chart order (the suggested ones when the input has none), built like strips. */
+  data: CustomStrip[];
+  /** Marks, ramps and checks for the data colors. */
   charts: Charts;
   stack: StackPicks;
   stackReasons: Record<keyof StackPicks, string>;
@@ -338,14 +343,14 @@ function buildRoles(
     r("border-strong", "neutral", 8, "Hovered borders, emphasis"),
     r("text-muted", "neutral", 11, "Secondary text, placeholders, icons"),
     r("text", "neutral", 12, "Body and heading text"),
-    r("accent", "accent", at("accent"), "Primary action, one per view"),
-    r("accent-hover", "accent", hover("accent"), "Hovered primary action"),
-    on("accent-fg", "accent", "Text and icons on accent"),
-    r("accent-subtle", "accent", 3, "Selected rows, soft badges"),
-    r("accent-subtle-hover", "accent", 4, "Hovered soft accent"),
-    r("accent-border", "accent", 7, "Borders of accent-subtle elements"),
-    r("accent-text", "accent", 11, "Links and accent text on bg"),
-    r("ring", "accent", at("accent"), "Focus ring"),
+    r("primary", "primary", at("primary"), "Primary action, one per view"),
+    r("primary-hover", "primary", hover("primary"), "Hovered primary action"),
+    on("primary-fg", "primary", "Text and icons on primary"),
+    r("primary-subtle", "primary", 3, "Selected rows, soft badges"),
+    r("primary-subtle-hover", "primary", 4, "Hovered soft primary"),
+    r("primary-border", "primary", 7, "Borders of primary-subtle elements"),
+    r("primary-text", "primary", 11, "Links and primary text on bg"),
+    r("ring", "primary", at("primary"), "Focus ring"),
   ];
   for (const s of Object.keys(STATUS_HUES) as StatusName[]) {
     roles.push(
@@ -372,10 +377,10 @@ const BASE_PAIRS: Array<[fg: string, bg: string, min: Level, why: string, adviso
   ["text-muted", "bg", "text", "Secondary text"],
   ["text-muted", "bg-subtle", "text", "Secondary text on cards"],
   ["text-muted", "fill", "text", "Placeholders in inputs"],
-  ["accent-fg", "accent", "text", "Primary button label"],
-  ["accent-fg", "accent-hover", "text", "Hovered primary button label"],
-  ["accent-text", "bg", "text", "Links"],
-  ["accent-text", "accent-subtle", "text", "Text in soft accent badges"],
+  ["primary-fg", "primary", "text", "Primary button label"],
+  ["primary-fg", "primary-hover", "text", "Hovered primary button label"],
+  ["primary-text", "bg", "text", "Links"],
+  ["primary-text", "primary-subtle", "text", "Text in soft primary badges"],
   ["ring", "bg", "ui", "Focus ring is visible (WCAG 2.4.13)"],
   ["border-strong", "bg", "ui", "Control edges alone identify the control (WCAG 1.4.11)", true],
   ...(Object.keys(STATUS_HUES) as StatusName[]).flatMap(
@@ -402,29 +407,50 @@ function runChecks(roles: Role[], m: Meter, custom: CustomStrip[]): Check[] {
   });
 }
 
+/** Plain hue names for suggested seeds, each kept clear of the ones before it. */
+function named(seeds: string[]): DataColor[] {
+  const out: DataColor[] = [];
+  for (const hex of seeds)
+    out.push({
+      name: freshName(
+        parseColor(hex)!,
+        out.map((c) => c.name),
+      ),
+      hex,
+    });
+  return out;
+}
+
 export function buildSystem(input: SystemInput): System {
   // Hue shift bends the brand's own strips; grays and statuses keep one hue so they stay themselves.
   const flat = input.curve ? { ...input.curve, hueShift: 0 } : undefined;
   // A muted brand gets calmer statuses; a floor keeps them recognisable.
-  const calm = Math.min(1, Math.max(0.6, input.accent.chroma / 0.15));
+  const calm = Math.min(1, Math.max(0.6, input.primary.chroma / 0.15));
   const status = (name: StatusName, chroma: number, solidL: number) => {
     const set = input.status?.[name] ? parseColor(input.status[name]) : null;
     return buildScale({
-      hue: statusHue(name, input.accent.hue, input.accent.chroma, set?.h),
+      hue: statusHue(name, input.primary.hue, input.primary.chroma, set?.h),
       chroma: set ? Math.min(0.3, Math.max(0.06, set.c)) : chroma * calm,
       solidL,
       curve: flat,
     });
   };
-  const keys = stripKeys(input.colors ?? []);
-  const custom: CustomStrip[] = (input.colors ?? []).map((c, i) => ({
+  const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
+  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
+  const dataIn = input.data ?? named(suggest(input.primary, 6, pages, input.curve));
+  const colorsIn = input.colors ?? [];
+  // UI and data strips share one token namespace, so "blue" in both becomes blue and blue-2.
+  const keys = stripKeys([...colorsIn, ...dataIn]);
+  const strip = (c: DataColor, i: number): CustomStrip => ({
     name: c.name,
     hex: c.hex,
     key: keys[i]!,
-  }));
+  });
+  const custom = colorsIn.map(strip);
+  const data = dataIn.map((c, i) => strip(c, colorsIn.length + i));
   const scales: System["scales"] = {
-    accent: buildScale({ ...input.accent, curve: input.curve }),
-    neutral: buildNeutral(input.neutralHue ?? input.accent.hue, input.neutralTint, flat),
+    primary: buildScale({ ...input.primary, curve: input.curve }),
+    neutral,
     danger: status("danger", 0.2, 0.55),
     warning: status("warning", 0.16, 0.82),
     success: status("success", 0.15, 0.52),
@@ -441,6 +467,15 @@ export function buildSystem(input: SystemInput): System {
       });
   }
   const strips = custom.filter((c) => scales[c.key]);
+  for (const c of data) {
+    const seed = parseColor(c.hex)!;
+    scales[c.key] = buildScale({
+      hue: seed.h,
+      chroma: seed.c,
+      solidL: Math.min(0.9, Math.max(0.35, seed.l)),
+      curve: input.curve,
+    });
+  }
 
   // Fix contrast at the source, so every export inherits passing pairs.
   const m = meter(input.contrast ?? "aa");
@@ -459,26 +494,26 @@ export function buildSystem(input: SystemInput): System {
       );
     if (nudge(scales, "neutral", mode, 12, [n(1), n(2), n(3)], "strong", m))
       adjustments.push(`neutral.12 (${mode}) adjusted to reach ${said(m, "strong")}.`);
-    for (const name of ["accent", ...Object.keys(STATUS_HUES), ...strips.map((c) => c.key)]) {
+    for (const name of ["primary", ...Object.keys(STATUS_HUES), ...strips.map((c) => c.key)]) {
       const scale = scales[name]!;
       labels[name]![mode] = solidLabel(
         scale,
         mode,
         m,
-        name === "accent" ? (input.accent.label ?? "auto") : "auto",
+        name === "primary" ? (input.primary.label ?? "auto") : "auto",
       );
       const step = solidStep(scale, mode, labels[name]![mode], m);
       solid[name] = { ...solid[name]!, [mode]: step };
-      if (name === "accent" && step !== scale.anchor[mode])
+      if (name === "primary" && step !== scale.anchor[mode])
         adjustments.push(
           `Brand color sits on step ${scale.anchor[mode]} (${mode}); buttons use step ${step} so their label reaches ${said(m, "text")}.`,
         );
       const subtle = get(scales, name, mode, 3).hex;
-      if (nudge(scales, name, mode, 11, [n(1), n(2), subtle], "text", m) && name === "accent")
+      if (nudge(scales, name, mode, 11, [n(1), n(2), subtle], "text", m) && name === "primary")
         adjustments.push(`${name}.11 (${mode}) adjusted to reach ${said(m, "text")} as text.`);
-      if (name === "accent" && m.score(get(scales, name, mode, step).hex, n(1)) < m.bar("ui"))
+      if (name === "primary" && m.score(get(scales, name, mode, step).hex, n(1)) < m.bar("ui"))
         adjustments.push(
-          `accent.${step} (${mode}) is under ${said(m, "ui")} on bg; the focus ring uses accent.11 instead.`,
+          `primary.${step} (${mode}) is under ${said(m, "ui")} on bg; the focus ring uses primary.11 instead.`,
         );
     }
   }
@@ -490,8 +525,8 @@ export function buildSystem(input: SystemInput): System {
   for (const mode of ["light", "dark"] as Mode[]) {
     const ring = roles[mode].find((r) => r.name === "ring")!;
     if (m.score(ring.hex, roles[mode][0]!.hex) < m.bar("ui")) {
-      const alt = get(scales, "accent", mode, 11);
-      Object.assign(ring, { hex: alt.hex, css: alt.css, from: "accent.11" });
+      const alt = get(scales, "primary", mode, 11);
+      Object.assign(ring, { hex: alt.hex, css: alt.css, from: "primary.11" });
     }
   }
   const rec = recommend(input.stack);
@@ -507,18 +542,21 @@ export function buildSystem(input: SystemInput): System {
     space: buildSpace(input.density),
     shape: buildShape(input.roundness),
     shadows: {
-      light: buildShadows(input.neutralHue ?? input.accent.hue, "light"),
-      dark: buildShadows(input.neutralHue ?? input.accent.hue, "dark"),
+      light: buildShadows(input.neutralHue ?? input.primary.hue, "light"),
+      dark: buildShadows(input.neutralHue ?? input.primary.hue, "dark"),
     },
     motion: buildMotion(input.motion),
+    data,
     charts: {
       ...buildCharts(
-        input.accent,
+        data.map((c) => c.key),
+        scales,
+        scales.neutral,
         {
           light: get(scales, "neutral", "light", 1).hex,
           dark: get(scales, "neutral", "dark", 1).hex,
         },
-        input.charts,
+        input.ramps,
       ),
       // "Other" is the neutral solid: quiet, but still 3:1 on the page.
       other: {
