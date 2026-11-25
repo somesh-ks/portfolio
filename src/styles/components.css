@@ -172,7 +172,7 @@ main:focus {
   font-weight: 500;
 }
 .contact-card__line {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 .contact-card__mark {
   flex-shrink: 0;
@@ -183,16 +183,16 @@ main:focus {
   height: auto;
 }
 .contrib [data-level="0"] {
-  fill: var(--border-default);
+  fill: color-mix(in oklch, var(--text-primary) 8%, var(--surface-raised));
 }
 .contrib [data-level="1"] {
-  fill: color-mix(in oklch, var(--text-success) 35%, var(--surface-raised));
+  fill: color-mix(in oklch, var(--text-success) 45%, var(--surface-raised));
 }
 .contrib [data-level="2"] {
-  fill: color-mix(in oklch, var(--text-success) 60%, var(--surface-raised));
+  fill: color-mix(in oklch, var(--text-success) 65%, var(--surface-raised));
 }
 .contrib [data-level="3"] {
-  fill: color-mix(in oklch, var(--text-success) 80%, var(--surface-raised));
+  fill: color-mix(in oklch, var(--text-success) 82%, var(--surface-raised));
 }
 .contrib [data-level="4"] {
   fill: var(--text-success);
@@ -209,18 +209,20 @@ html[data-egg="crt"] body::after {
   background: repeating-linear-gradient(
     to bottom,
     transparent 0 2px,
-    color-mix(in oklch, var(--text-primary) 7%, transparent) 2px 3px
+    color-mix(in oklch, var(--text-primary) var(--crt-line, 4%), transparent) 2px 3px
   );
 }
-html[data-egg="crt"] body {
-  text-shadow: 0 0 0.35em color-mix(in oklch, var(--text-success) 35%, transparent);
+/* Dark only (next-themes always sets the resolved theme): stronger lines and a faint phosphor glow, invisible on white. */
+html[data-egg="crt"][data-theme="dark"] body {
+  --crt-line: 7%;
+  text-shadow: 0 0 0.35em color-mix(in oklch, var(--text-success) 45%, transparent);
 }
 .egg-status {
   position: fixed;
-  left: var(--space-4);
-  bottom: var(--space-4);
+  left: max(var(--space-6), env(safe-area-inset-left));
+  bottom: max(var(--space-6), env(safe-area-inset-bottom));
   z-index: 101;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   background: var(--surface-raised);
   font-family: var(--font-mono);
