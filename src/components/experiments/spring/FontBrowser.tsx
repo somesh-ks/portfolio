@@ -39,11 +39,33 @@ const metaOf = (r: Row): FontMeta => ({
   variable: r[3] || null,
 });
 
-/** css2 with text= returns only the glyphs the sample needs: a few KB per family. */
-const sampleUrl = (family: string, text: string) =>
-  `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, "+")}&text=${encodeURIComponent(
+/**
+ * css2 with text= returns only the glyphs the sample needs: a few KB per family.
+ * Those faces load under a private alias. Under the real name, a subset face
+ * would shadow the full one, and any page text in that family (the UI's own
+ * mono included) would fall back letter by letter.
+ */
+const samples = new Map<string, string>();
+function sampleFamily(family: string, text: string): string {
+  const url = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, "+")}&text=${encodeURIComponent(
     [...new Set(text)].join(""),
   )}&display=swap`;
+  let alias = samples.get(url);
+  if (!alias) {
+    alias = `spring-sample-${samples.size}`;
+    samples.set(url, alias);
+    const name = alias;
+    void fetch(url)
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((css) => {
+        const style = document.createElement("style");
+        style.textContent = css.replace(/font-family:\s*'[^']*'/g, `font-family: '${name}'`);
+        document.head.append(style);
+      })
+      .catch(() => samples.delete(url));
+  }
+  return alias;
+}
 
 export function FontBrowser({
   role,
@@ -150,15 +172,6 @@ export function FontBrowser({
             ? `${shown.length} fonts with exact fallbacks and size hints`
             : `${shown.length.toLocaleString("en")} fonts${q ? "" : ", most used first"}`}
       </p>
-      {/* Each card loads only the letters of its sample, in that family. */}
-      {page.map((r) => (
-        <link
-          key={r[0]}
-          rel="stylesheet"
-          href={sampleUrl(r[0], text + r[0])}
-          precedence="default"
-        />
-      ))}
       <ul className="spring-fonts__list">
         {page.map((r) => {
           const on = current[role] === r[0];
@@ -175,7 +188,11 @@ export function FontBrowser({
                 aria-pressed={on}
                 onClick={() => onPick(role, r[0], metaOf(r))}
               >
-                <span className="spring-font__sample" style={{ fontFamily: `"${r[0]}"` }}>
+                <span
+                  className="spring-font__sample"
+                  // Each card loads only the letters of its sample, in that family.
+                  style={{ fontFamily: `"${sampleFamily(r[0], text + r[0])}", "${r[0]}"` }}
+                >
                   {text}
                 </span>
                 <span className="spring-font__meta">
