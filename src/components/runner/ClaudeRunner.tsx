@@ -36,6 +36,7 @@ import { WORLD } from "@/lib/runner/sim";
 import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
 import { isSky, localNight, weatherLabel, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
+import { beatUrl, parseBeat, shareText } from "@/lib/runner/share";
 
 /** `?weather=snow` or `?weather=rain-night` shows any sky, for QA and the curious. */
 function weatherOverride(): Weather | null {
@@ -213,6 +214,8 @@ export function ClaudeRunner() {
   /** A score is waiting for a name: the crash scene holds until it's saved. */
   const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
   const [announcement, setAnnouncement] = useState("");
+  /** A score to beat from a shared link (?beat=), and whether a share just copied. */
+  const [shared, setShared] = useState(false);
   const nameId = useId();
 
   useEffect(() => () => engine.current?.destroy(), []);
@@ -221,6 +224,12 @@ export function ClaudeRunner() {
     noSubscribe,
     () => Number(readStorage(BEST_KEY)) || 0,
     () => 0,
+  );
+  /** A score to beat, from a shared link (?beat=). */
+  const beat = useSyncExternalStore(
+    noSubscribe,
+    () => parseBeat(window.location.search),
+    () => null,
   );
 
   const loadBoard = useCallback(async () => {
@@ -441,6 +450,33 @@ export function ClaudeRunner() {
   }, [immersive]);
   const expanded = fullscreen || immersive;
 
+  const share = useCallback(async () => {
+    if (points <= 0) return;
+    const url = beatUrl(window.location.href, points);
+    const text = shareText(points, beat);
+    // Phones get the share sheet; everyone else gets the line and link copied.
+    if (input === "touch" && typeof navigator.share === "function") {
+      await navigator.share({ text, url }).catch(() => {});
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShared(true);
+      setAnnouncement("Score link copied.");
+      window.setTimeout(() => setShared(false), 1500);
+    } catch {
+      // A denied clipboard shows nothing; the score is still on screen.
+    }
+  }, [points, beat, input]);
+  const shareRef = useRef(share);
+  useEffect(() => {
+    shareRef.current = share;
+  }, [share]);
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
   // C, F and M work whenever the game is on screen: with nothing focused, or
   // focus anywhere in the runner. Never while typing, and never Space (it
   // scrolls the page; jumps stay on the focused game).
@@ -457,6 +493,7 @@ export function ClaudeRunner() {
       if (key === "c") cycleCostume();
       else if (key === "f") void toggleFullscreen();
       else if (key === "m") toggleSound();
+      else if (key === "s" && phaseRef.current === "over") void shareRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -510,7 +547,15 @@ export function ClaudeRunner() {
           {pad(points)}
         </span>
         <span className="runner__hi" aria-hidden="true">
-          HI SCORE <span className="runner__best">{pad(Math.max(best, storedBest))}</span>
+          {beat !== null && beat >= Math.max(best, storedBest) ? (
+            <>
+              BEAT <span className="runner__best">{pad(beat)}</span>
+            </>
+          ) : (
+            <>
+              HI SCORE <span className="runner__best">{pad(Math.max(best, storedBest))}</span>
+            </>
+          )}
         </span>
         <button
           type="button"
@@ -544,7 +589,7 @@ export function ClaudeRunner() {
         tabIndex={0}
         role="application"
         aria-roledescription="game"
-        aria-label="Click or press Enter to play, Space to jump. C changes character, F fullscreen, M sound."
+        aria-label="Click or press Enter to play, Space to jump. C changes character, F fullscreen, M sound, S shares your score."
         onPointerDown={(event) => {
           if (event.button !== 0 || (event.target as HTMLElement).closest("button, input, form"))
             return;
@@ -629,13 +674,30 @@ export function ClaudeRunner() {
                 {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
               </form>
             ) : null}
-            <button
-              type="button"
-              className="runner__action"
-              onClick={() => ready && void startRun()}
-            >
-              <Key click="CLICK TO" touch="TAP TO" /> RETRY
-            </button>
+            <span className="runner__row">
+              <button
+                type="button"
+                className="runner__action"
+                onClick={() => ready && void startRun()}
+              >
+                <Key click="CLICK TO" touch="TAP TO" /> RETRY
+              </button>
+              {points > 0 ? (
+                <button
+                  type="button"
+                  className="runner__action"
+                  aria-keyshortcuts="S"
+                  onClick={(event) => {
+                    void share();
+                    // A pointer click hands focus back so Space and Enter retry.
+                    if (event.detail > 0) screen.current?.focus({ preventScroll: true });
+                  }}
+                >
+                  <Key keyName="S" />{" "}
+                  {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}
+                </button>
+              ) : null}
+            </span>
           </div>
         ) : null}
       </div>
