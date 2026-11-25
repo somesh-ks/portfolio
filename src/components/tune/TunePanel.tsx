@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import type { RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import { Segmented } from "@/components/experiments/Segmented";
 import { Dial } from "@/components/ui/Dial";
 import { isDefault, TUNE_DEFAULT, TUNE_RANGE, type Tune } from "@/lib/tune";
@@ -12,6 +12,8 @@ export interface TunePanelProps {
   tune: Tune;
   onTune: (tune: Tune) => void;
   returnFocus: RefObject<HTMLButtonElement | null>;
+  /** Called once the panel has mounted, so it can open with its grow transition. */
+  onReady?: () => void;
 }
 
 const SIZES = ["14", "15", "16"] as const;
@@ -26,7 +28,9 @@ export default function TunePanel({
   tune,
   onTune,
   returnFocus,
+  onReady,
 }: TunePanelProps) {
+  useEffect(() => onReady?.(), [onReady]);
   const set = (patch: Partial<Tune>) => onTune({ ...tune, ...patch });
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange} modal={false} disablePointerDismissal>

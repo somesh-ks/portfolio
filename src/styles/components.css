@@ -3322,7 +3322,7 @@ claude-mascot:defined > * {
   position: fixed;
   right: max(var(--space-6), env(safe-area-inset-right));
   bottom: max(var(--space-6), env(safe-area-inset-bottom));
-  z-index: 40;
+  z-index: 42;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -3344,16 +3344,28 @@ claude-mascot:defined > * {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-/* The panel takes the button's place while it's open. */
+/* The panel grows out of the button, so the button hands over in the same frame,
+   and comes back only once the panel has folded down onto it. */
+/* It sits above the panel; its own box goes clear at once so the frame carries the
+   border and fill, and only the label fades over the growth and back in over the fold. */
 .tune-button[data-open] {
   opacity: 0;
-  transform: scale(0.96);
   visibility: hidden;
-  /* Fade first, then leave the tab order. */
+  pointer-events: none;
+  background: transparent;
+  border-color: transparent;
   transition:
-    opacity var(--duration-popover) var(--ease-out),
-    transform var(--duration-popover) var(--ease-out),
-    visibility 0s linear var(--duration-popover);
+    opacity 80ms ease-out,
+    visibility 0s linear 80ms;
+}
+.tune-button:not([data-open]) {
+  transition:
+    opacity 100ms ease-out calc(var(--tune-fold) + var(--tune-fold-delay) - 100ms),
+    background-color 0s linear calc(var(--tune-fold) + var(--tune-fold-delay)),
+    border-color 0s linear calc(var(--tune-fold) + var(--tune-fold-delay));
+}
+.tune-button:not([data-open]):hover {
+  transition: border-color var(--duration-press) ease;
 }
 .tune-button__cursor {
   display: none;
@@ -3369,26 +3381,69 @@ claude-mascot:defined > * {
   display: block;
   background: oklch(62% 0.13 var(--swatch-h));
 }
+/* Open: the frame grows from the button's footprint to the panel's box, then the
+   controls fade in. Close runs it backwards. --tune-from-w/h come from the button,
+   measured as it opens and closes (src/components/tune/TuneToy.tsx). */
+:root {
+  --tune-grow: 260ms;
+  --tune-fold: 180ms;
+  /* The controls fade out first; the box folds after them. */
+  --tune-fold-delay: 40ms;
+  --tune-fold-ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
 .tune-panel {
+  --from-r: 0px;
+  --from-b: 0px;
   position: fixed;
   right: max(var(--space-6), env(safe-area-inset-right));
   bottom: max(var(--space-6), env(safe-area-inset-bottom));
   z-index: 41;
+  isolation: isolate;
   width: 18rem;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-raised);
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
-  transform-origin: bottom right;
-  transition:
-    opacity var(--duration-popover) var(--ease-out),
-    transform var(--duration-popover) var(--ease-out);
 }
-.tune-panel[data-starting-style],
-.tune-panel[data-ending-style] {
+/* The frame: the panel's border and fill, drawn on their own so they can grow. */
+.tune-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  transition:
+    inset var(--tune-grow) var(--ease-out),
+    border-color var(--tune-grow) var(--ease-out),
+    border-width var(--tune-grow) var(--ease-out);
+}
+.tune-panel[data-starting-style]::before,
+.tune-panel[data-ending-style]::before {
+  inset: calc(100% - var(--tune-from-h, 2.25rem) - var(--from-b)) var(--from-r) var(--from-b)
+    calc(100% - var(--tune-from-w, 5rem) - var(--from-r));
+  border-color: var(--tune-from-border, var(--border-default));
+}
+.tune-panel[data-ending-style]::before {
+  transition:
+    inset var(--tune-fold) var(--tune-fold-ease) var(--tune-fold-delay),
+    border-color var(--tune-fold) var(--tune-fold-ease) var(--tune-fold-delay),
+    border-width var(--tune-fold) var(--tune-fold-ease) var(--tune-fold-delay);
+}
+/* Controls arrive once the box has mostly grown, and leave before it folds. */
+.tune-panel > * {
+  transition: opacity 140ms ease-out 110ms;
+}
+.tune-panel[data-starting-style] > *,
+.tune-panel[data-ending-style] > * {
   opacity: 0;
-  transform: scale(0.9);
+}
+.tune-panel[data-ending-style] > * {
+  transition: opacity 60ms ease-in;
+}
+/* Base UI waits on the popup's own transitions before unmounting; this one spans the fold. */
+.tune-panel[data-ending-style] {
+  opacity: 0.99;
+  transition: opacity 0s linear calc(var(--tune-fold) + var(--tune-fold-delay));
 }
 .tune-panel__head,
 .tune-panel__foot {
@@ -3548,21 +3603,32 @@ claude-mascot:defined > * {
     width: 0.5rem;
     height: 0.5rem;
   }
+  /* The sheet grows out of the corner button: same footprint, then the full width. */
   .tune-panel {
+    --from-r: max(var(--space-4), env(safe-area-inset-right));
+    --from-b: max(var(--space-4), env(safe-area-inset-bottom));
+    --tune-from-border: var(--border-strong);
     right: 0;
     bottom: 0;
     left: 0;
+    display: flex;
+    flex-direction: column;
     width: auto;
     max-height: 75vh;
     max-height: 75dvh;
-    overflow-y: auto;
-    border-width: 1px 0 0;
     padding-bottom: env(safe-area-inset-bottom);
-    transform-origin: bottom center;
   }
-  .tune-panel[data-starting-style],
-  .tune-panel[data-ending-style] {
-    transform: translateY(1.5rem);
+  .tune-panel::before {
+    border-width: 1px 0 0;
+  }
+  .tune-panel[data-starting-style]::before,
+  .tune-panel[data-ending-style]::before {
+    border-width: 1px;
+  }
+  /* Only the controls scroll on a short screen; the frame stays put behind them. */
+  .tune-panel__body {
+    min-height: 0;
+    overflow-y: auto;
   }
   /* Head, body and foot share one 16px edge. */
   .tune-panel__head,
@@ -3597,21 +3663,36 @@ claude-mascot:defined > * {
     opacity: 0;
     visibility: hidden;
   }
-  /* The runner's footer buttons end short of the corner button, so it never covers them:
-     the button's width, a gap, and the fullscreen icon's hit area overhanging its glyph. */
-  .page:has(.tune-button) .runner:not(:fullscreen, [data-immersive]) .runner__foot {
-    padding-right: calc(var(--space-4) + 2.75rem + var(--space-2) + (2.75rem - 18px) / 2);
-  }
   /* Room at the end so the button never covers the footer. */
   .page:has(.tune-button) {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 }
+/* Reduced motion: no growing box, just a short crossfade. */
 @media (prefers-reduced-motion: reduce) {
-  .tune-button,
-  .tune-button[data-open],
+  .tune-panel::before,
+  .tune-panel[data-ending-style]::before {
+    transition: none;
+  }
+  .tune-panel[data-starting-style]::before,
+  .tune-panel[data-ending-style]::before {
+    inset: 0;
+    border-color: var(--border-strong);
+  }
+  .tune-panel > *,
+  .tune-panel[data-ending-style] > * {
+    transition: opacity 120ms ease-out;
+  }
   .tune-panel[data-starting-style],
   .tune-panel[data-ending-style] {
-    transform: none;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+  .tune-panel {
+    transition: opacity 120ms ease-out;
+  }
+  .tune-button:not([data-open]),
+  .tune-button[data-open] {
+    transition: none;
   }
 }
