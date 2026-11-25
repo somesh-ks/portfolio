@@ -54,42 +54,6 @@ const LOOPS: Record<Costume, readonly [number, number]> = {
   car: [13, 29],
 };
 
-/** Rides drawn smaller than their source art: the car is twice the others'
- * length, so it rides at two thirds. */
-const SCALE: Partial<Record<Costume, number>> = { car: 2 / 3 };
-
-/** Box resample of every frame: each output pixel takes the most common
- * colour under it (empty loses ties), and a dark eye pixel always survives,
- * so faces, wheels and stripes stay readable instead of breaking up. */
-function scaleFrames(raw: RawSprite, frames: Uint8Array[], scale: number) {
-  const w = Math.round(raw.w * scale);
-  const h = Math.round(raw.h * scale);
-  const darkest = raw.palette.findIndex((hex) => hex.toLowerCase() === "#141413");
-  const scaled = frames.map((pixels) => {
-    const out = new Uint8Array(w * h).fill(255);
-    for (let y = 0; y < h; y += 1)
-      for (let x = 0; x < w; x += 1) {
-        const counts = new Map<number, number>();
-        const x0 = Math.floor(x / scale);
-        const x1 = Math.max(x0 + 1, Math.ceil((x + 1) / scale));
-        const y0 = Math.floor(y / scale);
-        const y1 = Math.max(y0 + 1, Math.ceil((y + 1) / scale));
-        for (let sy = y0; sy < Math.min(y1, raw.h); sy += 1)
-          for (let sx = x0; sx < Math.min(x1, raw.w); sx += 1) {
-            const value = pixels[sy * raw.w + sx] ?? 255;
-            counts.set(value, (counts.get(value) ?? 0) + (value === 255 ? 0.9 : 1));
-          }
-        let best = 255;
-        let most = 0;
-        for (const [value, count] of counts) if (count > most) [best, most] = [value, count];
-        if (darkest >= 0 && counts.has(darkest) && best !== 255) best = darkest;
-        out[y * w + x] = best;
-      }
-    return out;
-  });
-  return { raw: { ...raw, w, h }, frames: scaled };
-}
-
 /** The front of the body collides; a long car's tail is forgiven. */
 const MAX_HIT_WIDTH = 20;
 
@@ -194,11 +158,9 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
 }
 
 export function buildSprite(source: RawSprite, costume: Costume): Sprite {
-  const scale = SCALE[costume];
-  const decoded = decodePixels(source);
-  const { raw, frames: all } = scale
-    ? scaleFrames(source, decoded, scale)
-    : { raw: source, frames: decoded };
+  if (costume === "car") return carSprite();
+  const raw = source;
+  const all = decodePixels(source);
   const [start, end] = LOOPS[costume];
   const flown = all.slice(start, end);
   const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
@@ -214,6 +176,85 @@ export function buildSprite(source: RawSprite, costume: Costume): Sprite {
     idle: toRects(raw, all[0] ?? new Uint8Array(), box),
     width,
     hitbox: { x: front - hit + 2, w: hit - 4 },
+  };
+}
+
+/** The car is drawn by hand at game size: a scaled-down copy of the big
+ * source art broke its wheels and face into noise. A low racer, Claude in
+ * the cockpit, rear wing behind, and wheels whose rims turn. */
+const CAR_BODY = [
+  "..............CCCCCCCCCC............",
+  ".............SCCCCCCCCCC............",
+  ".............SCKKCCCCKKC............",
+  ".............SCKKCCCCKKC............",
+  "KKKKKK.....CCSCCCCCCCCCCCC..........",
+  "KCCCCK.....CCSCCCCCCCCCCCC..........",
+  "KKKKKK...KKKKKKKKKKKKKKKKKKKK.......",
+  "...KK...KWWWWWWWWWWWWWWWWWWWWKKKK...",
+  "...KKKKKBBBBBBBBBBBBBBBBBBBBBBBBBKK.",
+  "..KBBBBBCCCCCCCCCCCCCCCCCCCCCCCBBBBK",
+  "..KBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBKK.",
+  "...KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK...",
+];
+/** Two turns of a wheel: the rim's light marks swap from top and bottom to
+ * the sides. */
+const CAR_WHEELS = [
+  ["..KKKK..", ".KDWWDK.", "KDDDDDDK", "KDDGGDDK", "KDDGGDDK", "KDDDDDDK", ".KDWWDK.", "..KKKK.."],
+  ["..KKKK..", ".KDDDDK.", "KDDDDDDK", "KWDGGDWK", "KWDGGDWK", "KDDDDDDK", ".KDDDDK.", "..KKKK.."],
+];
+const CAR_COLOURS: Record<string, string> = {
+  K: "#141413",
+  C: "#d97757",
+  S: "#be684d",
+  W: "#f9f8f4",
+  // A mid grey body reads on both the light and the dark page.
+  B: "#9b9a91",
+  D: "#2f2f2d",
+  G: "#5d5d58",
+};
+const CAR_HEIGHT = 16;
+const CAR_WHEEL_TOP = 8;
+const CAR_AXLES = [4, 25];
+
+function carFrame(wheel: readonly string[]): SpriteRect[] {
+  const grid = Array.from({ length: CAR_HEIGHT }, (_, y) => [
+    ...(CAR_BODY[y] ?? "").padEnd(36, "."),
+  ]);
+  for (const x0 of CAR_AXLES)
+    wheel.forEach((row, dy) =>
+      [...row].forEach((ch, dx) => {
+        const line = grid[CAR_WHEEL_TOP + dy];
+        if (ch !== "." && line) line[x0 + dx] = ch;
+      }),
+    );
+  const out: SpriteRect[] = [];
+  grid.forEach((line, y) => {
+    let x = 0;
+    while (x < line.length) {
+      const colour = CAR_COLOURS[line[x] ?? ""];
+      if (!colour) {
+        x += 1;
+        continue;
+      }
+      let end = x;
+      while (end < line.length && line[end] === line[x]) end += 1;
+      out.push([x, y - CAR_HEIGHT, end - x, 1, colour]);
+      x = end;
+    }
+  });
+  return out;
+}
+
+function carSprite(): Sprite {
+  const frames = CAR_WHEELS.map(carFrame);
+  const width = 36;
+  const hit = Math.min(width, MAX_HIT_WIDTH);
+  return {
+    fps: 12,
+    frames,
+    idle: frames[0] ?? [],
+    width,
+    hitbox: { x: width - hit + 2, w: hit - 4 },
   };
 }
 

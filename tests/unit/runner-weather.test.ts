@@ -125,9 +125,11 @@ describe("scene", () => {
 
 describe("accessories", () => {
   test("every frame of every ride has a face to dress", () => {
-    // The scaled-down car's eyes are single pixels: it rides undressed.
-    for (const costume of COSTUMES.filter((ride) => ride !== "car")) {
-      const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
+    for (const costume of COSTUMES) {
+      const raw =
+        costume === "walk" || costume === "car"
+          ? walkSprite
+          : (rides as Record<string, RawSprite>)[costume]!;
       const sprite = buildSprite(raw, costume);
       for (const frame of [sprite.idle, ...sprite.frames]) {
         const face = findFace(frame);

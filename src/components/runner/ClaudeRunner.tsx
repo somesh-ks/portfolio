@@ -210,6 +210,8 @@ export function ClaudeRunner() {
   /** The last input used, so hints say TAP or [SPACE] to match. */
   const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
   const [ready, setReady] = useState(false);
+  /** A score is waiting for a name: the crash scene holds until it's saved. */
+  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
   const [announcement, setAnnouncement] = useState("");
   const nameId = useId();
 
@@ -360,14 +362,20 @@ export function ClaudeRunner() {
     const timer = window.setTimeout(() => {
       setReady(true);
       // Unless the player chose one, the next run gets a new character,
-      // shown walking as soon as the crash clears.
-      if (!picked.current) {
+      // shown walking as soon as the crash clears. While a score waits for a
+      // name, the crash scene stays, with the same character in it.
+      if (!picked.current && !canSubmit) {
         const others = COSTUMES.filter((option) => option !== costumeRef.current);
         chooseCostume(others[Math.floor(Math.random() * others.length)] ?? "walk");
       }
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [phase, chooseCostume]);
+  }, [phase, canSubmit, chooseCostume]);
+
+  // Hold the crash scene until the name is saved (or the form goes away).
+  useEffect(() => {
+    engine.current?.hold(canSubmit);
+  }, [canSubmit]);
 
   const press = useCallback(() => {
     if (phase === "running") engine.current?.jump();
@@ -460,8 +468,6 @@ export function ClaudeRunner() {
       setSubmitted("failed");
     }
   }
-
-  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
 
   return (
     <section
@@ -593,8 +599,12 @@ export function ClaudeRunner() {
                   spellCheck={false}
                   required
                 />
-                <button type="submit" className="runner__action" disabled={submitted === "sending"}>
-                  <Key keyName="ENTER" /> SAVE
+                <button
+                  type="submit"
+                  className="runner__action runner__save"
+                  disabled={submitted === "sending"}
+                >
+                  SAVE
                 </button>
                 {submitted === "failed" ? <span className="runner__error">NOT SAVED</span> : null}
               </form>
