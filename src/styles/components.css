@@ -773,13 +773,23 @@ claude-mascot:defined > * {
 .runner[data-immersive] :is(.runner__bar, .runner__foot) {
   padding-inline: var(--space-4);
 }
+/* A phone held upright leaves the world mid-screen (the engine then sets
+   --runner-sky): the panel rests just above Claude, about the screen's centre.
+   Landscape centres it, clear of Claude on the left. */
+@media (orientation: portrait) {
+  .runner:is(:fullscreen, [data-immersive]) .runner__screen[style*="--runner-sky"] .runner__over {
+    bottom: max(0px, 100% - var(--runner-sky));
+    justify-content: safe flex-end;
+  }
+}
 :root.runner-lock,
 :root.runner-lock body {
   overflow: hidden;
 }
 @media (max-width: 639px) {
-  /* Text sits above the walking Claude, not on top of the car. */
-  .runner__over {
+  /* Inline, text sits above the walking Claude, not on top of the car.
+     Fullscreen has the room to centre it. */
+  .runner:not(:fullscreen, [data-immersive]) .runner__over {
     justify-content: safe flex-start;
   }
   /* The short phone screen fits a top 3, and the name field replaces it. */
@@ -3359,7 +3369,6 @@ claude-mascot:defined > * {
   outline-offset: 2px;
 }
 /* The panel takes the button's place while it's open. */
-.tune-button[data-dodge],
 .tune-button[data-open] {
   opacity: 0;
   transform: scale(0.96);
@@ -3607,10 +3616,15 @@ claude-mascot:defined > * {
     min-width: 3rem;
     border: 1px solid var(--border-default);
   }
-  /* Out of the way while a run is being played; back once the game loses focus. */
-  body:has(.runner__screen[data-active]:focus) .tune-button {
+  /* Out of the way only while a run is being played (not on the game-over card). */
+  body:has(.runner__screen[data-active]:focus):not(:has(.runner__over)) .tune-button {
     opacity: 0;
     visibility: hidden;
+  }
+  /* The runner's footer buttons end short of the corner button, so it never covers them:
+     the button's width, a gap, and the fullscreen icon's hit area overhanging its glyph. */
+  .page:has(.tune-button) .runner:not(:fullscreen, [data-immersive]) .runner__foot {
+    padding-right: calc(var(--space-4) + 2.75rem + var(--space-2) + (2.75rem - 18px) / 2);
   }
   /* Room at the end so the button never covers the footer. */
   .page:has(.tune-button) {
