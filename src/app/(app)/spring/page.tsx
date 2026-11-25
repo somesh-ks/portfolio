@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { OG_BASE } from "@/lib/site";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Audit, Closing, OldAppLinks } from "@/components/experiments/spring/landing/Demos";
+import { Audit } from "@/components/experiments/spring/landing/Audit";
+import { Closing, OldAppLinks } from "@/components/experiments/spring/landing/Demos";
 import { LandingMotionProvider, PauseToggle } from "@/components/experiments/spring/landing/Motion";
 import { Hero } from "@/components/experiments/spring/landing/Hero";
+import { landingData } from "@/components/experiments/spring/landing/data";
 import "@/components/experiments/spring/landing/landing.css";
 
 const description =
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 const GITHUB = "https://github.com/somesh-ks/skills";
 
 export default function SpringLanding() {
+  const brands = landingData();
   return (
     <LandingMotionProvider>
       <div className="spring-landing">
@@ -40,9 +43,9 @@ export default function SpringLanding() {
           </span>
         </header>
         <main id="main" tabIndex={-1} className="spring-landing__main">
-          <Hero />
+          <Hero brands={brands} />
           <Audit />
-          <Closing />
+          <Closing brands={brands} />
         </main>
         <footer className="spring-foot">
           <p>

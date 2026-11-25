@@ -3,8 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
 
-/** Brand colors of well-known systems, as each publishes them. White fails on some, which the contrast tile shows. */
-const SEEDS = ["#3b82f6", "#6e56cf", "#00d1b2", "#dc3545", "#f59e0b", "#008060"] as const;
+import { SEEDS } from "./brands";
 
 interface LandingMotion {
   /** Advances every 3s while the page plays. */
@@ -17,7 +16,7 @@ interface LandingMotion {
 
 const Ctx = createContext<LandingMotion>({
   tick: 0,
-  seed: SEEDS[0],
+  seed: SEEDS[0]!,
   paused: true,
   reduced: true,
   setPaused: () => {},

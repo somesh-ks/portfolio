@@ -1,22 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef } from "react";
-import { buildScale, parseColor } from "@/lib/spring/color";
+import { Fragment, useEffect, useRef } from "react";
 import { CopyButton } from "@/components/code/CopyButton";
+import type { BrandData } from "./data";
 import { Playground } from "./Playground";
 import { useLandingMotion } from "./Motion";
 
-/** Same seed rules as the app: a near-gray stays a gray, a color keeps its own lightness. */
-export function scaleFor(hex: string) {
-  const c = parseColor(hex)!;
-  const gray = c.c < 0.03;
-  return buildScale({
-    hue: c.h || 0,
-    chroma: gray ? 0.005 : Math.min(0.3, Math.max(0.06, c.c)),
-    solidL: Math.min(0.9, Math.max(0.35, c.l)),
-  });
-}
+/** The brand's 12 dark steps for the horizon, computed on the server. */
+export const horizonFor = (brands: BrandData[], seed: string) =>
+  (brands.find((b) => b.hex === seed) ?? brands[0]!).horizon;
 
 type Lab = [number, number, number];
 const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -164,9 +157,9 @@ export function Horizon({ steps, still }: { steps: string[]; still: boolean }) {
 }
 
 /** Full-bleed dark hero: the claim, the way in, and Spring itself rising out of the horizon. */
-export function Hero() {
+export function Hero({ brands }: { brands: BrandData[] }) {
   const { seed, paused } = useLandingMotion();
-  const steps = useMemo(() => scaleFor(seed).dark.map((s) => s.hex), [seed]);
+  const steps = horizonFor(brands, seed);
   return (
     <section className="spring-hero" data-theme="dark" aria-labelledby="spring-hero-title">
       <div className="spring-hero__sky">
@@ -190,7 +183,7 @@ export function Hero() {
         </div>
       </div>
       <div className="spring-hero__proof">
-        <Playground />
+        <Playground brands={brands} />
       </div>
     </section>
   );

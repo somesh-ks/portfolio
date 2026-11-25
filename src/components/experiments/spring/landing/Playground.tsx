@@ -1,33 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Card, springLook } from "./Sample";
+import { useState } from "react";
+import type { BrandData } from "./data";
+import { Card } from "./Sample";
 import { useLandingMotion } from "./Motion";
 
-/** Brand colors of well-known systems, as each publishes them. */
-const BRANDS = [
-  ["Blue", "#3b82f6"],
-  ["Violet", "#6e56cf"],
-  ["Teal", "#00d1b2"],
-  ["Red", "#dc3545"],
-  ["Amber", "#f59e0b"],
-  ["Green", "#008060"],
-] as const;
-
 /** Spring in the hero: pick a brand color and the whole screen rebuilds from it, live. */
-export function Playground() {
+export function Playground({ brands }: { brands: BrandData[] }) {
   const { seed } = useLandingMotion();
   // Follows the page's brand clock until the visitor picks one.
   const [pick, setPick] = useState<string | null>(null);
   const brand = pick ?? seed;
-  const m = useMemo(() => springLook(brand), [brand]);
+  const m = brands.find((b) => b.hex === brand) ?? brands[0]!;
   return (
     <figure className="spring-ba spring-play" aria-labelledby="spring-play-cap">
       <div className="spring-ba__bar spring-play__bar">
         <span id="spring-play-cap">pick a brand color</span>
         <span className="spring-play__swatches">
-          {BRANDS.map(([name, hex]) => (
+          {brands.map(({ name, hex }) => (
             <button
               key={hex}
               type="button"
@@ -38,10 +29,6 @@ export function Playground() {
               onClick={() => setPick(hex)}
             />
           ))}
-          <label className="spring-play__custom" title="Any color">
-            <span className="sr-only">Any color</span>
-            <input type="color" value={brand} onChange={(e) => setPick(e.target.value)} />
-          </label>
           <code>{brand}</code>
         </span>
       </div>
