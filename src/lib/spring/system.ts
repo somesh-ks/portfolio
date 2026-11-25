@@ -415,6 +415,34 @@ function runChecks(roles: Role[], m: Meter, custom: CustomStrip[]): Check[] {
 }
 
 /** Plain hue names for suggested seeds, each kept clear of the ones before it. */
+/** Suggested data colors: the default set, or with `keep` those plus one more that stays apart from them. */
+export function suggestData(input: SystemInput, keep?: DataColor[]): DataColor[] {
+  const flat = input.curve ? { ...input.curve, hueShift: 0 } : undefined;
+  const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
+  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
+  if (!keep) return named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
+  const seeds = suggest(
+    input.primary,
+    keep.length + 1,
+    pages,
+    input.curve,
+    keep.map((c) => c.hex),
+  );
+  // The pick is always last, even if a kept value was unreadable and got dropped.
+  const hex = seeds.at(-1);
+  if (!hex || keep.some((c) => c.hex === hex)) return keep;
+  return [
+    ...keep,
+    {
+      name: freshName(
+        parseColor(hex)!,
+        keep.map((c) => c.name),
+      ),
+      hex,
+    },
+  ];
+}
+
 function named(seeds: string[]): DataColor[] {
   const out: DataColor[] = [];
   for (const hex of seeds)
@@ -443,8 +471,7 @@ export function buildSystem(input: SystemInput): System {
     });
   };
   const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
-  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
-  const dataIn = input.data ?? named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
+  const dataIn = input.data ?? suggestData(input);
   const colorsIn = input.colors ?? [];
   // UI and data strips share one token namespace, so "blue" in both becomes blue and blue-2.
   const keys = stripKeys([...colorsIn, ...dataIn]);

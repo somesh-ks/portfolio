@@ -50,7 +50,6 @@ export function CurveEditor({
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<0 | 1 | null>(null);
   const [active, setActive] = useState<0 | 1 | null>(null);
-  const [moved, setMoved] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const id = useId();
   const b = curve.bezier;
@@ -97,7 +96,6 @@ export function CurveEditor({
           e.preventDefault();
           drag.current = i;
           setActive(i);
-          setMoved(true);
           svg.current!.setPointerCapture(e.pointerId);
         }}
       />
@@ -148,11 +146,6 @@ export function CurveEditor({
         {handle(0, b[0], b[1], 0, 100)}
         {handle(1, b[2], b[3], 100, 0)}
       </svg>
-      <p className="spring-meta">
-        {moved
-          ? "Every strip follows this curve; the big dots are primary."
-          : "Drag the two handles to bend every strip. The big dots are primary."}
-      </p>
       <span className="field__input spring-curve__values">
         <label className="field__unit" htmlFor={`${id}-bezier`}>
           cubic-bezier
