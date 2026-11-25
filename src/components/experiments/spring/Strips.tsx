@@ -567,7 +567,6 @@ export function ColorOutput({
           + Add color
         </button>
       ) : null}
-      <States system={system} mode={mode} />
       <Contrast
         system={system}
         mode={mode}
@@ -771,43 +770,6 @@ function Checks({ checks }: { checks: ChartCheck[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-const STATES: Array<[label: string, primary: string, fill: string]> = [
-  ["rest", "primary", "fill"],
-  ["hover", "primary-hover", "fill-hover"],
-  ["pressed", "primary-active", "fill-active"],
-  ["focus", "ring", "ring"],
-  ["disabled", "disabled", "disabled"],
-];
-
-/** Interaction states of the primary and neutral fills, one swatch per role. */
-function States({ system, mode }: { system: System; mode: Mode }) {
-  const role = Object.fromEntries(system.roles[mode].map((r) => [r.name, r.hex]));
-  return (
-    <>
-      <h3 className="spring-group">states</h3>
-      {(["primary", "fill"] as const).map((k) => (
-        <ul key={k} className="spring-states">
-          <li className="spring-meta">{k}</li>
-          {STATES.map(([label, p, f]) => {
-            const name = k === "primary" ? p : f;
-            return (
-              <li key={label} className="spring-pair__chip">
-                <span
-                  className="spring-pair__dot"
-                  style={{ backgroundColor: role[name] }}
-                  aria-hidden
-                />
-                <span>{label}</span>
-                <span className="spring-meta">{name}</span>
-              </li>
-            );
-          })}
-        </ul>
-      ))}
-    </>
   );
 }
 
