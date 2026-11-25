@@ -598,6 +598,7 @@ export function toDesignMd(sys: System): string {
     primary: "primary",
     "on-primary": "primary-fg",
     "primary-hover": "primary-hover",
+    "primary-active": "primary-active",
     "primary-subtle": "primary-subtle",
     "primary-text": "primary-text",
     neutral: "bg",
@@ -655,6 +656,7 @@ export function toDesignMd(sys: System): string {
       padding: px(sys.space.paddingX.md),
     },
     "button-primary-hover": { backgroundColor: "{colors.primary-hover}" },
+    "button-primary-active": { backgroundColor: "{colors.primary-active}" },
     "button-secondary": {
       backgroundColor: "{colors.fill}",
       textColor: "{colors.on-surface}",
@@ -797,7 +799,7 @@ Corners are ${isRound}: ${Object.entries(sys.shape.radius)
 
 Built with **${comp.name}** (${comp.url}). Icons: **${icon.name}** only${icon.strokeAware ? `, ${stroke}px stroke to match ${T.body!.weight} weight text` : ""}, sized to the text they sit beside (16px with body, 20px with h3). Styling: **${STYLING[sys.stack.styling].name}**.
 
-- **Primary button:** \`primary\` fill, \`primary-fg\` label, one per view.
+- **Primary button:** \`primary\` fill, \`primary-fg\` label, one per view; hover \`primary-hover\`, pressed \`primary-active\`, disabled \`disabled\` with \`disabled-text\` (exempt from contrast). Selected rows, tabs and options use \`selected\`.
 - **Secondary button:** \`fill\` with \`text\`; hover \`fill-hover\`, pressed \`fill-active\`.
 - **Input:** \`bg\` fill, \`border\` edge, \`border-strong\` on hover, \`ring\` on focus (2px, offset 2px); placeholder \`text-muted\`; error \`danger\` border with \`danger-text\` message.
 - **Card:** \`bg-subtle\`, \`border-subtle\` edge, \`lg\` radius, ${sys.space.gutter}px padding.

@@ -7,6 +7,7 @@
  * Tools are separate MDX blocks, so the state lives in a tiny module store
  * rather than a React context.
  */
+import { SYSTEM_PARAMS } from "@/lib/spring/params";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Mode } from "@/lib/spring/color";
 import { inputFromParams, SCHEMA_URL } from "@/lib/spring/io";
@@ -75,23 +76,6 @@ export function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput
     } catch {}
   }, 250);
 }
-
-/** Every URL param that can carry a system (see inputFromParams). */
-const SYSTEM_PARAMS = [
-  "s",
-  "j",
-  "primary",
-  "name",
-  "font",
-  "body",
-  "heading",
-  "mono",
-  "base",
-  "ratio",
-  "contrast",
-  "styling",
-  "building",
-];
 
 /** Back to the starter system: clears the saved copy and the link. */
 export function resetInput() {

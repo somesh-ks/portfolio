@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import type { NextConfig } from "next";
+import { SYSTEM_PARAMS } from "./src/lib/spring/params.ts";
 
 /** Entries whose frontmatter `href` points elsewhere have no page: their old
  * URL (and its .md) 308s to it, so shared links keep working. */
@@ -70,7 +71,16 @@ const config: NextConfig = {
   },
   async redirects() {
     return [
-      // Includes /projects/spring, so old Spring share links (?s=) carry over.
+      // /spring is the landing page now; links that carry a system open the app in one hop
+      // (query carries over). Before entryRedirects, which would send /projects/spring to /spring first.
+      ...["/spring", "/projects/spring"].flatMap((source) =>
+        SYSTEM_PARAMS.map((key) => ({
+          source,
+          has: [{ type: "query" as const, key }],
+          destination: "/spring/app",
+          permanent: true,
+        })),
+      ),
       ...entryRedirects(),
       {
         source: "/projects/fun-experiments.md",

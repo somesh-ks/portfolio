@@ -2,18 +2,59 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("Spring runs as its own app, without the site frame", async ({ page }) => {
-  await page.goto("/spring");
-  await expect(page).toHaveTitle("Spring");
+  await page.goto("/spring/app");
+  await expect(page).toHaveTitle("Spring app");
   await expect(page.locator(".site-footer")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Color" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: /Switch to/ })).toBeVisible();
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring$/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring\/app$/);
+});
+
+test("the landing page is its own site, tries a color, and opens the app", async ({ page }) => {
+  await page.goto("/spring");
+  await expect(page).toHaveTitle("Spring: color and type tokens");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    /One color\.\s*A whole system\./,
+  );
+  // No portfolio chrome: no link back to the site's home.
+  await expect(page.getByRole("link", { name: /Home/ })).toHaveCount(0);
+  // A picked brand holds, and the one way in opens the app with it.
+  await page.getByRole("button", { name: "Red" }).click();
+  await expect(page.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-spring-cta]").first()).toHaveAttribute(
+    "href",
+    "/spring/app?primary=%23dc3545",
+  );
+  // One ask at a time: the scroll bar stays hidden while the hero's button shows.
+  const bar = page.locator(".spring-nav");
+  await expect(bar).toBeHidden();
+  await page.evaluate(() => scrollTo(0, innerHeight * 1.2));
+  await expect(bar).toBeVisible();
+  await expect(page.getByRole("row", { name: /primary-text/ })).toBeVisible();
+  // Pause stops everything that moves (WCAG 2.2.2).
+  const pause = bar.getByRole("button", { name: "Pause" });
+  if (await pause.isVisible()) {
+    await pause.click();
+    await expect(bar.getByRole("button", { name: "Play" })).toHaveAttribute("aria-pressed", "true");
+  }
+  await bar.getByRole("link", { name: "Open Spring" }).click();
+  await page.waitForURL(/\/spring\/app$/);
+});
+
+test("old app links land in the app", async ({ page, request }) => {
+  for (const q of ["s=abc", "primary=%23e11d48", "name=X&font=Inter"]) {
+    const old = await request.get(`/spring?${q}`, { maxRedirects: 0 });
+    expect(old.status(), q).toBe(308);
+    expect(old.headers().location, q).toBe(`/spring/app?${q}`);
+  }
+  await page.goto("/spring#audit");
+  await page.waitForURL(/\/spring\/app#audit$/);
 });
 
 test("the old project page and share links 308 to Spring", async ({ request }) => {
   for (const [from, to] of [
     ["/projects/spring", /\/spring$/],
-    ["/projects/spring?s=abc", /\/spring\?s=abc$/],
+    ["/projects/spring?s=abc", /\/spring\/app\?s=abc$/],
     ["/projects/spring.md", /\/spring\.md$/],
   ] as const) {
     const old = await request.get(from, { maxRedirects: 0 });
@@ -23,7 +64,7 @@ test("the old project page and share links 308 to Spring", async ({ request }) =
 });
 
 test("Export downloads everything, or one area from its menu", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const all = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await all).suggestedFilename()).toMatch(/\.zip$/);
@@ -34,7 +75,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
 });
 
 test("data colors reorder with their grip", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
@@ -45,12 +86,12 @@ test("data colors reorder with their grip", async ({ page }) => {
 });
 
 test("the audit stays reachable at #audit", async ({ page }) => {
-  await page.goto("/spring#audit");
+  await page.goto("/spring/app#audit");
   await expect(page.getByRole("dialog", { name: "Audit a system" })).toBeVisible();
 });
 
 test("the color page opens its charts in Preview", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.getByRole("button", { name: "see in charts" }).click();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
     "aria-pressed",
@@ -60,13 +101,13 @@ test("the color page opens its charts in Preview", async ({ page }) => {
 });
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
   await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
   await expect(page).toHaveURL(/\?s=/);
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await expect(names.nth(0)).toHaveValue(second);
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   page.once("dialog", (d) => d.accept());
@@ -78,13 +119,13 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
 });
 
 test("a seed link loads its system", async ({ page }) => {
-  await page.goto("/spring?primary=%23e11d48&name=Seedtest");
+  await page.goto("/spring/app?primary=%23e11d48&name=Seedtest");
   await page.getByRole("tab", { name: "Tokens" }).click();
   await expect(page.getByLabel("System name")).toHaveValue("Seedtest");
 });
 
 test("Export gives spring.json, valid and self-describing", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   const dl = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /spring\.json/ }).click();
@@ -95,7 +136,7 @@ test("Export gives spring.json, valid and self-describing", async ({ page }) => 
 });
 
 test("Import reads a spring.json", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
@@ -112,7 +153,7 @@ test("Import reads a spring.json", async ({ page }) => {
 });
 
 test("Import turns CSS variables into a starting point", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
@@ -137,7 +178,7 @@ const importText = async (page: import("@playwright/test").Page, text: string) =
 test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", async ({
   page,
 }) => {
-  await page.goto("/spring?primary=%23e11d48&name=Before");
+  await page.goto("/spring/app?primary=%23e11d48&name=Before");
   const dtcg = {
     $schema: "https://www.designtokens.org/schemas/2025.10/format.json",
     color: { primary: { $type: "color", $value: "#16a34a" } },
@@ -162,7 +203,7 @@ test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", 
 });
 
 test("Start over drops seed params from the URL", async ({ page }) => {
-  await page.goto("/spring?primary=%23e11d48&name=Seedtest&font=Inter");
+  await page.goto("/spring/app?primary=%23e11d48&name=Seedtest&font=Inter");
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
@@ -170,7 +211,7 @@ test("Start over drops seed params from the URL", async ({ page }) => {
 });
 
 test("a curve handle follows the pointer", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.locator("summary", { hasText: "scale" }).click();
   const plot = page.locator(".spring-curve__plot");
   await plot.scrollIntoViewIfNeeded();
@@ -193,7 +234,7 @@ test("a curve handle follows the pointer", async ({ page }) => {
 });
 
 test("a Dial's value field takes typed digits after Enter without appending", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const field = page.getByLabel("hue, type a value");
   await field.scrollIntoViewIfNeeded();
   await field.focus();
@@ -209,7 +250,7 @@ test("a Dial's value field takes typed digits after Enter without appending", as
 test("a Dial scrubs from its value on drag and sets the point on a plain click", async ({
   page,
 }) => {
-  await page.goto("/spring?primary=%232563eb");
+  await page.goto("/spring/app?primary=%232563eb");
   const slider = page.getByLabel("hue", { exact: true });
   const row = page.locator(".dial").filter({ has: slider });
   await row.scrollIntoViewIfNeeded();
@@ -236,7 +277,7 @@ test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   // Dark through the system theme: clicking the toggle in a loop raced its
   // view transition on slow runners and could land one click past dark.
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/spring?primary=%23808080");
+  await page.goto("/spring/app?primary=%23808080");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const field = page.getByLabel("chroma, dark, type a value");
   await field.scrollIntoViewIfNeeded();
@@ -251,18 +292,18 @@ test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
 
 test("the share link comes first and the Export button confirms it", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   await page.getByRole("button", { name: "Export, import and reset" }).click();
   await expect(page.getByRole("menuitem").first()).toHaveText("Copy share link");
   await page.getByRole("menuitem", { name: "Copy share link" }).click();
   await expect(page.getByText("Link copied")).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring/app?s=");
   await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute("href", "/spring");
 });
 
 test("a strip is one tab stop; arrows walk its steps", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "mobile", "keyboard navigation is a desktop check");
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const strip = page.getByRole("toolbar", { name: "primary steps" });
   await expect(strip.locator('button[tabindex="0"]')).toHaveCount(1);
   await strip.locator("button").first().focus();
@@ -277,7 +318,7 @@ test("a strip is one tab stop; arrows walk its steps", async ({ page }, testInfo
 });
 
 test("a picked status color clears back to auto from its picker", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const field = page.getByRole("textbox", { name: "danger color, blank for auto" });
   await expect(field).toHaveAttribute("data-auto", "true");
   await page.getByRole("button", { name: "Pick danger color" }).click();
@@ -291,13 +332,13 @@ test("a picked status color clears back to auto from its picker", async ({ page 
 });
 
 test("every strip shows its color value", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   for (const name of ["Primary color", "Neutral color", "info color, blank for auto"])
     await expect(page.getByRole("textbox", { name, exact: true })).not.toHaveValue("");
 });
 
 test("Suggest adds a color and keeps the others", async ({ page }) => {
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const names = page.locator(".spring-data .spring-strip__rename");
   const read = () => names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
   const before = await read();
@@ -308,7 +349,7 @@ test("Suggest adds a color and keeps the others", async ({ page }) => {
 
 test("a data color drags to a new place by its grip", async ({ page, isMobile }) => {
   test.skip(isMobile, "pointer drag is covered on desktop");
-  await page.goto("/spring");
+  await page.goto("/spring/app");
   const names = page.locator(".spring-data .spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const grip = page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) });

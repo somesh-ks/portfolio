@@ -157,3 +157,26 @@ export function play(name: SoundName): void {
     // A closed or broken context: sound is optional, the click still works.
   }
 }
+
+/**
+ * Pitched notes for toys that sound their numbers (Spring's type ratios are
+ * named after musical intervals). Soft sines, one after another, `gap` seconds apart.
+ */
+export function notes(freqs: number[], gap = 0.09): void {
+  lastAny = performance.now();
+  unlock();
+  if (!context || !master) return;
+  const now = context.currentTime + 0.005;
+  try {
+    freqs.forEach((from, i) =>
+      voice(
+        context!,
+        master!,
+        { wave: "sine", from, decay: 0.32, gain: 0.07, delay: i * gap },
+        now,
+      ),
+    );
+  } catch {
+    // Sound is optional.
+  }
+}

@@ -39,12 +39,15 @@ interface SoundContextValue {
   enabled: boolean;
   toggle: () => void;
   play: (name: SoundName) => void;
+  /** Pitched notes in Hz, played in order; silent while muted. */
+  notes: (freqs: number[]) => void;
 }
 
 const SoundContext = createContext<SoundContextValue>({
   enabled: false,
   toggle: () => {},
   play: () => {},
+  notes: () => {},
 });
 
 const STORAGE_KEY = "sound";
@@ -134,7 +137,11 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     if (enabledRef.current) playNow(name);
   }, []);
 
-  const value = useMemo(() => ({ enabled, toggle, play }), [enabled, toggle, play]);
+  const notes = useCallback((freqs: number[]) => {
+    if (enabledRef.current) audio?.notes(freqs);
+  }, []);
+
+  const value = useMemo(() => ({ enabled, toggle, play, notes }), [enabled, toggle, play, notes]);
   return <SoundContext value={value}>{children}</SoundContext>;
 }
 
