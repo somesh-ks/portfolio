@@ -4,11 +4,10 @@ import { OG_BASE } from "@/lib/site";
 import { BackLink } from "@/components/editorial/BackLink";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
-  MakeTile,
+  MakeFlow,
   OldAppLinks,
-  ScanTile,
-  SeeTile,
-  ShipTile,
+  RebuildFlow,
+  ShowFlow,
 } from "@/components/experiments/spring/landing/Demos";
 import { LandingMotionProvider, PauseToggle } from "@/components/experiments/spring/landing/Motion";
 import { Hero } from "@/components/experiments/spring/landing/Hero";
@@ -43,28 +42,14 @@ export default function SpringLanding() {
         </header>
         <main id="main" tabIndex={-1} className="spring-landing__main">
           <Hero />
-          <section className="spring-mode" aria-labelledby="spring-read">
-            <header className="spring-mode__head">
-              <h2 id="spring-read">Read what you have</h2>
-              <p>Your agent scans the repo. You see it in View.</p>
-            </header>
-            <div className="spring-mode__row">
-              <ScanTile />
-              <SeeTile />
-            </div>
-          </section>
-          <section className="spring-mode" aria-labelledby="spring-make">
-            <header className="spring-mode__head">
-              <h2 id="spring-make">Make the one you want</h2>
-              <p>In the app, or your agent runs spring build.</p>
-            </header>
-            <div className="spring-mode__row">
-              <MakeTile />
-              <ShipTile />
-            </div>
-          </section>
+          <ShowFlow />
+          <MakeFlow />
+          <RebuildFlow />
           <footer className="spring-landing__end">
-            <p>Free and open source. The skill runs offline.</p>
+            <p>
+              Free and open source. Scans run on your machine; View links keep your tokens after the
+              #, so they never reach a server.
+            </p>
             <Link href="/spring/app" className="link">
               Open app
             </Link>

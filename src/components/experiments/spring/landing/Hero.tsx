@@ -1,6 +1,5 @@
 "use client";
 
-import { Geist_Pixel } from "next/font/google";
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { buildScale, parseColor } from "@/lib/spring/color";
@@ -10,7 +9,7 @@ import { useLandingMotion } from "./Motion";
 const INSTALL = "npx skills add somesh-ks/skills --skill spring";
 
 /** Same seed rules as the app: a near-gray stays a gray, a color keeps its own lightness. */
-export function scaleFor(hex: string) {
+function scaleFor(hex: string) {
   const c = parseColor(hex)!;
   const gray = c.c < 0.03;
   return buildScale({
@@ -165,8 +164,6 @@ function Horizon({ steps, still }: { steps: string[]; still: boolean }) {
   return <canvas ref={ref} className="spring-hero__horizon" aria-hidden="true" />;
 }
 
-const pixel = Geist_Pixel({ weight: "400", subsets: ["latin"], display: "swap" });
-
 /** One centred box: the name, the pitch, the two ways in, and the horizon as its base. */
 export function Hero() {
   const { seed, paused } = useLandingMotion();
@@ -174,8 +171,8 @@ export function Hero() {
   return (
     <section className="spring-hero" data-theme="dark" aria-labelledby="spring-hero-name">
       <div className="spring-hero__copy">
-        <h1 id="spring-hero-name" className={`spring-hero__name ${pixel.className}`}>
-          Spring
+        <h1 id="spring-hero-name" className="spring-hero__name">
+          spring
         </h1>
         <p className="spring-hero__line">See the system you have. Make the one you want.</p>
         <div className="spring-hero__cta">
@@ -183,8 +180,8 @@ export function Hero() {
             <code>{INSTALL}</code>
             <CopyButton text={INSTALL} label="install command" />
           </div>
-          <Link href="/spring/app" className="button pressable">
-            Open app
+          <Link href="/spring/app" className="link spring-hero__open">
+            or open the app →
           </Link>
         </div>
       </div>

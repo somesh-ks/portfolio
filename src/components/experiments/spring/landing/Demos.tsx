@@ -3,63 +3,53 @@
 import { useEffect, useId, useMemo, type ReactNode } from "react";
 import { contrast } from "@/lib/spring/color";
 import { buildSystem, inputFromSeed } from "@/lib/spring/system";
-import { scaleFor } from "./Hero";
 import { useLandingMotion } from "./Motion";
 
-/** A fixed-size tile: step, who does it, one picture, one caption. Nothing in it resizes. */
-function Tile({
-  step,
-  who,
-  caption,
+/**
+ * One flow of the skill: a heading, then one wide box with the command on the
+ * left and what it gives you on the right. Fixed height, so nothing shifts.
+ */
+function Flow({
+  title,
+  line,
+  term,
   children,
 }: {
-  step: string;
-  who: string;
-  caption: string;
+  title: string;
+  line: string;
+  term: ReactNode;
   children: ReactNode;
 }) {
   const id = useId();
   return (
-    <section className="spring-tile" aria-labelledby={id}>
-      <h3 id={id} className="spring-tile__title">
-        <span>{step}</span>
-        <span className="spring-tile__who">{who}</span>
-      </h3>
-      <div className="spring-tile__vis">{children}</div>
-      <p className="spring-tile__caption">{caption}</p>
+    <section className="spring-flow" aria-labelledby={id}>
+      <header className="spring-flow__head">
+        <h2 id={id}>{title}</h2>
+        <p>{line}</p>
+      </header>
+      <div className="spring-flow__box">
+        <div className="spring-term">{term}</div>
+        <div className="spring-flow__vis">{children}</div>
+      </div>
     </section>
   );
 }
 
-/* From `spring scan src` on this site (2026-11-25). */
+/* From `spring scan src` and the audit of this site's tokens (2026-11-25). */
 const SCAN = {
   tokens: 168,
   used: 111,
   raw: 54,
   pin: ["#A29AFF", "CompanyLogo.tsx:29"],
-  view: "someshks.com/spring/view#d=rVtpj9u6Ff0rqpoHJK2l",
 } as const;
+const FINDINGS = [
+  ["Sizes don't follow a scale", "×1.07 to ×1.18"],
+  ["12 sizes without a line height", "browser default"],
+  ["Roles named by their color", "illustration-sky"],
+] as const;
+const FIXES = ["One ratio, applied to roles.", "Line height per role, on a 4px grid."];
 
-/* ---------- 1. Scan: the skill's own summary ---------- */
-
-export function ScanTile() {
-  return (
-    <Tile step="1 Scan" who="your agent" caption="Reads CSS, Tailwind, DTCG and DESIGN.md.">
-      <div className="spring-term">
-        <p className="spring-term__cmd">spring scan .</p>
-        <p>Tokens: {SCAN.tokens}, light and dark</p>
-        <p>
-          Used: {SCAN.used} of {SCAN.tokens}
-        </p>
-        <p>Raw colors: {SCAN.raw}</p>
-        <p>Pairs under 4.5:1: 0</p>
-        <p className="spring-term__hi">View: {SCAN.view}</p>
-      </div>
-    </Tile>
-  );
-}
-
-/* ---------- 2. See: the View dims what's never used ---------- */
+/* ---------- Show: scan, then the View ---------- */
 
 const DEAD = (() => {
   // A fixed scatter, so the server and the browser draw the same grid.
@@ -70,12 +60,27 @@ const DEAD = (() => {
   return out;
 })();
 
-export function SeeTile() {
+export function ShowFlow() {
   const { tick, paused } = useLandingMotion();
-  // At rest (paused or reduced motion) the tile shows its finding.
+  // At rest (paused or reduced motion) the picture shows its finding.
   const show = paused || tick % 2 === 1;
   return (
-    <Tile step="2 See" who="you, in View" caption="Every primitive per theme, with what's unused.">
+    <Flow
+      title="Show what you have"
+      line="Your agent scans the repo. You see every token, per theme, in View."
+      term={
+        <>
+          <p className="spring-term__cmd">spring scan . --open</p>
+          <p>Tokens: {SCAN.tokens}, light and dark</p>
+          <p>
+            Used: {SCAN.used} of {SCAN.tokens}
+          </p>
+          <p>Raw colors: {SCAN.raw}, with path:line</p>
+          <p>Findings: {FINDINGS.length} to look at</p>
+          <p className="spring-term__hi">View: opened in your browser</p>
+        </>
+      }
+    >
       <div className="spring-unused" data-show={show || undefined}>
         <div className="spring-unused__cells" aria-hidden="true">
           {Array.from({ length: SCAN.tokens }, (_, i) => (
@@ -94,97 +99,119 @@ export function SeeTile() {
           From a scan of this site: {SCAN.used} of {SCAN.tokens} tokens used, {SCAN.raw} raw colors.
         </p>
       </div>
-    </Tile>
+    </Flow>
   );
 }
 
-/* ---------- 3. Make: one color, 12 steps, a label that passes ---------- */
+/* ---------- Make: one color, through the tiers, to a button that passes ---------- */
 
 const verdict = (r: number) => (r >= 7 ? "AAA" : r >= 4.5 ? "AA" : "fail");
 
-export function MakeTile() {
+export function MakeFlow() {
   const { seed } = useLandingMotion();
-  const { ramp, pairs } = useMemo(() => {
-    const roles = buildSystem(inputFromSeed(seed)).roles.light;
-    const role = (n: string) => roles.find((r) => r.name === n)!.hex;
-    const bg = role("primary");
-    const fg = role("primary-fg");
+  const m = useMemo(() => {
+    const sys = buildSystem(inputFromSeed(seed));
+    const roles = sys.roles.light;
+    const role = (n: string) => roles.find((r) => r.name === n)!;
+    const primary = role("primary");
+    const fg = role("primary-fg").hex;
     return {
-      ramp: scaleFor(seed).light,
-      pairs: [
-        { who: "white on brand", bg: seed, fg: "#ffffff", r: contrast("#ffffff", seed) },
-        { who: "Spring's label", bg, fg, r: contrast(fg, bg) },
-      ],
+      step: primary.from.replace(".", "-"),
+      bg: primary.hex,
+      fg,
+      ours: contrast(fg, primary.hex),
+      white: contrast("#ffffff", primary.hex),
     };
   }, [seed]);
   return (
-    <Tile
-      step="3 Make"
-      who="you, in the app"
-      caption="One color in. Labels that pass, light and dark."
+    <Flow
+      title="Make the one you want"
+      line="One brand color in. Primitives, roles and files out, light and dark."
+      term={
+        <>
+          <p className="spring-term__cmd">spring build --primary {seed}</p>
+          <p>
+            <span className="spring-term__hi">tokens.css</span> primitives and roles
+          </p>
+          <p>
+            <span className="spring-term__hi">tokens.json</span> DTCG
+          </p>
+          <p>
+            <span className="spring-term__hi">theme.css</span> Tailwind v4, shadcn names
+          </p>
+          <p>
+            <span className="spring-term__hi">DESIGN.md</span> and{" "}
+            <span className="spring-term__hi">SKILL.md</span> for your agent
+          </p>
+          <p className="spring-term__hi">Edit: tune it by eye in the app</p>
+        </>
+      }
     >
-      <div className="spring-make">
-        <p className="spring-make__seed">
-          <span>--primary {seed}</span>
-          <span>12 steps</span>
-        </p>
-        <div className="spring-make__ramp" aria-hidden="true">
-          {ramp.map((s) => (
-            <span key={s.step} style={{ background: s.hex }} />
-          ))}
+      <div className="spring-tiers" aria-hidden="true">
+        <div className="spring-tiers__row">
+          <span className="spring-tiers__chip" style={{ background: m.bg }} />
+          <code>--{m.step}</code>
+          <span className="spring-tiers__kind">primitive</span>
         </div>
-        <div className="spring-pairs">
-          {pairs.map((p) => {
-            const v = verdict(p.r);
-            return (
-              <figure key={p.who} className="spring-pair">
-                <figcaption className="spring-pair__who">{p.who}</figcaption>
-                <div
-                  className="spring-pair__sw"
-                  style={{ background: p.bg, color: p.fg }}
-                  aria-hidden="true"
-                >
-                  Aa
-                </div>
-                <p className="spring-pair__r">
-                  <span>{p.r.toFixed(2)}</span>
-                  <b data-v={v === "fail" ? "fail" : "pass"}>{v}</b>
-                </p>
-              </figure>
-            );
-          })}
+        <div className="spring-tiers__row">
+          <span className="spring-tiers__chip" style={{ background: m.bg }} />
+          <code>--color-primary</code>
+          <span className="spring-tiers__kind">role</span>
+        </div>
+        <div className="spring-tiers__row">
+          <span className="spring-tiers__button" style={{ background: m.bg, color: m.fg }}>
+            Save
+          </span>
+          <span className="spring-tiers__pass">
+            <span>white {m.white.toFixed(2)}</span>{" "}
+            <b data-v={verdict(m.white) === "fail" ? "fail" : "pass"}>{verdict(m.white)}</b>
+            <span> · label {m.ours.toFixed(2)}</span> <b data-v="pass">{verdict(m.ours)}</b>
+          </span>
         </div>
       </div>
-    </Tile>
+      <p className="sr-only">
+        {seed} becomes the primitive {m.step}, the role color-primary, and a button whose label
+        passes at {m.ours.toFixed(2)} to 1.
+      </p>
+    </Flow>
   );
 }
 
-/* ---------- 4. Ship: what `spring build` writes ---------- */
+/* ---------- Rebuild: the audit, then clean up into the app ---------- */
 
-const FILES = [
-  ["tokens.css", ""],
-  ["tokens.json", "DTCG"],
-  ["theme.css", "Tailwind v4, shadcn names"],
-  ["DESIGN.md", ""],
-  ["SKILL.md", "for your agent"],
-  ["AGENTS.md", ""],
-] as const;
-
-export function ShipTile() {
-  const { seed } = useLandingMotion();
+export function RebuildFlow() {
   return (
-    <Tile step="4 Ship" who="your agent" caption="Files for your repo and your agent.">
-      <div className="spring-term">
-        <p className="spring-term__cmd">spring build --primary {seed}</p>
-        {FILES.map(([f, note]) => (
-          <p key={f}>
-            <span className="spring-term__dim">└</span> <span className="spring-term__hi">{f}</span>{" "}
-            {note}
-          </p>
-        ))}
-        <p className="spring-term__hi">Edit: someshks.com/spring/app?s=…</p>
+    <Flow
+      title="Rebuild without the drift"
+      line="Spring reads the mess, says what's off, and opens a clean system in the app."
+      term={
+        <>
+          <p className="spring-term__cmd">spring infer . --out spring.json</p>
+          <p>Brand: gray, from the solid fills</p>
+          <p>Type: Inter, 14px × 1.167</p>
+          <p>Radius: 0</p>
+          <p className="spring-term__hi">Edit: open it in the app</p>
+        </>
+      }
+    >
+      <div className="spring-audit-card">
+        <ul>
+          {FINDINGS.map(([t, d]) => (
+            <li key={t}>
+              <span aria-label="warn">!</span> {t}. <span className="spring-term__dim">{d}</span>
+            </li>
+          ))}
+        </ul>
+        <ul className="spring-audit-card__fixes">
+          {FIXES.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+        <span className="spring-audit-card__btn" aria-hidden="true">
+          Clean up in Spring
+        </span>
       </div>
-    </Tile>
+    </Flow>
   );
 }
 

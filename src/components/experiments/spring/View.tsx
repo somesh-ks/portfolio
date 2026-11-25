@@ -113,6 +113,22 @@ interface Measured {
  * lengths back, so var() chains, color-mix(), light-dark() and relative colors
  * resolve exactly as a browser would. Values go in through setProperty only.
  */
+/** Colors go in as the browser painted them, so color-mix() and friends read; then the audit runs. */
+async function auditView(view: View) {
+  // The audit pulls the font list, so it loads only when a system is shown.
+  const { audit } = await import("@/lib/spring/audit");
+  const flat: View = { ...view, tokens: { ...view.tokens } };
+  for (const mode of view.modes) {
+    const names = Object.keys(view.tokens).filter((n) => view.tokens[n]![mode] !== undefined);
+    const { colors } = measure(view, mode, names, []);
+    for (const [n, c] of colors) {
+      const a = c.alpha < 1 ? hex2(Math.round(c.alpha * 255)) : "";
+      flat.tokens[n] = { ...flat.tokens[n], [mode]: `${c.hex}${a}` };
+    }
+  }
+  return audit(toCss(flat));
+}
+
 function measure(view: View, mode: string, colorish: string[], lengths: string[]): Measured {
   const colors = new Map<string, Paint>();
   const out = new Map<string, number>();
@@ -534,6 +550,8 @@ function Shown({ view, onClear }: { view: View; onClear: () => void }) {
         <output className="spring-meta spring-view__said">{said}</output>
       </header>
 
+      <Findings view={view} />
+
       {colorNames.length ? (
         <Colors
           names={colorNames}
@@ -727,6 +745,121 @@ function Section({
   );
 }
 
+type Report = Awaited<ReturnType<typeof auditView>>;
+const MARK = { fail: "✕", warn: "!", pass: "✓" } as const;
+
+/**
+ * What to fix first: usage counts from the scan, then the audit's failing and
+ * warning checks. Counts, not a grade. Clean up opens the app with the closest
+ * Spring system, after saying what it changes.
+ */
+function Findings({ view }: { view: View }) {
+  const [done, setDone] = useState<{ of: View; report?: Report; error?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const report = done?.of === view ? done.report : undefined;
+  const error = done?.of === view ? (done.error ?? "") : "";
+  const setError = (e: string) => setDone({ of: view, report, error: e });
+  useEffect(() => {
+    let live = true;
+    auditView(view)
+      .then((r) => live && setDone({ of: view, report: r }))
+      .catch((e: Error) => live && setDone({ of: view, error: e.message }));
+    return () => {
+      live = false;
+    };
+  }, [view]);
+  const u = view.usage;
+  const unused = u ? Object.keys(view.tokens).filter((n) => !u.refs[n]).length : 0;
+  const open = (report?.findings ?? []).filter((f) => f.status !== "pass");
+  const passed = (report?.findings ?? []).filter((f) => f.status === "pass");
+  const fixes = [...new Set(open.map((f) => f.fix).filter(Boolean))] as string[];
+  const usage = u
+    ? [
+        unused ? `${unused} tokens never referenced` : "",
+        u.rawCount ? `${u.rawCount} raw color literals, with path:line under Usage` : "",
+        u.offSystemCount ? `${u.offSystemCount} off-system classes` : "",
+      ].filter(Boolean)
+    : [];
+  const cleanUp = async () => {
+    if (!report) return;
+    setBusy(true);
+    try {
+      const { encodeInput } = await import("@/lib/spring/state");
+      location.assign(`/spring/app?s=${encodeInput(report.input)}`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title="Findings" count={open.length + usage.length}>
+      {error ? <p className="spring-meta">{error}</p> : null}
+      {!report && !error ? <p className="spring-meta">Checking…</p> : null}
+      {report ? (
+        <>
+          <ul className="spring-findings">
+            {usage.map((t) => (
+              <li key={t}>
+                <span className="spring-meta" aria-label="warn">
+                  {MARK.warn}
+                </span>
+                <span>{t}</span>
+              </li>
+            ))}
+            {open.map((f) => (
+              <li key={f.id}>
+                <span className="spring-meta" aria-label={f.status}>
+                  {MARK[f.status]}
+                </span>
+                <span>
+                  {f.title}. <span className="spring-meta">{f.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {passed.length ? (
+            <details className="spring-view__more">
+              <summary>{passed.length} checks pass</summary>
+              <ul className="spring-findings">
+                {passed.map((f) => (
+                  <li key={f.id}>
+                    <span className="spring-meta" aria-label="pass">
+                      {MARK.pass}
+                    </span>
+                    <span>{f.title}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          <div className="spring-view__cleanup">
+            {fixes.length ? (
+              <ul className="spring-meta">
+                {fixes.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            ) : null}
+            <button
+              type="button"
+              className="button button--primary pressable"
+              onClick={cleanUp}
+              disabled={busy}
+              aria-describedby="spring-view-cleanup"
+            >
+              Clean up in Spring
+            </button>
+            <p id="spring-view-cleanup" className="spring-meta">
+              Opens the closest Spring system to these values, rebuilt clean. Your files are not
+              changed; migrate them with the path:line lists below.
+            </p>
+          </div>
+        </>
+      ) : null}
+    </Section>
+  );
+}
+
 function Actions({
   view,
   onClear,
@@ -736,46 +869,10 @@ function Actions({
   onClear: () => void;
   copy: (label: string, text: string) => void;
 }) {
-  const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
-  const rebuild = async () => {
-    setBusy(true);
-    setNote("");
-    try {
-      // The audit pulls the font list, so it loads only on this press.
-      const [{ audit }, { encodeInput }] = await Promise.all([
-        import("@/lib/spring/audit"),
-        import("@/lib/spring/state"),
-      ]);
-      // Colors go in as the browser painted them, so color-mix() and friends read.
-      const flat: View = { ...view, tokens: { ...view.tokens } };
-      for (const mode of view.modes) {
-        const names = Object.keys(view.tokens).filter((n) => view.tokens[n]![mode] !== undefined);
-        const { colors } = measure(view, mode, names, []);
-        for (const [n, c] of colors) {
-          const a = c.alpha < 1 ? hex2(Math.round(c.alpha * 255)) : "";
-          flat.tokens[n] = { ...flat.tokens[n], [mode]: `${c.hex}${a}` };
-        }
-      }
-      const { input } = audit(toCss(flat));
-      location.assign(`/spring/app?s=${encodeInput(input)}`);
-    } catch (e) {
-      setNote((e as Error).message);
-      setBusy(false);
-    }
-  };
   return (
     <div className="spring-view__actions">
       <span className="spring-view__row">
-        <button
-          type="button"
-          className="button button--primary pressable"
-          onClick={rebuild}
-          disabled={busy}
-          aria-describedby="spring-view-rebuild"
-        >
-          Rebuild in Spring
-        </button>
         <button
           type="button"
           className="button pressable"
@@ -807,9 +904,7 @@ function Actions({
           Clear
         </button>
       </span>
-      <p id="spring-view-rebuild" className="spring-meta">
-        {note || "Rebuild starts a new Spring system from these values, not an exact copy."}
-      </p>
+      {note ? <p className="spring-meta">{note}</p> : null}
     </div>
   );
 }

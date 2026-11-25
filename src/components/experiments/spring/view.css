@@ -434,3 +434,17 @@
   color: var(--text-primary);
   font-weight: 600;
 }
+
+/* Findings: what to look at first, then Clean up into the app. */
+.spring-view__cleanup {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.spring-view__cleanup ul {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border-strong);
+}

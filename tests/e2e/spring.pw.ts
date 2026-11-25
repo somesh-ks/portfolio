@@ -14,10 +14,10 @@ test("the landing page leads with the skill and opens the app", async ({ page })
   await page.goto("/spring");
   await expect(page).toHaveTitle("Spring");
   await expect(page.getByText("npx skills add somesh-ks/skills --skill spring")).toBeVisible();
-  for (const name of ["Read what you have", "Make the one you want"])
+  for (const name of ["Show what you have", "Make the one you want", "Rebuild without the drift"])
     await expect(page.getByRole("heading", { name })).toBeVisible();
-  // The Make tile runs on the real engine: Spring's label passes on the brand.
-  await expect(page.getByText("Spring's label")).toBeVisible();
+  // Make runs on the real engine: a brand color through primitive and role to a button.
+  await expect(page.getByText("--color-primary")).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).
   const pause = page.getByRole("button", { name: "Pause" });
   if (await pause.isVisible()) {
