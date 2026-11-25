@@ -70,6 +70,7 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
   await expect(names.nth(0)).toHaveValue(second);
   await page.getByRole("button", { name: "Export one area" }).click();
+  page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect(names.nth(0)).toHaveValue(first);
   await expect(page).not.toHaveURL(/\?s=/);
@@ -164,6 +165,7 @@ test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", 
 test("Start over drops seed params from the URL", async ({ page }) => {
   await page.goto("/spring?primary=%23e11d48&name=Seedtest&font=Inter");
   await page.getByRole("button", { name: "Export one area" }).click();
+  page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect.poll(() => new URL(page.url()).search).toBe("");
 });

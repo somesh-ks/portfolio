@@ -214,6 +214,11 @@ describe("hand-edited links", () => {
     });
     expect(decodeInput(edited(a, 15, [0.5, null]))!.ramps!.seq).toBeUndefined();
   });
+  test("a ramp past the last strip falls back to the first", () => {
+    const sys = buildSystem(decodeInput(edited(DEFAULT_INPUT, 15, [9, [8, 9]]))!);
+    expect(sys.charts.seq).toBe(sys.charts.keys[0]);
+    expect(sys.charts.div).toEqual(sys.charts.keys.slice(0, 2) as [string, string]);
+  });
   test("ramps on the suggested strips survive without a[14]", () => {
     expect(decodeInput(edited(DEFAULT_INPUT, 15, [3, null]))!.ramps!.seq).toBe(3);
   });
