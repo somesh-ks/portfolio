@@ -3,8 +3,10 @@
 /**
  * A labelled dropdown on Base UI: one visible label, the current value on the
  * trigger, options in a popup. Base UI handles keyboard, typeahead and focus.
- * `hint` adds a quiet second column to an option, e.g. "fits a site".
+ * `hint` adds a quiet second column to an option, e.g. "fits a site";
+ * `icon` sits before the label, in the list and on the trigger.
  */
+import type { ReactNode } from "react";
 import { Select as Base } from "@base-ui/react/select";
 
 /** A drawn chevron: a text "▾" sits off-centre and changes weight with the font. */
@@ -29,6 +31,7 @@ export interface SelectOption<T extends string> {
   value: T;
   label: string;
   hint?: string;
+  icon?: ReactNode;
 }
 
 export function Select<T extends string>({
@@ -56,7 +59,21 @@ export function Select<T extends string>({
       <div className={hideLabel ? "select" : "field select"}>
         <Base.Label className={hideLabel ? "sr-only" : "field__label"}>{label}</Base.Label>
         <Base.Trigger className="select__trigger">
-          <Base.Value className="select__value" />
+          <Base.Value className="select__value">
+            {(v: T) => {
+              const o = options.find((x) => x.value === v);
+              return o?.icon ? (
+                <>
+                  <span className="select__glyph" aria-hidden>
+                    {o.icon}
+                  </span>
+                  {o.label}
+                </>
+              ) : (
+                o?.label
+              );
+            }}
+          </Base.Value>
           <Base.Icon className="select__icon" aria-hidden>
             <Chevron />
           </Base.Icon>
@@ -76,7 +93,14 @@ export function Select<T extends string>({
                   <Base.ItemIndicator className="select__check" aria-hidden>
                     ✓
                   </Base.ItemIndicator>
-                  <Base.ItemText className="select__text">{o.label}</Base.ItemText>
+                  <Base.ItemText className="select__text">
+                    {o.icon ? (
+                      <span className="select__glyph" aria-hidden>
+                        {o.icon}
+                      </span>
+                    ) : null}
+                    {o.label}
+                  </Base.ItemText>
                   {o.hint ? <span className="select__hint">{o.hint}</span> : null}
                 </Base.Item>
               ))}

@@ -31,7 +31,6 @@ const STARTER: SystemInput = {
 const KEY = "spring-state";
 
 let input = STARTER;
-let line = "";
 let loaded = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
@@ -42,7 +41,6 @@ function load() {
   let saved: string | null = null;
   try {
     saved = localStorage.getItem(KEY);
-    line = localStorage.getItem("spring-line") ?? "";
   } catch {}
   // A share or seed link (?s=, ?primary=&name=…) wins; a broken one falls back to this
   // browser's last system. Either way the saved copy is replaced only on the first edit.
@@ -115,27 +113,14 @@ export function importRoute(json: unknown): "spring" | "view" | "audit" {
   return ["primary", "type", "name", "density"].some((k) => k in json) ? "spring" : "audit";
 }
 
-function setLine(v: string) {
-  line = v;
-  emit();
-  try {
-    localStorage.setItem("spring-line", v);
-  } catch {}
-}
-
 export function useSpring() {
   const i = useSyncExternalStore(
     subscribe,
     () => input,
     () => STARTER,
   );
-  const l = useSyncExternalStore(
-    subscribe,
-    () => line,
-    () => "",
-  );
   const system = useMemo(() => buildSystem(i), [i]);
-  return { input: i, system, line: l, setInput, setLine };
+  return { input: i, system, setInput };
 }
 
 /** The current input, read on demand (no subscription, no rebuild). */

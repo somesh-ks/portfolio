@@ -1,6 +1,6 @@
 /**
  * Spring for agents: one zero-dependency Node script (bundled by
- * scripts/build-spring-cli.ts into the `spring` skill).
+ * scripts/build-spring-cli.ts into the `design-sys` skill, scan only).
  *
  *   spring scan [dir] [--json] [--out file] [--no-usage] [--open]
  *     Read the repo's design system and how the code uses it; print facts,
@@ -357,7 +357,7 @@ function summary(
     const low = ps.filter((p) => p.ratio !== null && p.ratio < 4.5);
     const unread = ps.filter((p) => p.ratio === null).length;
     lines.push(
-      `Contrast: ${ps.length} named text/background pairs; ${low.length} under 4.5:1` +
+      `Contrast: ${ps.length} pairs found by token name (colors combined only in component code aren't checked); ${low.length} under 4.5:1` +
         (low.length
           ? `: ${list(
               low.map((p) => `${p.fg} on ${p.bg} (${p.mode}) ${p.ratio}`),
@@ -528,10 +528,13 @@ export interface Deps {
   open?: (url: string) => void;
 }
 
-const HELP = `spring scan [dir] [--json] [--out file] [--no-usage] [--open]
-             --open opens the View link (or ${VIEW_URL} when it wrote a JSON file) in your browser
+const SCAN = `spring scan [dir] [--json] [--out file] [--no-usage] [--open]
+             --open opens the View link (or ${VIEW_URL} when it wrote a JSON file) in your browser`;
+const SCAN_HELP = `${SCAN}
+spring schema view`;
+const HELP = `${SCAN}
 spring build [spring.json] [--primary color] [--name n] [--font f] [--heading f] [--mono f]
-             [--contrast aa|aaa|apca] [--styling tailwind|css] [--out dir] [--only a,b] [--print file]
+             [--contrast aa|aaa|apca] [--styling tailwind|css|dtcg] [--out dir] [--only a,b] [--print file]
 spring infer [dir] [--out spring.json]
 spring schema [input|view]`;
 
@@ -573,6 +576,13 @@ export function main(argv = process.argv.slice(2), deps: Deps = {}) {
     }
     say(summary(view, dir, fits ? link : null, file, findings));
     open(fits ? link : VIEW_URL);
+    return;
+  }
+  // The design-sys skill's build sets this: it only scans, the Spring app creates.
+  if (process.env.SPRING_SCAN_ONLY === "1") {
+    if (cmd === "schema") process.stdout.write(JSON.stringify(viewSchema, null, 2) + "\n");
+    else say(SCAN_HELP);
+    if (cmd && !["help", "--help", "schema"].includes(cmd)) process.exit(1);
     return;
   }
   if (cmd === "infer") {

@@ -7,7 +7,7 @@ export const contentType = "image/png";
 export default function Image() {
   return ogCard({
     title: "Spring",
-    summary: "A design system skill for your agent, and an app to shape one.",
+    summary: "Color and type tokens from one brand color.",
     path: "/spring",
   });
 }

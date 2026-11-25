@@ -18,7 +18,13 @@ import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
 import { SAMPLES } from "../fixtures/spring-samples";
 import { decodeInput, encodeInput } from "@/lib/spring/state";
-import { DEFAULT_INPUT, buildSystem, inputFromSeed, type SystemInput } from "@/lib/spring/system";
+import {
+  DEFAULT_INPUT,
+  buildSystem,
+  inputFromSeed,
+  suggestData,
+  type SystemInput,
+} from "@/lib/spring/system";
 import { crc32, zip } from "@/components/experiments/spring/zip";
 
 const SEEDS = ["#3f8f3a", "#e11d48", "#f5c400", "#2563eb", "#111111", "#7c3aed", "#14b8a6"];
@@ -709,5 +715,18 @@ describe("audit: edges and rings are not text", () => {
     expect(dupes("#1d4ed880")).toBe(false);
     expect(dupes("oklch(48.8% 0.241 264 / 50%)")).toBe(false);
     expect(dupes("#1d4ed9")).toBe(true);
+  });
+});
+
+describe("suggest data colors", () => {
+  test("adds one color, keeps the rest, and keeps chart checks passing", () => {
+    const base = suggestData(DEFAULT_INPUT);
+    const next = suggestData(DEFAULT_INPUT, base);
+    expect(next).toHaveLength(base.length + 1);
+    expect(next.slice(0, base.length)).toEqual(base);
+    expect(new Set(next.map((c) => c.name)).size).toBe(next.length);
+    const sys = buildSystem({ ...DEFAULT_INPUT, data: next });
+    for (const mode of ["light", "dark"] as const)
+      expect(sys.charts.checks[mode].filter((c) => c.status === "fail")).toEqual([]);
   });
 });
