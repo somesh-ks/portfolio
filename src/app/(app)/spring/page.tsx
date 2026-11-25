@@ -21,7 +21,7 @@ export default function SpringLanding() {
   return (
     <div className="spring-landing">
       <OldAppLinks />
-      <header className="spring-landing__bar">
+      <header className="spring-landing__bar" data-theme="dark">
         <BackLink />
         <span className="spring-landing__actions">
           <Link href="/spring/app" className="button pressable">

@@ -67,10 +67,7 @@ function Meadow({ scale, live, reduced }: { scale: BuiltScale; live: boolean; re
       blades = Array.from({ length: Math.ceil(W / px) }, (_, i) => ({
         x: i * px,
         // Rolling tufts, not a bar code: a slow swell times a random height, short blades most common.
-        h:
-          H *
-          (0.18 + 0.82 * rnd() ** 1.8) *
-          (0.72 + 0.28 * Math.sin(i / 17) * Math.sin(i / 41 + 1)),
+        h: H * (0.34 + 0.66 * rnd() ** 1.8) * (0.8 + 0.2 * Math.sin(i / 17) * Math.sin(i / 41 + 1)),
         lean: 0,
         v: 0,
         tip: Math.floor(rnd() * 3),
@@ -115,8 +112,8 @@ function Meadow({ scale, live, reduced }: { scale: BuiltScale; live: boolean; re
         const steps = shown.dark;
         const seg = h / 12;
         for (let k = 0; k < 12; k++) {
-          // Roots sit in the dark steps and fade into the page; tips catch the light (steps 10-12).
-          const step = Math.min(11, 1 + k - (k > 8 ? b.tip : 0));
+          // Roots sit in the dark steps and fade into the page; tips stop at step 10 so they stay visible against the wordmark.
+          const step = Math.min(9, 1 + k - (k > 8 ? b.tip : 0));
           const y = H - (k + 1) * seg;
           const lean = b.lean * (k / 12) ** 2 * h;
           ctx.fillStyle = steps[step]!.hex;
@@ -215,7 +212,10 @@ export function Hero() {
           # A design system skill for your agent. It reads yours, or grows a new one.
         </p>
         <div className="spring-term__line" data-copy-root>
-          <code className="spring-term__cmd">{INSTALL}</code>
+          <code className="spring-term__cmd">
+            {INSTALL.replace(" --skill spring", " ")}
+            <span className="nowrap">--skill spring</span>
+          </code>
           <CopyButton text={INSTALL} />
         </div>
         <div className="spring-term__log" aria-live="polite">

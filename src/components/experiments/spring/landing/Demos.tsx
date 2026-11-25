@@ -154,7 +154,7 @@ export function TypeDemo() {
   const fonts = useMemo(() => googleFontsUrl([...FONTS]), []);
   return (
     <Demo
-      title="Type scale"
+      title="spring type --ratio"
       caption="Drag the ratio. Line height and tracking follow."
       auto={auto}
       frameRef={ref}
@@ -251,7 +251,7 @@ export function MotionDemo() {
   const { stiffness, damping } = motion.springConfig;
   return (
     <Demo
-      title="Motion"
+      title="spring motion --feel"
       caption="A real spring in CSS linear(). No library."
       auto={auto}
       frameRef={ref}
