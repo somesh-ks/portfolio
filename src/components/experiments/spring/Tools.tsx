@@ -6,6 +6,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Eye } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
+import { readInput, writeInput } from "@/lib/spring/io";
 import {
   DEFAULT_INPUT,
   inputFromSeed,
@@ -35,7 +36,16 @@ import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
 import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
-import { setInput as loadInput, resetInput, shareUrl, useCopy, useMode, useSpring } from "./store";
+import {
+  getInput,
+  importRoute,
+  setInput as loadInput,
+  resetInput,
+  shareUrl,
+  useCopy,
+  useMode,
+  useSpring,
+} from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
@@ -69,6 +79,12 @@ function save(name: string, blob: Blob) {
 }
 const text = (s: string, type: string) => new Blob([s], { type });
 
+/** exportAll's files plus spring.json, the same system as plain data. */
+const withJson = (system: System, files: ExportFile[]) => [
+  ...files.map((x) => ({ path: x.path, content: x.content })),
+  { path: "spring.json", content: writeInput(system.input) },
+];
+
 const AREAS: { area: Area; label: string }[] = [
   { area: "color", label: "Color" },
   { area: "type", label: "Type" },
@@ -83,8 +99,30 @@ const AREAS: { area: Area; label: string }[] = [
 function ExportMenu({ system }: { system: System }) {
   const [, copy, said] = useCopy();
   const name = slug(system.input.name);
-  const all = () =>
-    save(`${name}.zip`, zip(exportAll(system).map((x) => ({ path: x.path, content: x.content }))));
+  const [importing, setImporting] = useState(false);
+  const [dropped, setDropped] = useState<Dropped>(NOTHING);
+  // A file dropped anywhere on the app opens the import dialog, filled in.
+  useEffect(() => {
+    const over = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
+      e.preventDefault();
+      void readDrop(files).then((d) => {
+        setDropped(d);
+        setImporting(true);
+      });
+    };
+    addEventListener("dragover", over);
+    addEventListener("drop", drop);
+    return () => {
+      removeEventListener("dragover", over);
+      removeEventListener("drop", drop);
+    };
+  }, []);
+  const all = () => save(`${name}.zip`, zip(withJson(system, exportAll(system))));
   const area = (a: Area) => {
     const { css, json } = exportArea(system, a);
     save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
@@ -119,6 +157,18 @@ function ExportMenu({ system }: { system: System }) {
               </Menu.Item>
               <Menu.Item
                 className="select__item"
+                onClick={() =>
+                  save("spring.json", text(writeInput(system.input), "application/json"))
+                }
+              >
+                <span className="select__text">spring.json</span>
+                <span className="select__hint">.json</span>
+              </Menu.Item>
+              <Menu.Item className="select__item" onClick={() => setImporting(true)}>
+                <span className="select__text">Import…</span>
+              </Menu.Item>
+              <Menu.Item
+                className="select__item"
                 onClick={() => {
                   if (confirm("Start over? This clears the system saved in this browser."))
                     resetInput();
@@ -131,7 +181,175 @@ function ExportMenu({ system }: { system: System }) {
         </Menu.Portal>
       </Menu.Root>
       <output className="sr-only">{said}</output>
+      <ImportDialog
+        open={importing}
+        onOpenChange={(o) => {
+          setImporting(o);
+          if (!o) setDropped(NOTHING);
+        }}
+        initial={dropped}
+      />
     </span>
+  );
+}
+
+/** A dropped or picked file, read as text, or why it wasn't. */
+interface Dropped {
+  text: string;
+  error?: string;
+  /** Files past the first, which import doesn't read. */
+  note?: string;
+}
+const NOTHING: Dropped = { text: "" };
+const MAX_DROP = 5 * 1024 * 1024;
+
+/** The first file as text; over 5 MB, binary or unreadable says so instead. */
+async function readDrop(files: FileList | File[]): Promise<Dropped> {
+  const list = [...files];
+  const skipped = list.length - 1;
+  const note = skipped ? `Skipped ${skipped} ${skipped === 1 ? "file" : "files"}.` : undefined;
+  const f = list[0]!;
+  if (f.size > MAX_DROP) return { text: "", error: `${f.name} is over 5 MB.`, note };
+  try {
+    const body = await f.text();
+    // NUL bytes near the start: an image, archive or font.
+    if (body.slice(0, 8192).includes("\u0000"))
+      return { text: "", error: `${f.name} isn't a text file.`, note };
+    return { text: body, note };
+  } catch {
+    return { text: "", error: `Couldn't read ${f.name}.` };
+  }
+}
+
+/** Reads spring.json exactly; anything else goes through the audit for its closest system. */
+function ImportDialog({
+  open,
+  onOpenChange,
+  initial,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  initial: Dropped;
+}) {
+  const textId = useId();
+  const [value, setValue] = useState("");
+  const [result, setResult] = useState<{ error?: string; lines: string[] } | null>(null);
+  // An import replaces the whole system, so keep the one before it for Undo.
+  const [before, setBefore] = useState<SystemInput | null>(null);
+  const [lastInitial, setLastInitial] = useState(NOTHING);
+  if (initial !== lastInitial) {
+    setLastInitial(initial);
+    setValue(initial.text);
+    setResult(
+      initial.error || initial.note
+        ? { error: initial.error, lines: initial.note ? [initial.note] : [] }
+        : null,
+    );
+    setBefore(null);
+  }
+  const edit = (t: string, error?: string) => {
+    setValue(t);
+    setResult(error ? { error, lines: [] } : null);
+    setBefore(null);
+  };
+  const run = async () => {
+    const t = value.trim();
+    if (!t) return setResult({ error: "Paste or drop a file first.", lines: [] });
+    const prev = getInput();
+    try {
+      let json: unknown;
+      try {
+        json = t.startsWith("{") ? JSON.parse(t) : undefined;
+      } catch {}
+      const route = importRoute(json);
+      if (route === "spring") {
+        const r = readInput(json);
+        loadInput(r.input);
+        setBefore(prev);
+        return setResult({ lines: ["Imported spring.json.", ...r.notes] });
+      }
+      const [{ audit }, tokens] = await Promise.all([
+        import("@/lib/spring/audit"),
+        route === "view" ? import("@/lib/spring/tokens") : null,
+      ]);
+      // A Spring View file goes in as the CSS it describes.
+      const source = tokens ? tokens.toCss(tokens.readView(json)) : t;
+      loadInput(audit(source).input);
+      setBefore(prev);
+      setResult({ lines: ["Closest match loaded."] });
+    } catch (e) {
+      setResult({ error: e instanceof Error ? e.message : "Couldn't read that.", lines: [] });
+    }
+  };
+  const pick = async (f?: File) => {
+    if (!f) return;
+    const d = await readDrop([f]);
+    edit(d.text, d.error);
+  };
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="palette-backdrop" />
+        <Dialog.Popup className="palette spring spring-dialog">
+          <div className="spring-dialog__head">
+            <Dialog.Title className="spring-dialog__title">Import</Dialog.Title>
+            <Dialog.Close className="button">Close</Dialog.Close>
+          </div>
+          <Dialog.Description className="spring-meta">
+            {/* The description doubles as the textarea's visible label. */}
+            <label htmlFor={textId}>
+              Paste or drop spring.json, CSS, tokens or a Tailwind config.
+            </label>
+          </Dialog.Description>
+          <textarea
+            id={textId}
+            className="spring-audit-input spring-code"
+            placeholder=":root { --primary: … }"
+            value={value}
+            spellCheck={false}
+            onChange={(e) => edit(e.target.value)}
+          />
+          <span className="spring-export__row">
+            <button type="button" className="button button--primary" onClick={run}>
+              Import
+            </button>
+            <label className="spring-link">
+              Choose a file
+              <input
+                type="file"
+                className="sr-only"
+                aria-label="Choose a file"
+                onChange={(e) => void pick(e.target.files?.[0])}
+              />
+            </label>
+          </span>
+          <output className="spring-meta spring-dialog__out">
+            {result?.error ? <p className="spring-import__error">{result.error}</p> : null}
+            {result?.lines.map((l, i) => (
+              <p key={l}>
+                {l}
+                {i === 0 && before ? (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      className="spring-link"
+                      onClick={() => {
+                        loadInput(before);
+                        setBefore(null);
+                        setResult({ lines: ["Undone."] });
+                      }}
+                    >
+                      Undo
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            ))}
+          </output>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -412,9 +630,13 @@ function ColorControls({
   // One chroma dial per theme: in dark it reads and sets chroma × darkChroma.
   const chroma = dark ? a.chroma * darkChroma : a.chroma;
   const setChroma = (v: number) =>
-    dark
+    // A gray brand (chroma 0) has nothing to scale, so dark edits the base chroma.
+    dark && a.chroma > 0
       ? setCurve({ darkChroma: Math.round(Math.min(1.2, Math.max(0.4, v / a.chroma)) * 100) / 100 })
-      : setInput((i) => ({ ...i, primary: { ...i.primary, chroma: v } }));
+      : setInput((i) => ({
+          ...i,
+          primary: { ...i.primary, chroma: dark ? Math.round((v / darkChroma) * 1e4) / 1e4 : v },
+        }));
   // A theme switch can change what the chroma dial shows; pulse it so the change is seen.
   const [flash, setFlash] = useState(0);
   const [seenMode, setSeenMode] = useState(mode);
@@ -462,8 +684,9 @@ function ColorControls({
             flash={flash > 0}
             label={dark ? "chroma, dark" : "chroma"}
             value={chroma}
-            min={dark ? a.chroma * 0.4 : 0.02}
-            max={dark ? a.chroma * 1.2 : 0.3}
+            // A gray brand has no chroma to scale, so it gets the light range in dark too.
+            min={dark && a.chroma > 0 ? a.chroma * 0.4 : 0.02}
+            max={dark && a.chroma > 0 ? a.chroma * 1.2 : 0.3}
             step={0.001}
             show={chroma.toFixed(3)}
             reset={dark ? a.chroma : undefined}
@@ -929,11 +1152,7 @@ function TokensControls({
   setFile: (label: string) => void;
 }) {
   const [copied, copy, said] = useCopy();
-  const download = () =>
-    save(
-      `${slug(system.input.name)}.zip`,
-      zip(files.map((x) => ({ path: x.path, content: x.content }))),
-    );
+  const download = () => save(`${slug(system.input.name)}.zip`, zip(withJson(system, files)));
   const name = f.path.split("/").pop();
   return (
     <>

@@ -8,6 +8,8 @@ import { clampChroma, linearToOklch, oklchToHex, oklchToLinear, wcagContrast } f
 import { buildScale, type BuiltScale, type Curve, type Mode, type Step } from "./color";
 
 export const CHART_MAX = 10;
+/** How many data strips a system suggests when its input names none. */
+export const CHART_SUGGESTED = 6;
 export type Vision = "normal" | "protan" | "deutan" | "tritan";
 export const VISIONS: Vision[] = ["normal", "protan", "deutan", "tritan"];
 export const VISION_LABEL: Record<Vision, string> = {

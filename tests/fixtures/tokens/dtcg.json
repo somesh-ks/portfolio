@@ -1,0 +1,45 @@
+{
+  "color": {
+    "$type": "color",
+    "red": { "500": { "$value": "#ef4444" } },
+    "danger": { "$value": "{color.red.500}" },
+    "alert": { "$value": "{color.danger}" },
+    "oklch": { "$value": { "colorSpace": "oklch", "components": [0.6, 0.2, 30], "alpha": 0.5 } }
+  },
+  "dur": { "$type": "duration", "fast": { "$value": 150 } },
+  "ease": { "$type": "cubicBezier", "out": { "$value": [0.2, 0, 0, 1] } },
+  "font": {
+    "$type": "fontFamily",
+    "sans": { "$value": ["Inter", "Helvetica Neue", "sans-serif"] }
+  },
+  "type": {
+    "$type": "typography",
+    "body": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "lineHeight": 1.5,
+        "letterSpacing": "0.01em"
+      }
+    }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "card": {
+      "$value": {
+        "offsetX": "0px",
+        "offsetY": "1px",
+        "blur": "3px",
+        "spread": "0px",
+        "color": "#00000033"
+      }
+    },
+    "stack": {
+      "$value": [
+        { "offsetX": "0px", "offsetY": "1px", "blur": "2px", "spread": "0px", "color": "#000" },
+        { "offsetX": "0px", "offsetY": "4px", "blur": "8px", "spread": "0px", "color": "#0003" }
+      ]
+    }
+  }
+}

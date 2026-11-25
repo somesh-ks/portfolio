@@ -25,3 +25,6 @@ content/protected/
 
 # Built from resume/resume.tex on deploy
 /public/resume.pdf
+
+# Spring CLI bundle (scripts/build-spring-cli.ts)
+/dist

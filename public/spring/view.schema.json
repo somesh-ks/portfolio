@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://someshks.com/spring/view.schema.json",
+  "title": "Spring View v1",
+  "description": "A project's existing design system as a flat token map, for https://someshks.com/spring/view (drop the file, or pass it as #d=<base64url(deflate-raw(json))>). Values are raw CSS; var() references resolve per mode, falling back to the first mode.",
+  "type": "object",
+  "required": ["v", "tokens"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "v": { "const": 1 },
+    "name": { "type": "string", "maxLength": 80 },
+    "modes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[\\w-]{1,32}$" },
+      "maxItems": 8,
+      "description": "Theme names; the first is the default. Usually [\"light\", \"dark\"]."
+    },
+    "tokens": {
+      "type": "object",
+      "description": "Token name without the leading -- → a value for every mode, or a mode → value map.",
+      "propertyNames": { "pattern": "^[\\w-]{1,120}$" },
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string", "maxLength": 500 },
+          { "type": "object", "additionalProperties": { "type": "string", "maxLength": 500 } }
+        ]
+      },
+      "maxProperties": 3000
+    },
+    "scoped": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "selector": { "type": "string" }, "count": { "type": "integer" } } }
+    },
+    "sources": { "type": "array", "items": { "type": "string" } },
+    "usage": {
+      "type": "object",
+      "description": "How the code uses the tokens (the CLI fills this).",
+      "properties": {
+        "files": { "type": "integer" },
+        "refs": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "raw": { "type": "array", "items": { "$ref": "#/$defs/hit" } },
+        "rawCount": { "type": "integer" },
+        "offSystem": { "type": "array", "items": { "$ref": "#/$defs/hit" } },
+        "offSystemCount": { "type": "integer" }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "hit": {
+      "type": "object",
+      "properties": { "value": { "type": "string" }, "at": { "type": "string", "description": "path:line" } },
+      "required": ["value", "at"]
+    }
+  }
+}

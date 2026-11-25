@@ -3,7 +3,14 @@
  * exports, audit fixes, the share link) goes through buildSystem, so the
  * input is the only state the app keeps.
  */
-import { buildCharts, suggest, type Charts, type DataColor, type Ramps } from "./charts";
+import {
+  buildCharts,
+  CHART_SUGGESTED,
+  suggest,
+  type Charts,
+  type DataColor,
+  type Ramps,
+} from "./charts";
 import {
   buildNeutral,
   buildScale,
@@ -437,7 +444,7 @@ export function buildSystem(input: SystemInput): System {
   };
   const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
   const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
-  const dataIn = input.data ?? named(suggest(input.primary, 6, pages, input.curve));
+  const dataIn = input.data ?? named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
   const colorsIn = input.colors ?? [];
   // UI and data strips share one token namespace, so "blue" in both becomes blue and blue-2.
   const keys = stripKeys([...colorsIn, ...dataIn]);

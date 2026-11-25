@@ -1,0 +1,11 @@
+:root,
+.light,
+.light-theme {
+  --gray-1: #fcfcfc;
+  --gray-12: #202020;
+}
+.dark,
+.dark-theme {
+  --gray-1: #111111;
+  --gray-12: #eeeeee;
+}

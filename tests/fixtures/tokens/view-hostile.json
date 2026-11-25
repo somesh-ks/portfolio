@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "name": "x",
+  "modes": ["light", "dark", "bad mode!", "ocean"],
+  "tokens": {
+    "ok": { "light": "#fff", "dark": "#000", "nomode": "#123", "ocean": "#abc" },
+    "img": { "light": "url(https://evil.test/x.png)" },
+    "imp": { "light": "@import 'x'" },
+    "brace": { "light": "red; } body { x: y" },
+    "angle": { "light": "<script>" },
+    "str": "#111",
+    "bad key!": { "light": "#fff" },
+    "num": { "light": 3 },
+    "arr": ["#fff"]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "color": {
+    "base": { "red": { "value": "#f00" }, "blue": { "value": "#00f", "type": "color" } },
+    "brand": { "value": "{color.base.red.value}" }
+  }
+}

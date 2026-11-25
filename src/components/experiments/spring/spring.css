@@ -716,7 +716,8 @@
 .spring-export__row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
 }
 .spring-fonts {
   display: grid;
@@ -1388,4 +1389,28 @@
 }
 .spring-strip--plain > .spring-meta {
   text-align: right;
+}
+
+.spring-import__error {
+  color: var(--text-primary);
+  text-decoration: underline wavy var(--border-strong);
+}
+
+/* The Import box is a paste target, not an editor. */
+.spring-dialog .spring-audit-input.spring-code {
+  height: min(40dvh, 20rem);
+}
+/* Buttons keep the app's sans face inside the mono palette popup. */
+.spring-dialog .button {
+  font-family: var(--font-sans);
+}
+.spring-dialog__out {
+  display: block;
+}
+.spring-dialog__out:empty {
+  display: none;
+}
+.spring-audit-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
 }

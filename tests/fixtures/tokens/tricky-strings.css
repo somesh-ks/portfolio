@@ -1,0 +1,6 @@
+/* values a stylesheet may hold but a shared View may not apply */
+:root {
+  --bg-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'></svg>");
+  --font-quote: "semi;colon", serif;
+  --after: #abc;
+}

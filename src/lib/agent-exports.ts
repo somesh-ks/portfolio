@@ -121,6 +121,8 @@ export function llmsTxt(): string {
       .filter((entry) => entry.meta.protected)
       .map((entry) => listLine(entry, ` Outcomes: ${entry.meta.metrics.join("; ")}.`))
       .join("\n"),
+    "## Tools",
+    `- [Spring for agents](${absoluteUrl("/spring/llms.txt")}): Build a design system or view a repo's existing one, over HTTP or with an offline agent skill.`,
     "## Optional",
     `- [About](${absoluteUrl("/index.md")}): Bio and links.`,
     `- [Resume](${absoluteUrl("/resume.md")}): Experience, education and skills.`,

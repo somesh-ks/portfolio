@@ -50,6 +50,7 @@ export function Dial({
     const n = Number.parseFloat(text.replace(/[^\d.+-]/g, ""));
     return Number.isFinite(n) ? snap(n / scale) : null;
   };
+  const raw = (v: number) => String(Number((v * scale).toFixed(4)));
   const commit = () => {
     const v = draft === null ? null : typed(draft);
     if (v !== null && v !== value) {
@@ -57,16 +58,24 @@ export function Dial({
       onCommit?.();
     }
     setDraft(null);
+    return v ?? value;
   };
   const nudge = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") return commit();
+    if (e.key === "Enter") {
+      // Focus stays in the field, so keep the bare number selected: the next
+      // keystroke replaces it instead of landing after the unit ("30%5").
+      const field = e.currentTarget;
+      setDraft(raw(commit()));
+      requestAnimationFrame(() => field.select());
+      return;
+    }
     if (e.key === "Escape") return setDraft(null);
     if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
     e.preventDefault();
     const by = (e.key === "ArrowUp" ? 1 : -1) * step * (e.shiftKey ? 10 : 1);
     const next = snap((draft === null ? value : (typed(draft) ?? value)) + by);
     onChange(next);
-    setDraft(String(Number((next * scale).toFixed(4))));
+    setDraft(raw(next));
   };
   const p = ((clamp(value, min, max) - min) / (max - min)) * 100;
 
@@ -101,7 +110,7 @@ export function Dial({
         aria-label={`${label}, type a value`}
         value={draft ?? show}
         onFocus={(e) => {
-          setDraft(String(Number((value * scale).toFixed(4))));
+          setDraft(raw(value));
           requestAnimationFrame(() => e.target.select());
         }}
         onChange={(e) => setDraft(e.target.value)}

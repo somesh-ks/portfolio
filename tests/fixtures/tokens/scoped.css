@@ -1,0 +1,10 @@
+:root {
+  --bg: #fff;
+}
+.card {
+  --card-pad: 1rem;
+  --card-gap: 0.5rem;
+}
+.btn {
+  --btn-h: 40px;
+}

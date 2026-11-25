@@ -1,0 +1,17 @@
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000;
+    --fg: #eeeeee;
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --bg: #fff;
+    --fg: #000;
+    --hc-only: #f0f;
+  }
+}

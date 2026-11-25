@@ -840,10 +840,11 @@ function pickBody(p: Parsed) {
 
 function inferInput(p: Parsed): SystemInput {
   const brand =
+    // shadcn's "accent" is a hover surface, so primary and brand come first.
     byNames(p.colors, [
-      "accent",
       "primary",
       "brand",
+      "accent",
       "accent-9",
       "primary-9",
       "brand-9",
