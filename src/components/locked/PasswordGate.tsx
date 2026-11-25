@@ -8,6 +8,7 @@ import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition, type FormEvent } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
+import { PROFILE } from "@content/profile";
 
 const MESSAGES = {
   failed: "That password didn't work. Check for typos, or ask me for a fresh one.",
@@ -69,7 +70,13 @@ export function PasswordGate({
         <div>
           <h2 className="gate__title">Read the full {title} case study</h2>
           <p id={`${id}-hint`} className="gate__hint">
-            It's under NDA. If you're hiring or we're working together, ask me for the password.
+            It's under NDA. If you're hiring or we're working together,{" "}
+            <a
+              href={`mailto:${PROFILE.email}?subject=${encodeURIComponent(`Password for ${title}`)}`}
+            >
+              ask me for the password
+            </a>
+            .
           </p>
         </div>
       </div>
