@@ -76,7 +76,7 @@
       "properties": {
         "building": { "enum": ["site", "app", "dashboard"], "default": "app" },
         "ownership": { "enum": ["own", "package"], "default": "own" },
-        "styling": { "enum": ["tailwind", "css"], "default": "tailwind" }
+        "styling": { "enum": ["tailwind", "css", "dtcg"], "default": "tailwind" }
       }
     }
   },

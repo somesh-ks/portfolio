@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
-import { Eye } from "lucide-react";
+import { Braces, Eye, Variable } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { readInput, writeInput } from "@/lib/spring/io";
-import type { Styling } from "@/lib/spring/stack";
+import { FORMAT_LABEL, FORMATS, formatOf, withFormat, type Format } from "@/lib/spring/names";
 import {
   DEFAULT_INPUT,
   inputFromSeed,
@@ -140,12 +140,7 @@ function ExportMenu({ system }: { system: System }) {
   };
   return (
     <span className="spring-split">
-      <button
-        type="button"
-        className="button button--primary spring-split__main"
-        aria-label="Export"
-        onClick={all}
-      >
+      <button type="button" className="button spring-split__main" aria-label="Export" onClick={all}>
         {["Export", "Link copied", "Saved"].map((t, i) => (
           <span key={t} aria-hidden="true" data-on={i === label || undefined}>
             {t}
@@ -153,10 +148,7 @@ function ExportMenu({ system }: { system: System }) {
         ))}
       </button>
       <Menu.Root>
-        <Menu.Trigger
-          className="button button--primary spring-split__more"
-          aria-label="Export, import and reset"
-        >
+        <Menu.Trigger className="button spring-split__more" aria-label="Export, import and reset">
           <Chevron />
         </Menu.Trigger>
         <Menu.Portal>
@@ -404,6 +396,35 @@ function Text({
 }
 
 // Color and type only: space, radius and motion keep sensible defaults in the exports.
+/** Monochrome marks, so the picker reads as one terminal list, not a logo wall. */
+const FORMAT_ICON: Record<Format, React.ReactNode> = {
+  css: <Variable strokeWidth={1.75} />,
+  tailwind: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35.98 1 2.12 2.15 4.59 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C15.61 7.15 14.47 6 12 6zm-5 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35C8.39 16.85 9.53 18 12 18c2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C10.61 13.15 9.47 12 7 12z" />
+    </svg>
+  ),
+  shadcn: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+    >
+      <path d="M19.5 12 12 19.5M18 4.5 4.5 18" />
+    </svg>
+  ),
+  dtcg: <Braces strokeWidth={1.75} />,
+};
+/** The type token in that format, so the choice shows what it changes. */
+const FORMAT_HINT: Record<Format, string> = {
+  css: "--text-h1",
+  tailwind: "text-h1",
+  shadcn: "text-h1",
+  dtcg: "typography.h1",
+};
+
 const TABS = ["color", "type", "tokens"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
@@ -482,19 +503,24 @@ export function SpringApp() {
             </button>
           ))}
         </div>
-        <span className="spring-app__actions">
+        {/* The format names every token in the app and leads the export. */}
+        <span className="spring-app__format">
           <Select
-            label="Token names for"
+            label="Token format"
             hideLabel
-            value={input.stack.styling}
-            options={[
-              { value: "css", label: "CSS names" },
-              { value: "tailwind", label: "Tailwind names" },
-            ]}
-            onChange={(v) =>
-              setInput((i) => ({ ...i, stack: { ...i.stack, styling: v as Styling } }))
-            }
+            value={formatOf(input.stack)}
+            options={FORMATS.map((fmt) => ({
+              value: fmt,
+              label: FORMAT_LABEL[fmt],
+              icon: FORMAT_ICON[fmt],
+              hint: FORMAT_HINT[fmt],
+            }))}
+            onChange={(fmt) => setInput((i) => ({ ...i, stack: withFormat(i.stack, fmt) }))}
           />
+        </span>
+        <span className="spring-app__actions">
+          {/* Theme first, so the strip ends on its one menu: Export. */}
+          <ThemeToggle className="button spring-square pressable" />
           <button
             type="button"
             className="button spring-app__preview"
@@ -505,7 +531,6 @@ export function SpringApp() {
             <span>Preview</span>
           </button>
           <ExportMenu system={system} />
-          <ThemeToggle className="button spring-square pressable" />
         </span>
       </header>
       <AuditDialog />

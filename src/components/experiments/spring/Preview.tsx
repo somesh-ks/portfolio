@@ -4,7 +4,7 @@ import { useId } from "react";
 import { ArrowRight } from "lucide-react";
 import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
-import { tokenName, typeSnippet } from "@/lib/spring/names";
+import { formatOf, typeName, typeSnippet } from "@/lib/spring/names";
 import type { System } from "@/lib/spring/system";
 import type { Role } from "@/lib/spring/type";
 import { Scope } from "./Scope";
@@ -168,7 +168,7 @@ const SAMPLE: Partial<Record<Role, string>> = {
  */
 export function Ladder({ system, mode }: { system: System; mode: Mode }) {
   const [copied, copy, said] = useCopy();
-  const styling = system.input.stack.styling;
+  const format = formatOf(system.input.stack);
   return (
     <Scope system={system} mode={mode}>
       <output className="sr-only">{said}</output>
@@ -185,9 +185,9 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
                 <button
                   type="button"
                   className="sp-label spring-rung__copy"
-                  onClick={() => copy(t.role, typeSnippet(t.role, styling))}
+                  onClick={() => copy(t.role, typeSnippet(t.role, format))}
                 >
-                  {copied === t.role ? "copied" : tokenName(`--text-${t.role}`, styling)}
+                  {copied === t.role ? "copied" : typeName(t.role, format)}
                   <span className="sr-only"> copy</span>
                 </button>
                 <span>

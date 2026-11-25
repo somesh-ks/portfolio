@@ -7,7 +7,7 @@
 
 type Building = "site" | "app" | "dashboard";
 type Ownership = "own" | "package";
-export type Styling = "tailwind" | "css";
+export type Styling = "tailwind" | "css" | "dtcg";
 
 export interface StackAnswers {
   building: Building;
@@ -137,6 +137,15 @@ export const STYLING: Record<Styling, Pick> = {
     install: "No install: import tokens.css once at the root.",
     why: "No build dependency and nothing to learn. Works with any framework.",
     whenNot: "You want agents constrained to your scale; raw CSS lets them type any value.",
+    checked: CHECKED,
+  },
+  dtcg: {
+    id: "dtcg",
+    name: "DTCG tokens.json",
+    url: "https://www.designtokens.org/tr/drafts/format/",
+    install: "No install: feed tokens.json to Style Dictionary, Tokens Studio or Figma.",
+    why: "The W3C format every token tool reads, so one file feeds code, Figma and docs.",
+    whenNot: "You only ship CSS: tokens.css alone is simpler.",
     checked: CHECKED,
   },
 };

@@ -1,30 +1,40 @@
 /**
- * How a token is written in the visitor's stack. CSS reads the variable;
- * Tailwind v4 gets the utility that theme.css makes, or the (--var)
- * shorthand where Tailwind has no namespace for it (durations).
+ * The token formats Spring writes, and how each one names a token. The
+ * format picker sets the stack: shadcn/ui is Tailwind plus shadcn's names.
  */
 import type { Styling } from "./stack";
+import type { SystemInput } from "./system";
 
-/** A CSS variable as the stack writes it: `--text-h1` is `var(--text-h1)` or `text-h1`. */
-export function tokenRef(v: string, styling: Styling): string {
-  if (styling === "css") return `var(${v})`;
-  if (v.startsWith("--duration-")) return `duration-(${v})`;
-  const m = /^--(text|radius|ease|space)-(.+)$/.exec(v);
-  if (!m) return `(${v})`;
-  const [, kind, key] = m;
-  // theme.css sets --spacing: 4px, so --space-4 (16px) is the 4 in p-4.
-  if (kind === "space") return `p-${key!.replace("-", ".")}`;
-  if (kind === "radius") return `rounded-${key}`;
-  return `${kind}-${key}`;
+export type Format = "css" | "tailwind" | "shadcn" | "dtcg";
+export const FORMATS: readonly Format[] = ["css", "tailwind", "shadcn", "dtcg"];
+export const FORMAT_LABEL: Record<Format, string> = {
+  css: "CSS variables",
+  tailwind: "Tailwind v4",
+  shadcn: "shadcn/ui",
+  dtcg: "DTCG JSON",
+};
+
+export const formatOf = (stack: SystemInput["stack"]): Format =>
+  stack.styling === "tailwind" && stack.components === "shadcn" ? "shadcn" : stack.styling;
+
+export function withFormat(stack: SystemInput["stack"], f: Format): SystemInput["stack"] {
+  const styling: Styling = f === "shadcn" ? "tailwind" : f;
+  const components =
+    f === "shadcn" ? "shadcn" : stack.components === "shadcn" ? undefined : stack.components;
+  return { ...stack, styling, components };
 }
 
-/** The name shown in the UI: the variable for CSS, the utility for Tailwind. */
-export const tokenName = (v: string, styling: Styling) =>
-  styling === "css" ? v : tokenRef(v, styling);
+/** A type role's token as the format writes it: `--text-h1`, `text-h1`, `typography.h1`. */
+export function typeName(role: string, f: Format): string {
+  if (f === "css") return `--text-${role}`;
+  if (f === "dtcg") return `typography.${role}`;
+  return `text-${role}`;
+}
 
 /** What Copy puts on the clipboard for one type role. */
-export function typeSnippet(role: string, styling: Styling): string {
-  if (styling === "tailwind") return `text-${role}`;
+export function typeSnippet(role: string, f: Format): string {
+  if (f === "tailwind" || f === "shadcn") return `text-${role}`;
+  if (f === "dtcg") return `{typography.${role}}`;
   const v = `--text-${role}`;
   return [
     `font-size: var(${v});`,
