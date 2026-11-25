@@ -462,34 +462,7 @@
 .spring-bands--steps {
   border-bottom: 0;
 }
-.spring-contrast {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-contrast li {
-  display: grid;
-  grid-template-columns: 1.25rem 2rem minmax(0, 1fr) 5.5rem minmax(0, 12rem);
-  gap: var(--space-2);
-  align-items: baseline;
-  padding-block: var(--space-1);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.spring-contrast li > * {
-  min-width: 0;
-}
-@media (max-width: 40rem) {
-  .spring-contrast li {
-    grid-template-columns: 1.25rem 2rem 1fr auto;
-  }
-  .spring-contrast li > :last-child {
-    grid-column: 2 / -1;
-  }
-}
+
 .spring-rung__copy {
   justify-self: start;
   padding: 0;
@@ -828,10 +801,11 @@
     white-space: nowrap;
   }
 }
-/* Preview on: the button reads as held down. */
-.spring-app__actions .button[aria-pressed="true"] {
-  background: var(--surface-sunken, var(--input-bg));
-  color: var(--text-primary);
+/* Preview on: the cell inverts (ink fill, page text), so on and off never look alike. */
+.spring-app__actions .button[aria-pressed="true"],
+.spring-app__actions .button[aria-pressed="true"]:hover {
+  background: var(--text-primary);
+  color: var(--surface-canvas);
 }
 
 /* ——— Color picker ——— */
@@ -1172,12 +1146,7 @@
 .spring-strip__remove:hover {
   color: var(--text-primary);
 }
-.spring-strip__add {
-  justify-self: start;
-  margin-block: var(--space-1);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
+
 /* Values show on the steps that carry meaning; hover, focus or "every step" shows the rest. */
 .spring-scales:not([data-all])
   .spring-scale__steps
@@ -1323,53 +1292,7 @@
   font-size: var(--step-sm);
   font-weight: 600;
 }
-/* A canvas section that starts folded: the heading is the toggle, its summary line beside it. */
-.spring-reveal {
-  display: grid;
-  gap: var(--space-3);
-}
-.spring-reveal > summary {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin-top: var(--space-6);
-  cursor: pointer;
-  list-style: none;
-}
-.spring-reveal > summary::-webkit-details-marker {
-  display: none;
-}
-.spring-reveal > summary > .spring-section {
-  margin: 0;
-}
-.spring-reveal > summary::after {
-  content: "";
-  align-self: center;
-  width: 0.4rem;
-  height: 0.4rem;
-  border-right: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
-  transform: translateY(-25%) rotate(45deg);
-  transition: transform 160ms var(--ease-out, ease-out);
-}
-.spring-reveal[open] > summary::after {
-  transform: translateY(25%) rotate(-135deg);
-}
-.spring-reveal > summary:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .spring-reveal > summary:hover .spring-section {
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spring-reveal > summary::after {
-    transition: none;
-  }
-}
+
 .spring-section:first-of-type {
   margin-top: var(--space-2);
 }
@@ -1457,67 +1380,7 @@
   gap: var(--space-2);
   font-size: var(--step-xs);
 }
-.spring-info {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  box-shadow: inset 0 0 0 1px var(--border-default);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-.spring-info:hover,
-.spring-info[data-popup-open] {
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--text-primary);
-}
-.spring-dl {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-}
-.spring-dl dt {
-  font-weight: 600;
-}
-.spring-dl dd {
-  margin: 0;
-  color: var(--text-secondary);
-}
 
-/* Contrast pairs: a live sample, both colors with their values, then the ratio. */
-.spring-pair__sample {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 1.5rem;
-  font-family: var(--font-sans, inherit);
-  font-weight: 600;
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-}
-.spring-pair__names {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-}
-.spring-pair__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-.spring-pair__dot {
-  width: 0.75rem;
-  height: 0.75rem;
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text-primary) 20%, transparent);
-}
-.spring-changed ul {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding-left: var(--space-4);
-}
 /* Ramp and color-vision rows: a name and a note, no seed or tools. */
 .spring-strip--plain {
   grid-template-columns: auto 1fr;
@@ -1577,13 +1440,6 @@
   min-width: 10rem;
 }
 
-@media (pointer: coarse) {
-  .spring-info::after {
-    content: "";
-    position: absolute;
-    inset: -0.625rem;
-  }
-}
 /* Phone: the vision lens takes a full row instead of floating at the right edge. */
 @media (max-width: 40rem) {
   .spring-head > .spring-vision {
@@ -1606,6 +1462,9 @@
 .spring-data {
   margin-top: var(--space-6);
 }
+.spring-data > .spring-meta {
+  margin-top: var(--space-3);
+}
 /* Phone: when the panel ends on a fold, that fold's rule closes it; no second band below. */
 @media (max-width: 59.99rem) {
   .spring-app__side:has(> .spring-fold:last-child) {
@@ -1614,12 +1473,6 @@
   }
 }
 
-.spring-data .spring-findings {
-  margin-top: var(--space-2);
-}
-.spring-pairs {
-  margin-top: var(--space-4);
-}
 /* Phone: the value field takes the free width; the row number goes, the arrows still order. */
 @media (max-width: 40rem) {
   .spring-strip {

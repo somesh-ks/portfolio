@@ -7,21 +7,13 @@ import {
   CVD_FILTER,
   VISION_LABEL,
   VISIONS,
-  type ChartCheck,
   type DataColor,
   type Vision,
   remapRamps,
 } from "@/lib/spring/charts";
 import { clampChroma, formatColor, oklchToHex, type ColorFormat } from "@/lib/spring/colormath";
 import { contrast, freshName, parseColor, type Mode, type Swatch } from "@/lib/spring/color";
-import {
-  CONTRAST_LABEL,
-  MAX_STRIPS,
-  type ContrastTarget,
-  suggestData,
-  type System,
-  type SystemInput,
-} from "@/lib/spring/system";
+import { MAX_STRIPS, suggestData, type System, type SystemInput } from "@/lib/spring/system";
 import { apcaContrast } from "@/lib/spring/colormath";
 import { Select } from "@/components/ui/Select";
 import { ColorPicker } from "./ColorPicker";
@@ -229,6 +221,12 @@ function ink(bg: string, a: string, b: string): string {
   return contrast(end, bg) >= 4.5 ? end : best;
 }
 
+/** APCA rounds anything under about Lc 7 down to 0; a dim dot reads as "too faint to count", not as a bug. */
+function lc(fg: string, bg: string): string {
+  const v = Math.round(apcaContrast(fg, bg));
+  return v < 7 ? "·" : String(v);
+}
+
 /** The 12 steps of one scale as copyable buttons. Hover shows the value; click copies it. */
 function Steps({
   id,
@@ -240,6 +238,7 @@ function Steps({
   brand,
   solid,
   mark,
+  markFrom,
   copy,
 }: {
   id: string;
@@ -251,6 +250,8 @@ function Steps({
   brand?: number;
   solid?: number;
   mark?: number;
+  /** Where the mark would sit before healing moved it. */
+  markFrom?: number;
 } & { copy: Copy }) {
   // One tab stop per strip: arrows, Home and End move along it, like a toolbar.
   const [active, setActive] = useState(0);
@@ -293,7 +294,13 @@ function Steps({
               // The strip's own ends where they read; plain black or white on mid steps where neither does.
               color: ink(sw.hex, all[0]!.hex, all[11]!.hex),
             }}
-            title={value}
+            title={
+              sw.step === mark && markFrom && markFrom !== mark
+                ? `${value} · chart color, step ${mark} (was ${markFrom}, moved to stay distinct from the other series)`
+                : apca && Math.round(apcaContrast(sw.hex, page)) < 7
+                  ? `${value} · under Lc 7 on the page`
+                  : value
+            }
             data-brand={sw.step === brand || undefined}
             data-solid={sw.step === solid || undefined}
             data-mark={sw.step === mark || undefined}
@@ -309,7 +316,7 @@ function Steps({
               <span aria-hidden>✓</span>
             ) : (
               <span aria-hidden className="spring-step__ratio">
-                {apca ? Math.round(apcaContrast(sw.hex, page)) : wcag.toFixed(1)}
+                {apca ? lc(sw.hex, page) : wcag.toFixed(1)}
               </span>
             )}
           </button>
@@ -413,7 +420,7 @@ export function ColorOutput({
   mode,
   format,
   setFormat,
-  onPreview,
+  allSteps,
 }: {
   system: System;
   input: SystemInput;
@@ -421,13 +428,12 @@ export function ColorOutput({
   mode: Mode;
   format: ColorFormat;
   setFormat: (f: ColorFormat) => void;
-  /** Opens the preview on its charts screen. */
-  onPreview: () => void;
+  /** Ratio numbers on every step, set from the sidebar. */
+  allSteps: boolean;
 }) {
   const [copied, copyText, said] = useCopy();
   const copy = { copied, copy: copyText };
   const [vision, setVision] = useState<Vision>("normal");
-  const [allValues, setAllValues] = useState(false);
   const apca = system.input.contrast === "apca";
   const page = system.scales.neutral[mode][0]!.hex;
   const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -507,21 +513,6 @@ export function ColorOutput({
       </svg>
       <div className="spring-head">
         <h2 className="spring-section">ui</h2>
-        <p className="spring-meta spring-legend">
-          <span className="spring-legend__brand">your color</span>
-          <span className="spring-legend__solid">button fill</span>
-          <span>
-            {apca ? "Lc" : "WCAG ratio"} on bg ·{" "}
-            <button
-              type="button"
-              className="spring-link"
-              aria-pressed={allValues}
-              onClick={() => setAllValues((v) => !v)}
-            >
-              {allValues ? "key steps only" : "show every step"}
-            </button>
-          </span>
-        </p>
         <div className="spring-vision">
           <Select
             label="Color vision"
@@ -551,7 +542,7 @@ export function ColorOutput({
           ) : null}
         </div>
       </div>
-      <div className="spring-scales" data-all={allValues || undefined} style={filter}>
+      <div className="spring-scales" data-all={allSteps || undefined} style={filter}>
         <StepHeads />
         <StripRow
           name="primary"
@@ -663,12 +654,11 @@ export function ColorOutput({
           </StripRow>
         ))}
       </div>
-      <Contrast
-        system={system}
-        mode={mode}
-        format={format}
-        target={system.input.contrast ?? "aa"}
-      />
+      <p className="spring-meta spring-legend">
+        <span className="spring-legend__brand">your color</span>
+        <span className="spring-legend__solid">button fill</span>
+        <span>numbers: {apca ? "APCA Lc" : "contrast"} against the page background</span>
+      </p>
 
       <DataSection
         system={system}
@@ -677,7 +667,8 @@ export function ColorOutput({
         mode={mode}
         format={format}
         filter={filter}
-        onPreview={onPreview}
+        allSteps={allSteps}
+        apca={apca}
         steps={steps}
         pick={pick}
         newColor={newColor}
@@ -697,7 +688,8 @@ function DataSection({
   steps,
   pick,
   newColor,
-  onPreview,
+  allSteps,
+  apca,
 }: {
   system: System;
   input: SystemInput;
@@ -705,8 +697,9 @@ function DataSection({
   mode: Mode;
   format: ColorFormat;
   filter?: { filter: string };
-  onPreview: () => void;
-  steps: (key: string, name: string, extra?: { mark?: number }) => ReactNode;
+  allSteps: boolean;
+  apca: boolean;
+  steps: (key: string, name: string, extra?: { mark?: number; markFrom?: number }) => ReactNode;
   pick: (name: string, hex: string, onHex: (hex: string) => void) => ReactNode;
   newColor: (h: number) => DataColor;
 }) {
@@ -739,20 +732,12 @@ function DataSection({
       (ds) => ds.filter((_, j) => j !== k),
       (i) => (i === k ? undefined : i > k ? i - 1 : i),
     );
-  const checks = c.checks[mode];
-  const passed = checks.filter((x) => x.status === "pass").length;
   // Suggest keeps every row and adds the one color that stays furthest from them all.
   const suggestOne = () => setData((d) => suggestData(input, d));
   return (
     <section className="spring-data">
       <div className="spring-head">
         <h2 className="spring-section">data viz</h2>
-        <span className="spring-meta">
-          {checks.length ? `${passed}/${checks.length} checks pass · ` : ""}
-          <button type="button" className="spring-link" onClick={onPreview}>
-            see in charts
-          </button>
-        </span>
         <span className="spring-vision">
           {data.length < CHART_MAX ? (
             <button type="button" className="button" onClick={suggestOne}>
@@ -772,7 +757,7 @@ function DataSection({
           ) : null}
         </span>
       </div>
-      <div className="spring-scales" style={filter}>
+      <div className="spring-scales" data-all={allSteps || undefined} style={filter}>
         {data.map((d, k) => (
           <StripRow
             key={d.key}
@@ -808,100 +793,18 @@ function DataSection({
               </>
             }
           >
-            {steps(d.key, d.name, { mark: c.markStep[mode][k] })}
+            {steps(d.key, d.name, { mark: c.markStep[mode][k], markFrom: c.markBase[mode][k] })}
           </StripRow>
         ))}
       </div>
       {data.length ? (
-        <Checks checks={checks.filter((x) => x.status !== "pass")} />
+        <p className="spring-meta spring-legend">
+          <span className="spring-legend__solid">chart color</span>
+          <span>numbers: {apca ? "APCA Lc" : "contrast"} against the page background</span>
+        </p>
       ) : (
         <p className="spring-meta">No data colors. Suggest some, or add your own.</p>
       )}
     </section>
-  );
-}
-
-const MARK = { pass: "✓", warn: "!", fail: "✕" } as const;
-
-function Checks({ checks }: { checks: ChartCheck[] }) {
-  if (!checks.length) return null;
-  return (
-    <ul className="spring-findings">
-      {checks.map((c) => (
-        <li key={c.id}>
-          <span className="spring-meta" aria-label={c.status}>
-            {MARK[c.status]}
-          </span>
-          <span>
-            {c.title}. <span className="spring-meta">{c.value}</span>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** Every pair of roles the tokens will draw together, as swatches, with its ratio and the bar it has to clear. */
-function Contrast({
-  system,
-  mode,
-  format,
-  target,
-}: {
-  system: System;
-  mode: Mode;
-  format: ColorFormat;
-  target: ContrastTarget;
-}) {
-  const checks = system.checks[mode];
-  const role = Object.fromEntries(system.roles[mode].map((r) => [r.name, r.hex]));
-  // One line when everything passes; a pair is listed only when it falls short.
-  const shown = checks.filter((c) => !c.pass);
-  const required = checks.filter((c) => !c.advisory);
-  const chip = (name: string) => (
-    <span className="spring-pair__chip">
-      <span className="spring-pair__dot" style={{ backgroundColor: role[name] }} aria-hidden />
-      <span>{name}</span>
-      <span className="spring-meta">{formatColor(role[name]!, format)}</span>
-    </span>
-  );
-  return (
-    <>
-      <p className="spring-meta spring-pairs">
-        {required.filter((c) => c.pass).length}/{required.length} role pairs pass{" "}
-        {CONTRAST_LABEL[target]} in {mode}
-      </p>
-      {shown.length ? (
-        <ul className="spring-contrast">
-          {shown.map((c) => (
-            <li key={`${c.fg}-${c.bg}`}>
-              <span>
-                <span aria-hidden>{c.pass ? "✓" : c.advisory ? "!" : "✕"}</span>
-                <span className="sr-only">
-                  {c.pass ? "passes" : c.advisory ? "advisory, below" : "fails"}
-                </span>
-              </span>
-              <span
-                className="spring-pair__sample"
-                style={{ color: role[c.fg], backgroundColor: role[c.bg] }}
-                aria-hidden
-              >
-                Aa
-              </span>
-              <span className="spring-pair__names">
-                {chip(c.fg)}
-                <span className="spring-meta">on</span>
-                {chip(c.bg)}
-              </span>
-              <span className="tabular">
-                {target === "apca" ? `Lc ${Math.round(c.ratio)}` : c.ratio.toFixed(2)}
-                <span className="spring-meta">/{c.min}</span>
-              </span>
-              <span className="spring-meta">{c.why}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </>
   );
 }

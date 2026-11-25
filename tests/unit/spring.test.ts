@@ -730,3 +730,20 @@ describe("suggest data colors", () => {
       expect(sys.charts.checks[mode].filter((c) => c.status === "fail")).toEqual([]);
   });
 });
+
+describe("self-healing chart marks", () => {
+  test("a too-close series moves its mark, never its color or the first series", () => {
+    const base = suggestData(DEFAULT_INPUT);
+    const twin = { name: "twin", hex: base[0]!.hex };
+    const data = [base[0]!, twin, ...base.slice(1, 3)];
+    const sys = buildSystem({ ...DEFAULT_INPUT, data });
+    for (const mode of ["light", "dark"] as const) {
+      const c = sys.charts;
+      expect(c.markStep[mode][0]).toBe(c.markBase[mode][0]!);
+      expect(c.markStep[mode][1]).not.toBe(c.markBase[mode][1]!);
+      const page = sys.scales.neutral[mode][0]!.hex;
+      for (const hex of c.marks[mode]) expect(ratio(hex, page)).toBeGreaterThanOrEqual(3);
+    }
+    expect(sys.data.map((d) => d.hex)).toEqual(data.map((d) => d.hex));
+  });
+});
