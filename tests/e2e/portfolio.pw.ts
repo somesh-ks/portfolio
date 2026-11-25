@@ -210,6 +210,20 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });
 
+test("tune button steps aside while the runner's controls are under it", async ({
+  page,
+}, testInfo) => {
+  // Only a phone's full-width runner footer reaches the corner button.
+  test.skip(testInfo.project.name !== "mobile");
+  // A shorter phone: the runner's footer lands right where the corner button sits.
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto("/");
+  const button = page.locator(".tune-button");
+  await expect(button).toBeHidden();
+  await page.evaluate(() => scrollBy(0, 200));
+  await expect(button).toBeVisible();
+});
+
 test("tune toy switches type without the text flip under reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
