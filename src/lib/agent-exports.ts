@@ -166,7 +166,7 @@ function resumeMarkdown(): string {
 
 /** Public site paths that have a Markdown mirror. */
 /** Spring's pages are tools, so their Markdown is Spring's agent contract. */
-const SPRING_PAGES = ["/spring", "/spring/view"];
+const SPRING_PAGES = ["/spring", "/spring/app", "/spring/view"];
 const springMarkdown = () => readFileSync(join(process.cwd(), "public/spring/llms.txt"), "utf8");
 
 export function markdownPaths(): string[] {

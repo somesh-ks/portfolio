@@ -758,7 +758,7 @@ function Actions({
         }
       }
       const { input } = audit(toCss(flat));
-      location.assign(`/spring?s=${encodeInput(input)}`);
+      location.assign(`/spring/app?s=${encodeInput(input)}`);
     } catch (e) {
       setNote((e as Error).message);
       setBusy(false);

@@ -1,0 +1,306 @@
+/* Spring's landing page (/spring): skill first, then three demos on the real engine. */
+.spring-landing {
+  min-height: 100dvh;
+  background: var(--surface-canvas);
+}
+.spring-landing__bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  padding-top: max(var(--space-2), env(safe-area-inset-top));
+  background: var(--surface-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.spring-landing__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-landing__main {
+  width: 100%;
+  max-width: var(--measure-wide);
+  margin-inline: auto;
+  padding: var(--space-12) var(--space-4) var(--space-16);
+  outline: none;
+}
+
+/* ---------- Hero ---------- */
+.spring-landing__hero > * + * {
+  margin-top: var(--space-3);
+}
+.spring-landing__name {
+  font-family: var(--font-mono);
+  font-size: var(--step-2xl);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.spring-landing__lede {
+  color: var(--text-secondary);
+  font-size: var(--step-base);
+}
+.spring-landing__hero .command {
+  margin-top: var(--space-5);
+}
+/* The install line wraps instead of scrolling, so the whole command shows on a phone. */
+.spring-landing__hero .command__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.spring-landing__note {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+
+/* ---------- Demo frame ---------- */
+.spring-demo {
+  margin-top: var(--space-12);
+  border: 1px solid var(--border-subtle);
+}
+.spring-demo > :not(.spring-demo__bar) {
+  margin-inline: var(--space-3);
+}
+.spring-demo > * + * {
+  margin-top: var(--space-3);
+}
+.spring-demo__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  padding-inline: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+}
+.spring-demo__title,
+.spring-demo__pause,
+.spring-demo__readout,
+.spring-demo__chip,
+.spring-palette__mode,
+.spring-type__meta {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.spring-demo__title {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.spring-demo__title::before {
+  content: "$ ";
+  color: var(--text-secondary);
+}
+.spring-demo__pause {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  margin-right: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.spring-demo__caption {
+  margin-block: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+}
+.spring-demo__readout {
+  display: block;
+  color: var(--text-secondary);
+}
+.spring-demo__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+  margin-block: var(--space-3) 0;
+  padding: 0;
+  border: 0;
+}
+.spring-demo__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  padding-inline: var(--space-2);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  color: var(--text-secondary);
+}
+.spring-demo__chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+  color: var(--text-primary);
+}
+.spring-demo__chip[aria-pressed="true"]::before {
+  content: "▸";
+}
+.spring-demo__dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-demo__chip,
+  .spring-demo__pause {
+    min-height: 2rem;
+  }
+  .spring-demo__chip:hover,
+  .spring-demo__pause:hover {
+    color: var(--text-primary);
+  }
+}
+
+/* ---------- Palette ---------- */
+.spring-palette > * + * {
+  margin-top: var(--space-1);
+}
+.spring-palette__row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+}
+.spring-palette__mode {
+  color: var(--text-secondary);
+}
+.spring-palette__steps {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  height: 3rem;
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+.spring-palette__step {
+  position: relative;
+  transition: background-color 520ms var(--ease-out);
+}
+.spring-palette .spring-demo__readout {
+  padding-top: var(--space-2);
+}
+
+/* ---------- Scrub ---------- */
+.spring-scrub {
+  position: relative;
+  display: block;
+}
+.spring-scrub input {
+  display: block;
+  width: 100%;
+  height: 2.75rem;
+  margin: 0;
+  accent-color: var(--text-primary);
+  touch-action: pan-y;
+  cursor: ew-resize;
+}
+.spring-scrub__ticks {
+  position: absolute;
+  inset: auto 0.5rem 0.25rem;
+  height: 0.375rem;
+  pointer-events: none;
+}
+.spring-scrub__ticks > span {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--border-strong);
+}
+
+/* ---------- Type ---------- */
+.spring-type {
+  container-type: inline-size;
+  overflow: hidden;
+}
+.spring-type__row {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-type__meta {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.spring-type__sample {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  /* The real px size, shrunk on narrow frames so the scale still reads. */
+  font-size: min(
+    calc(var(--px) * 1px),
+    max(min(calc(var(--px) * 1px), 1rem), calc(var(--px) * 0.18cqi))
+  );
+}
+
+/* ---------- Motion ---------- */
+.spring-motion {
+  display: grid;
+  gap: var(--space-2);
+}
+.spring-motion svg {
+  width: 100%;
+  height: 5rem;
+  overflow: visible;
+}
+.spring-motion__rest {
+  stroke: var(--border-subtle);
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+.spring-motion__curve {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+}
+.spring-motion__track {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3rem;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border-subtle) 0 1px,
+    transparent 1px 2rem
+  );
+  cursor: pointer;
+  container-type: inline-size;
+}
+.spring-motion__block {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  background: var(--text-primary);
+  transition-property: translate;
+}
+.spring-motion__block[data-right] {
+  translate: calc(100cqw - 3rem) 0;
+}
+
+/* ---------- End ---------- */
+.spring-landing__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spring-palette__step,
+  .spring-motion__block {
+    transition: none !important;
+  }
+}

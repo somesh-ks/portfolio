@@ -20,7 +20,7 @@ import {
 import { isLockedSlug } from "@/lib/site";
 
 const PAGE_PATH = /^\/(?:(?:work|experiments|projects)\/[a-z0-9-]+|resume)?\/?$/;
-const SPRING_PATH = /^\/spring(?:\/view)?\/?$/;
+const SPRING_PATH = /^\/spring(?:\/app|\/view)?\/?$/;
 
 function prefersMarkdown(accept: string | null): boolean {
   if (!accept) return false;

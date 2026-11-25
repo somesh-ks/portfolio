@@ -65,11 +65,11 @@ test("hostile values render without page errors", async ({ page }) => {
   expect(errors.map((e) => e.message)).toEqual([]);
 });
 
-test("Rebuild in Spring lands on /spring?s=", async ({ page }) => {
+test("Rebuild in Spring lands on /spring/app?s=", async ({ page }) => {
   await page.goto("/spring/view");
   await page.getByRole("button", { name: "Try a sample" }).click();
   await page.getByRole("button", { name: "Rebuild in Spring" }).click();
-  await page.waitForURL(/\/spring\?s=/);
+  await page.waitForURL(/\/spring\/app\?s=/);
 });
 
 test("the mode matching the site theme opens first, and bad lengths show raw", async ({ page }) => {
@@ -97,7 +97,7 @@ test("the mode matching the site theme opens first, and bad lengths show raw", a
 });
 
 test("Spring's pages hand agents the Spring contract", async ({ request }) => {
-  for (const path of ["/spring", "/spring/view", "/spring.md"]) {
+  for (const path of ["/spring", "/spring/app", "/spring/view", "/spring.md"]) {
     const response = await request.get(path, { headers: { Accept: "text/markdown" } });
     expect(response.status(), path).toBe(200);
     expect(response.headers()["content-type"], path).toContain("text/markdown");

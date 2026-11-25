@@ -24,6 +24,23 @@ function entryRedirects() {
   );
 }
 
+/** Query keys that carry a Spring system: io.ts inputFromParams reads these. */
+const SPRING_PARAMS = [
+  "s",
+  "j",
+  "primary",
+  "name",
+  "font",
+  "body",
+  "heading",
+  "mono",
+  "base",
+  "ratio",
+  "contrast",
+  "styling",
+  "building",
+];
+
 // Static CSP: a nonce-based policy would force every page to render
 // dynamically and give up static generation. Inline scripts are limited to
 // Next's own bootstrap, the theme script and JSON-LD.
@@ -71,6 +88,13 @@ const config: NextConfig = {
     return [
       // Includes /projects/spring, so old Spring share links (?s=) carry over.
       ...entryRedirects(),
+      // /spring is the landing page now; links that carry a system open the app (query carries over).
+      ...SPRING_PARAMS.map((key) => ({
+        source: "/spring",
+        has: [{ type: "query" as const, key }],
+        destination: "/spring/app",
+        permanent: true,
+      })),
       {
         source: "/projects/fun-experiments.md",
         destination: "/experiments/tide.md",

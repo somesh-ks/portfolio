@@ -1,6 +1,6 @@
 # Spring
 
-> Spring builds a design system from a few choices (brand color, fonts, density, roundness, motion) with exact OKLCH and contrast math, and shows any project's existing design system as a page. Web app: https://someshks.com/spring. Viewer: https://someshks.com/spring/view.
+> Spring builds a design system from a few choices (brand color, fonts, density, roundness, motion) with exact OKLCH and contrast math, and shows any project's existing design system as a page. Web app: https://someshks.com/spring/app. Install the agent skill: `npx skills add somesh-ks/skills --skill spring`. Viewer: https://someshks.com/spring/view.
 
 ## For agents
 

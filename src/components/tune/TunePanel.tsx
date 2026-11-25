@@ -96,7 +96,7 @@ export default function TunePanel({
             />
           </div>
           <div className="tune-panel__foot">
-            <a href="/spring" className="tune-panel__credit" target="_blank" rel="noopener">
+            <a href="/spring/app" className="tune-panel__credit" target="_blank" rel="noopener">
               made with Spring ↗<span className="sr-only"> (opens in a new tab)</span>
             </a>
           </div>

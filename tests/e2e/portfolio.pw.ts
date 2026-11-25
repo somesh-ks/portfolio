@@ -281,7 +281,7 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
   await expect(root).not.toHaveAttribute("data-tune-type");
 
   const spring = panel.getByRole("link", { name: /made with Spring/ });
-  await expect(spring).toHaveAttribute("href", "/spring");
+  await expect(spring).toHaveAttribute("href", "/spring/app");
   await expect(spring).toHaveAttribute("target", "_blank");
 
   // Leaving the homepage puts every token back.
