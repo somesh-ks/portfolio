@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { Eye } from "lucide-react";
@@ -94,10 +95,13 @@ const AREAS: { area: Area; label: string }[] = [
 
 /**
  * A split button: the main press downloads every file as one zip; the menu
- * downloads one area's CSS and DTCG JSON, or copies a share link.
+ * copies a share link or downloads one area's CSS and DTCG JSON.
  */
 function ExportMenu({ system }: { system: System }) {
-  const [, copy, said] = useCopy();
+  const [copied, copy, said] = useCopy();
+  const [saved, setSaved] = useState("");
+  const savedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(savedTimer.current), []);
   const name = slug(system.input.name);
   const [importing, setImporting] = useState(false);
   const [dropped, setDropped] = useState<Dropped>(NOTHING);
@@ -122,26 +126,45 @@ function ExportMenu({ system }: { system: System }) {
       removeEventListener("drop", drop);
     };
   }, []);
-  const all = () => save(`${name}.zip`, zip(withJson(system, exportAll(system))));
+  const all = () => {
+    save(`${name}.zip`, zip(withJson(system, exportAll(system))));
+    setSaved(`Saved ${name}.zip`);
+    clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(""), 1500);
+  };
+  // All three labels share one grid cell, so the button keeps its width.
+  const label = copied === "link" ? 1 : saved ? 2 : 0;
   const area = (a: Area) => {
     const { css, json } = exportArea(system, a);
     save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
   };
   return (
     <span className="spring-split">
-      <button type="button" className="button button--primary" onClick={all}>
-        Export
+      <button
+        type="button"
+        className="button button--primary spring-split__main"
+        aria-label="Export"
+        onClick={all}
+      >
+        {["Export", "Link copied", "Saved"].map((t, i) => (
+          <span key={t} aria-hidden="true" data-on={i === label || undefined}>
+            {t}
+          </span>
+        ))}
       </button>
       <Menu.Root>
         <Menu.Trigger
           className="button button--primary spring-split__more"
-          aria-label="Export one area"
+          aria-label="More export options"
         >
           <Chevron />
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
             <Menu.Popup className="select__popup">
+              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
+                <span className="select__text">Copy share link</span>
+              </Menu.Item>
               <Menu.Item className="select__item" onClick={all}>
                 <span className="select__text">Everything</span>
                 <span className="select__hint">.zip</span>
@@ -152,9 +175,6 @@ function ExportMenu({ system }: { system: System }) {
                   <span className="select__hint">.css + .json</span>
                 </Menu.Item>
               ))}
-              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
-                <span className="select__text">Copy share link</span>
-              </Menu.Item>
               <Menu.Item
                 className="select__item"
                 onClick={() =>
@@ -180,7 +200,7 @@ function ExportMenu({ system }: { system: System }) {
           </Menu.Positioner>
         </Menu.Portal>
       </Menu.Root>
-      <output className="sr-only">{said}</output>
+      <output className="sr-only">{saved || said}</output>
       <ImportDialog
         open={importing}
         onOpenChange={(o) => {
@@ -422,7 +442,9 @@ export function SpringApp() {
     <div className="spring spring-app__shell">
       <Fonts type={input.type} />
       <header className="spring-app__bar">
-        <h1 className="spring-app__name">Spring</h1>
+        <h1 className="spring-app__name">
+          <Link href="/projects/spring">Spring</Link>
+        </h1>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (
             <button
