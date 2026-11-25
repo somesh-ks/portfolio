@@ -25,6 +25,8 @@ export const ContentMetaSchema = z
     layout: z.enum(["article", "tool"]).optional(),
     /** false keeps the page live (URL, Cmd+K, llms.txt) but off the homepage lists. */
     home: z.boolean().default(true),
+    /** true opens the homepage row in a new tab with the ↗ arrow, even for a site path. */
+    newTab: z.boolean().default(false),
     canonicalUrl: z.url().optional(),
     repoUrl: z.url().optional(),
     liveUrl: z.url().optional(),
