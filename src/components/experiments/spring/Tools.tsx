@@ -756,11 +756,6 @@ function ColorControls({
             show={deg(a.hue)}
             onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, hue: v } }))}
           />
-          {dark ? (
-            <p className="spring-meta">
-              Dark chroma applies to every strip, grays and status colors too.
-            </p>
-          ) : null}
         </>
       ) : (
         ch.map((c, k) => (
@@ -783,7 +778,7 @@ function ColorControls({
           />
         ))
       )}
-      <Group label="scale">
+      <Group label="scale" fold>
         <CurveEditor
           curve={curve}
           mode={mode}
@@ -865,21 +860,32 @@ function ColorControls({
               ))}
             </ul>
           </div>
-        ) : (
-          <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
-        )}
+        ) : null}
       </Group>
     </>
   );
 }
 
-/** A sidebar group that starts closed, so first load shows only the brand color. */
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
+/** A sidebar group with a divider and a label. Only `fold` groups (the tall curve) start closed. */
+function Group({
+  label,
+  fold,
+  children,
+}: {
+  label: string;
+  fold?: boolean;
+  children: React.ReactNode;
+}) {
+  return fold ? (
     <details className="spring-fold">
       <summary className="spring-group">{label}</summary>
       <div className="spring-fold__body">{children}</div>
     </details>
+  ) : (
+    <div className="spring-fold">
+      <h3 className="spring-group spring-fold__head">{label}</h3>
+      <div className="spring-fold__body">{children}</div>
+    </div>
   );
 }
 
@@ -931,10 +937,6 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
           </Row>
         </>
       ) : null}
-      <p className="spring-meta">
-        Amounts shade one color from light to dark. Above and below meet two colors at a gray
-        middle, for change against a baseline.
-      </p>
     </>
   );
 }
