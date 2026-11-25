@@ -1,8 +1,7 @@
 /**
  * Request proxy (Next.js 16, Node runtime):
  * 1. Markdown for agents: /path.md, or Accept preferring text/markdown,
- *    rewrites to the static /api/md mirror. Spring's pages answer with
- *    /spring/llms.txt, its agent contract.
+ *    rewrites to the static /api/md mirror.
  * 2. Magic links: /work/<slug>?token=... is verified, swapped for the
  *    HttpOnly session cookie, and redirected to the clean URL.
  * 3. Unlocked locked pages get no-store and noindex headers.
@@ -38,9 +37,7 @@ function prefersMarkdown(accept: string | null): boolean {
 
 function markdownRewrite(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone();
-  url.pathname = SPRING_PATH.test(pathname)
-    ? "/spring/llms.txt"
-    : `/api/md${pathname === "/" ? "" : pathname}`;
+  url.pathname = `/api/md${pathname === "/" ? "" : pathname}`;
   url.search = "";
   return NextResponse.rewrite(url);
 }

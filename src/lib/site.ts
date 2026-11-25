@@ -1,6 +1,9 @@
 export const SITE_URL = "https://someshks.com";
 export const SITE_NAME = "Somesh Kesarla Suresh";
 
+/** Page-level openGraph replaces the root one, so pages that set it spread this. */
+export const OG_BASE = { type: "website", siteName: SITE_NAME, locale: "en_US" } as const;
+
 export const KIND_PATH = {
   project: "projects",
   experiment: "experiments",
