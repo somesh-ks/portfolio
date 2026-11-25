@@ -64,7 +64,9 @@ function entryMarkdown(entry: Entry): string {
 }
 
 function listLine(entry: Entry, suffix = ""): string {
-  return `- [${entry.meta.title}](${absoluteUrl(`${entry.href}.md`)}): ${entry.meta.summary}${suffix}`;
+  // Site paths have a Markdown mirror; entries that live on another site link there.
+  const href = entry.href.startsWith("/") ? `${entry.href}.md` : entry.href;
+  return `- [${entry.meta.title}](${absoluteUrl(href)}): ${entry.meta.summary}${suffix}`;
 }
 
 function homeMarkdown(): string {
@@ -168,7 +170,14 @@ const SPRING_PAGES = ["/spring", "/spring/view"];
 const springMarkdown = () => readFileSync(join(process.cwd(), "public/spring/llms.txt"), "utf8");
 
 export function markdownPaths(): string[] {
-  return ["/", "/resume", ...SPRING_PAGES, ...allEntries().map((entry) => entry.href)];
+  return [
+    "/",
+    "/resume",
+    ...SPRING_PAGES,
+    ...allEntries()
+      .filter((entry) => entry.page)
+      .map((entry) => entry.href),
+  ];
 }
 
 export function markdownForPath(pathname: string): string | null {
@@ -176,6 +185,6 @@ export function markdownForPath(pathname: string): string | null {
   if (clean === "/" || clean === "/index") return homeMarkdown();
   if (clean === "/resume") return resumeMarkdown();
   if (SPRING_PAGES.includes(clean)) return springMarkdown();
-  const entry = allEntries().find((candidate) => candidate.href === clean);
+  const entry = allEntries().find((candidate) => candidate.page && candidate.href === clean);
   return entry ? entryMarkdown(entry) : null;
 }

@@ -105,7 +105,7 @@ export default function TunePanel({
             />
           </div>
           <div className="tune-panel__foot">
-            <Link href="/projects/spring" className="tune-panel__credit">
+            <Link href="/spring" className="tune-panel__credit">
               made with Spring →
             </Link>
           </div>

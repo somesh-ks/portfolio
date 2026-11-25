@@ -1,4 +1,28 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import matter from "gray-matter";
 import type { NextConfig } from "next";
+
+/** Entries whose frontmatter `href` points elsewhere have no page: their old
+ * URL (and its .md) 308s to it, so shared links keep working. */
+function entryRedirects() {
+  const kinds = { projects: "projects", experiments: "experiments", "case-studies": "work" };
+  return Object.entries(kinds).flatMap(([dir, base]) =>
+    readdirSync(path.join("content/public", dir))
+      .filter((file) => file.endsWith(".mdx"))
+      .flatMap((file) => {
+        const { href } = matter(readFileSync(path.join("content/public", dir, file), "utf8")).data;
+        if (typeof href !== "string") return [];
+        const source = `/${base}/${file.slice(0, -4)}`;
+        // Spring's own .md is its agent contract; a URL has no mirror to point at.
+        const md = href.startsWith("/") ? `${href}.md` : href;
+        return [
+          { source, destination: href, permanent: true },
+          { source: `${source}.md`, destination: md, permanent: true },
+        ];
+      }),
+  );
+}
 
 // Static CSP: a nonce-based policy would force every page to render
 // dynamically and give up static generation. Inline scripts are limited to
@@ -45,13 +69,8 @@ const config: NextConfig = {
   },
   async redirects() {
     return [
-      // Share links from before Spring became its own app; the query carries over.
-      {
-        source: "/projects/spring",
-        has: [{ type: "query", key: "s" }],
-        destination: "/spring",
-        permanent: true,
-      },
+      // Includes /projects/spring, so old Spring share links (?s=) carry over.
+      ...entryRedirects(),
       {
         source: "/projects/fun-experiments.md",
         destination: "/experiments/tide.md",

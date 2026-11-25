@@ -80,10 +80,13 @@
     animation: none;
   }
 }
+/* The file grows with its text, so the canvas is the only scroller (no box inside a box). */
 .spring-audit-input.spring-code {
-  height: min(70vh, 48rem);
+  field-sizing: content;
   white-space: pre-wrap;
   resize: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
 .spring-audit-input {
   width: 100%;
@@ -938,15 +941,66 @@
   width: 12px;
 }
 
-/* Quiet breaks between the color tab's groups: brand, scale, grays, status, contrast. */
-.spring-rule {
-  margin: var(--space-2) 0;
-  border: 0;
+/* Sidebar groups fold: a full-bleed divider, the name as the toggle, a chevron that turns. */
+.spring-fold {
+  margin-inline: calc(-1 * var(--space-4));
   border-top: 1px solid var(--border-subtle);
 }
-/* In the sidebar a divider runs edge to edge, past the panel's padding. */
-.spring-app__side .spring-rule {
-  margin-inline: calc(-1 * var(--space-4));
+.spring-fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+.spring-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.spring-fold > summary::after {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 160ms var(--ease-out, ease-out);
+}
+.spring-fold[open] > summary::after {
+  transform: translateY(25%) rotate(-135deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-fold > summary {
+    min-height: 2.25rem;
+  }
+  .spring-fold > summary:hover {
+    background: var(--surface-hover);
+  }
+}
+.spring-fold > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.spring-fold__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+.spring-fold {
+  margin-top: var(--space-2);
+}
+/* Stacked folds share one divider instead of the panel's gap between them. */
+.spring-fold + .spring-fold {
+  margin-top: calc(-1 * var(--space-2));
+}
+.spring-fold:last-child {
+  border-bottom: 1px solid var(--border-subtle);
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-fold > summary::after {
+    transition: none;
+  }
 }
 
 /* ——— Curve editor ——— */
@@ -1161,7 +1215,8 @@
 .spring-app__shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "bar" "canvas" "side";
+  /* On a phone the controls come first: the first thing to do is pick a color. */
+  grid-template-areas: "bar" "side" "canvas";
 }
 .spring-app__bar {
   grid-area: bar;
@@ -1209,7 +1264,7 @@
 .spring-app__side {
   grid-area: side;
   padding: var(--space-4);
-  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 @media (min-width: 60rem) {
   .spring-app__shell {
@@ -1218,19 +1273,23 @@
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: "bar bar" "canvas side";
   }
-  /* Canvas and controls scroll on their own, so the controls stay in reach. */
+  /* Canvas and controls scroll on their own, so the controls stay in reach.
+     Relative, so absolutely placed sr-only text can't escape and scroll the page. */
   .spring-app__canvas,
   .spring-app__side {
+    position: relative;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-gutter: stable;
   }
   .spring-app__canvas {
     padding: var(--space-6);
   }
   .spring-app__side {
-    border-top: 0;
+    border-bottom: 0;
     border-left: 1px solid var(--border-subtle);
-    scrollbar-width: thin;
   }
 }
 
@@ -1249,6 +1308,53 @@
   font-family: var(--font-mono);
   font-size: var(--step-sm);
   font-weight: 600;
+}
+/* A canvas section that starts folded: the heading is the toggle, its summary line beside it. */
+.spring-reveal {
+  display: grid;
+  gap: var(--space-3);
+}
+.spring-reveal > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  cursor: pointer;
+  list-style: none;
+}
+.spring-reveal > summary::-webkit-details-marker {
+  display: none;
+}
+.spring-reveal > summary > .spring-section {
+  margin: 0;
+}
+.spring-reveal > summary::after {
+  content: "";
+  align-self: center;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 160ms var(--ease-out, ease-out);
+}
+.spring-reveal[open] > summary::after {
+  transform: translateY(25%) rotate(-135deg);
+}
+.spring-reveal > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-reveal > summary:hover .spring-section {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-reveal > summary::after {
+    transition: none;
+  }
 }
 .spring-section:first-of-type {
   margin-top: var(--space-2);
@@ -1431,4 +1537,13 @@
 .spring-audit-input::placeholder {
   color: var(--text-secondary);
   opacity: 1;
+}
+
+/* The Export menu shows every item without its own scrollbar; a rule sets Start over apart. */
+.select__popup.spring-menu {
+  max-height: var(--available-height);
+}
+.spring-menu__rule {
+  margin: var(--space-1) calc(-1 * var(--space-1));
+  border-top: 1px solid var(--border-subtle);
 }

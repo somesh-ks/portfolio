@@ -254,7 +254,7 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
 
   await panel.getByRole("button", { name: "16" }).click();
   await panel.getByRole("link", { name: /made with Spring/ }).click();
-  await expect(page).toHaveURL(/\/projects\/spring/);
+  await expect(page).toHaveURL(/\/spring$/);
   await expect(root).not.toHaveAttribute("data-tune");
   expect(errors).toEqual([]);
 });
