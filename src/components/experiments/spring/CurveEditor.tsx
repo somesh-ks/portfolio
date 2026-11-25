@@ -62,9 +62,14 @@ export function CurveEditor({
   }).join(" ");
   const move = (e: PointerEvent<SVGSVGElement>) => {
     if (drag.current === null) return;
-    const r = svg.current!.getBoundingClientRect();
-    const x = r2(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)));
-    const y = r2(Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height)));
+    // Map through the SVG's own transform: the viewBox pads the plot by 8 units
+    // on each side, so scaling by the element's box drifts off the cursor.
+    const el = svg.current!;
+    const m = el.getScreenCTM();
+    if (!m) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    const x = r2(Math.min(1, Math.max(0, p.x / 100)));
+    const y = r2(Math.min(1, Math.max(0, 1 - p.y / 100)));
     const next = [...b] as Bezier;
     next[drag.current * 2] = x;
     next[drag.current * 2 + 1] = y;

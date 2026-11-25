@@ -406,9 +406,13 @@ function ColorControls({
   // One chroma dial per theme: in dark it reads and sets chroma × darkChroma.
   const chroma = dark ? a.chroma * darkChroma : a.chroma;
   const setChroma = (v: number) =>
-    dark
+    // A gray brand (chroma 0) has nothing to scale, so dark edits the base chroma.
+    dark && a.chroma > 0
       ? setCurve({ darkChroma: Math.round(Math.min(1.2, Math.max(0.4, v / a.chroma)) * 100) / 100 })
-      : setInput((i) => ({ ...i, primary: { ...i.primary, chroma: v } }));
+      : setInput((i) => ({
+          ...i,
+          primary: { ...i.primary, chroma: dark ? Math.round((v / darkChroma) * 1e4) / 1e4 : v },
+        }));
   // A theme switch can change what the chroma dial shows; pulse it so the change is seen.
   const [flash, setFlash] = useState(0);
   const [seenMode, setSeenMode] = useState(mode);
