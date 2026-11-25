@@ -6,6 +6,8 @@ Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun
 - UI: before you write any, read [`docs/ui-kit.md`](docs/ui-kit.md) and use a listed component (`src/components/{ui,code,editorial}`) or shared class. A new component gets a row there in the same change.
 - Site decisions and the case study format: [`.agents/DESIGN.md`](.agents/DESIGN.md#site-decisions-someshkscom). Follow them when you write a case study or touch the look.
 - Skills live in [`.agents/skills/`](.agents/skills/README.md). Use them for tokens, typography, motion, layout, accessibility, mobile and interface review.
+- Homepage rows: every one gets a drawn hover thumbnail. Use the [`thumbnails`](.agents/skills/thumbnails/SKILL.md) skill when you add or change a row.
+- `llms.txt`: whenever you add, rename, move or remove a page, or change what one offers, update what agents read in the same change. Entries in `content/` flow into `/llms.txt`, `/llms-full.txt` and the `.md` mirrors on their own. App routes outside `content/` (such as `/spring`, `/stickers`, `/resume`) are listed by hand in `src/lib/agent-exports.ts`, so edit it there, then check `/llms.txt` on `bun run dev`.
 - Before you push, run `bun run check && bun test && bun run build && bun run size && bun run test:e2e`.
 
 ## Somesh's copy is final

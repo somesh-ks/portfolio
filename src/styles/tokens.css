@@ -135,6 +135,19 @@
   --text-primary: var(--color-gray-950);
   --text-secondary: var(--color-gray-600);
   --text-success: var(--color-green-600);
+  --thumb-agentic-ds: oklch(60% 0.104 184.7);
+  --thumb-comics: oklch(68.1% 0.142 75.8);
+  --thumb-luminovo: oklch(64.6% 0.194 41.1);
+  --thumb-on-accent: var(--color-white);
+  --thumb-ramp-high: var(--color-white);
+  --thumb-ramp-low: var(--color-black);
+  --thumb-royc: oklch(58.6% 0.222 17.6);
+  --thumb-singularity: oklch(51.1% 0.23 277);
+  --thumb-singularity-ds: oklch(62.7% 0.17 149.2);
+  --thumb-skills: oklch(68.5% 0.148 237.3);
+  --thumb-spring: oklch(59.1% 0.257 322.9);
+  --thumb-studio: var(--color-clay-500);
+  --thumb-tide: oklch(63.9% 0.118 142.5);
 }
 
 [data-theme="dark"] {
@@ -179,4 +192,17 @@
   --text-primary: var(--color-gray-50);
   --text-secondary: var(--color-gray-400);
   --text-success: var(--color-green-300);
+  --thumb-agentic-ds: oklch(60% 0.104 184.7);
+  --thumb-comics: oklch(68.1% 0.142 75.8);
+  --thumb-luminovo: oklch(64.6% 0.194 41.1);
+  --thumb-on-accent: var(--color-white);
+  --thumb-ramp-high: var(--color-white);
+  --thumb-ramp-low: var(--color-black);
+  --thumb-royc: oklch(58.6% 0.222 17.6);
+  --thumb-singularity: oklch(51.1% 0.23 277);
+  --thumb-singularity-ds: oklch(62.7% 0.17 149.2);
+  --thumb-skills: oklch(68.5% 0.148 237.3);
+  --thumb-spring: oklch(59.1% 0.257 322.9);
+  --thumb-studio: var(--color-clay-500);
+  --thumb-tide: oklch(63.9% 0.118 142.5);
 }

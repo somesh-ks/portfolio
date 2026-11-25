@@ -510,5 +510,207 @@
         }
       }
     }
+  },
+  "thumb": {
+    "$type": "color",
+    "$description": "Accent of each homepage row's hover thumbnail (src/lib/thumbs). Same in both modes.",
+    "skills": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.685, 0.148, 237.3]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.685, 0.148, 237.3]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.685, 0.148, 237.3]
+          }
+        }
+      }
+    },
+    "singularity": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.511, 0.23, 277.0]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.511, 0.23, 277.0]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.511, 0.23, 277.0]
+          }
+        }
+      }
+    },
+    "spring": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.591, 0.257, 322.9]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.591, 0.257, 322.9]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.591, 0.257, 322.9]
+          }
+        }
+      }
+    },
+    "singularity-ds": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.627, 0.17, 149.2]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.627, 0.17, 149.2]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.627, 0.17, 149.2]
+          }
+        }
+      }
+    },
+    "tide": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.639, 0.118, 142.5]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.639, 0.118, 142.5]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.639, 0.118, 142.5]
+          }
+        }
+      }
+    },
+    "comics": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.681, 0.142, 75.8]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.681, 0.142, 75.8]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.681, 0.142, 75.8]
+          }
+        }
+      }
+    },
+    "agentic-ds": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.6, 0.104, 184.7]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.6, 0.104, 184.7]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.6, 0.104, 184.7]
+          }
+        }
+      }
+    },
+    "royc": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.586, 0.222, 17.6]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.586, 0.222, 17.6]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.586, 0.222, 17.6]
+          }
+        }
+      }
+    },
+    "luminovo": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.646, 0.194, 41.1]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.646, 0.194, 41.1]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.646, 0.194, 41.1]
+          }
+        }
+      }
+    },
+    "studio": {
+      "$value": "{color.clay.500}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.clay.500}",
+          "dark": "{color.clay.500}"
+        }
+      }
+    },
+    "ramp-high": {
+      "$value": "{color.white}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.white}",
+          "dark": "{color.white}"
+        }
+      }
+    },
+    "ramp-low": {
+      "$value": "{color.black}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.black}",
+          "dark": "{color.black}"
+        }
+      }
+    },
+    "on-accent": {
+      "$value": "{color.white}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.white}",
+          "dark": "{color.white}"
+        }
+      }
+    }
   }
 }
