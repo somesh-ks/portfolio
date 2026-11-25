@@ -31,10 +31,8 @@ test("the landing page is its own site, tries a color, and opens the app", async
   await expect(page.getByRole("row", { name: /primary-text/ })).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).
   const pause = bar.getByRole("button", { name: "Pause animations" });
-  if (await pause.isVisible()) {
-    await pause.click();
-    await expect(pause).toHaveAttribute("aria-pressed", "true");
-  }
+  await pause.click();
+  await expect(pause).toHaveAttribute("aria-pressed", "true");
   await bar.getByRole("link", { name: "Open Spring" }).click();
   await page.waitForURL(/\/spring\/app$/);
 });

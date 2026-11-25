@@ -160,7 +160,8 @@ export function Stage({ brands }: { brands: BrandData[] }) {
     void document.fonts.ready.then(() => {
       if (gone) return;
       const from = shown.current;
-      if (reduced || !from) {
+      const same = from?.every((c, i) => c.every((v, j) => v === to[i]![j]));
+      if (reduced || !from || same) {
         shown.current = to;
         draw();
         return;
@@ -179,6 +180,7 @@ export function Stage({ brands }: { brands: BrandData[] }) {
     });
     // A resize redraws the colors on screen; it never restarts the morph.
     const ro = new ResizeObserver(() => {
+      ink = null;
       if (!raf) draw();
     });
     ro.observe(cv);

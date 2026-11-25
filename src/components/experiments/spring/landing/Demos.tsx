@@ -17,7 +17,7 @@ export function Closing({ brands }: { brands: BrandData[] }) {
       </div>
       <div className="spring-close__copy">
         <h2 id="spring-close-title" className="spring-h2">
-          Try yours.
+          Start from one color.
         </h2>
         <Link href="/spring/app" className="spring-btn pressable" data-spring-cta>
           Open Spring
