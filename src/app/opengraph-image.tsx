@@ -8,6 +8,6 @@ export const contentType = "image/png";
 export default function Image() {
   return ogCard({
     title: PROFILE.name,
-    summary: "Design engineer in Stockholm. Claude Ambassador, Sweden.",
+    summary: "Design Engineer and Claude Ambassador, Stockholm",
   });
 }

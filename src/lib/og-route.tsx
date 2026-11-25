@@ -2,12 +2,6 @@ import { findEntry, entriesOf } from "./content";
 import { ogCard } from "./og";
 import type { Kind } from "./schema";
 
-const KIND: Record<Kind, string> = {
-  project: "project",
-  experiment: "experiment",
-  "case-study": "case study",
-};
-
 export function entryOgRoute(kind: Kind) {
   return {
     generateStaticParams: () =>
@@ -20,7 +14,6 @@ export function entryOgRoute(kind: Kind) {
         title: entry?.meta.title ?? "Somesh Kesarla Suresh",
         summary: entry?.meta.summary,
         path: entry?.href,
-        meta: KIND[kind],
       });
     },
   };
@@ -33,6 +26,5 @@ export function lockedOg(slug: string) {
     title: entry?.meta.title ?? slug,
     summary: entry?.meta.summary,
     path: `/work/${slug}`,
-    meta: "case study · nda",
   });
 }

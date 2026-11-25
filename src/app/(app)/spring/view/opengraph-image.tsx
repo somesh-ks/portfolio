@@ -9,6 +9,5 @@ export default function Image() {
     title: "Spring view",
     summary: "See any project's design system: colors, contrast, type and space.",
     path: "/spring/view",
-    meta: "tool",
   });
 }

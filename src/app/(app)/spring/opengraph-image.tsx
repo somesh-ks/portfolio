@@ -9,6 +9,5 @@ export default function Image() {
     title: "Spring",
     summary: "Tools to shape design system foundation: color, type, space, motion and tokens.",
     path: "/spring",
-    meta: "tool",
   });
 }
