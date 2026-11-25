@@ -3,11 +3,15 @@
 /**
  * A footer link that shows a preview card on mouse hover or keyboard focus.
  * The trigger stays a plain link: a tap on touch just follows it, so nothing
- * opens without a fine pointer. The card is decoration, never interactive.
+ * opens without a fine pointer, and touch devices never load the card's code.
+ * With a fine pointer, ContactPreviewCard loads once the page is idle, or at
+ * once on hover or focus.
  */
-import { PreviewCard } from "@base-ui/react/preview-card";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
+import { useLazy } from "@/hooks/useLazy";
+
+const loadCard = () => import("./hover-cards").then((m) => m.ContactPreviewCard);
 
 export function ContactPreview({
   href,
@@ -20,27 +24,24 @@ export function ContactPreview({
   children: ReactNode;
 }) {
   const fineHover = useMediaQuery(FINE_HOVER);
-  const [open, setOpen] = useState(false);
-  // Same anchor on every device (no remount after hydration); it just never opens without a fine pointer.
+  const link = useRef<HTMLAnchorElement>(null);
+  const { value: Card, load, hovered, hover } = useLazy(loadCard, link, fineHover);
+  if (Card)
+    return (
+      <Card ref={link} defaultOpen={hovered} href={href} label={label}>
+        {children}
+      </Card>
+    );
   return (
-    <PreviewCard.Root open={open && fineHover} onOpenChange={(next) => setOpen(next && fineHover)}>
-      <PreviewCard.Trigger
-        href={href}
-        className="link"
-        rel="me noopener"
-        target="_blank"
-        delay={180}
-        closeDelay={120}
-      >
-        {label}
-      </PreviewCard.Trigger>
-      <PreviewCard.Portal>
-        <PreviewCard.Positioner side="top" sideOffset={8} collisionPadding={16} className="z-50">
-          <PreviewCard.Popup className="company-card contact-card" aria-hidden="true">
-            {children}
-          </PreviewCard.Popup>
-        </PreviewCard.Positioner>
-      </PreviewCard.Portal>
-    </PreviewCard.Root>
+    <a
+      ref={link}
+      href={href}
+      className="link"
+      rel="me noopener"
+      target="_blank"
+      {...(fineHover ? { ...hover, onFocus: load } : {})}
+    >
+      {label}
+    </a>
   );
 }

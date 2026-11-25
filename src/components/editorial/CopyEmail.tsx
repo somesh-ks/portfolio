@@ -5,15 +5,15 @@
  * a click copies it and the tooltip reads "Copied" for 1.5s, on touch too.
  * It stays a real mailto link, so no JS, modifier clicks and a blocked clipboard still work.
  *
- * The footer sits far below the fold, so the Tooltip (Base UI + floating-ui) loads only
- * when the link nears the viewport or gets focus, not with every page.
+ * The Tooltip (Base UI + floating-ui) loads once the page is idle, or at once on hover
+ * or focus, so it stays off the hydration path.
  */
 import { Check } from "lucide-react";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
+import { useLazy } from "@/hooks/useLazy";
 import { useSound } from "@/components/providers/SoundProvider";
-import type { Tooltip as TooltipType } from "@/components/ui/Tooltip";
 
-const loadTooltip = () => import("@/components/ui/Tooltip").then((m) => m.Tooltip);
+const loadTooltip = () => import("./hover-cards").then((m) => m.Tooltip);
 
 export function CopyEmail({ email, label }: { email: string; label: string }) {
   const [open, setOpen] = useState(false);
@@ -22,42 +22,14 @@ export function CopyEmail({ email, label }: { email: string; label: string }) {
   const hintId = useId();
   const { play } = useSound();
   const link = useRef<HTMLAnchorElement>(null);
-  const [Tooltip, setTooltip] = useState<typeof TooltipType | null>(null);
-  const hadFocus = useRef(false);
+  const { value: Tooltip, load, hovered, hover } = useLazy(loadTooltip, link);
+  // A mouse already on the link when the tooltip arrives shows it straight away.
+  const [arrived, setArrived] = useState(false);
+  if (Tooltip && !arrived) {
+    setArrived(true);
+    if (hovered) setOpen(true);
+  }
   useEffect(() => () => clearTimeout(timer.current), []);
-
-  // Load the tooltip once the link is within a screen of the viewport.
-  useEffect(() => {
-    const el = link.current;
-    if (!el || Tooltip) return;
-    let cancelled = false;
-    const load = () =>
-      void loadTooltip().then((component) => {
-        if (cancelled) return;
-        // Swapping in the tooltip remounts the link; keep keyboard focus on it.
-        hadFocus.current = document.activeElement === link.current;
-        setTooltip(() => component);
-      });
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        load();
-      },
-      { rootMargin: "100% 0px" },
-    );
-    observer.observe(el);
-    el.addEventListener("focus", load, { once: true });
-    return () => {
-      cancelled = true;
-      observer.disconnect();
-      el.removeEventListener("focus", load);
-    };
-  }, [Tooltip]);
-
-  useEffect(() => {
-    if (Tooltip && hadFocus.current) link.current?.focus();
-  }, [Tooltip]);
 
   const href = `mailto:${email}`;
 
@@ -74,6 +46,7 @@ export function CopyEmail({ email, label }: { email: string; label: string }) {
       href={href}
       className="link"
       aria-describedby={hintId}
+      {...(Tooltip ? {} : { ...hover, onFocus: load })}
       onClick={(event) => {
         if (!navigator.clipboard || event.metaKey || event.ctrlKey || event.shiftKey) return;
         event.preventDefault();
