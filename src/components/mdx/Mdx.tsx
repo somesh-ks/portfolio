@@ -7,6 +7,10 @@ import remarkGfm from "remark-gfm";
 import { Figure, Video } from "@/components/case-studies/Figure";
 import { CodeBlock } from "@/components/code/CodeBlock";
 import { Command } from "@/components/code/Command";
+import { AuditDemo } from "@/components/skills/AuditDemo";
+import { DarkSurfaceDemo } from "@/components/skills/DarkSurfaceDemo";
+import { SkillHeading } from "@/components/skills/SkillHeading";
+import { TargetSizeDemo } from "@/components/skills/TargetSizeDemo";
 import { rehypeHeadingIds } from "@/lib/heading-ids";
 import { codeMeta, codeTheme } from "@/lib/shiki";
 import * as toys from "./toys";
@@ -19,6 +23,10 @@ function componentsFor(mediaBase?: string): MDXComponents {
     ...toys,
     pre: CodeBlock,
     Command,
+    SkillHeading,
+    TargetSizeDemo,
+    AuditDemo,
+    DarkSurfaceDemo,
     BeforeAfterScrubber: (props: ComponentProps<typeof toys.BeforeAfterScrubber>) => (
       <toys.BeforeAfterScrubber
         {...props}

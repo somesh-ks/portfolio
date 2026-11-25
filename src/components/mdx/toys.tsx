@@ -52,18 +52,6 @@ export const StableButtonDemo = dynamic(() =>
   import("../skills/StableButtonDemo").then((m) => m.StableButtonDemo),
 );
 /** @public used by MDX through the namespace import */
-export const SpinnerDemo = dynamic(() =>
-  import("../skills/SpinnerDemo").then((m) => m.SpinnerDemo),
-);
-/** @public used by MDX through the namespace import */
-export const IconSwapDemo = dynamic(() =>
-  import("../skills/IconSwapDemo").then((m) => m.IconSwapDemo),
-);
-/** @public used by MDX through the namespace import */
-export const TabularNumbersDemo = dynamic(() =>
-  import("../skills/TabularNumbersDemo").then((m) => m.TabularNumbersDemo),
-);
-/** @public used by MDX through the namespace import */
 export const ClaudeRunner = dynamic(() =>
   import("../runner/ClaudeRunner").then((m) => m.ClaudeRunner),
 );

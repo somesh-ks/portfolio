@@ -94,17 +94,27 @@ const config: NextConfig = {
       },
       {
         source: "/projects/design-engineering-skill.md",
-        destination: "/projects/interface-mechanics.md",
+        destination: "/projects/skills.md",
         permanent: true,
       },
       {
         source: "/projects/design-engineering-skill",
-        destination: "/projects/interface-mechanics",
+        destination: "/projects/skills",
+        permanent: true,
+      },
+      {
+        source: "/projects/interface-mechanics.md",
+        destination: "/projects/skills.md",
+        permanent: true,
+      },
+      {
+        source: "/projects/interface-mechanics",
+        destination: "/projects/skills",
         permanent: true,
       },
       {
         source: "/skills/interface-mechanics",
-        destination: "/projects/interface-mechanics",
+        destination: "/projects/skills",
         permanent: false,
       },
     ];
