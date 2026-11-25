@@ -1,10 +1,10 @@
 /**
- * A skill's section heading: `/ name` and a hairline to the edge. No id, so the
- * outline rail (h2[id] only) stays off these pages.
+ * A skill's section heading: `/ name` and a hairline to the edge. The id puts it
+ * in the outline rail, which lists direct h2[id]s of the prose.
  */
 export function SkillHeading({ name }: { name: string }) {
   return (
-    <h2 className="skill-heading">
+    <h2 id={name} className="skill-heading">
       <span aria-hidden="true">/</span>
       {name}
     </h2>

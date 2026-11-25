@@ -8,6 +8,7 @@ import { Figure, Video } from "@/components/case-studies/Figure";
 import { CodeBlock } from "@/components/code/CodeBlock";
 import { Command } from "@/components/code/Command";
 import { AuditDemo } from "@/components/skills/AuditDemo";
+import { DarkSurfaceDemo } from "@/components/skills/DarkSurfaceDemo";
 import { SkillHeading } from "@/components/skills/SkillHeading";
 import { TargetSizeDemo } from "@/components/skills/TargetSizeDemo";
 import { rehypeHeadingIds } from "@/lib/heading-ids";
@@ -25,6 +26,7 @@ function componentsFor(mediaBase?: string): MDXComponents {
     SkillHeading,
     TargetSizeDemo,
     AuditDemo,
+    DarkSurfaceDemo,
     BeforeAfterScrubber: (props: ComponentProps<typeof toys.BeforeAfterScrubber>) => (
       <toys.BeforeAfterScrubber
         {...props}

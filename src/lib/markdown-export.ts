@@ -23,6 +23,10 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
     "Generates an 11-step OKLCH ramp and checks WCAG 2.2 contrast as you change it.",
   AgenticStreamDemo:
     "Side-by-side comparison of a spinner-and-dump response and an interruptible, staged agent response with an approval gate.",
+  HitAreaDemo:
+    "Before and after: tabs spaced with gap, where hover drops in the gaps, next to flush tabs with the spacing inside each tab.",
+  DarkSurfaceDemo:
+    "Before and after: a dark mode card that is black on a black page with an invisible shadow, next to one raised with a lighter surface step.",
   StableButtonDemo:
     "Before and after: a Save button that resizes as its spinner and label swap, next to one that stacks every state in one grid cell.",
   TargetSizeDemo:

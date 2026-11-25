@@ -9,30 +9,26 @@ tags: [agents, skills, design engineering]
 repoUrl: https://github.com/somesh-ks/skills
 ---
 
-Four skills that teach coding agents the interface details they usually miss. The first two load on their own; you run the `sk-` audits. Any agent that reads `SKILL.md` can use them.
+Two audits for your coding agent. Run one on your code and get a list of what to fix.
 
 <Command command="npx skills add somesh-ks/skills" />
 
-<SkillHeading name="design-eng" />
+<SkillHeading name="sk-design-eng" />
 
-**CSS, DOM and motion mechanics** with working code and browser support: buttons that keep their size, hover with no dead zones, clean theme switches.
+**Audits UI code.** Finds buttons that jump, hover gaps and lost focus, each with `path:line`.
 
 <StableButtonDemo />
 
-<SkillHeading name="design-sys" />
-
-**Design system values** with a reason and a source: hairlines, type and **tap targets per platform**, dark mode surfaces, token tiers.
-
-<TargetSizeDemo />
-
-<SkillHeading name="sk-design-eng" />
-
-**Audits UI code** for the traps `design-eng` fixes and returns `path:line` findings graded High to Low.
+<HitAreaDemo />
 
 <AuditDemo skill="sk-design-eng" />
 
 <SkillHeading name="sk-design-sys" />
 
-**Scores a design system** across 18 domains with evidence, or builds a new one from the same rubric.
+**Scores a design system** on 18 areas, from color to tap targets, with evidence.
+
+<TargetSizeDemo />
+
+<DarkSurfaceDemo />
 
 <AuditDemo skill="sk-design-sys" />

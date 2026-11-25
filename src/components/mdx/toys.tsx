@@ -44,6 +44,10 @@ export const AgenticStreamDemo = dynamic(() =>
   import("../experiments/AgenticStreamDemo").then((m) => m.AgenticStreamDemo),
 );
 /** @public used by MDX through the namespace import */
+export const HitAreaDemo = dynamic(() =>
+  import("../skills/HitAreaDemo").then((m) => m.HitAreaDemo),
+);
+/** @public used by MDX through the namespace import */
 export const StableButtonDemo = dynamic(() =>
   import("../skills/StableButtonDemo").then((m) => m.StableButtonDemo),
 );
