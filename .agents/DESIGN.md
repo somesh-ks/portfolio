@@ -9,7 +9,7 @@ Somesh made these calls, most of them more than once. They win over the general 
 ### Look
 
 - **Pixel terminal vibe, everywhere.** A neutral black and white canvas in the style of claude.dev: mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines. Every control and frame, including tool chrome in Spring and Stickers, reads as a terminal. Borrow claude.dev's structure, never Anthropic's fonts, orange or wording; Claude-themed art (runner, stickers) may use the official claude.dev costumes and palette. Modern, never dated: no framed card on a coloured band.
-- **No shadows, anywhere.** Hairlines replace the shadows described under "Shadows over Borders" below.
+- **No shadows, anywhere.** Hairlines replace the shadows described under "Shadows over Borders" in [`STANDARDS.md`](./STANDARDS.md).
 - **No box inside a box.** Sections are separated by hairlines and space. No filled or bordered card inside another frame, no window chrome around a demo or game. Full bleed and simple.
 - **No AI slop.** No pill tag or badge over a title, no tinted chips as decoration, no gradient heroes, no emoji markers, no stat-card or pricing-trio filler, no overline or eyebrow above a title. A needed label is a plain mono meta line.
 - **Neutral canvas, colour only inside the thing.** Accent colour lives inside thumbnails, logos and demos, never as a field across the page. Tool chrome stays neutral ink, since a hue there biases colour judgement.

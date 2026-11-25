@@ -8,13 +8,13 @@ Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun
 - Skills live in [`.agents/skills/`](.agents/skills/README.md). Use them for tokens, typography, motion, layout, accessibility, mobile and interface review.
 - Homepage rows: every one gets a drawn hover thumbnail. Use the [`thumbnails`](.agents/skills/thumbnails/SKILL.md) skill when you add or change a row.
 - `llms.txt`: whenever you add, rename, move or remove a page, or change what one offers, update what agents read in the same change. Entries in `content/` flow into `/llms.txt`, `/llms-full.txt` and the `.md` mirrors on their own. App routes outside `content/` (such as `/spring`, `/stickers`, `/resume`) are listed by hand in `src/lib/agent-exports.ts`, so edit it there, then check `/llms.txt` on `bun run dev`.
-- Before you push, run `bun run check && bun test && bun run build && bun run size && bun run test:e2e`.
+- Before every push, run `bun run check && bun test && bun run build && bun run size && bun run test:e2e`, and push only when all five pass. No exceptions: not for docs-only or small changes, and not when a step is slow. If one can't run or fails for a reason outside your change, don't push; say which and why.
 
 ## Before Somesh sees visual work
 
 Somesh is a designer. Obvious mistakes cost his trust, so catch them before he does.
 
-1. **New layout or structure:** show him two or three rendered variants (an Artifact or a contact sheet) before you build one into the PR. Keep building the top-ranked one while he decides. Small fixes inside an agreed layout skip this.
+1. **Any new or changed layout:** show him two or three rendered variants (an Artifact or a contact sheet) before you build one into the PR. Keep building the top-ranked one while he decides. This covers every redesign of an existing layout, including asks that sound small ("make it compact", "tidy it up", "rethink"). Only pure bug fixes skip it.
 2. **Contact sheet:** render every changed screen at real size: 1440px desktop and 375px phone (with `hasTouch`), light and dark, and every state you touched (hover, open, empty, error, each pose or variant). Look at it at 1x yourself, not only as thumbnails.
 3. **Review:** send the brief below to a second model (Fable or Opus) with the sheet and the diff. Fix what it fails, re-render, and review again. Show Somesh only a pass.
 
@@ -35,7 +35,7 @@ Paste this, then attach the screenshots, the diff and what Somesh asked for in h
 
 ## Somesh's copy is final
 
-Copy Somesh wrote or approved (homepage titles and summaries, hero, bio) is final. Don't reword, recase, shorten or "improve" it, even in passing while doing other work. If you think it should change, ask him and keep his text until he says yes. `tests/unit/home-copy.test.ts` locks the homepage list; update it only in the PR that applies text he asked for.
+Copy Somesh wrote or approved (homepage titles and summaries, hero, bio) is final. Don't reword, recase, shorten or "improve" it, even in passing while doing other work. If you think it should change, ask him and keep his text until he says yes. Never edit it without new text from him: when he asks to shorten or reword it without giving the words ("shorten it"), propose two or three options and wait for his pick. `tests/unit/home-copy.test.ts` locks the homepage list; update it only in the PR that applies text he asked for.
 
 ## Domains
 
