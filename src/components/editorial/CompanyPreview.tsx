@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Inline company name that reveals a preview card.
- * Fine pointers: opens on hover after a short intent delay.
- * Touch and keyboard: the same trigger is a button, so a tap or Enter opens
- * it and a second tap, Escape or a tap outside closes it. No sticky hover.
+ * Inline company name that reveals a preview card. The card's Base UI code
+ * (CompanyPreviewCard) loads once the page is idle; until then this renders the
+ * same pill, and reaching for it (hover, focus or a tap) loads it at once.
+ * A tap before it arrives opens the card as soon as it does.
  */
-import { Popover } from "@base-ui/react/popover";
-import Image from "next/image";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { Company } from "@content/profile";
-import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
+import { useLazy } from "@/hooks/useLazy";
+
+const loadCard = () => import("./hover-cards").then((m) => m.CompanyPreviewCard);
 
 export function CompanyPreview({
   company,
@@ -22,45 +22,46 @@ export function CompanyPreview({
   /** Inline SVG from CompanyLogo, rendered on the server; null when none. */
   logo: ReactNode;
 }) {
-  const fineHover = useMediaQuery(FINE_HOVER);
-  // The card's image only mounts when the popover opens. Start the fetch on
-  // hover or focus so the open delay covers it.
-  const warm = thumbnail
-    ? () => {
-        new window.Image().src = `/previews/${company.id}.webp`;
-      }
-    : undefined;
+  const pill = useRef<HTMLButtonElement>(null);
+  const tapped = useRef(false);
+  const [Card, load] = useLazy(loadCard, pill);
+  // A tap or click before the card arrived is replayed on the real trigger,
+  // so the card opens just as a click would open it.
+  useEffect(() => {
+    const el = pill.current;
+    if (!Card || !tapped.current || !el) return;
+    // The visitor's own click already made its sound; keep the replay silent.
+    // React listens on the document first, so this stops it before SoundProvider.
+    document.addEventListener("click", (event) => event.stopPropagation(), { once: true });
+    el.click();
+  }, [Card]);
+  if (Card) return <Card ref={pill} company={company} thumbnail={thumbnail} logo={logo} />;
+  const warm = () => {
+    if (thumbnail) new window.Image().src = `/previews/${company.id}.webp`;
+  };
   return (
-    <Popover.Root>
-      <Popover.Trigger
-        openOnHover={fineHover}
-        delay={180}
-        closeDelay={120}
-        className="company-pill pressable"
-        onPointerEnter={warm}
-        onFocus={warm}
-      >
-        {logo}
-        {company.name}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="top" sideOffset={8} collisionPadding={16} className="z-50">
-          <Popover.Popup className="company-card">
-            {thumbnail ? (
-              <Image
-                src={`/previews/${company.id}.webp`}
-                alt=""
-                width={560}
-                height={350}
-                sizes="240px"
-                unoptimized
-                className="company-card__thumb"
-              />
-            ) : null}
-            <Popover.Title className="company-card__name">{company.name}</Popover.Title>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+    <button
+      ref={pill}
+      type="button"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      className="company-pill pressable"
+      onPointerEnter={() => {
+        warm();
+        load();
+      }}
+      onFocus={() => {
+        warm();
+        load();
+      }}
+      onClick={() => {
+        tapped.current = true;
+        warm();
+        load();
+      }}
+    >
+      {logo}
+      {company.name}
+    </button>
   );
 }
