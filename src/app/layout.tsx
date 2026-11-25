@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { PROFILE } from "@content/profile";
 import { DevFeedback } from "@/components/dev/DevFeedback";
+import { EntranceGate } from "@/components/providers/EntranceGate";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { personGraph, serializeJsonLd } from "@/lib/schema-org";
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {children}
           </SoundProvider>
         </ThemeProvider>
+        <EntranceGate />
         <DevFeedback />
       </body>
     </html>

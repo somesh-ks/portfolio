@@ -65,13 +65,16 @@ export function PauseToggle() {
     <button
       type="button"
       className="spring-landing__pause pressable"
+      aria-label="Pause animations"
       aria-pressed={paused}
       onClick={() => {
         setPaused(!paused);
         play(paused ? "toggle" : "toggleOff");
       }}
     >
-      {paused ? "Play demo" : "Pause demo"}
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+        {paused ? <path d="M5 3.5v9l7-4.5z" /> : <path d="M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z" />}
+      </svg>
     </button>
   );
 }

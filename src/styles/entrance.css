@@ -1,0 +1,78 @@
+/* First-load entrance: a calm fade that sets the page, once per visit.
+   Only the lead (the page title) rises, 4px; everything else fades in place,
+   so the viewport never drifts. Opacity alone never re-anchors fixed or
+   sticky children. `backwards` drops the animation once it ends.
+   EntranceGate sets [data-entered] on the first client navigation, so later
+   pages simply appear. Choreography: .agents/DESIGN.md, "First load". */
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media screen {
+  :root:not([data-entered]) {
+    /* Site pages: home and every entry (case studies, projects, experiments, resume). */
+    :is(.intro__name, .entry__title),
+    :is(.intro__role, .bio, .runner, #main > .list-section, .entry > .back-link),
+    .entry__header > :not(.entry__title, .entry__links),
+    .entry > :not(.entry__header, .back-link, script),
+    /* Spring landing hero copy. The stage resolves through its own dither, so it gets no fade. */
+    .spring-hero__title,
+    :is(.spring-hero__line, .spring-hero__keys),
+    .spring-hero__copy > .spring-btn {
+      animation-name: enter-fade;
+      animation-duration: var(--duration-enter);
+      animation-timing-function: var(--ease-out);
+      animation-fill-mode: backwards;
+      animation-delay: var(--enter-at, 0ms);
+    }
+    /* Tools (Spring app, sticker studio): opened to work, so one quick fade
+       of the whole shell, no sequence. */
+    :is(.spring-app__bar, .spring-app__side, .spring-app__canvas) {
+      animation: enter-fade var(--duration-popover) var(--ease-out) backwards;
+    }
+  }
+}
+
+/* Movement and sequence only for people who haven't asked for less motion;
+   with reduced motion everything fades in together. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  :root:not([data-entered]) {
+    :is(.intro__name, .entry__title, .spring-hero__title) {
+      animation-name: enter-rise;
+    }
+
+    /* Shrinking gaps, so the group reads as one wave rather than a queue.
+       The bio (the largest block, likely LCP) starts with the role. */
+    .intro__role,
+    .bio,
+    .entry__header > :not(.entry__title, .entry__links),
+    .spring-hero__line {
+      --enter-at: var(--duration-stagger-step);
+    }
+    .runner,
+    .entry__links,
+    .spring-hero__keys,
+    .spring-hero__copy > .spring-btn {
+      --enter-at: calc(var(--duration-stagger-step) * 2);
+    }
+    #main > .list-section,
+    .entry > :not(.entry__header, .back-link, script) {
+      --enter-at: calc(var(--duration-stagger-step) * 3);
+    }
+    #main > .list-section ~ .list-section {
+      --enter-at: calc(var(--duration-stagger-step) * 3.5);
+    }
+    #main > .list-section ~ .list-section ~ .list-section {
+      --enter-at: calc(var(--duration-stagger-step) * 4);
+    }
+  }
+}
