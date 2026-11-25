@@ -39,47 +39,6 @@
   flex: none;
   box-shadow: inset 0 0 0 1px var(--border-default);
 }
-.spring-facts {
-  font-family: var(--font-mono);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--step-xs);
-}
-.spring-facts dt {
-  color: var(--text-secondary);
-}
-.spring-facts dd {
-  margin: 0;
-}
-.spring-track {
-  display: block;
-  container-type: inline-size;
-  position: relative;
-  height: 1.5rem;
-  border-bottom: 1px solid var(--border-default);
-}
-.spring-ball {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0.75rem;
-  height: 1.25rem;
-  background: var(--text-primary);
-}
-.spring-ball[data-run="true"] {
-  animation: spring-move var(--d) var(--e) forwards;
-}
-@keyframes spring-move {
-  to {
-    transform: translateX(calc(100cqi - 0.75rem));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spring-ball[data-run="true"] {
-    animation: none;
-  }
-}
 /* The file grows with its text, so the canvas is the only scroller (no box inside a box). */
 .spring-audit-input.spring-code {
   field-sizing: content;
@@ -376,33 +335,6 @@
   padding-inline: 2px;
   border-left: 1px solid var(--border-subtle);
 }
-.spring-race {
-  display: grid;
-  gap: var(--space-3);
-}
-.spring-lane {
-  display: grid;
-  gap: var(--space-1);
-}
-.spring-nested {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-.spring-nested__case {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-}
-.spring-nested__outer {
-  display: block;
-  border: 1px solid var(--border-strong);
-}
-.spring-nested__inner {
-  display: block;
-  height: 2.5rem;
-  border: 1px solid var(--text-primary);
-}
 
 /* ——— Terminal chrome, scoped to Spring's toys ——— */
 .spring .field__label {
@@ -545,33 +477,6 @@
     grid-column: 2 / -1;
   }
 }
-.spring-ruler {
-  display: grid;
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-ruler__row {
-  display: grid;
-  grid-template-columns: 7rem 3rem 1fr;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 1.75rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: copy;
-}
-.spring-ruler__row:hover,
-.spring-ruler__row:focus-visible {
-  color: var(--text-primary);
-}
-.spring-ruler__bar {
-  display: block;
-  max-width: 100%;
-  height: 0.5rem;
-  background: var(--text-primary);
-}
 .spring-rung__copy {
   justify-self: end;
   padding: 0;
@@ -582,18 +487,6 @@
 }
 .spring-rung__copy:hover {
   color: var(--color-text);
-}
-/* Meta wraps on its own; Copy stays at the right on every row. */
-.spring-lane__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  column-gap: var(--space-3);
-}
-@media (max-width: 40rem) {
-  .spring-nested {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ——— Workbench: tool controls left, pinned preview and output right ——— */

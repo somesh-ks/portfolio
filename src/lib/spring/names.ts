@@ -33,10 +33,3 @@ export function typeSnippet(role: string, styling: Styling): string {
     `font-weight: var(${v}--font-weight);`,
   ].join("\n");
 }
-
-/** A transition in the stack's words. */
-export function transitionSnippet(ease: string, duration: string, styling: Styling): string {
-  return styling === "tailwind"
-    ? `transition-transform duration-(--duration-${duration}) ease-${ease}`
-    : `transition: transform var(--duration-${duration}) var(--ease-${ease});`;
-}

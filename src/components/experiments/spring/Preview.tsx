@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { ArrowRight, ChevronDown, CircleAlert } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { CVD_FILTER, VISION_LABEL, VISIONS } from "@/lib/spring/charts";
 import type { Mode } from "@/lib/spring/color";
 import { tokenName, typeSnippet } from "@/lib/spring/names";
@@ -13,65 +13,6 @@ import { useCopy } from "./store";
 /** Display sizes fit about two words on one line, so the ladder shows the name, not the sentence. */
 const displayOf = (name: string) =>
   name.trim() && name !== "Untitled" ? name.trim() : "Ship calm";
-
-/** Buttons, fields, badges and an alert: judge the whole, not swatches. */
-export function Components({ system, mode }: { system: System; mode: Mode }) {
-  return (
-    <Scope system={system} mode={mode}>
-      <div className="grid gap-5 p-5">
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="sp-btn sp-btn--primary" tabIndex={-1}>
-            Get started <ArrowRight size={16} aria-hidden />
-          </button>
-          <button type="button" className="sp-btn sp-btn--secondary" tabIndex={-1}>
-            Secondary
-          </button>
-          <button type="button" className="sp-btn sp-btn--ghost" tabIndex={-1}>
-            Ghost
-          </button>
-          <button type="button" className="sp-btn sp-btn--danger" tabIndex={-1}>
-            Delete
-          </button>
-        </div>
-        <div className="grid gap-4 @md:grid-cols-2">
-          <div className="grid gap-1.5">
-            <span className="sp-label">Work email</span>
-            <span className="sp-field sp-muted">you@company.com</span>
-            <span className="sp-caption">We'll never share it.</span>
-          </div>
-          <div className="grid gap-1.5">
-            <span className="sp-label">Plan</span>
-            <span className="sp-field justify-between">
-              Team <ChevronDown size={16} aria-hidden />
-            </span>
-            <span className="sp-caption sp-text-danger">Choose a plan to continue.</span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="sp-badge sp-badge--primary">New</span>
-          <span className="sp-badge sp-badge--success">Paid</span>
-          <span className="sp-badge sp-badge--warning">Pending</span>
-          <span className="sp-badge sp-badge--danger">Failed</span>
-          <span className="sp-badge sp-badge--info">Beta</span>
-        </div>
-        <div className="sp-card sp-card--raised flex items-start gap-3 p-4">
-          <CircleAlert size={18} className="sp-text-info mt-0.5 shrink-0" aria-hidden />
-          <div className="grid gap-0.5">
-            <span className="sp-label">Your trial ends in 3 days</span>
-            <span className="sp-caption">Add a payment method to keep your projects.</span>
-          </div>
-          <button
-            type="button"
-            className="sp-btn sp-btn--secondary sp-btn--sm ml-auto"
-            tabIndex={-1}
-          >
-            Upgrade
-          </button>
-        </div>
-      </div>
-    </Scope>
-  );
-}
 
 const CHANGES = [
   [

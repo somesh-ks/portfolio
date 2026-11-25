@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { tokenName, tokenRef, transitionSnippet, typeSnippet } from "@/lib/spring/names";
+import { tokenName, tokenRef, typeSnippet } from "@/lib/spring/names";
 
 test("CSS names are variables", () => {
   expect(tokenRef("--space-4", "css")).toBe("var(--space-4)");
@@ -17,7 +17,4 @@ test("Tailwind names are the utilities theme.css makes", () => {
 test("copy snippets follow the stack", () => {
   expect(typeSnippet("h1", "tailwind")).toBe("text-h1");
   expect(typeSnippet("h1", "css")).toContain("line-height: var(--text-h1--line-height);");
-  expect(transitionSnippet("out", "base", "css")).toBe(
-    "transition: transform var(--duration-base) var(--ease-out);",
-  );
 });

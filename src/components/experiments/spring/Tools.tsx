@@ -8,7 +8,6 @@ import { Eye } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { readInput, writeInput } from "@/lib/spring/io";
-import { tokenName, tokenRef, transitionSnippet } from "@/lib/spring/names";
 import type { Styling } from "@/lib/spring/stack";
 import {
   DEFAULT_INPUT,
@@ -39,7 +38,7 @@ import { CurveEditor } from "./CurveEditor";
 import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
-import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
+import { AppScreen, ChartsScreen, Homepage, Ladder } from "./Preview";
 import {
   getInput,
   importRoute,
@@ -406,13 +405,12 @@ function Text({
   );
 }
 
-// Space and motion share one tab: three dials that finish the token set.
-const TABS = ["color", "type", "shape", "tokens"] as const;
+// Color and type only: space, radius and motion keep sensible defaults in the exports.
+const TABS = ["color", "type", "tokens"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   color: "Color",
   type: "Type",
-  shape: "Shape",
   tokens: "Tokens",
 };
 
@@ -436,8 +434,6 @@ export function SpringApp() {
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
-  // Starts at 1 so the curves play as soon as the Motion tab opens.
-  const [run, setRun] = useState(1);
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
   const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
   // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
@@ -534,13 +530,6 @@ export function SpringApp() {
             }}
           />
         ) : null}
-        {tab === "shape" ? (
-          <>
-            <ShapeControls {...spring} />
-            <p className="spring-group">motion</p>
-            <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
-          </>
-        ) : null}
         {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
       </aside>
       <section
@@ -616,12 +605,6 @@ export function SpringApp() {
               />
             ) : tab === "type" ? (
               <TypeOutput system={system} mode={mode} />
-            ) : null}
-            {tab === "shape" ? (
-              <>
-                <ShapeOutput system={system} mode={mode} />
-                <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
-              </>
             ) : null}
             {f ? (
               <textarea
@@ -1028,161 +1011,6 @@ function TypeOutput({ system, mode }: { system: System; mode: Mode }) {
   );
 }
 
-// ——— Space and shape ———
-
-function ShapeControls({ input, system, setInput }: Spring) {
-  const r = system.shape.radius;
-  const c = system.space.control;
-  return (
-    <>
-      <Dial
-        label="density"
-        scale={100}
-        reset={DEFAULT_INPUT.density}
-        value={input.density}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`controls ${c.sm}/${c.md}/${c.lg}px`}
-        onChange={(v) => setInput((i) => ({ ...i, density: v }))}
-      />
-      <Dial
-        label="roundness"
-        scale={100}
-        reset={DEFAULT_INPUT.roundness}
-        value={input.roundness}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`${r.sm}/${r.md}/${r.lg}px`}
-        onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
-      />
-      <Nested system={system} />
-    </>
-  );
-}
-
-function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
-  const [copied, copy, said] = useCopy();
-  const styling = system.input.stack.styling;
-  return (
-    <>
-      <output className="sr-only">{said}</output>
-      <div className="spring-ruler">
-        {Object.entries(system.space.scale)
-          .filter(([k]) => k !== "0")
-          .toSorted((a, b) => a[1] - b[1])
-          .map(([k, px]) => {
-            const name = `--space-${k.replace(".", "-")}`;
-            return (
-              <button
-                key={k}
-                type="button"
-                className="spring-ruler__row"
-                onClick={() => copy(name, tokenRef(name, styling))}
-              >
-                <span>{copied === name ? "✓ copied" : tokenName(name, styling)}</span>
-                <span className="tabular">{px}px</span>
-                <span className="spring-ruler__bar" style={{ width: px }} aria-hidden />
-              </button>
-            );
-          })}
-      </div>
-      <Components system={system} mode={mode} />
-    </>
-  );
-}
-
-// ——— Motion ———
-
-function MotionControls({ input, system, setInput, onCommit }: Spring & { onCommit: () => void }) {
-  const m = system.motion;
-  return (
-    <>
-      <Dial
-        label="energy"
-        scale={100}
-        reset={DEFAULT_INPUT.motion}
-        value={input.motion}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`base ${m.duration.base}ms`}
-        onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
-        onCommit={onCommit}
-      />
-      <dl className="spring-facts">
-        {Object.entries(m.duration).map(([k, ms]) => (
-          <div key={k} className="contents">
-            <dt>{tokenName(`--duration-${k}`, system.input.stack.styling)}</dt>
-            <dd className="tabular">{ms}ms</dd>
-          </div>
-        ))}
-      </dl>
-    </>
-  );
-}
-
-function MotionOutput({ system, run, onRun }: { system: System; run: number; onRun: () => void }) {
-  const [copied, copy, said] = useCopy();
-  const m = system.motion;
-  return (
-    <>
-      <div className="spring-race">
-        {(
-          [
-            ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI", "base"],
-            ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen", "slow"],
-            [
-              "spring",
-              m.easing.spring,
-              m.duration.spring,
-              "Drag release, playful moments",
-              "spring",
-            ],
-          ] as const
-        ).map(([name, ease, ms, job, dur]) => (
-          <div key={name} className="spring-lane">
-            <span className="spring-lane__head">
-              <span className="spring-meta">
-                {name} · {ms}ms · {job}
-              </span>
-              <button
-                type="button"
-                className="spring-link"
-                title={ease}
-                onClick={() =>
-                  copy(
-                    name,
-                    transitionSnippet(name.replace("ease-", ""), dur, system.input.stack.styling),
-                  )
-                }
-              >
-                {copied === name ? "Copied" : "Copy"}
-                <span className="sr-only"> {name} transition</span>
-              </button>
-            </span>
-            <span className="spring-track">
-              <span
-                key={run}
-                className="spring-ball"
-                data-run={run > 0}
-                style={{ "--d": `${ms}ms`, "--e": ease } as React.CSSProperties}
-              />
-            </span>
-          </div>
-        ))}
-      </div>
-      <output className="sr-only">{said}</output>
-      <div className="toy__actions">
-        <button type="button" className="button" onClick={onRun}>
-          Replay
-        </button>
-      </div>
-    </>
-  );
-}
-
 // ——— Tokens ———
 
 function TokensControls({
@@ -1348,30 +1176,6 @@ function Facts({ font, job, extra }: { font: FontName; job: string; extra?: Type
           </div>
         ))}
       </dl>
-    </div>
-  );
-}
-
-/** The one corner rule most systems miss: inner radius = outer radius − padding. */
-function Nested({ system }: { system: System }) {
-  const outer = system.shape.radius.lg;
-  const pad = system.space.paddingX.sm;
-  const inner = Math.max(0, outer - pad);
-  return (
-    <div className="spring-nested">
-      {[
-        { label: `inner ${outer}px: gap bulges`, r: outer, bad: true },
-        { label: `${outer} − ${pad} = ${inner}px: gap even`, r: inner, bad: false },
-      ].map((x) => (
-        <figure key={x.label} className="spring-nested__case">
-          <span className="spring-nested__outer" style={{ borderRadius: outer, padding: pad }}>
-            <span className="spring-nested__inner" style={{ borderRadius: x.r }} />
-          </span>
-          <figcaption className="spring-meta">
-            {x.bad ? "✕" : "✓"} {x.label}
-          </figcaption>
-        </figure>
-      ))}
     </div>
   );
 }

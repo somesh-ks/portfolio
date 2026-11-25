@@ -3,7 +3,7 @@ import { OG_BASE } from "@/lib/site";
 import { SpringApp } from "@/components/experiments/spring/Tools";
 
 const description =
-  "Tools to shape design system foundation: color, type, space, motion and tokens.";
+  "Make the color and type foundations of a design system, and export them as tokens.";
 
 export const metadata: Metadata = {
   title: { absolute: "Spring" },
