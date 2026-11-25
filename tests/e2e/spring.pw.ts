@@ -58,3 +58,20 @@ test("the color page opens its charts in Preview", async ({ page }) => {
   );
   await expect(page.getByText("Change vs last month")).toBeVisible();
 });
+
+test("each browser keeps its own system until Start over", async ({ page }) => {
+  await page.goto("/spring");
+  const names = page.locator(".spring-strip__rename");
+  const first = await names.nth(0).inputValue();
+  const second = await names.nth(1).inputValue();
+  await page.getByRole("button", { name: `Move ${first} down` }).click();
+  await expect(page).toHaveURL(/\?s=/);
+  await page.goto("/spring");
+  await expect(names.nth(0)).toHaveValue(second);
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("menuitem", { name: "Start over" }).click();
+  await expect(names.nth(0)).toHaveValue(first);
+  await expect(page).not.toHaveURL(/\?s=/);
+  await page.reload();
+  await expect(names.nth(0)).toHaveValue(first);
+});

@@ -11,6 +11,7 @@ import {
   type StatusName,
   type SystemInput,
 } from "./system";
+import { COMPONENTS, ICONS } from "./stack";
 import { FONT_NAMES, SAFE_FONT, type FontMeta, type FontTag } from "./type";
 
 const b64url = {
@@ -82,26 +83,26 @@ export function encodeInput(input: SystemInput): string {
   return b64url.encode(JSON.stringify(compact));
 }
 
-const finite = (v: unknown, lo: number, hi: number) =>
-  typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
-const index = (v: unknown) => {
-  const n = finite(v, 0, CHART_MAX - 1);
-  return n === undefined ? undefined : Math.round(n);
-};
-const ramps = ([seq, div]: unknown[]) => {
-  const a = Array.isArray(div) ? [index(div[0]), index(div[1])] : [];
+/** A ramp points at a data strip by position, so it must name one that exists. */
+const index = (v: unknown, len: number) =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v < len ? v : undefined;
+const ramps = ([seq, div]: unknown[], len: number) => {
+  const at = (x: unknown) => index(x, len);
+  const a = Array.isArray(div) ? [at(div[0]), at(div[1])] : [];
   return {
-    seq: index(seq),
+    seq: at(seq),
     div: a[0] !== undefined && a[1] !== undefined ? ([a[0], a[1]] as [number, number]) : undefined,
   };
 };
+const isStrip = (c: unknown): c is [string, string] =>
+  Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]);
+/** Ramps point at strips by position, so one bad entry drops the whole list rather than shifting it. */
 const strips = (v: unknown[], max: number) =>
-  v
-    .slice(0, max)
-    .filter(
-      (c): c is [string, string] => Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]),
-    )
-    .map(([name, hex]) => ({ name: name.slice(0, 24), hex }));
+  v.length <= max && v.every(isStrip)
+    ? v.map(([name, hex]) => ({ name: name.slice(0, 24), hex }))
+    : undefined;
+const pick = (v: unknown, from: Record<string, unknown>) =>
+  typeof v === "string" && Object.hasOwn(from, v) ? v : undefined;
 
 const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
 const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
@@ -141,6 +142,8 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
     const [acc, t, st] = [a[2] as unknown[], a[4] as unknown[], a[8] as unknown[]];
     const extra = decodeExtra(t?.[7]);
     const fonts = [...FONT_NAMES, ...Object.keys(extra ?? {})];
+    const colors = Array.isArray(a[12]) ? strips(a[12], MAX_STRIPS) : undefined;
+    const data = Array.isArray(a[14]) ? strips(a[14], CHART_MAX) : undefined;
     return {
       v: 1,
       name: typeof a[1] === "string" ? a[1].slice(0, 60) : D.name,
@@ -169,8 +172,8 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
         building: oneOf(st?.[0], ["site", "app", "dashboard"] as const, D.stack.building),
         ownership: oneOf(st?.[1], ["own", "package"] as const, D.stack.ownership),
         styling: oneOf(st?.[2], ["tailwind", "css"] as const, D.stack.styling),
-        components: typeof st?.[3] === "string" ? st[3] : undefined,
-        icons: typeof st?.[4] === "string" ? st[4] : undefined,
+        components: pick(st?.[3], COMPONENTS),
+        icons: pick(st?.[4], ICONS),
       },
       ...(Array.isArray(a[9]) && (a[9].length === 5 || a[9].length === 6)
         ? {
@@ -197,9 +200,12 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
           }
         : {}),
       ...(a[11] === "aaa" || a[11] === "apca" ? { contrast: a[11] } : {}),
-      ...(Array.isArray(a[12]) ? { colors: strips(a[12], MAX_STRIPS) } : {}),
-      ...(Array.isArray(a[14]) ? { data: strips(a[14], CHART_MAX) } : {}),
-      ...(Array.isArray(a[15]) ? { ramps: ramps(a[15]) } : {}),
+      ...(colors ? { colors } : {}),
+      ...(data ? { data } : {}),
+      // Without a[14] the ramps point at the suggested strips; a rejected a[14] drops them too.
+      ...(Array.isArray(a[15]) && (data || !Array.isArray(a[14]))
+        ? { ramps: ramps(a[15], data?.length ?? CHART_MAX) }
+        : {}),
     };
   } catch {
     return null;
