@@ -20,7 +20,7 @@ Somesh made these calls, most of them more than once. They win over the general 
 - **Neutral canvas, colour only inside the thing.** Accent colour lives inside thumbnails, logos and demos, never as a field across the page. Tool chrome stays neutral ink, since a hue there biases colour judgement.
 - **Both themes, equal care.** Default theme is system. Every text and edge pair must pass contrast in light and in dark (keycaps, labels on buttons, thin lines at 1x). A label that disappears in one theme "should never happen in the first place".
 - **Full bleed media, one left edge.** Figures and videos run edge to edge on phones. On wide screens they extend 8rem to the right of the text column, but their left edge lines up with the text, so nothing looks indented.
-- **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon. No serif. Body text is a flat 14px; hierarchy comes from colour and weight, not size.
+- **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon. No serif. Body text is a flat 14px; hierarchy comes from colour and weight, not size. A font preview (Spring's browser, the tune toy) renders in its own font under a private family name, so it never replaces Geist elsewhere.
 - **Links** are plain underlines. External links and links to tools open in a new tab with the `↗` arrow. "Made with Spring" opens the tool (`/spring/app`), never a page about it.
 
 ### Layout and actions
