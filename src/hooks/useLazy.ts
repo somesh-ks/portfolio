@@ -51,7 +51,9 @@ export function useLazy<T>(
   useEffect(() => {
     const el = ref.current;
     if (!value || !el) return;
-    if (hadFocus.current) el.focus();
+    // Only if focus fell to the body with the old trigger, never away from a control.
+    const active = document.activeElement;
+    if (hadFocus.current && (!active || active === document.body)) el.focus();
     if (el.matches(":hover")) {
       el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
       el.dispatchEvent(new MouseEvent("mouseenter"));

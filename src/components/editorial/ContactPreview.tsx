@@ -3,9 +3,9 @@
 /**
  * A footer link that shows a preview card on mouse hover or keyboard focus.
  * The trigger stays a plain link: a tap on touch just follows it, so nothing
- * opens without a fine pointer, and touch devices never load the card's code.
- * With a fine pointer, ContactPreviewCard loads once the page is idle, or at
- * once on hover or focus.
+ * opens without a fine pointer. With one, ContactPreviewCard loads once the page
+ * is idle, or at once on hover or focus. It shares a chunk with the other hover
+ * cards, so floating-ui ships once.
  */
 import { type ReactNode, useRef } from "react";
 import { FINE_HOVER, useMediaQuery } from "@/hooks/useMediaQuery";
