@@ -28,7 +28,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
   const all = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await all).suggestedFilename()).toMatch(/\.zip$/);
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   const one = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /Color/ }).click();
   expect((await one).suggestedFilename()).toMatch(/-color\.zip$/);
@@ -69,7 +69,7 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   await expect(page).toHaveURL(/\?s=/);
   await page.goto("/spring");
   await expect(names.nth(0)).toHaveValue(second);
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect(names.nth(0)).toHaveValue(first);
@@ -86,7 +86,7 @@ test("a seed link loads its system", async ({ page }) => {
 
 test("Export gives spring.json, valid and self-describing", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   const dl = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /spring\.json/ }).click();
   const file = await (await dl).path();
@@ -97,7 +97,7 @@ test("Export gives spring.json, valid and self-describing", async ({ page }) => 
 
 test("Import reads a spring.json", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
@@ -114,7 +114,7 @@ test("Import reads a spring.json", async ({ page }) => {
 
 test("Import turns CSS variables into a starting point", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
@@ -127,7 +127,7 @@ test("Import turns CSS variables into a starting point", async ({ page }) => {
 });
 
 const importText = async (page: import("@playwright/test").Page, text: string) => {
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog.getByLabel(/Paste or drop/).fill(text);
@@ -164,7 +164,7 @@ test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", 
 
 test("Start over drops seed params from the URL", async ({ page }) => {
   await page.goto("/spring?primary=%23e11d48&name=Seedtest&font=Inter");
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect.poll(() => new URL(page.url()).search).toBe("");
@@ -228,10 +228,10 @@ test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
 test("the share link comes first and the Export button confirms it", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/spring");
-  await page.getByRole("button", { name: "Export one area" }).click();
+  await page.getByRole("button", { name: "More export options" }).click();
   await expect(page.getByRole("menuitem").first()).toHaveText("Copy share link");
   await page.getByRole("menuitem", { name: "Copy share link" }).click();
-  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+  await expect(page.getByText("Link copied")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
   await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute(
     "href",

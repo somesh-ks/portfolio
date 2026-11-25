@@ -1188,6 +1188,17 @@
 .spring-app__name a:hover {
   text-decoration: underline;
 }
+.spring-split__main {
+  display: inline-grid;
+  justify-items: center;
+}
+.spring-split__main > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+.spring-split__main > span[data-on] {
+  visibility: visible;
+}
 .spring-app__actions {
   align-items: center;
 }
