@@ -173,14 +173,23 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
     <Scope system={system} mode={mode}>
       <output className="sr-only">{said}</output>
       <div className="grid">
+        <div className="spring-rung spring-rung--head sp-mono sp-muted" aria-hidden>
+          token · phone–desktop / line · weight · tracking
+        </div>
         {system.type.tokens.map((t) => {
           const px = t.max;
           return (
             <div key={t.role} className="spring-rung">
               <span className="sp-mono sp-muted spring-rung__spec">
-                <span className="sp-label" style={{ fontFamily: "var(--font-mono)" }}>
-                  {tokenName(`--text-${t.role}`, styling)}
-                </span>
+                {/* The name is the copy button: one action per row, no extra column. */}
+                <button
+                  type="button"
+                  className="sp-label spring-rung__copy"
+                  onClick={() => copy(t.role, typeSnippet(t.role, styling))}
+                >
+                  {copied === t.role ? "copied" : tokenName(`--text-${t.role}`, styling)}
+                  <span className="sr-only"> copy</span>
+                </button>
                 <span>
                   {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx} · {t.weight}
                   {t.tracking ? ` · ${t.tracking > 0 ? "+" : ""}${t.tracking}em` : ""}
@@ -199,15 +208,6 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
               >
                 {t.role === "display" ? displayOf(system.input.name) : SAMPLE[t.role]}
               </span>
-              <button
-                type="button"
-                className="spring-rung__copy"
-                title={t.size}
-                onClick={() => copy(t.role, typeSnippet(t.role, styling))}
-              >
-                {copied === t.role ? "Copied" : "Copy"}
-                <span className="sr-only"> for {t.role}</span>
-              </button>
             </div>
           );
         })}

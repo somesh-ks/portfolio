@@ -55,8 +55,6 @@ import "./spring.css";
 // The audit engine only runs once its dialog opens, so it loads then.
 const SpringAudit = dynamic(() => import("./Audit").then((m) => m.SpringAudit));
 
-type TypeExtra = TypeInput["extra"];
-
 // One stylesheet for every curated family; browsers fetch only the faces in use.
 const ALL_FONTS = googleFontsUrl(FONT_NAMES);
 /** Curated fonts, plus any Google font the visitor picked from the browser. */
@@ -490,8 +488,8 @@ export function SpringApp() {
             hideLabel
             value={input.stack.styling}
             options={[
-              { value: "css", label: "CSS" },
-              { value: "tailwind", label: "Tailwind" },
+              { value: "css", label: "CSS names" },
+              { value: "tailwind", label: "Tailwind names" },
             ]}
             onChange={(v) =>
               setInput((i) => ({ ...i, stack: { ...i.stack, styling: v as Styling } }))
@@ -931,6 +929,30 @@ function TypeControls({ input, setInput, onBrowse }: Spring & { onBrowse: (r: Fo
   const fontsId = useId();
   return (
     <>
+      {(["heading", "body", "mono"] as const).map((r) => (
+        <div key={r} className="field">
+          <span className="field__label" id={`${fontsId}-${r}`}>
+            {ROLE_NAME[r]}
+          </span>
+          <button
+            type="button"
+            className="select__trigger"
+            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
+            onClick={() => onBrowse(r)}
+          >
+            <span
+              id={`${fontsId}-${r}-v`}
+              className="select__value"
+              style={{ fontFamily: `"${t[r]}", var(--font-sans)` }}
+            >
+              {t[r]}
+            </span>
+            <span className="select__icon" aria-hidden>
+              <Chevron dir="right" />
+            </span>
+          </button>
+        </div>
+      ))}
       <Dial
         label="body size"
         reset={16}
@@ -970,26 +992,6 @@ function TypeControls({ input, setInput, onBrowse }: Spring & { onBrowse: (r: Fo
           onChange={(v) => set({ headingWeight: v })}
         />
       ) : null}
-      {(["heading", "body", "mono"] as const).map((r) => (
-        <div key={r} className="field">
-          <span className="field__label" id={`${fontsId}-${r}`}>
-            {ROLE_NAME[r]}
-          </span>
-          <button
-            type="button"
-            className="select__trigger"
-            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
-            onClick={() => onBrowse(r)}
-          >
-            <span id={`${fontsId}-${r}-v`} className="select__value">
-              {t[r]}
-            </span>
-            <span className="select__icon" aria-hidden>
-              <Chevron dir="right" />
-            </span>
-          </button>
-        </div>
-      ))}
     </>
   );
 }
@@ -999,14 +1001,7 @@ function TypeOutput({ system, mode }: { system: System; mode: Mode }) {
   return (
     <>
       <Ladder system={system} mode={mode} />
-      <div className="spring-grid">
-        <Facts font={t.heading} job="Headings" extra={t.extra} />
-        {t.body !== t.heading ? (
-          <Facts font={t.body} job="Text" extra={t.extra} />
-        ) : (
-          <Facts font={t.mono} job="Code" extra={t.extra} />
-        )}
-      </div>
+      <FontNotes type={t} />
     </>
   );
 }
@@ -1131,51 +1126,30 @@ const ratioOptions = (t: TypeInput) =>
       return { value: String(v), label: String(v), hint: `${use} · h1 ${h1}px` };
     });
 
-/** What people get wrong when choosing a brand font, on one card. */
-function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {
-  const info = fontInfo(font, extra);
-  const d = isCurated(font) ? FONTS[font] : null;
-  const weights = info.variable
-    ? `Variable ${info.variable[0]}–${info.variable[1]}`
-    : info.weights.length === 1
-      ? `One (${info.weights[0]})`
-      : info.weights.join(", ");
-  const rows: [string, string][] = d
-    ? [
-        ["license", d.license === "OFL" ? "OFL, free for logo, web and apps" : "check before use"],
-        ["weights", `${weights}${d.italic ? ", italics" : ", no italics"}`],
-        ["scripts", d.scripts.join(", ")],
-        [
-          "numbers",
-          d.tag === "mono" || d.tnum
-            ? "tabular, columns line up"
-            : "proportional, columns won't align",
-        ],
-        ["download", `~${d.kb} KB per weight`],
-      ]
-    : [
-        ["weights", weights],
-        ["license", "check it on fonts.google.com before a logo"],
-        ["fallback", "generic stack; Spring hasn't measured this font"],
-      ];
+/** One line per font in use, with only the facts that bite: numbers, license, cuts, fallback. */
+function FontNotes({ type: t }: { type: TypeInput }) {
+  const roles = new Map<FontName, string[]>();
+  for (const r of ["heading", "body", "mono"] as const)
+    roles.set(t[r], [...(roles.get(t[r]) ?? []), ROLE_NAME[r].toLowerCase()]);
   return (
-    <div className="spring-tree">
-      <span>
-        {font} <span className="spring-meta">{job}</span>
-      </span>
-      <span className="spring-meta">
-        {d
-          ? `${d.note}${d.popularity <= 10 ? " One of the ten most used fonts on the web." : ""}`
-          : "From the Google Fonts catalogue."}
-      </span>
-      <dl>
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <ul className="spring-notes">
+      {[...roles].map(([font, jobs]) => {
+        const info = fontInfo(font, t.extra);
+        const d = isCurated(font) ? FONTS[font] : null;
+        const notes = [
+          info.tag !== "mono" && !d?.tnum ? "proportional numbers, columns won't align" : "",
+          d && d.license !== "OFL" ? "check the license" : "",
+          !d ? "not measured, generic fallback" : "",
+          !info.variable && info.weights.length === 1 ? "one weight" : "",
+          d && !d.italic ? "no italics" : "",
+        ].filter(Boolean);
+        return (
+          <li key={font} className="spring-meta">
+            <span className="spring-notes__font">{font}</span> {jobs.join(", ")}
+            {notes.length ? ` · ${notes.join(" · ")}` : " · nothing to watch"}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

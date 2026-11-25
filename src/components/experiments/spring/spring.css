@@ -290,7 +290,7 @@
 }
 .spring-rung {
   display: grid;
-  grid-template-columns: 14rem minmax(0, 1fr) auto;
+  grid-template-columns: 14rem minmax(0, 1fr);
   align-items: baseline;
   gap: var(--space-4, 1rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
@@ -298,6 +298,19 @@
 }
 .spring-rung:first-child {
   border-top: 0;
+}
+.spring-notes {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+.spring-notes__font {
+  color: var(--text-primary);
+}
+.spring-rung--head {
+  display: block;
+  padding-block: var(--space-2, 0.5rem);
+  font-size: 12px;
 }
 .spring-rung__spec {
   display: grid;
@@ -317,7 +330,7 @@
 }
 @container (max-width: 30rem) {
   .spring-rung {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-1, 0.25rem) var(--space-3);
   }
   .spring-rung__sample {
@@ -478,15 +491,17 @@
   }
 }
 .spring-rung__copy {
-  justify-self: end;
+  justify-self: start;
   padding: 0;
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--color-text);
+  text-align: left;
   cursor: copy;
 }
-.spring-rung__copy:hover {
-  color: var(--color-text);
+.spring-rung__copy:hover,
+.spring-rung__copy:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ——— Workbench: tool controls left, pinned preview and output right ——— */
