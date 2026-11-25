@@ -210,24 +210,28 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });
 
-test("tune button stays visible and clear of the runner's controls", async ({ page }, testInfo) => {
+test("tune button stays visible and the fullscreen icon lines up with sound", async ({
+  page,
+}, testInfo) => {
   // Only a phone's full-width runner footer reaches the corner button.
   test.skip(testInfo.project.name !== "mobile");
   const button = page.locator(".tune-button");
-  const last = page.locator(".runner__foot .runner__action").last();
-  const overlaps = async () => {
-    const [a, b] = [(await last.boundingBox())!, (await button.boundingBox())!];
-    return (
-      a.x + a.width > b.x && a.x < b.x + b.width && a.y + a.height > b.y && a.y < b.y + b.height
-    );
+  const right = async (selector: string) => {
+    const box = (await page.locator(selector).boundingBox())!;
+    return box.x + box.width;
   };
-  // A shorter phone puts the runner's footer right where the corner button sits.
+  // The fullscreen icon sits flush right under the sound icon, not pushed in by the corner button.
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto("/");
+  expect(
+    Math.abs(
+      (await right(".runner__foot .runner__action:last-child svg")) -
+        (await right(".runner__bar button:last-of-type svg")),
+    ),
+  ).toBeLessThanOrEqual(2);
   for (const y of [0, 60, 120]) {
     await page.evaluate((top) => scrollTo(0, top), y);
     await expect(button).toBeVisible();
-    expect(await overlaps()).toBe(false);
   }
 });
 
