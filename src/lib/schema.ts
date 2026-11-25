@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { KIND_PATH } from "./site";
 
 const KINDS = ["project", "experiment", "case-study"] as const;
 export type Kind = (typeof KINDS)[number];
@@ -29,11 +30,16 @@ export const ContentMetaSchema = z
     liveUrl: z.url().optional(),
     /** Where the entry lives instead of its own page: a site path or a URL. The
      * old /<kind>/<slug> page 308s there (next.config.ts). */
-    href: z.union([z.url(), z.string().regex(/^\/[a-z0-9/-]*$/)]).optional(),
+    href: z
+      .union([z.url({ protocol: /^https?$/ }), z.string().regex(/^\/[a-z0-9/-]*$/)])
+      .optional(),
   })
   .strict()
   .refine((meta) => !meta.protected || meta.kind === "case-study", {
     message: "Only case studies can be protected",
+  })
+  .refine((meta) => meta.href !== `/${KIND_PATH[meta.kind]}/${meta.slug}`, {
+    message: "href can't point back at the entry's own page",
   });
 
 export type ContentMeta = z.infer<typeof ContentMetaSchema>;

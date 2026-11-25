@@ -116,7 +116,9 @@ for (const scheme of ["light", "dark"] as const) {
         .resize(
           320,
           200,
-          element ? { fit: "contain", background: "#fafaf9" } : { fit: "cover", position: "top" },
+          element
+            ? { fit: "contain", background: scheme === "dark" ? "#0c0c0c" : "#fafaf9" }
+            : { fit: "cover", position: "top" },
         )
         .webp({ quality: 72 })
         .toFile(out);
