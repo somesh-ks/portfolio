@@ -300,6 +300,7 @@ function ImportDialog({
           <textarea
             className="spring-audit-input spring-code"
             aria-label="Import text"
+            placeholder=":root { --primary: … }"
             value={value}
             spellCheck={false}
             onChange={(e) => edit(e.target.value)}
@@ -318,7 +319,7 @@ function ImportDialog({
               />
             </label>
           </span>
-          <output className="spring-meta" style={{ display: "block" }}>
+          <output className="spring-meta spring-dialog__out">
             {result?.error ? <p className="spring-import__error">{result.error}</p> : null}
             {result?.lines.map((l, i) => (
               <p key={l}>

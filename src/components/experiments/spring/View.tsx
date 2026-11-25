@@ -900,7 +900,7 @@ function Contrast({ names, m, mode }: { names: string[]; m: Measured; mode: stri
           const f = over(css(m.colors.get(fg)!), b);
           const r = Math.floor(wcagContrast(f, b) * 100) / 100;
           return (
-            <li key={`${fg}/${bg}`} className="spring-view__pair">
+            <li key={`${fg}/${bg}`} className="spring-view__pair" data-fail={r < 4.5 || undefined}>
               {/* Drawn by CSS: the visitor's own pair may fail, and it's a sample, not page text. */}
               <span className="spring-view__aa" style={{ background: b, color: f }} aria-hidden />
               <span className="spring-view__name">

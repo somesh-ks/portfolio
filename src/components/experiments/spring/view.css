@@ -206,6 +206,7 @@
   .spring-view__scale {
     grid-template-columns: 12rem minmax(0, 1fr);
     align-items: start;
+    column-gap: var(--space-3);
   }
   .spring-view__scale > .spring-view__name {
     padding-top: var(--space-1);
@@ -238,7 +239,10 @@
 }
 @media (min-width: 40rem) {
   .spring-view__color {
-    grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 1.5rem calc(12rem - 1.5rem - var(--space-3)) minmax(0, 1fr) minmax(
+        0,
+        1fr
+      );
   }
   .spring-view__color > .spring-view__value {
     grid-column: 3;
@@ -305,7 +309,7 @@
 /* Space */
 .spring-view__space {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1) var(--space-3);
   padding-block: var(--space-2);
 }
@@ -333,7 +337,7 @@
 /* Radius and shadow tiles */
 .spring-view__tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
   gap: var(--space-4) var(--space-3);
   margin: 0;
   padding: 0;
@@ -354,9 +358,9 @@
 .spring-view__shadow {
   width: 4rem;
   height: 3rem;
-  margin: var(--space-2) 0 var(--space-2);
-  background: var(--surface-canvas);
-  outline: 1px solid var(--border-strong);
+  margin: var(--space-3) var(--space-3) var(--space-3) 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
 }
 
 /* Raw tables */
@@ -383,6 +387,14 @@
 }
 .spring-view__table td {
   color: var(--text-secondary);
+}
+.spring-view__table th {
+  width: 9rem;
+}
+@media (min-width: 40rem) {
+  .spring-view__table th {
+    width: calc(12rem + var(--space-3));
+  }
 }
 
 .spring-view__more > summary {
@@ -414,4 +426,11 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* A failing pair stands out without leaving the neutral palette. */
+.spring-view__pair[data-fail] > .spring-view__ratio,
+.spring-view__pair[data-fail] > .spring-meta {
+  color: var(--text-primary);
+  font-weight: 600;
 }
