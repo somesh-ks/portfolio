@@ -106,13 +106,16 @@ main:focus {
     text-decoration-color: var(--text-primary);
   }
 }
-/* Inline SVG icon from CompanyLogo. Inline-block so the underline skips it; 1em tracks the text size. */
+/* Inline SVG icon from CompanyLogo. Inline-block so the underline skips it.
+   Logo and name read as one word: the gap inside the pair is smaller than the
+   word space around it (a small margin before the logo widens Geist's narrow
+   space). Sized a touch under 1em and centred on the cap height. */
 .company-pill__logo {
   display: inline-block;
-  width: 1em;
-  height: 1em;
-  margin-right: 0.3em;
-  vertical-align: -0.125em;
+  width: 0.9em;
+  height: 0.9em;
+  margin-inline: 0.12em 0.22em;
+  vertical-align: -0.1em;
 }
 
 .company-card {
