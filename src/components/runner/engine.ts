@@ -171,7 +171,7 @@ export function createEngine(
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
   let sceneryShift = 0;
-  let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "carInk", string>;
+  let colors = {} as Record<Tone | "ground" | "dust" | "cloud" | "canvas" | "carInk", string>;
   let weather = initialWeather;
   const particles = makeParticles();
   const sway: Sway = { offset: 0, speed: 0 };
@@ -190,6 +190,7 @@ export function createEngine(
       ) as Record<Tone, string>),
       ground: read("--border-strong"),
       cloud: read("--border-default"),
+      canvas: read("--surface-canvas"),
       dust: read("--illustration-grid"),
       // On the dark page the canvas is the mascot's ink colour.
       carInk:
@@ -262,7 +263,8 @@ export function createEngine(
     }
   }
 
-  /** Grey clouds on a repeating strip; they hold still under reduced motion. */
+  /** Grey clouds on a repeating strip, in front of the sun, moon and stars;
+   * they hold still under reduced motion. */
   function drawSky() {
     // At least a cloud wider than the view, so the wrap happens off screen.
     const span = Math.ceil((viewWidth + 14) / CLOUD_STRIP) * CLOUD_STRIP;
@@ -271,16 +273,28 @@ export function createEngine(
       for (const [spotX, y] of CLOUD_SPOTS.slice(0, cloudCount(weather.sky))) {
         // Wrap 14 cells (a cloud's width) early so clouds slide off the left edge.
         const x = ((((spotX + copy * CLOUD_STRIP - shift + 14) % span) + span) % span) - 14;
-        for (const [cx, cy, w] of CLOUD) fill(x + cx, y + cy, w, 1, colors.cloud);
+        // The cloud tone is translucent: paint the sky (the page's
+        // --surface-canvas behind the canvas) first, so a cloud hides the
+        // moon, sun and stars it passes instead of showing them through.
+        for (const [cx, cy, w] of CLOUD) {
+          fill(x + cx, y + cy, w, 1, colors.canvas);
+          fill(x + cx, y + cy, w, 1, colors.cloud);
+        }
       }
   }
 
-  /** Sun by day in a clear sky, moon and stars at night; they hold still. */
+  /** Sun by day in a clear sky; moon and stars on a clear or broken-cloud
+   * night, hidden by the overcast of rain, snow and fog. They hold still. */
   function drawLights() {
+    const x = viewWidth - 22;
     if (weather.night) {
-      for (const [x, y] of STARS) if (x < viewWidth) fill(x, y, 1, 1, colors.muted);
-      if (weather.sky !== "fog") drawCells(MOON, viewWidth - 22, 5);
-    } else if (weather.sky === "clear") drawCells(SUN, viewWidth - 22, 5);
+      if (weather.sky !== "clear" && weather.sky !== "cloudy") return;
+      // No star shines through the moon's dark side (its 6x7 box).
+      for (const [sx, sy] of STARS)
+        if (sx < viewWidth && !(sx >= x && sx < x + 6 && sy >= 5 && sy < 12))
+          fill(sx, sy, 1, 1, colors.muted);
+      drawCells(MOON, x, 5);
+    } else if (weather.sky === "clear") drawCells(SUN, x, 5);
   }
 
   function drawParticles() {

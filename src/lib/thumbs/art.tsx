@@ -5,6 +5,7 @@
  * How to add one: .agents/skills/thumbnails/SKILL.md.
  */
 import type { ReactNode } from "react";
+import { bounds, type Look, stickerSvg } from "@/lib/stickers";
 import { Box, Check, Display, Dither, H, Mono, Pixels, ridge, tint, W } from "./draw";
 
 export interface ThumbArt {
@@ -13,44 +14,58 @@ export interface ThumbArt {
   draw: () => ReactNode;
 }
 
-/** Claude as a die-cut sticker in a beanie: `o` the white cut, `l` its edge, `h` the hat, `b` its brim. */
-const STICKER = [
-  ".....llllll.....",
-  "...llloooolll...",
-  "..llooohhoooll..",
-  "..loohhhhhhool..",
-  "..lobbbbbbbbol..",
-  "lllo########olll",
-  "looo#e####e#oool",
-  "lo############ol",
-  "lo############ol",
-  "looo########oool",
-  "lllo########olll",
-  "..lo#o#oo#o#ol..",
-  "..lo#o#oo#o#ol..",
-  "..looooooooool..",
-  "..llllllllllll..",
+/**
+ * Stickers straight from the studio's renderer, as a scattered sheet: each is
+ * [look, centre x, centre y, height in viewBox units, rotation in degrees].
+ * Outline 2 is the studio's die-cut.
+ */
+const SHEET: [Look, number, number, number, number][] = [
+  [{ action: "cheer", items: ["party", "balloon"], outline: 2 }, 54, 60, 112, -18],
+  [{ action: "wave", items: ["beanie", "mug"], outline: 2 }, 172, 66, 88, 12],
+  [{ action: "zen", items: ["flowers", "sparkles"], outline: 2 }, 286, 38, 74, 26],
+  [{ action: "run", items: ["headphones", "skate"], outline: 2 }, 66, 166, 82, 18],
+  [{ action: "dance", items: ["crown", "notes"], outline: 2 }, 196, 150, 116, -14],
+  [{ action: "sleep", items: ["zzz"], outline: 2 }, 290, 160, 62, -24],
 ];
 
-/** A caped hero, hands on hips: `#` suit, `e` mask eyes, `s` chest mark, `c` cape. */
+/** One sticker's SVG, sized and turned into place. Its <title> is dropped: the thumb is decorative. */
+function placed([look, cx, cy, height, deg]: (typeof SHEET)[number]) {
+  const b = bounds(look);
+  const w = (b.w / b.h) * height;
+  const svg = stickerSvg(look, { animated: false })
+    .replace(/<title>.*?<\/title>/, "")
+    .replace(
+      / width="[^"]*" height="[^"]*"/,
+      ` x="${-w / 2}" y="${-height / 2}" width="${w}" height="${height}"`,
+    );
+  return `<g transform="translate(${cx} ${cy}) rotate(${deg})">${svg}</g>`;
+}
+
+/**
+ * The Black Terror (Nedor Comics, 1940s, public domain) in his Golden Age look, leaping out of a book:
+ * `K` ink line, `S` black suit, hair and domino mask, `W` eyes and the skull-and-crossbones, `F` skin.
+ */
 const HERO = [
-  ".....####.....",
-  "....######....",
-  "....#e##e#....",
-  "....######....",
-  ".....####.....",
-  "..cc######cc..",
-  ".cc########cc.",
-  "cc##.####.##cc",
-  "cc##.#ss#.##cc",
-  "cc#..####..#cc",
-  "cc#..####..#cc",
-  "c##..####..##c",
-  "c....####....c",
-  "c....##.##...c",
-  ".....##.##....",
-  ".....##.##....",
-  "....###.###...",
+  "................KK.",
+  "...............KFFK",
+  "..............KFFK.",
+  ".............KSSK..",
+  ".....KKKKKK.KSSK...",
+  "....KSSSSSSKSSK....",
+  "....KSWSSWSKSK.....",
+  "....KFFFFFFKK......",
+  ".....KFFFFK........",
+  "...KKKSSSSKKK......",
+  "..KSSSSWWWSSSK.....",
+  ".KSSSSWSWSSSSK.....",
+  "KSSK.KSWWWSK.......",
+  "KFFK.KWSSSWK.......",
+  ".KK..KSSSSSK.......",
+  ".....KSSKSSSK......",
+  "....KSSK.KSSK......",
+  "...KSSK...KSSK.....",
+  "..KSSSK.....KSSK...",
+  "..KKKKK.....KKKK...",
 ];
 
 /** A tick drawn as a path, since the mono font may not carry ✓. */
@@ -161,97 +176,174 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // The dithered hills Tide renders, back to front, under a dithered sun.
+  // Tide's look: an ordered-dither dusk. A sun sinks behind four ridges,
+  // and each ridge fades into valley mist.
   tide: {
     accent: "--thumb-tide",
     draw: () => {
-      const hills: [base: number, amp: number, waves: number, phase: number, level: number][] = [
-        [88, 18, 2.2, 0.4, 3],
-        [116, 20, 1.6, 2, 6],
-        [144, 14, 2.6, 1, 10],
-        [170, 10, 3.4, 3, 16],
+      // base y, amplitude, waves, phase, densest level (at its top), colour
+      const hills: [number, number, number, number, number, string][] = [
+        [98, 14, 2.4, 0.3, 9, tint(50)],
+        [120, 16, 1.7, 2.1, 12, tint(70)],
+        [146, 12, 2.9, 1.2, 14, tint(88)],
+        [172, 9, 3.6, 3.4, 16, "var(--thumb-accent)"],
       ];
+      // Every pattern a scene needs: one per (level, colour) pair.
+      const pats = new Map<string, [number, string]>();
+      const pat = (level: number, colour: string) => {
+        const lv = Math.max(1, Math.min(16, Math.round(level)));
+        const id = `tide-${lv}-${[...colour].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7)}`;
+        pats.set(id, [lv, colour]);
+        return `url(#${id})`;
+      };
+      const BAND = 8;
+      const sun = (
+        <>
+          <circle cx={214} cy={68} r={24} fill={pat(14, "var(--thumb-accent)")} />
+        </>
+      );
+      const ridges = hills.map(([base, amp, waves, phase, top, colour], k) => {
+        const d = ridge(base, amp, waves, phase);
+        const bands = Array.from({ length: 8 }, (_, b) => {
+          const y = base - amp + b * BAND;
+          return (
+            <rect
+              key={b}
+              x={0}
+              y={y}
+              width={W}
+              height={b === 7 ? H : BAND}
+              fill={pat(top - b * 2.5, colour)}
+            />
+          );
+        });
+        return (
+          <g key={base}>
+            <clipPath id={`tide-hill-${k}`}>
+              <path d={d} />
+            </clipPath>
+            {/* A canvas gap above each crest keeps the ridges apart in both themes. */}
+            <path d={d} className="thumb-bg thumb-stroke-bg" strokeWidth={8} />
+            <g clipPath={`url(#tide-hill-${k})`}>
+              {bands}
+              {/* A solid crest: the outline's inner half, so each ridge reads against the one behind. */}
+              <path d={d} fill="none" style={{ stroke: colour }} strokeWidth={8} />
+            </g>
+          </g>
+        );
+      });
       return (
         <>
+          {sun}
+          {ridges}
           <defs>
-            <Dither id="tide-sun" level={8} />
-            {hills.map(([, , , , level]) => (
-              <Dither key={level} id={`tide-${level}`} level={level} />
+            {[...pats].map(([id, [level, colour]]) => (
+              <Dither key={id} id={id} level={level} tone={colour} />
             ))}
           </defs>
-          <circle cx={232} cy={60} r={28} fill="url(#tide-sun)" />
-          {/* Each hill blanks the canvas first, so the one behind stops at its crest. */}
-          {hills.map(([base, amp, waves, phase, level]) => {
-            const d = ridge(base, amp, waves, phase);
-            return (
-              <g key={level}>
-                <path d={d} className="thumb-bg" />
-                <path
-                  d={d}
-                  fill={`url(#tide-${level})`}
-                  className="thumb-stroke-accent"
-                  strokeWidth={4}
-                />
-              </g>
-            );
-          })}
         </>
       );
     },
   },
 
-  // Two Claude stickers in different beanies: dress it up, cut it out.
+  // A sheet of real die-cut stickers from the studio's own renderer, scattered.
   "claude-animated-svgs": {
     accent: "--thumb-studio",
     draw: () => (
       <>
-        {[24, 168].map((x, i) => (
-          <Pixels
-            key={x}
-            rows={STICKER}
-            x={x}
-            y={40}
-            cell={8}
-            palette={{
-              "#": "accent",
-              e: "var(--illustration-mascot-ink)",
-              h: i ? "muted" : "var(--illustration-mascot-ink)",
-              b: i ? "var(--illustration-mascot-ink)" : "muted",
-              o: "on",
-              l: "line",
-            }}
-          />
-        ))}
+        <Box x={0} y={0} w={W} h={H} tone={tint(25)} />
+        {/* The studio's own SVG, rendered on the server; nothing here is user input. */}
+        <g dangerouslySetInnerHTML={{ __html: SHEET.map(placed).join("") }} />
       </>
     ),
   },
 
-  // A comic panel: halftone ground, a caped hero, a POW.
+  // A comic panel: the Black Terror (public domain) bursting out of a novel's pages, with a POW.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
       const burst = Array.from({ length: 16 }, (_, k) => {
-        const r = k % 2 ? 30 : 50;
-        const a = (k / 16) * Math.PI * 2 + 0.2;
-        return `${(222 + r * Math.cos(a)).toFixed(1)},${(96 + r * Math.sin(a)).toFixed(1)}`;
+        const r = k % 2 ? 30 : 44;
+        const a = (k / 16) * Math.PI * 2 + 0.3;
+        return `${(248 + r * Math.cos(a)).toFixed(1)},${(76 + r * Math.sin(a)).toFixed(1)}`;
       }).join(" ");
       return (
         <>
           <defs>
-            <Dither id="comics-tone" level={2} tone={tint(45)} />
+            <Dither id="comics-tone" level={2} tone={tint(55, "var(--thumb-ramp-high)")} />
+            <clipPath id="comics-panel">
+              <rect x={24} y={24} width={272} height={152} />
+            </clipPath>
           </defs>
-          <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
-          <Pixels
-            rows={HERO}
-            x={52}
-            y={44}
-            cell={7}
-            palette={{ "#": "accent", e: "ink", s: "bg", c: tint(60) }}
+          {/* A fixed light paper, so the black-suited hero reads the same in both themes. */}
+          <rect
+            x={24}
+            y={24}
+            width={272}
+            height={152}
+            style={{ fill: tint(18, "var(--thumb-ramp-high)") }}
           />
-          <polygon points={burst} className="thumb-bg thumb-stroke-ink" strokeWidth={3} />
-          <Display x={222} y={103} size={20} anchor="middle">
+          <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
+          <g clipPath="url(#comics-panel)">
+            <Pixels
+              rows={HERO}
+              x={70}
+              y={30}
+              cell={7}
+              palette={{
+                K: "var(--thumb-ramp-low)",
+                S: "var(--thumb-ramp-low)",
+                W: "var(--thumb-ramp-high)",
+                F: "var(--thumb-comics-skin)",
+              }}
+            />
+            {/* Speed lines: he's leaping, not standing. */}
+            {["M84 150 L64 132", "M98 154 L82 140", "M196 148 L216 128", "M208 154 L230 136"].map(
+              (d) => (
+                <path key={d} d={d} style={{ stroke: "var(--thumb-ramp-low)" }} strokeWidth={3} />
+              ),
+            )}
+            {/* The open book, drawn over his boots so he bursts out of its pages. */}
+            {[
+              "M160 160 Q130 144 98 150 L92 176 L160 176 Z",
+              "M160 160 Q190 144 222 150 L228 176 L160 176 Z",
+            ].map((d) => (
+              <path
+                key={d}
+                d={d}
+                style={{ fill: "var(--thumb-ramp-high)", stroke: "var(--thumb-ramp-low)" }}
+                strokeWidth={3}
+                shapeRendering="geometricPrecision"
+              />
+            ))}
+            <path
+              d="M160 160 L160 176"
+              style={{ stroke: "var(--thumb-ramp-low)" }}
+              strokeWidth={3}
+            />
+            {[0, 1].map((k) => (
+              <g key={k}>
+                <Box x={110 - k * 2} y={160 + k * 7} w={38} h={2} tone="var(--thumb-ramp-low)" />
+                <Box x={172} y={160 + k * 7} w={38 + k * 2} h={2} tone="var(--thumb-ramp-low)" />
+              </g>
+            ))}
+          </g>
+          <polygon
+            points={burst}
+            className="thumb-accent"
+            style={{ stroke: "var(--thumb-ramp-low)" }}
+            strokeWidth={3}
+          />
+          <text
+            x={248}
+            y={84}
+            fontSize={22}
+            textAnchor="middle"
+            className="thumb-display"
+            style={{ fill: "var(--thumb-ramp-low)" }}
+          >
             POW
-          </Display>
+          </text>
           <Box x={24} y={24} w={272} h={152} stroke={3} />
         </>
       );
