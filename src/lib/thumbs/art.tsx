@@ -110,7 +110,11 @@ export const THUMBS: Record<string, ThumbArt> = {
             y={26}
             w={27.4}
             h={62}
-            tone={i < 5 ? tint(20 + i * 20, "white") : tint(100 - (i - 4) * 15, "black")}
+            tone={
+              i < 5
+                ? tint(20 + i * 20, "var(--thumb-ramp-high)")
+                : tint(100 - (i - 4) * 15, "var(--thumb-ramp-low)")
+            }
           />
         ))}
         <Display x={24} y={170} size={72}>
@@ -134,7 +138,7 @@ export const THUMBS: Record<string, ThumbArt> = {
     accent: "--thumb-singularity-ds",
     draw: () => (
       <>
-        {[100, 70, 45, 25, 10].map((p, i) => (
+        {[100, 75, 55, 40, 25].map((p, i) => (
           <Box key={p} x={24 + i * 44} y={28} w={36} h={36} tone={tint(p)} />
         ))}
         <Box x={24} y={90} w={124} h={40} tone="accent" />
@@ -214,36 +218,33 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // A comic panel: halftone ground, a hero, a POW.
+  // A comic panel: halftone ground, a caped hero, a POW.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
       const burst = Array.from({ length: 16 }, (_, k) => {
-        const r = k % 2 ? 24 : 42;
+        const r = k % 2 ? 30 : 50;
         const a = (k / 16) * Math.PI * 2 + 0.2;
-        return `${(222 + r * Math.cos(a)).toFixed(1)},${(80 + r * Math.sin(a)).toFixed(1)}`;
+        return `${(222 + r * Math.cos(a)).toFixed(1)},${(96 + r * Math.sin(a)).toFixed(1)}`;
       }).join(" ");
       return (
         <>
           <defs>
             <Dither id="comics-tone" level={2} tone={tint(45)} />
           </defs>
-          <rect x={20} y={20} width={280} height={132} fill="url(#comics-tone)" />
+          <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
           <Pixels
             rows={HERO}
-            x={56}
-            y={30}
+            x={52}
+            y={44}
             cell={7}
-            palette={{ "#": "accent", e: "bg", s: "bg", c: "ink" }}
+            palette={{ "#": "accent", e: "ink", s: "bg", c: tint(60) }}
           />
           <polygon points={burst} className="thumb-bg thumb-stroke-ink" strokeWidth={3} />
-          <Display x={222} y={88} size={24} anchor="middle">
+          <Display x={222} y={103} size={20} anchor="middle">
             POW
           </Display>
-          <Box x={20} y={20} w={280} h={160} stroke={3} />
-          <Box x={20} y={150} w={280} h={3} />
-          <Box x={36} y={163} w={120} h={6} />
-          <Box x={164} y={163} w={60} h={6} tone="muted" />
+          <Box x={24} y={24} w={272} h={152} stroke={3} />
         </>
       );
     },
@@ -254,7 +255,7 @@ export const THUMBS: Record<string, ThumbArt> = {
     accent: "--thumb-agentic-ds",
     draw: () => (
       <>
-        <Mono x={24} y={40} size={17} tone="muted">
+        <Mono x={24} y={40} size={18} tone="muted">
           agent checklist
         </Mono>
         {["tokens only", "4.5:1 contrast", "states covered"].map((label, i) => (
@@ -277,13 +278,13 @@ export const THUMBS: Record<string, ThumbArt> = {
   royc: {
     accent: "--thumb-royc",
     draw: () => {
-      const line = "M24 170 L70 166 L116 156 L162 140 L208 118 L254 90 L296 60";
+      const line = "M30 170 L74 166 L118 156 L162 140 L206 118 L250 90 L290 60";
       return (
         <>
           <defs>
             <Dither id="royc-area" level={5} />
           </defs>
-          <path d={`${line} L296 180 L24 180 Z`} fill="url(#royc-area)" />
+          <path d={`${line} L290 180 L30 180 Z`} fill="url(#royc-area)" />
           <path
             d={line}
             className="thumb-stroke-accent"
@@ -291,21 +292,21 @@ export const THUMBS: Record<string, ThumbArt> = {
             fill="none"
             shapeRendering="geometricPrecision"
           />
-          <Box x={18} y={164} w={12} h={12} tone="accent" />
-          <Box x={290} y={54} w={12} h={12} tone="accent" />
-          <Mono x={36} y={160} size={16} tone="muted">
+          <Box x={24} y={164} w={12} h={12} tone="accent" />
+          <Box x={284} y={54} w={12} h={12} tone="accent" />
+          <Mono x={25} y={154} size={18} tone="muted">
             5
           </Mono>
-          <Mono x={262} y={48} size={18}>
+          <Mono x={254} y={46} size={18}>
             20
           </Mono>
           <Display x={24} y={66} size={52}>
             4x
           </Display>
-          <Mono x={26} y={92} size={16} tone="muted">
+          <Mono x={26} y={94} size={18} tone="muted">
             clients
           </Mono>
-          <Box x={0} y={180} w={W} h={2} tone="muted" />
+          <Box x={24} y={180} w={272} h={2} tone="muted" />
         </>
       );
     },
@@ -316,25 +317,23 @@ export const THUMBS: Record<string, ThumbArt> = {
     accent: "--thumb-luminovo",
     draw: () => (
       <>
-        <Box x={136} y={22} w={174} h={160} tone="line" stroke={2} />
+        <Box x={140} y={24} w={156} h={152} tone="line" stroke={2} />
         {[0, 1, 2, 3].map((k) => (
           <g key={k}>
-            <Box x={150} y={40 + k * 34} w={70 - (k % 2) * 18} h={10} tone="muted" />
-            <Check x={262} y={34 + k * 34} size={22} on={k < 3} />
-            <Box x={150} y={60 + k * 34} w={146} h={1} tone="line" />
+            <Box x={154} y={44 + k * 34} w={70 - (k % 2) * 18} h={10} tone="muted" />
+            <Check x={258} y={38 + k * 34} size={22} on={k < 3} />
+            <Box x={154} y={66 + k * 34} w={128} h={1} tone="line" />
           </g>
         ))}
-        <Display x={20} y={78} size={50}>
+        <Display x={24} y={86} size={50}>
           57%
         </Display>
-        <Mono x={22} y={108} size={16} tone="muted">
+        <Mono x={26} y={118} size={18} tone="muted">
           faster
         </Mono>
-        <Mono x={22} y={130} size={16} tone="muted">
+        <Mono x={26} y={142} size={18} tone="muted">
           quotes
         </Mono>
-        <Box x={22} y={158} w={96} h={8} tone="line" />
-        <Box x={22} y={158} w={41} h={8} tone="accent" />
       </>
     ),
   },

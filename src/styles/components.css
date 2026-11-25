@@ -1018,6 +1018,7 @@ claude-mascot:defined > * {
     opacity: 0;
     transform: translateY(-50%);
     pointer-events: none;
+    user-select: none;
     transition: opacity var(--duration-tooltip) ease;
   }
   .list-row:hover .list-row__thumb,
@@ -1046,6 +1047,9 @@ claude-mascot:defined > * {
 }
 .thumb-on {
   fill: var(--thumb-on-accent);
+}
+.thumb-stroke-bg {
+  stroke: var(--surface-canvas);
 }
 .thumb-stroke-ink {
   stroke: var(--text-primary);

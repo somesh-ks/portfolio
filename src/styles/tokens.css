@@ -139,6 +139,8 @@
   --thumb-comics: oklch(68.1% 0.142 75.8);
   --thumb-luminovo: oklch(64.6% 0.194 41.1);
   --thumb-on-accent: var(--color-white);
+  --thumb-ramp-high: var(--color-white);
+  --thumb-ramp-low: var(--color-black);
   --thumb-royc: oklch(58.6% 0.222 17.6);
   --thumb-singularity: oklch(51.1% 0.23 277);
   --thumb-singularity-ds: oklch(62.7% 0.17 149.2);
@@ -194,6 +196,8 @@
   --thumb-comics: oklch(68.1% 0.142 75.8);
   --thumb-luminovo: oklch(64.6% 0.194 41.1);
   --thumb-on-accent: var(--color-white);
+  --thumb-ramp-high: var(--color-white);
+  --thumb-ramp-low: var(--color-black);
   --thumb-royc: oklch(58.6% 0.222 17.6);
   --thumb-singularity: oklch(51.1% 0.23 277);
   --thumb-singularity-ds: oklch(62.7% 0.17 149.2);

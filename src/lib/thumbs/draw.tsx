@@ -18,10 +18,9 @@ export const tint = (percent: number, toward = "var(--surface-canvas)") =>
   `color-mix(in oklch, var(--thumb-accent) ${percent}%, ${toward})`;
 
 /** A tone name becomes a class; anything else is a raw CSS colour expression. */
+const ROLES = new Set<string>(["ink", "muted", "line", "bg", "accent", "on"]);
 const paint = (tone: Tone | string) =>
-  ["ink", "muted", "line", "bg", "accent", "on"].includes(tone)
-    ? { className: `thumb-${tone}` }
-    : { style: { fill: tone } };
+  ROLES.has(tone) ? { className: `thumb-${tone}` } : { style: { fill: tone } };
 
 export function Box({
   x,
@@ -47,7 +46,7 @@ export function Box({
         y={y + inset}
         width={w - stroke}
         height={h - stroke}
-        className={`thumb-stroke-${tone}`}
+        {...(ROLES.has(tone) ? { className: `thumb-stroke-${tone}` } : { style: { stroke: tone } })}
         strokeWidth={stroke}
         fill="none"
       />

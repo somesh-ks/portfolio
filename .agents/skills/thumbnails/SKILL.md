@@ -38,12 +38,24 @@ Rules of thumb:
 2. Add an entry to `THUMBS` in `src/lib/thumbs/art.tsx`, keyed by the entry's slug, with a one-line comment saying what it draws.
 3. Draw in the 320×200 viewBox (shown at half size) with the kit in `src/lib/thumbs/draw.tsx`:
    - `Box` fills or outlines a rect; `Mono` (Geist Mono) for commands and labels; `Display` (Geist 600) for one big figure; `Check` for a checkbox; `Pixels` for sprites from string grids; `Dither` for Bayer pattern fills (ids prefixed with the slug); `ridge` for hills.
-   - Paint with roles only: `ink`, `muted`, `line`, `bg`, `accent`, `on` (on top of accent), or `tint(p)` for the accent mixed toward the canvas. No hex in art.tsx; light and dark then come for free.
-4. Check it: `bun test tests/unit/row-thumbs.test.ts`, then look at it on `bun run dev` in both themes at 1440px wide (hover the row).
+   - Paint with roles only: `ink`, `muted`, `line`, `bg`, `accent`, `on` (on top of accent), or `tint(p)` for the accent mixed toward the canvas (`tint(p, "var(--thumb-ramp-high)")` or `ramp-low` for a ramp). Never a hex or colour name as paint; light and dark then come for free. Hex as text (a code sample) is fine.
+4. Check it: `bun test tests/unit/row-thumbs.test.ts`, then look at it on `bun run dev` in both themes at 1440px wide (hover the row), at device scale 1 as well as 2. Zoomed crops hide what fails at real size.
 
 ## Quality bar
 
-- Readable at 160×100: text at 16+ units (8px on screen), pixel cells 4+ units, a 24-unit margin from the frame, nothing touching an edge unless it bleeds on purpose.
+Fixed scales, so the set reads as one family:
+
+| | Values (viewBox units) |
+| --- | --- |
+| Margin | 24 on every side. Only a scene (Tide's hills) bleeds off the frame. |
+| Mono | 18 for labels, 20 to 22 for content. Nothing smaller. |
+| Display | 50 to 52 for a figure, 72 for a type specimen. |
+| Strokes | 2 for frames and empty boxes, 3 for outlines that carry the drawing, 4 for chart lines and crests. |
+| Pixel cells | 7 or 8 for sprites, 4 for dither. |
+| Tints | 25% or more of the accent against the canvas, or it vanishes in dark mode. |
+
+- Text sits fully inside its shape (a POW inside its burst) and clear of strokes and markers.
+- Sprites pass the silhouette test: at 160×100, without the row title, can someone name it? Mask eyes in ink, a cape in a tint, never a white block that reads as something else.
 - One accent per thumb. Ink and muted do the rest. No shadows, gradients, rounded cards or emoji: square corners and hairlines, like the rest of the site.
 - One idea per thumb; if it needs a legend, it's the wrong object.
 - Same weight as its neighbours: compare against the other rows before you finish, in light and dark.

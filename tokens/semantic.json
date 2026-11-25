@@ -685,6 +685,24 @@
         }
       }
     },
+    "ramp-high": {
+      "$value": "{color.white}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.white}",
+          "dark": "{color.white}"
+        }
+      }
+    },
+    "ramp-low": {
+      "$value": "{color.black}",
+      "$extensions": {
+        "mode": {
+          "light": "{color.black}",
+          "dark": "{color.black}"
+        }
+      }
+    },
     "on-accent": {
       "$value": "{color.white}",
       "$extensions": {
