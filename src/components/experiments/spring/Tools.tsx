@@ -443,7 +443,7 @@ export function SpringApp() {
       <Fonts type={input.type} />
       <header className="spring-app__bar">
         <h1 className="spring-app__name">
-          <Link href="/projects/spring">Spring</Link>
+          <Link href="/spring">Spring</Link>
         </h1>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (

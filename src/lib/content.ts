@@ -12,8 +12,11 @@ export interface Entry {
   meta: ContentMeta;
   /** MDX body. For protected case studies this is the public teaser only. */
   body: string;
-  /** Site path, e.g. /work/claude-stickers */
+  /** Where the entry opens: its site path (/work/claude-stickers), or
+   * frontmatter `href` (another path or a URL) for entries with no page here. */
   href: string;
+  /** True when the entry has its own page (and .md mirror) on this site. */
+  page: boolean;
 }
 
 const PUBLIC_ROOT = path.join(process.cwd(), "content", "public");
@@ -48,7 +51,12 @@ function readEntries(): Entry[] {
       const meta = parsed.data;
       if (meta.kind !== kind) throw new Error(`${dir}/${file}: kind must be "${kind}"`);
       if (`${meta.slug}.mdx` !== file) throw new Error(`${dir}/${file}: slug must match file name`);
-      entries.push({ meta, body: content.trim(), href: `/${KIND_PATH[kind]}/${meta.slug}` });
+      entries.push({
+        meta,
+        body: content.trim(),
+        href: meta.href ?? `/${KIND_PATH[kind]}/${meta.slug}`,
+        page: !meta.href,
+      });
     }
   }
   return entries;
@@ -65,9 +73,19 @@ export function entriesOf(kind: Kind): Entry[] {
     .sort((a, b) => a.meta.order - b.meta.order);
 }
 
-export function findEntry(kind: Kind, slug: string): Entry | undefined {
-  return allEntries().find((entry) => entry.meta.kind === kind && entry.meta.slug === slug);
+/** Entries with a page of their own; the others link out. */
+export function pagesOf(kind: Kind): Entry[] {
+  return entriesOf(kind).filter((entry) => entry.page);
 }
+
+export function findEntry(kind: Kind, slug: string): Entry | undefined {
+  return allEntries().find(
+    (entry) => entry.page && entry.meta.kind === kind && entry.meta.slug === slug,
+  );
+}
+
+/** True for a link that leaves the site. */
+export const isExternal = (href: string) => /^https?:\/\//.test(href);
 
 export function lockedSlugs(): string[] {
   return entriesOf("case-study")

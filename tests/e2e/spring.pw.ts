@@ -10,17 +10,16 @@ test("Spring runs as its own app, without the site frame", async ({ page }) => {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring$/);
 });
 
-test("the project page opens Spring in a new tab, and old share links follow", async ({
-  page,
-  request,
-}) => {
-  await page.goto("/projects/spring");
-  const open = page.getByRole("link", { name: /Open Spring/ });
-  await expect(open).toHaveAttribute("href", "/spring");
-  await expect(open).toHaveAttribute("target", "_blank");
-  const old = await request.get("/projects/spring?s=abc", { maxRedirects: 0 });
-  expect(old.status()).toBe(308);
-  expect(old.headers().location).toMatch(/\/spring\?s=abc$/);
+test("the old project page and share links 308 to Spring", async ({ request }) => {
+  for (const [from, to] of [
+    ["/projects/spring", /\/spring$/],
+    ["/projects/spring?s=abc", /\/spring\?s=abc$/],
+    ["/projects/spring.md", /\/spring\.md$/],
+  ] as const) {
+    const old = await request.get(from, { maxRedirects: 0 });
+    expect(old.status()).toBe(308);
+    expect(old.headers().location).toMatch(to);
+  }
 });
 
 test("Export downloads everything, or one area from its menu", async ({ page }) => {
@@ -233,8 +232,5 @@ test("the share link comes first and the Export button confirms it", async ({ pa
   await page.getByRole("menuitem", { name: "Copy share link" }).click();
   await expect(page.getByText("Link copied")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
-  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute(
-    "href",
-    "/projects/spring",
-  );
+  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute("href", "/spring");
 });
