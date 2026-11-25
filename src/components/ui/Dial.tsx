@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * A compact slider row: the whole row is the track. Drag or click anywhere to
- * set it, or click the value to type one. A native range input underneath
+ * A compact slider row: the whole row is the track. Drag anywhere to scrub from
+ * the current value (no jump on press; Shift for fine steps), click without
+ * dragging to set it to that point, or click the value to type one. A native range input underneath
  * gives keyboards and screen readers the usual slider; the value field takes
  * Enter to commit, Escape to revert, and Up/Down (Shift for ×10) to step.
  * Double-click the row to reset when `reset` is given.
  */
-import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -45,6 +46,10 @@ export function Dial({
   className?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const [pressed, setPressed] = useState(false);
+  const range = useRef<HTMLInputElement>(null);
+  /** The live drag: last pointer x, the unsnapped value so far, and whether it moved past a click. */
+  const drag = useRef<{ x: number; v: number; start: number; moved: boolean } | null>(null);
   const snap = (v: number) => {
     const s = Math.round((clamp(v, min, max) - min) / step) * step + min;
     return Number(s.toFixed(6));
@@ -81,14 +86,76 @@ export function Dial({
     setDraft(raw(next));
   };
   const p = ((clamp(value, min, max) - min) / (max - min)) * 100;
+  // A number with a unit ("55.0%", "+4°"): the unit stays put while typing.
+  const unit = /[^\d.\s+-]+$/.exec(show)?.[0] ?? "";
+
+  const down = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || (e.target as Element).closest(".dial__value")) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setPressed(true);
+    // A half-typed value commits on blur; scrub from it, not the stale prop.
+    const start = draft === null ? value : (typed(draft) ?? value);
+    range.current?.focus({ preventScroll: true });
+    drag.current = { x: e.clientX, v: start, start, moved: false };
+  };
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    // Touch gets a wider slop so a vertical scroll's jitter doesn't scrub.
+    if (!d.moved && Math.abs(dx) < (e.pointerType === "touch" ? 8 : 3)) return;
+    d.moved = true;
+    d.x = e.clientX;
+    d.v = clamp(
+      d.v + (dx / e.currentTarget.clientWidth) * (max - min) * (e.shiftKey ? 0.1 : 1),
+      min,
+      max,
+    );
+    const next = snap(d.v);
+    if (next !== value) onChange(next);
+  };
+  const up = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    setPressed(false);
+    if (e.type === "pointercancel") {
+      // The browser took the gesture (a scroll): undo any scrub it began.
+      if (d.moved) onChange(snap(d.start));
+      return;
+    }
+    // The second click of a double-click resets instead of setting.
+    if (!d.moved && !(reset !== undefined && e.detail > 1)) {
+      const r = e.currentTarget.getBoundingClientRect();
+      onChange(snap(min + ((e.clientX - r.left) / r.width) * (max - min)));
+    }
+    onCommit?.();
+  };
 
   return (
     <div
       className={className ? `dial ${className}` : "dial"}
       data-flash={flash || undefined}
+      data-pressed={pressed || undefined}
+      data-editing={draft !== null || undefined}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+      onDoubleClick={
+        reset === undefined
+          ? undefined
+          : (e) => {
+              if ((e.target as Element).closest(".dial__value")) return;
+              onChange(reset);
+              onCommit?.();
+            }
+      }
       style={{ "--p": `${p}%` } as CSSProperties}
     >
       <input
+        ref={range}
         type="range"
         className="dial__range"
         aria-label={label}
@@ -98,12 +165,10 @@ export function Dial({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        onPointerUp={onCommit}
         onKeyUp={(e) => {
           // Only keys that move the slider end an edit; Tab onto it shouldn't.
           if (/^(Arrow|Page|Home|End)/.test(e.key)) onCommit?.();
         }}
-        onDoubleClick={reset === undefined ? undefined : () => onChange(reset)}
       />
       <span className="dial__label" aria-hidden>
         {label}
@@ -122,8 +187,13 @@ export function Dial({
         inputMode="decimal"
         autoComplete="off"
         spellCheck={false}
-        size={Math.max(4, show.length)}
+        size={draft === null ? Math.max(4, show.length) : Math.max(2, draft.length)}
       />
+      {draft !== null && unit && (
+        <span className="dial__unit" aria-hidden>
+          {unit}
+        </span>
+      )}
     </div>
   );
 }

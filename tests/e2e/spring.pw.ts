@@ -206,6 +206,30 @@ test("a Dial's value field takes typed digits after Enter without appending", as
   await expect(page.getByLabel("hue", { exact: true })).toHaveValue("5");
 });
 
+test("a Dial scrubs from its value on drag and sets the point on a plain click", async ({
+  page,
+}) => {
+  await page.goto("/spring?primary=%232563eb");
+  const slider = page.getByLabel("hue", { exact: true });
+  const row = page.locator(".dial").filter({ has: slider });
+  await row.scrollIntoViewIfNeeded();
+  const box = (await row.boundingBox())!;
+  const y = box.y + box.height / 2;
+  const start = Number(await slider.inputValue());
+  // Pressing near the left edge doesn't jump; dragging moves from the current value.
+  await page.mouse.move(box.x + 10, y);
+  await page.mouse.down();
+  await expect(slider).toHaveValue(String(start));
+  await page.mouse.move(box.x + 10 + box.width / 4, y, { steps: 5 });
+  await page.mouse.up();
+  const scrubbed = Number(await slider.inputValue());
+  expect(scrubbed).toBeGreaterThan(start);
+  await expect(slider).toBeFocused();
+  // A click without a drag sets the value at that point.
+  await page.mouse.click(box.x + 2, y);
+  expect(Number(await slider.inputValue())).toBeLessThan(scrubbed);
+});
+
 test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   const errors: Error[] = [];
   page.on("pageerror", (e) => errors.push(e));
