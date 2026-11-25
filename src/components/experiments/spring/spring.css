@@ -1,25 +1,13 @@
 /* Spring. Site chrome uses the portfolio's classes; everything inside `.sp`
    is the visitor's own system, read from the variables Scope writes. */
 
-.spring-hue {
-  appearance: none;
-  height: 0.5rem;
-  min-height: 0.5rem;
-  margin-block: 1.125rem;
-  border-radius: 0;
-  background: linear-gradient(
-    to right in oklch longer hue,
-    oklch(65% 0.16 0),
-    oklch(65% 0.16 359.9)
-  );
-}
 .spring-scales {
   display: grid;
   gap: var(--space-1);
 }
 .spring-scale {
   display: grid;
-  grid-template-columns: 4.5rem 1fr;
+  grid-template-columns: 25rem 1fr;
   align-items: center;
   gap: var(--space-2);
   font-size: var(--step-xs);
@@ -40,75 +28,29 @@
     grid-template-columns: 1fr 1fr;
   }
 }
-.spring-pairs {
-  display: grid;
-  gap: var(--space-2);
-}
-.spring-pairs {
-  gap: 0;
-}
-.spring-pair {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  column-gap: var(--space-2);
-  row-gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-3) 0;
-  text-align: left;
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-pair > :not(.spring-pair__mark) {
-  grid-column: 2;
-}
-.spring-pair__mark {
-  grid-row: 1 / span 3;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  padding-top: 0.6rem;
-}
-.spring-pair[aria-pressed="true"] .spring-pair__mark {
-  color: var(--text-primary);
-}
-.spring-pair__name {
-  font-size: 1.75rem;
-  line-height: 1.15;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.spring-pair__line {
-  font-size: 0.9375rem;
-  line-height: 1.4;
-  color: var(--text-primary);
-}
 .spring-meta {
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   color: var(--text-secondary);
 }
+.spring-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
 .spring-facts {
+  font-family: var(--font-mono);
   display: grid;
   grid-template-columns: auto 1fr;
   gap: var(--space-1) var(--space-3);
-  font-size: var(--step-sm);
+  font-size: var(--step-xs);
 }
 .spring-facts dt {
   color: var(--text-secondary);
 }
 .spring-facts dd {
   margin: 0;
-}
-.spring-radii {
-  display: flex;
-  gap: var(--space-3);
-  align-items: end;
-}
-.spring-radii span {
-  display: block;
-  width: 3rem;
-  height: 3rem;
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  background: var(--surface-sunken);
 }
 .spring-track {
   display: block;
@@ -138,13 +80,8 @@
     animation: none;
   }
 }
-.spring-files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-}
 .spring-audit-input.spring-code {
-  height: 22rem;
+  height: min(70vh, 48rem);
   white-space: pre-wrap;
   resize: none;
 }
@@ -277,6 +214,11 @@
 .sp-btn:active {
   transform: scale(0.98);
 }
+@media (prefers-reduced-motion: reduce) {
+  .sp-btn:active {
+    transform: none;
+  }
+}
 .sp-btn--sm {
   height: var(--control-sm);
   padding-inline: var(--pad-sm);
@@ -287,11 +229,11 @@
   font-size: var(--text-body);
 }
 .sp-btn--primary {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
 }
 .sp-btn--primary:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-primary-hover);
 }
 .sp-btn--secondary {
   background: var(--color-bg);
@@ -320,7 +262,7 @@
 }
 .sp-card--raised {
   background: var(--color-bg);
-  border-color: var(--color-accent-border);
+  border-color: var(--color-primary-border);
   box-shadow: var(--shadow-md);
 }
 .sp-field {
@@ -341,9 +283,9 @@
   font-size: var(--text-caption);
   font-weight: 500;
 }
-.sp-badge--accent {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent-text);
+.sp-badge--primary {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-text);
 }
 .sp-badge--success {
   background: var(--color-success-subtle);
@@ -361,8 +303,8 @@
   background: var(--color-info-subtle);
   color: var(--color-info-text);
 }
-.sp-text-accent {
-  color: var(--color-accent-text);
+.sp-text-primary {
+  color: var(--color-primary-text);
 }
 .sp-text-success {
   color: var(--color-success-text);
@@ -370,12 +312,11 @@
 .sp-text-danger {
   color: var(--color-danger-text);
 }
+.sp-text-warning {
+  color: var(--color-warning-text);
+}
 .sp-text-info {
   color: var(--color-info-text);
-}
-.sp-nav-on {
-  background: var(--color-fill);
-  border-radius: var(--radius-md);
 }
 .sp-table {
   border: 1px solid var(--color-border-subtle);
@@ -384,10 +325,6 @@
 }
 .sp-table > * + * {
   border-top: 1px solid var(--color-border-subtle);
-}
-.sp-side {
-  background: var(--color-bg-subtle);
-  border-right: 1px solid var(--color-border-subtle);
 }
 .spring-rung {
   display: grid;
@@ -409,6 +346,11 @@
   min-width: 0;
   overflow-wrap: anywhere;
   text-wrap: balance;
+}
+.spring-rung__sample[data-one-line] {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 @container (max-width: 30rem) {
   .spring-rung {
@@ -466,74 +408,6 @@
 .spring .range::-moz-range-thumb {
   border-radius: 0;
 }
-.spring .segmented {
-  padding: 0;
-  gap: var(--space-3);
-  background: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-.spring .segmented__item {
-  padding: 0;
-  border-radius: 0;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  font-weight: 400;
-  text-transform: lowercase;
-}
-.spring .segmented__item[aria-pressed="true"] {
-  background: none;
-  box-shadow: none;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.spring-cmd {
-  min-height: 2.75rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  text-align: left;
-}
-.spring-cmd:hover,
-.spring-cmd[aria-pressed="true"] {
-  color: var(--text-primary);
-}
-@media (hover: hover) and (pointer: fine) {
-  .spring-cmd {
-    min-height: 2rem;
-  }
-}
-.spring-pick {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-}
-.spring-pick__list {
-  display: grid;
-  max-height: 10rem; /* exactly five rows */
-  overflow-y: auto;
-  border-block: 1px solid var(--border-subtle);
-}
-.spring-pick__row {
-  display: grid;
-  grid-template-columns: 2rem 1fr auto;
-  gap: var(--space-2);
-  align-items: center;
-  height: 2rem;
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.spring-pick__row:has(:checked),
-.spring-pick__row:hover {
-  color: var(--text-primary);
-}
-.spring-pick__row:has(:focus-visible) {
-  outline: 2px solid var(--text-primary);
-  outline-offset: -2px;
-}
 .spring-tree {
   display: grid;
   gap: var(--space-1);
@@ -562,10 +436,6 @@
 }
 .spring .field {
   padding-inline: 0;
-}
-.spring-cmd:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 /* Square hairline sliders with a block thumb. */
 .spring .range {
@@ -598,24 +468,6 @@
 .spring .range:focus-visible {
   outline: 2px solid var(--text-primary);
   outline-offset: 2px;
-}
-.spring .spring-hue {
-  background: linear-gradient(
-    to right in oklch longer hue,
-    oklch(65% 0.16 0),
-    oklch(65% 0.16 359.9)
-  );
-}
-.spring .spring-hue::-webkit-slider-runnable-track {
-  height: 0.5rem;
-  background: transparent;
-}
-.spring .spring-hue::-moz-range-track {
-  height: 0.5rem;
-  background: transparent;
-}
-.spring .spring-hue::-webkit-slider-thumb {
-  margin-top: -0.375rem;
 }
 .spring .spring-grid {
   align-items: start;
@@ -664,7 +516,7 @@
 }
 .spring-contrast li {
   display: grid;
-  grid-template-columns: 1.25rem minmax(0, 14rem) 5.5rem 1fr;
+  grid-template-columns: 1.25rem 2rem minmax(0, 1fr) 5.5rem minmax(0, 12rem);
   gap: var(--space-2);
   align-items: baseline;
   padding-block: var(--space-1);
@@ -672,7 +524,7 @@
 }
 @media (max-width: 40rem) {
   .spring-contrast li {
-    grid-template-columns: 1.25rem 1fr auto;
+    grid-template-columns: 1.25rem 2rem 1fr auto;
   }
   .spring-contrast li > :last-child {
     grid-column: 2 / -1;
@@ -726,4 +578,814 @@
   .spring-nested {
     grid-template-columns: 1fr;
   }
+}
+
+/* ——— Workbench: tool controls left, pinned preview and output right ——— */
+.spring .field__input input {
+  font-family: var(--font-mono);
+}
+/* Plain tabs: sans labels, an underline for the open one, a hairline under the row. */
+.spring-app__bar {
+  display: flex;
+  flex-wrap: nowrap;
+  background: var(--surface-canvas);
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.spring-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.spring-tab {
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.spring-tab[aria-selected="true"] {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-tab:hover {
+    color: var(--text-primary);
+  }
+}
+.spring-app__side {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+/* One control kit in the panel: flush fields, one row height, one fill. */
+.spring-app__side .field {
+  padding: 0;
+}
+.spring-app__side .field__input input {
+  background: var(--input-bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-app__side .select__trigger,
+  .spring-app__side .field__input input,
+  .spring-app__side .button,
+  .spring-app__side .segmented__item {
+    min-height: 1.75rem;
+  }
+  .spring-app__side .select__trigger,
+  .spring-app__side .field__input input,
+  .spring-app__side .segmented__item {
+    padding-inline: var(--space-2);
+    font-size: var(--step-xs);
+  }
+}
+.spring-app__side > .toy__caption {
+  padding-top: 0;
+}
+.spring-app__canvas {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.spring-wb__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.spring-dialog {
+  display: grid;
+  gap: var(--space-3);
+  max-height: 90dvh;
+  overflow: auto;
+  padding: var(--space-4);
+}
+.spring-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.spring-dialog__title {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-weight: 500;
+}
+.spring-audit {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* ——— Plain controls: exports, font roles, font browser ——— */
+.spring-link {
+  justify-self: start;
+  min-height: 2.75rem;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.2em;
+}
+.spring-link:hover {
+  text-decoration-color: currentColor;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-link {
+    min-height: 1.5rem;
+  }
+}
+.spring-export {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.spring-export > .button {
+  justify-content: center;
+}
+.spring-export__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.spring-fonts {
+  display: grid;
+  gap: var(--space-3);
+}
+.spring-fonts__head,
+.spring-fonts__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.spring-fonts__search {
+  flex: 1 1 14rem;
+}
+.spring-fonts__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.spring-font {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-3);
+  text-align: left;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.spring-font:hover {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.spring-font[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+.spring-font__sample {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.spring-font__meta {
+  display: grid;
+  gap: 0;
+  font-size: var(--step-sm);
+}
+
+/* Long labels shrink on phones so the tab row stays on one line. */
+@media (max-width: 40rem) {
+  .spring-wide {
+    display: none;
+  }
+}
+.spring-frame {
+  width: 100%;
+  margin-inline: auto;
+  transition: max-width var(--duration-popover) ease;
+}
+.spring-frame[data-width="phone"] {
+  max-width: 390px;
+}
+.spring-frame[data-width="tablet"] {
+  max-width: 768px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-frame {
+    transition: none;
+  }
+}
+.spring-audit-trigger {
+  gap: 0.3em;
+  flex: none;
+}
+.spring-app__actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+/* Boxed icon buttons in the bar: same frame as the text buttons, square. */
+.spring-app__actions .spring-square {
+  justify-content: center;
+  width: 2.75rem;
+  padding: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spring-app__actions .spring-square {
+    width: 2.25rem;
+  }
+}
+/* Phones: name and actions share the top row, tabs take the full row below. */
+@media (max-width: 40rem) {
+  .spring-app__bar {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .spring-app__actions {
+    margin-left: auto;
+    padding-top: var(--space-2);
+  }
+  .spring-app__name {
+    padding-top: var(--space-2);
+  }
+  .spring-tabs {
+    order: 1;
+    flex-basis: 100%;
+    margin-inline: calc(-1 * var(--space-4));
+    padding-inline: var(--space-2);
+  }
+  /* Preview drops its label to an icon; the label stays for screen readers. */
+  .spring-app__actions .spring-app__preview {
+    justify-content: center;
+    width: 2.75rem;
+    padding: 0;
+  }
+  .spring-app__preview span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* Preview on: the button reads as held down. */
+.spring-app__actions .button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--surface-canvas);
+}
+
+/* ——— Color picker ——— */
+.spring-picker__field {
+  position: relative;
+  height: 4.5rem;
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.spring-picker__field canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.spring-picker__knob {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  translate: -50% -50%;
+  box-shadow:
+    0 0 0 2px var(--surface-canvas),
+    0 0 0 3px var(--text-primary);
+  pointer-events: none;
+}
+.spring-picker__field:has(.spring-picker__input:focus-visible) .spring-picker__knob {
+  box-shadow:
+    0 0 0 2px var(--surface-canvas),
+    0 0 0 4px var(--focus-ring);
+}
+.spring-picker__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+.spring-vision {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-vision > .select {
+  min-width: 12rem;
+}
+
+/* Where the brand color landed, and the step buttons use. */
+.spring-scale__steps > button {
+  position: relative;
+}
+.spring-scale__steps > button[data-brand]::before,
+.spring-legend__brand::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  rotate: 45deg;
+  background: currentColor;
+}
+.spring-scale__steps > button[data-brand]::before {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
+.spring-scale__steps > button[data-solid]::after,
+.spring-legend__solid::before {
+  content: "";
+  height: 2px;
+  background: currentColor;
+}
+.spring-scale__steps > button[data-solid]::after {
+  position: absolute;
+  inset: auto 4px 4px;
+}
+.spring-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+.spring-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-legend__solid::before {
+  width: 12px;
+}
+
+/* Quiet breaks between the color tab's groups: brand, scale, grays, status, contrast. */
+.spring-rule {
+  margin: var(--space-2) 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+/* In the sidebar a divider runs edge to edge, past the panel's padding. */
+.spring-app__side .spring-rule {
+  margin-inline: calc(-1 * var(--space-4));
+}
+
+/* ——— Curve editor ——— */
+.spring-curve__plot {
+  width: 100%;
+  max-width: 11rem;
+  aspect-ratio: 1;
+  touch-action: none;
+  overflow: visible;
+}
+.spring-curve__frame {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 0.5;
+}
+.spring-curve__line {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+.spring-curve__plot[data-dragging] {
+  cursor: grabbing;
+}
+.spring-curve__arm {
+  stroke: var(--text-secondary);
+  stroke-width: 0.75;
+  stroke-dasharray: 2 1.5;
+}
+.spring-curve__hit {
+  fill: transparent;
+  cursor: grab;
+}
+.spring-curve__handle {
+  fill: var(--surface-canvas);
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 120ms ease-out,
+    fill 120ms ease-out;
+}
+/* Ink, not a hue: the chrome must not tint the palette being judged. */
+.spring-curve__grip:hover .spring-curve__handle {
+  transform: scale(1.25);
+}
+.spring-curve__grip[data-active] .spring-curve__handle {
+  fill: var(--text-primary);
+  transform: scale(1.4);
+}
+.spring-curve__grip[data-active] .spring-curve__arm {
+  stroke: var(--text-primary);
+  stroke-dasharray: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-curve__handle {
+    transition: none;
+  }
+}
+.spring-curve__dot {
+  stroke: var(--text-primary);
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+.spring-curve__dot--other {
+  stroke: none;
+  opacity: 0.45;
+}
+.spring-curve__values input {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+}
+.spring-curve__values input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px var(--text-danger);
+}
+.spring-picker__format {
+  flex: none;
+  width: 6.5rem;
+}
+/* The swatch sits inside the value field, like a leading icon. */
+.spring-picker__value {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.spring-picker__value .spring-swatch {
+  position: absolute;
+  inset-inline-start: var(--space-2);
+  width: 0.875rem;
+  height: 0.875rem;
+  top: 50%;
+  translate: 0 -50%;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.field__input .spring-picker__value input {
+  padding-inline-start: calc(var(--space-2) * 2 + 0.875rem);
+}
+
+/* ——— Panel groups and rows ——— */
+.spring-group {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-row__label {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-row .segmented {
+  justify-self: start;
+}
+.spring-more {
+  display: grid;
+  gap: var(--space-2);
+}
+.spring-more > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  cursor: pointer;
+  list-style: none;
+}
+.spring-more > summary::-webkit-details-marker {
+  display: none;
+}
+.spring-more[open] > summary svg {
+  rotate: 90deg;
+}
+
+/* ——— Strips: name, a typed color, the 12 steps ——— */
+.spring-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.5rem 11.5rem 6rem;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.spring-strip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spring-strip__hex {
+  min-width: 0;
+  height: 1.75rem;
+  padding: 0 var(--space-1);
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-strip__hex:hover {
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+.spring-strip__hex:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 0;
+}
+.spring-strip__hex[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px var(--text-danger);
+}
+.spring-strip__remove {
+  color: var(--text-secondary);
+}
+.spring-strip__remove:hover {
+  color: var(--text-primary);
+}
+.spring-strip__add {
+  justify-self: start;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+/* Values show on the steps that carry meaning; hover, focus or "every step" shows the rest. */
+.spring-scales:not([data-all])
+  .spring-scale__steps
+  > button:not([data-key], :hover, :focus-visible)
+  .spring-step__ratio {
+  opacity: 0;
+}
+
+/* ——— Charts view ——— */
+.spring-scale__steps > [data-off] {
+  opacity: 0.35;
+}
+.spring-chart {
+  display: block;
+  width: 100%;
+  height: 8rem;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+/* ——— The app shell: bar on top, canvas in the middle, controls on the right ——— */
+.spring-app {
+  min-height: 100dvh;
+  background: var(--surface-canvas);
+}
+.spring-app__shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "bar" "canvas" "side";
+}
+.spring-app__bar {
+  grid-area: bar;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-items: center;
+  padding: 0 var(--space-4);
+  padding-top: env(safe-area-inset-top);
+}
+.spring-app__name {
+  flex: none;
+  margin-block: 0;
+  line-height: inherit;
+  margin-right: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-weight: 600;
+}
+.spring-app__actions {
+  align-items: center;
+}
+.spring-app__canvas {
+  grid-area: canvas;
+  padding: var(--space-4);
+}
+.spring-app__side {
+  grid-area: side;
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+@media (min-width: 60rem) {
+  .spring-app__shell {
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "bar bar" "canvas side";
+  }
+  /* Canvas and controls scroll on their own, so the controls stay in reach. */
+  .spring-app__canvas,
+  .spring-app__side {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .spring-app__canvas {
+    padding: var(--space-6);
+  }
+  .spring-app__side {
+    border-top: 0;
+    border-left: 1px solid var(--border-subtle);
+    scrollbar-width: thin;
+  }
+}
+
+/* Export: one primary press, a menu for one area. */
+.spring-split {
+  display: inline-flex;
+}
+.spring-split__more {
+  padding-inline: var(--space-2);
+  border-left: 1px solid color-mix(in oklch, var(--surface-canvas) 35%, transparent);
+}
+
+/* ——— Strips: two sections, hover tools, a pickable seed ——— */
+.spring-section {
+  margin: var(--space-6) 0 var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-weight: 600;
+}
+.spring-section:first-of-type {
+  margin-top: var(--space-2);
+}
+.spring-strip__swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text-primary) 20%, transparent);
+  cursor: pointer;
+}
+.spring-strip__swatch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.spring-strip__rename {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.spring-strip__rename:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.spring-strip__rename:focus {
+  outline: 0;
+  box-shadow: inset 0 -1px 0 var(--text-primary);
+}
+.spring-strip__tools {
+  display: inline-flex;
+  align-items: center;
+  justify-content: end;
+  gap: 2px;
+}
+.spring-strip__tool {
+  min-width: 1.5rem;
+  height: 1.5rem;
+  color: var(--text-secondary);
+}
+.spring-strip__tool:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+.spring-strip__tool:disabled {
+  opacity: 0.3;
+}
+/* Tools stay out of the way until a row is hovered or focused; touch screens always show them. */
+@media (hover: hover) and (pointer: fine) {
+  .spring-row-strip .spring-strip__tools > * {
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+  .spring-row-strip:hover .spring-strip__tools > *,
+  .spring-row-strip:focus-within .spring-strip__tools > * {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-row-strip .spring-strip__tools > * {
+    transition: none;
+  }
+}
+/* A chart's mark: the step charts draw, outlined. */
+.spring-scale__steps > button[data-mark] {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+.spring-ramps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+}
+.spring-ramps > * {
+  min-width: 10rem;
+}
+
+/* Popovers: the strip picker and the info notes. */
+.spring-pop {
+  width: min(20rem, calc(100vw - 2rem));
+  padding: var(--space-3);
+  background: var(--surface-canvas);
+  box-shadow:
+    inset 0 0 0 1px var(--border-default),
+    0 8px 24px rgb(0 0 0 / 0.12);
+}
+.spring-pop--text {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--step-xs);
+}
+.spring-info {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.spring-info:hover,
+.spring-info[data-popup-open] {
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+}
+.spring-dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.spring-dl dt {
+  font-weight: 600;
+}
+.spring-dl dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Contrast pairs: a live sample, both colors with their values, then the ratio. */
+.spring-pair__sample {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.5rem;
+  font-family: var(--font-sans, inherit);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.spring-pair__names {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.spring-pair__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.spring-pair__dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text-primary) 20%, transparent);
+}
+.spring-changed ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+/* Ramp and color-vision rows: a name and a note, no seed or tools. */
+.spring-strip--plain {
+  grid-template-columns: auto 1fr;
+}
+.spring-strip--plain > .spring-meta {
+  text-align: right;
 }

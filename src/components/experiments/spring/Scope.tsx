@@ -23,7 +23,7 @@ export function Scope({
   const id = `sp-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const css = useMemo(() => {
     const t = system.type.fallbacks;
-    const faces = [...new Set([t.body.css, t.heading.css, t.mono.css])].join("\n");
+    const faces = [...new Set([t.body.css, t.heading.css, t.mono.css].filter(Boolean))].join("\n");
     return `${faces}\n${toScopedCss(system, `#${id}`, mode).replace(/(\d)vw/g, "$1cqi")}`;
   }, [system, mode, id]);
   return (

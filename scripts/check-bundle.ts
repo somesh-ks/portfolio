@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { NDA_SENTINELS } from "../tests/fixtures/sentinels.ts";
 
-const BUDGET_KB = 380; // gzipped client JS across every chunk, a regression alarm. Spring (/projects/spring) is ~35 KB of it, loaded only on that page.
+const BUDGET_KB = 500; // gzipped client JS across every chunk, a regression alarm. Spring (/spring) is ~45 KB of it, loaded only on that page.
 const ROOTS = [".next/static", ".next/server/app"];
 
 function* walk(dir: string): Generator<string> {

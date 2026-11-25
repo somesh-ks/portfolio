@@ -9,7 +9,8 @@ const ICONS = { system: Monitor, light: Sun, dark: Moon } as const;
 
 const subscribe = () => () => {};
 
-export function ThemeToggle() {
+/** `className` swaps the look, e.g. a boxed button in an app bar. */
+export function ThemeToggle({ className = "icon-button pressable" }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   // The stored theme is only known on the client; render a stable shell on the server.
   const mounted = useSyncExternalStore(
@@ -30,7 +31,7 @@ export function ThemeToggle() {
           y: box.top + box.height / 2,
         });
       }}
-      className="icon-button pressable"
+      className={className}
       data-sound="toggle"
       aria-label={`${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next].toLowerCase()}`}
     >

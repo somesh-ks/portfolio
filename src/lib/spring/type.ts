@@ -6,8 +6,71 @@
  */
 import { FALLBACKS, FONTS } from "./fonts.data";
 
-export type FontName = keyof typeof FONTS;
-export const FONT_NAMES = Object.keys(FONTS) as FontName[];
+/** A curated font: measured metrics and a note. */
+export type CuratedFont = keyof typeof FONTS;
+export const FONT_NAMES = Object.keys(FONTS) as CuratedFont[];
+/** Any Google font. Curated ones carry metrics; the rest carry a FontMeta in TypeInput.extra. */
+export type FontName = string;
+
+export type FontTag = "sans" | "serif" | "display" | "mono" | "hand";
+/** What the engine needs for a font outside the curated list (from Google Fonts metadata). */
+export interface FontMeta {
+  tag: FontTag;
+  weights: number[];
+  /** wght axis range, or null for static cuts. */
+  variable: [number, number] | null;
+}
+/** Google family names are plain words; this keeps them safe in CSS strings and URLs. */
+export const SAFE_FONT = /^[A-Za-z0-9][A-Za-z0-9 ]{0,59}$/;
+export const isCurated = (n: string): n is CuratedFont => Object.hasOwn(FONTS, n);
+
+interface FontInfo extends FontMeta {
+  /** False when metrics are borrowed from a curated font of the same kind. */
+  measured: boolean;
+  ascent: number;
+  descent: number;
+  lineGap: number;
+  unitsPerEm: number;
+  xHeight: number;
+  xWidthAvg: number;
+}
+
+const PROXY: Record<FontTag, CuratedFont> = {
+  sans: "Inter",
+  serif: "Source Serif 4",
+  display: "Inter",
+  hand: "Inter",
+  mono: "JetBrains Mono",
+};
+
+export function fontInfo(name: FontName, extra?: Record<string, FontMeta>): FontInfo {
+  if (isCurated(name)) {
+    const f = FONTS[name];
+    return {
+      ...f,
+      tag: f.tag,
+      weights: [...f.weights],
+      variable: f.variable ? [f.variable[0], f.variable[1]] : null,
+      measured: true,
+    };
+  }
+  const meta = extra?.[name] ?? { tag: "sans", weights: [400, 700], variable: null };
+  return { ...FONTS[PROXY[meta.tag]], ...meta, measured: false };
+}
+
+/** Sets one role's font and keeps only the extra metadata still in use. */
+export function withFont(
+  t: TypeInput,
+  role: "body" | "heading" | "mono",
+  name: FontName,
+  meta?: FontMeta,
+): TypeInput {
+  const next = { ...t, [role]: name };
+  const pool = { ...t.extra, ...(meta && !isCurated(name) ? { [name]: meta } : {}) };
+  const extra: Record<string, FontMeta> = {};
+  for (const n of [next.body, next.heading, next.mono]) if (pool[n]) extra[n] = pool[n];
+  return { ...next, extra: Object.keys(extra).length ? extra : undefined };
+}
 
 export type Role =
   | "display"
@@ -55,6 +118,8 @@ export interface TypeInput {
   ratio: number;
   headingWeight: number;
   fluid: boolean;
+  /** Metadata for fonts outside the curated list. */
+  extra?: Record<string, FontMeta>;
 }
 
 interface TypeToken {
@@ -102,7 +167,7 @@ function lineHeightFor(size: number, cap = 1.6): { ratio: number; px: number } {
  */
 function trackingFor(size: number, tag: string): number {
   const t = -0.0223 + 0.185 * Math.exp(-0.1745 * size);
-  const scale = tag === "mono" ? 0 : tag === "serif" ? 0.5 : 1;
+  const scale = tag === "mono" ? 0 : tag === "serif" || tag === "hand" ? 0.5 : 1;
   return round(t * scale, 3);
 }
 
@@ -114,8 +179,9 @@ function fluidClamp(min: number, max: number): string {
   return `clamp(${rem(min)}, ${rem(intercept)} + ${round(slope * 100, 4)}vw, ${rem(max)})`;
 }
 
-function weightFor(font: FontName, wanted: number): number {
-  const ws = FONTS[font].weights as readonly number[];
+function weightFor(font: FontInfo, wanted: number): number {
+  if (font.variable) return Math.min(font.variable[1], Math.max(font.variable[0], wanted));
+  const ws = font.weights;
   return ws.reduce(
     (best, w) => (Math.abs(w - wanted) < Math.abs(best - wanted) ? w : best),
     ws[0]!,
@@ -124,8 +190,9 @@ function weightFor(font: FontName, wanted: number): number {
 
 const pct = (n: number) => `${round(n * 100, 2)}%`;
 
-function fallbackFor(font: FontName) {
-  const f = FONTS[font];
+function fallbackFor(font: FontName, f: FontInfo) {
+  // Without measured metrics, overrides would be a guess; the generic stack is honest.
+  if (!f.measured) return { family: "", css: "" };
   const fbName = f.tag === "serif" ? "Times New Roman" : f.tag === "mono" ? "Courier New" : "Arial";
   const fb = FALLBACKS[fbName];
   // Match x-width so line breaks don't move when the web font arrives.
@@ -144,15 +211,17 @@ function fallbackFor(font: FontName) {
   return { family, css };
 }
 
-export function opticalBase(font: FontName): number {
+export function opticalBase(font: FontName, extra?: Record<string, FontMeta>): number {
   const ref = (FONTS.Inter.xHeight / FONTS.Inter.unitsPerEm) * 16;
-  const own = FONTS[font].xHeight / FONTS[font].unitsPerEm;
+  const f = fontInfo(font, extra);
+  const own = f.xHeight / f.unitsPerEm;
   return round(ref / own, 1);
 }
 
 export function buildType(input: TypeInput): TypeSystem {
   const mobileRatio = 1 + (input.ratio - 1) * 0.72;
   const notes: string[] = [];
+  const info = (n: FontName) => fontInfo(n, input.extra);
   const tokens = (Object.keys(STEP) as Role[]).map((role) => {
     const family =
       role === "code"
@@ -168,7 +237,10 @@ export function buildType(input: TypeInput): TypeSystem {
     // Single-line UI text sits tighter than running text.
     const lh = lineHeightFor(max, role === "label" ? 1.45 : 1.6);
     const heading = ["display", "h1", "h2", "h3"].includes(role);
-    const weight = weightFor(family, heading ? input.headingWeight : role === "label" ? 500 : 400);
+    const weight = weightFor(
+      info(family),
+      heading ? input.headingWeight : role === "label" ? 500 : 400,
+    );
     return {
       role,
       family,
@@ -178,7 +250,7 @@ export function buildType(input: TypeInput): TypeSystem {
       size: input.fluid ? fluidClamp(min, max) : rem(max),
       lineHeight: lh.ratio,
       lineHeightPx: lh.px,
-      tracking: trackingFor(max, FONTS[family].tag),
+      tracking: trackingFor(max, info(family).tag),
     } satisfies TypeToken;
   });
 
@@ -186,8 +258,8 @@ export function buildType(input: TypeInput): TypeSystem {
     if (t.max / t.min > 2.5)
       notes.push(`${t.role}: max is over 2.5× min, which can break 200% zoom.`);
   }
-  const ob = opticalBase(input.body);
-  if (Math.abs(ob - input.base) >= 1) {
+  const ob = opticalBase(input.body, input.extra);
+  if (info(input.body).measured && Math.abs(ob - input.base) >= 1) {
     notes.push(
       `${input.body} reads ${ob > input.base ? "smaller" : "larger"} than its px size. ${ob}px matches the x-height of Inter at 16px.`,
     );
@@ -195,31 +267,33 @@ export function buildType(input: TypeInput): TypeSystem {
   return {
     tokens,
     fallbacks: {
-      body: fallbackFor(input.body),
-      heading: fallbackFor(input.heading),
-      mono: fallbackFor(input.mono),
+      body: fallbackFor(input.body, info(input.body)),
+      heading: fallbackFor(input.heading, info(input.heading)),
+      mono: fallbackFor(input.mono, info(input.mono)),
     },
     notes,
     opticalBase: ob,
   };
 }
 
-export function fontStack(font: FontName): string {
-  const tag = FONTS[font].tag;
+export function fontStack(font: FontName, extra?: Record<string, FontMeta>): string {
+  const f = fontInfo(font, extra);
   const generic =
-    tag === "serif"
+    f.tag === "serif"
       ? "ui-serif, Georgia, serif"
-      : tag === "mono"
+      : f.tag === "mono"
         ? "ui-monospace, monospace"
-        : "ui-sans-serif, system-ui, sans-serif";
-  return `"${font}", "${font} Fallback", ${generic}`;
+        : f.tag === "hand"
+          ? "cursive"
+          : "ui-sans-serif, system-ui, sans-serif";
+  return f.measured ? `"${font}", "${font} Fallback", ${generic}` : `"${font}", ${generic}`;
 }
 
-export function googleFontsUrl(fonts: FontName[]): string {
+export function googleFontsUrl(fonts: FontName[], extra?: Record<string, FontMeta>): string {
   const uniq = [...new Set(fonts)].sort();
   const fam = uniq
     .map((f) => {
-      const d = FONTS[f] as { weights: readonly number[]; variable: readonly number[] | null };
+      const d = fontInfo(f, extra);
       // Variable fonts take a range; static ones list their cuts.
       const span = d.variable
         ? `:wght@${d.variable[0]}..${d.variable[1]}`

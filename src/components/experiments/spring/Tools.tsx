@@ -1,65 +1,128 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
-import { exportAll, toPrompt } from "@/lib/spring/exports";
+import { useEffect, useId, useMemo, useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import { Menu } from "@base-ui/react/menu";
+import { Eye } from "lucide-react";
+import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
-import { MOODS, pairings, type Pairing } from "@/lib/spring/pairing";
-import { COMPONENTS, ICONS, iconStroke, recommend } from "@/lib/spring/stack";
-import { inputFromSeed, type System, type SystemInput } from "@/lib/spring/system";
-import { FONT_NAMES, googleFontsUrl, opticalBase, type FontName } from "@/lib/spring/type";
-import { contrast, parseColor } from "@/lib/spring/color";
-import { Command } from "../../code/Command";
+import {
+  DEFAULT_INPUT,
+  inputFromSeed,
+  slug,
+  type System,
+  type SystemInput,
+} from "@/lib/spring/system";
+import {
+  FONT_NAMES,
+  fontInfo,
+  googleFontsUrl,
+  isCurated,
+  opticalBase,
+  withFont,
+  type FontName,
+  type TypeInput,
+} from "@/lib/spring/type";
+import { DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
+import { CHANNELS, channelsOf, fromChannels, type ColorFormat } from "@/lib/spring/colormath";
+import { Chevron, Select } from "@/components/ui/Select";
+import { Dial } from "@/components/ui/Dial";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Segmented } from "../Segmented";
-import { AppScreen, Components, Homepage, Ladder } from "./Preview";
-import { shareUrl, useCopy, useMode, useSpring } from "./store";
+import { ColorPicker } from "./ColorPicker";
+import { CurveEditor } from "./CurveEditor";
+import dynamic from "next/dynamic";
+import { ColorOutput } from "./Strips";
+import { FontBrowser, type FontRole } from "./FontBrowser";
+import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
+import { setInput as loadInput, shareUrl, useCopy, useMode, useSpring } from "./store";
 import { zip } from "./zip";
 import "./spring.css";
 
+// The audit engine only runs once its dialog opens, so it loads then.
+const SpringAudit = dynamic(() => import("./Audit").then((m) => m.SpringAudit));
+
+type TypeExtra = TypeInput["extra"];
+
 // One stylesheet for every curated family; browsers fetch only the faces in use.
 const ALL_FONTS = googleFontsUrl(FONT_NAMES);
-const Fonts = () => <link rel="stylesheet" href={ALL_FONTS} precedence="default" />;
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  show,
-  className = "range",
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  show: string;
-  className?: string;
-  /** Fires when a drag or key press ends, for work too noisy to run on every tick. */
-  onCommit?: () => void;
-}) {
-  const id = useId();
+/** Curated fonts, plus any Google font the visitor picked from the browser. */
+function Fonts({ type }: { type: TypeInput }) {
+  const extra = [type.body, type.heading, type.mono].filter((n) => !isCurated(n));
   return (
-    <label className="field" htmlFor={id}>
-      <span className="field__label">
-        {label} <span className="tabular field__value">{show}</span>
-      </span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        onPointerUp={onCommit}
-        onKeyUp={onCommit}
-        className={className}
-      />
-    </label>
+    <>
+      <link rel="stylesheet" href={ALL_FONTS} precedence="default" />
+      {extra.length ? (
+        <link rel="stylesheet" href={googleFontsUrl(extra, type.extra)} precedence="default" />
+      ) : null}
+    </>
+  );
+}
+
+function save(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+const text = (s: string, type: string) => new Blob([s], { type });
+
+const AREAS: { area: Area; label: string }[] = [
+  { area: "color", label: "Color" },
+  { area: "type", label: "Type" },
+  { area: "space", label: "Space" },
+  { area: "motion", label: "Motion" },
+];
+
+/**
+ * A split button: the main press downloads every file as one zip; the menu
+ * downloads one area's CSS and DTCG JSON, or copies a share link.
+ */
+function ExportMenu({ system }: { system: System }) {
+  const [, copy, said] = useCopy();
+  const name = slug(system.input.name);
+  const all = () =>
+    save(`${name}.zip`, zip(exportAll(system).map((x) => ({ path: x.path, content: x.content }))));
+  const area = (a: Area) => {
+    const { css, json } = exportArea(system, a);
+    save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
+  };
+  return (
+    <span className="spring-split">
+      <button type="button" className="button button--primary" onClick={all}>
+        Export
+      </button>
+      <Menu.Root>
+        <Menu.Trigger
+          className="button button--primary spring-split__more"
+          aria-label="Export one area"
+        >
+          <Chevron />
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
+            <Menu.Popup className="select__popup">
+              <Menu.Item className="select__item" onClick={all}>
+                <span className="select__text">Everything</span>
+                <span className="select__hint">.zip</span>
+              </Menu.Item>
+              {AREAS.map((a) => (
+                <Menu.Item key={a.area} className="select__item" onClick={() => area(a.area)}>
+                  <span className="select__text">{a.label}</span>
+                  <span className="select__hint">.css + .json</span>
+                </Menu.Item>
+              ))}
+              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
+                <span className="select__text">Copy share link</span>
+              </Menu.Item>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+      <output className="sr-only">{said}</output>
+    </span>
   );
 }
 
@@ -92,582 +155,643 @@ function Text({
   );
 }
 
-function Choice<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: readonly { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
+const TABS = ["color", "type", "space", "motion", "tokens"] as const;
+type Tab = (typeof TABS)[number];
+const TAB_LABEL: Record<Tab, string> = {
+  color: "Color",
+  type: "Type",
+  space: "Space",
+  motion: "Motion",
+  tokens: "Tokens",
+};
+
+/**
+ * Spring as its own app: tabs and actions on top, the active tool's output (or
+ * a live preview) in the middle, and that tool's controls in a sidebar on the
+ * right. One system, so every tab edits what the preview shows.
+ */
+export function SpringApp() {
+  const spring = useSpring();
+  const { input, system, setInput } = spring;
+  const mode = useMode();
+  const [tab, setTab] = useState<Tab>("color");
+  const [view, setView] = useState<"output" | "preview">("output");
+  const [charts, setCharts] = useState(false);
+  const [browse, setBrowse] = useState<FontRole | null>(null);
+  const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
+  const [format, setFormat] = useState<ColorFormat>("oklch");
+  // Starts at 1 so the curves play as soon as the Motion tab opens.
+  const [run, setRun] = useState(1);
+  // Only the Tokens tab shows every file; other tabs skip the work on each change.
+  const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
+  // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
+  const [file, setFile] = useState("");
+  const f = files.find((x) => x.label === file) ?? files[0];
+
+  const building = input.stack.building;
+  const tabsId = useId();
+
   return (
-    <div className="field">
-      <span className="field__label">{label}</span>
-      <Segmented
-        label={label}
-        options={options.map((o) => o.value)}
-        value={value}
-        onChange={onChange}
-        render={(v) => options.find((o) => o.value === v)?.label}
-      />
+    <div className="spring spring-app__shell">
+      <Fonts type={input.type} />
+      <header className="spring-app__bar">
+        <h1 className="spring-app__name">Spring</h1>
+        <div role="tablist" aria-label="Tools" className="spring-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`${tabsId}-${t}`}
+              aria-selected={t === tab}
+              aria-controls={`${tabsId}-panel`}
+              tabIndex={t === tab ? 0 : -1}
+              className="spring-tab"
+              onClick={() => setTab(t)}
+              onKeyDown={(e) => {
+                const i = TABS.indexOf(tab);
+                const next =
+                  e.key === "ArrowRight"
+                    ? TABS[(i + 1) % TABS.length]
+                    : e.key === "ArrowLeft"
+                      ? TABS[(i - 1 + TABS.length) % TABS.length]
+                      : e.key === "Home"
+                        ? TABS[0]
+                        : e.key === "End"
+                          ? TABS[TABS.length - 1]
+                          : undefined;
+                if (!next) return;
+                e.preventDefault();
+                setTab(next);
+                document.getElementById(`${tabsId}-${next}`)?.focus();
+              }}
+            >
+              {TAB_LABEL[t]}
+            </button>
+          ))}
+        </div>
+        <span className="spring-app__actions">
+          <button
+            type="button"
+            className="button spring-app__preview"
+            aria-pressed={view === "preview"}
+            onClick={() => setView((v) => (v === "preview" ? "output" : "preview"))}
+          >
+            <Eye aria-hidden="true" size={16} strokeWidth={1.75} />
+            <span>Preview</span>
+          </button>
+          <ExportMenu system={system} />
+          <ThemeToggle className="button spring-square pressable" />
+        </span>
+      </header>
+      <AuditDialog />
+      <section
+        className="spring-app__canvas"
+        aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
+      >
+        {view === "preview" ? (
+          <div className="spring-wb__bar">
+            <Segmented
+              label="Screen"
+              options={["site", "app", "charts"] as const}
+              value={charts ? "charts" : building === "site" ? "site" : "app"}
+              onChange={(v) => {
+                setCharts(v === "charts");
+                if (v === "charts") return;
+                setInput((i) => ({
+                  ...i,
+                  stack: { ...i.stack, building: v, components: undefined, icons: undefined },
+                }));
+              }}
+              render={(v) => (v === "site" ? "Site" : v === "app" ? "App" : "Charts")}
+            />
+            <Segmented
+              label="Width"
+              options={["phone", "tablet", "desktop"] as const}
+              value={width}
+              onChange={setWidth}
+              render={(v) => (v === "phone" ? "390" : v === "tablet" ? "768" : "Full")}
+            />
+          </div>
+        ) : null}
+        {view === "preview" ? (
+          // Fluid sizes read this frame's width, so 390 shows the phone end of every clamp().
+          <div className="spring-frame" data-width={width}>
+            {charts ? (
+              <ChartsScreen system={system} mode={mode} />
+            ) : building === "site" ? (
+              <Homepage system={system} mode={mode} line={spring.line} />
+            ) : (
+              <AppScreen system={system} mode={mode} />
+            )}
+          </div>
+        ) : (
+          <>
+            {tab === "color" ? (
+              <ColorOutput
+                system={system}
+                input={input}
+                setInput={setInput}
+                mode={mode}
+                format={format}
+                setFormat={setFormat}
+                onPreview={() => {
+                  setView("preview");
+                  setCharts(true);
+                }}
+              />
+            ) : null}
+            {tab === "type" && browse ? (
+              <FontBrowser
+                role={browse}
+                setRole={setBrowse}
+                current={input.type}
+                sample={{
+                  heading: `${input.name || "Your name"} ships calm, quick software`,
+                  body: spring.line.trim() || "A short line about what it does and who it helps.",
+                  mono: "const total = 5517.60;",
+                }}
+                onPick={(r, n, meta) =>
+                  setInput((i) => ({ ...i, type: withFont(i.type, r, n, meta) }))
+                }
+                onDone={() => setBrowse(null)}
+              />
+            ) : tab === "type" ? (
+              <TypeOutput system={system} mode={mode} />
+            ) : null}
+            {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
+            {tab === "motion" ? (
+              <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
+            ) : null}
+            {f ? (
+              <textarea
+                className="spring-audit-input spring-code"
+                value={f.content}
+                readOnly
+                aria-label={f.path}
+                spellCheck={false}
+              />
+            ) : null}
+          </>
+        )}
+      </section>
+      <aside
+        role="tabpanel"
+        id={`${tabsId}-panel`}
+        aria-labelledby={`${tabsId}-${tab}`}
+        className="spring-app__side"
+      >
+        {tab === "color" ? (
+          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+        ) : null}
+        {tab === "type" ? (
+          <TypeControls
+            {...spring}
+            onBrowse={(r) => {
+              setBrowse(r);
+              setView("output");
+            }}
+          />
+        ) : null}
+        {tab === "space" ? <ShapeControls {...spring} /> : null}
+        {tab === "motion" ? (
+          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+        ) : null}
+        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
+      </aside>
     </div>
   );
 }
 
-function Pick<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: readonly { value: T; label: string; tag?: string }[];
-  onChange: (v: T) => void;
-}) {
-  const name = useId();
-  return (
-    <fieldset className="field spring-pick">
-      <legend className="field__label">{label}</legend>
-      <span className="spring-pick__list">
-        {options.map((o) => (
-          <label key={o.value} className="spring-pick__row">
-            <input
-              type="radio"
-              className="sr-only"
-              name={name}
-              value={o.value}
-              checked={o.value === value}
-              onChange={() => onChange(o.value)}
-              // The input is visually hidden, so keep its row in view for arrow-key users.
-              onFocus={(e) => e.currentTarget.parentElement?.scrollIntoView({ block: "nearest" })}
-            />
-            <span aria-hidden>{o.value === value ? "[x]" : "[ ]"}</span>
-            <span>{o.label}</span>
-            {o.tag ? <span className="spring-meta">{o.tag}</span> : null}
-          </label>
-        ))}
-      </span>
-    </fieldset>
-  );
-}
-
-const Toy = ({ children, caption }: { children: ReactNode; caption?: ReactNode }) => (
-  <div className="toy spring">
-    <Fonts />
-    {children}
-    {caption ? <p className="toy__caption">{caption}</p> : null}
-  </div>
-);
-
-const MODES = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-] as const;
+type Spring = ReturnType<typeof useSpring>;
 
 // ——— Color ———
 
-export function SpringColor() {
-  const { input, system, setInput } = useSpring();
-  const [hex, setHex] = useState("");
-  const [mode, setMode] = useMode();
-  const [copied, copy, said] = useCopy();
-  const a = input.accent;
-  const setAccent = (p: Partial<SystemInput["accent"]>) =>
-    setInput((i) => ({ ...i, accent: { ...i.accent, ...p } }));
-
-  const temp = input.neutralHue === undefined ? "accent" : input.neutralHue < 150 ? "warm" : "cool";
+/** A labelled row in the panel: mono label on the left, the control on the right. */
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Toy caption={system.adjustments.join(" ") || undefined}>
-      <div className="spring-grid">
-        <Text
-          label="Name"
-          value={input.name}
-          onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
-        />
-        <label className="field">
-          <span className="field__label">
-            Start from a hex{" "}
-            <span className="tabular field__value">now {system.scales.accent[mode][8]!.hex}</span>
-          </span>
-          <span className="field__input">
-            <input
-              value={hex}
-              placeholder="#2f7d32"
-              onChange={(e) => setHex(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button
-              type="button"
-              className="spring-cmd"
-              disabled={!parseColor(hex)}
-              onClick={() => setInput((i) => ({ ...i, accent: inputFromSeed(hex).accent }))}
-            >
-              [use]
-            </button>
-          </span>
-        </label>
-        <Slider
-          label="Hue"
-          value={a.hue}
-          min={0}
-          max={360}
-          step={1}
-          show={`${Math.round(a.hue)}°`}
-          className="range spring-hue"
-          onChange={(v) => setAccent({ hue: v, solidL: undefined })}
-        />
-        <Slider
-          label="Vividness"
-          value={a.chroma}
-          min={0.02}
-          max={0.3}
-          step={0.005}
-          show={a.chroma.toFixed(3)}
-          onChange={(v) => setAccent({ chroma: v })}
-        />
-        <Slider
-          label="Gray tint"
-          value={input.neutralTint}
-          min={0}
-          max={1}
-          step={0.01}
-          show={`${Math.round(input.neutralTint * 100)}%`}
-          onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
-        />
-        <Choice
-          label="Grays lean"
-          value={temp}
-          options={[
-            { value: "accent", label: "Accent" },
-            { value: "warm", label: "Warm" },
-            { value: "cool", label: "Cool" },
-          ]}
-          onChange={(v) =>
-            setInput((i) => ({
-              ...i,
-              neutralHue: v === "accent" ? undefined : v === "warm" ? 75 : 250,
-            }))
-          }
-        />
-      </div>
-      <div className="toy__bar">
-        <span className="spring-meta">Light and dark are generated separately, not inverted</span>
-        <Segmented
-          label="Theme"
-          options={MODES.map((m) => m.value)}
-          value={mode}
-          onChange={setMode}
-          render={(v) => (v === "light" ? "Light" : "Dark")}
-        />
-      </div>
-      <div className="spring-scales">
-        <div className="spring-scale spring-scale--head" aria-hidden>
-          <span>step</span>
-          <span className="spring-bands spring-bands--steps">
-            {Array.from({ length: 12 }, (_, i) => (
-              <span key={i}>{i + 1}</span>
-            ))}
-          </span>
-        </div>
-        <div className="spring-scale spring-scale--head" aria-hidden>
-          <span />
-          <span className="spring-bands">
-            <span style={{ gridColumn: "1 / 3" }}>bg</span>
-            <span style={{ gridColumn: "3 / 6" }}>fill</span>
-            <span style={{ gridColumn: "6 / 9" }}>border</span>
-            <span style={{ gridColumn: "9 / 11" }}>solid</span>
-            <span style={{ gridColumn: "11 / 13" }}>text</span>
-          </span>
-        </div>
-        {(["accent", "neutral", "danger", "warning", "success", "info"] as const).map((s) => (
-          <div key={s} className="spring-scale">
-            <span>{s}</span>
-            <span className="spring-scale__steps">
-              {system.scales[s][mode].map((sw, i, all) => {
-                const key = `${s}-${sw.step}`;
-                return (
-                  <button
-                    type="button"
-                    key={sw.step}
-                    style={{ background: sw.hex, color: i > 7 ? all[0]!.hex : all[11]!.hex }}
-                    title={`var(--${key}) ${sw.hex}`}
-                    onClick={() => copy(key, sw.hex)}
-                  >
-                    <span className="sr-only">
-                      Copy {sw.hex}, {s} step {sw.step}
-                    </span>
-                    {copied === key ? (
-                      <span aria-hidden>✓</span>
-                    ) : i >= 10 ? (
-                      <span aria-hidden className="spring-step__ratio">
-                        {contrast(sw.hex, all[0]!.hex).toFixed(1)}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="spring-meta">click a step to copy its hex</p>
-      <output className="sr-only">{said}</output>
-      <Contrast checks={system.checks[mode]} mode={mode} />
-    </Toy>
+    <div className="spring-row">
+      <span className="spring-row__label" aria-hidden>
+        {label}
+      </span>
+      {children}
+    </div>
   );
 }
 
-/** Every pair the system promises, with its ratio and the bar it has to clear. */
-function Contrast({ checks, mode }: { checks: System["checks"]["light"]; mode: string }) {
-  const [open, setOpen] = useState(false);
-  const shown = open ? checks : checks.filter((c) => !c.pass);
-  const required = checks.filter((c) => !c.advisory);
+const GRAY_SNAP = { warm: 75, cool: 250 } as const;
+const deg = (v: number) => `${Math.round(v)}°`;
+
+function ColorControls({
+  system,
+  input,
+  setInput,
+  mode,
+  format,
+  setFormat,
+}: Spring & { mode: Mode; format: ColorFormat; setFormat: (f: ColorFormat) => void }) {
+  const primary = system.scales.primary;
+  const brand = primary[mode][primary.anchor[mode] - 1]!;
+  const curve = input.curve ?? DEFAULT_CURVE;
+  const a = input.primary;
+  const setCurve = (p: Partial<typeof curve>) =>
+    setInput((i) => ({ ...i, curve: { ...(i.curve ?? DEFAULT_CURVE), ...p } }));
+  const setSeed = (hex: string) =>
+    setInput((i) => ({ ...i, primary: { ...i.primary, ...inputFromSeed(hex).primary } }));
+  const dark = mode === "dark";
+  const darkChroma = curve.darkChroma ?? 1;
+  // One chroma dial per theme: in dark it reads and sets chroma × darkChroma.
+  const chroma = dark ? a.chroma * darkChroma : a.chroma;
+  const setChroma = (v: number) =>
+    dark
+      ? setCurve({ darkChroma: Math.round(Math.min(1.2, Math.max(0.4, v / a.chroma)) * 100) / 100 })
+      : setInput((i) => ({ ...i, primary: { ...i.primary, chroma: v } }));
+  // A theme switch can change what the chroma dial shows; pulse it so the change is seen.
+  const [flash, setFlash] = useState(0);
+  const [seenMode, setSeenMode] = useState(mode);
+  if (seenMode !== mode) {
+    setSeenMode(mode);
+    if (darkChroma !== 1) setFlash((n) => n + 1);
+  }
+  const ch = CHANNELS[format];
+  const vals = channelsOf(brand.hex, format);
+  const grays =
+    input.neutralHue === undefined
+      ? "primary"
+      : input.neutralHue === GRAY_SNAP.warm
+        ? "warm"
+        : input.neutralHue === GRAY_SNAP.cool
+          ? "cool"
+          : null;
   return (
     <>
-      <button
-        type="button"
-        className="spring-cmd"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? "[x]" : "[ ]"} {required.filter((c) => c.pass).length} of {required.length} required
-        pairs pass WCAG 2.2 AA in {mode}
-        {open ? "" : shown.length ? "; below the bar:" : "; show all"}
-      </button>
-      {shown.length ? (
-        <ul className="spring-contrast">
-          {shown.map((c) => (
-            <li key={`${c.fg}-${c.bg}`}>
-              <span>
-                <span aria-hidden>{c.pass ? "✓" : c.advisory ? "!" : "✕"}</span>
-                <span className="sr-only">
-                  {c.pass ? "passes" : c.advisory ? "advisory, below" : "fails"}
-                </span>
-              </span>
-              <span>
-                {c.fg} <span className="spring-meta">on</span> {c.bg}
-              </span>
-              <span className="tabular">
-                {c.ratio.toFixed(2)}
-                <span className="spring-meta">/{c.min}</span>
-              </span>
-              <span className="spring-meta">{c.why}</span>
-            </li>
-          ))}
-        </ul>
+      <ColorPicker
+        hue={a.hue}
+        chroma={a.chroma}
+        hex={brand.hex}
+        lightness={brand.oklch.l}
+        format={format}
+        setFormat={setFormat}
+        onPick={(p) => setInput((i) => ({ ...i, primary: { ...i.primary, ...p } }))}
+        onHex={setSeed}
+      />
+      {format === "oklch" ? (
+        <>
+          <Dial
+            label="lightness"
+            value={Math.round(brand.oklch.l * 1000) / 10}
+            min={35}
+            max={90}
+            step={0.5}
+            show={`${(brand.oklch.l * 100).toFixed(1)}%`}
+            onChange={(v) =>
+              setInput((i) => ({ ...i, primary: { ...i.primary, solidL: v / 100 } }))
+            }
+          />
+          <Dial
+            key={flash}
+            flash={flash > 0}
+            label={dark ? "chroma, dark" : "chroma"}
+            value={chroma}
+            min={dark ? a.chroma * 0.4 : 0.02}
+            max={dark ? a.chroma * 1.2 : 0.3}
+            step={0.001}
+            show={chroma.toFixed(3)}
+            reset={dark ? a.chroma : undefined}
+            onChange={setChroma}
+          />
+          <Dial
+            label="hue"
+            value={a.hue}
+            min={0}
+            max={360}
+            step={1}
+            show={deg(a.hue)}
+            onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, hue: v } }))}
+          />
+          {dark ? (
+            <p className="spring-meta">
+              Dark chroma applies to every strip, grays and status colors too.
+            </p>
+          ) : null}
+        </>
+      ) : (
+        ch.map((c, k) => (
+          <Dial
+            key={`${format}-${c.label}`}
+            label={c.label}
+            value={vals[k]!}
+            min={c.min}
+            max={c.max}
+            step={c.step}
+            show={`${vals[k]}${c.unit}`}
+            onChange={(v) =>
+              setSeed(
+                fromChannels(
+                  format,
+                  vals.map((x, j) => (j === k ? v : x)),
+                ),
+              )
+            }
+          />
+        ))
+      )}
+      <hr className="spring-rule" />
+      <p className="spring-group">scale</p>
+      <CurveEditor
+        curve={curve}
+        mode={mode}
+        strips={[
+          primary[mode],
+          ...Object.entries(system.scales)
+            .filter(([k]) => k !== "primary")
+            .map(([, sc]) => sc![mode]),
+        ]}
+        onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
+      />
+      <Dial
+        label="hue shift"
+        reset={0}
+        value={curve.hueShift}
+        min={-40}
+        max={40}
+        step={1}
+        show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
+        onChange={(v) => setCurve({ hueShift: v })}
+      />
+      <hr className="spring-rule" />
+      <p className="spring-group">grays</p>
+      <Row label="lean">
+        <Segmented
+          label="Gray hue"
+          options={["primary", "warm", "cool"] as const}
+          value={grays ?? ("" as "primary")}
+          onChange={(v) =>
+            setInput((i) => ({ ...i, neutralHue: v === "primary" ? undefined : GRAY_SNAP[v] }))
+          }
+          render={(v) => v[0]!.toUpperCase() + v.slice(1)}
+        />
+      </Row>
+      <Dial
+        label="tint"
+        scale={100}
+        reset={DEFAULT_INPUT.neutralTint}
+        value={input.neutralTint}
+        min={0}
+        max={1}
+        step={0.01}
+        show={`${Math.round(input.neutralTint * 100)}%`}
+        onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
+      />
+      {system.data.length ? (
+        <>
+          <hr className="spring-rule" />
+          <p className="spring-group">data viz</p>
+          <DataRamps system={system} setInput={setInput} />
+        </>
       ) : null}
+      <hr className="spring-rule" />
+      <p className="spring-group">rules</p>
+      <Row label="contrast">
+        <Segmented
+          label="Contrast target"
+          options={["aa", "aaa", "apca"] as const}
+          value={input.contrast ?? "aa"}
+          onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
+          render={(v) => v.toUpperCase()}
+        />
+      </Row>
+      <Row label="button text">
+        <Segmented
+          label="Text on primary buttons"
+          options={["auto", "white", "ink"] as const}
+          value={a.label ?? "auto"}
+          onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, label: v } }))}
+          render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
+        />
+      </Row>
+      {system.adjustments.length ? (
+        <div className="spring-changed">
+          <p className="spring-group">what the rules changed</p>
+          <ul>
+            {system.adjustments.map((t) => (
+              <li key={t} className="spring-meta">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
+      )}
+    </>
+  );
+}
+
+/**
+ * Which data colors the two ramps use. "amounts" runs one color light to dark;
+ * "above / below" meets two colors at a neutral middle.
+ */
+function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
+  const keys = system.data.map((d) => d.key);
+  const options = system.data.map((d, n) => ({ value: String(n), label: d.name }));
+  const at = (key?: string) => String(Math.max(0, keys.indexOf(key ?? "")));
+  const c = system.charts;
+  const setRamps = (r: Partial<NonNullable<Spring["input"]["ramps"]>>) =>
+    setInput((i) => ({ ...i, ramps: { ...i.ramps, ...r } }));
+  const div: [number, number] = [Number(at(c.div?.[0])), Number(at(c.div?.[1] ?? keys[1]))];
+  // The two arms must differ: picking the other arm's color swaps them.
+  const pair = (a: number, b: number, was: number): [number, number] =>
+    a !== b ? [a, b] : a === div[0] ? [was, b] : [a, was];
+  return (
+    <>
+      <Row label="amounts">
+        <Select
+          label="Color for amounts, light to dark"
+          hideLabel
+          value={at(c.seq)}
+          options={options}
+          onChange={(v) => setRamps({ seq: Number(v) })}
+        />
+      </Row>
+      {keys.length > 1 ? (
+        <>
+          <Row label="below">
+            <Select
+              label="Color for values below the middle"
+              hideLabel
+              value={String(div[0])}
+              options={options}
+              onChange={(v) => setRamps({ div: pair(Number(v), div[1], div[0]) })}
+            />
+          </Row>
+          <Row label="above">
+            <Select
+              label="Color for values above the middle"
+              hideLabel
+              value={String(div[1])}
+              options={options}
+              onChange={(v) => setRamps({ div: pair(div[0], Number(v), div[1]) })}
+            />
+          </Row>
+        </>
+      ) : null}
+      <p className="spring-meta">
+        Amounts shade one color from light to dark. Above and below meet two colors at a gray
+        middle, for change against a baseline.
+      </p>
     </>
   );
 }
 
 // ——— Type ———
 
-const group = (n: FontName) => FONTS[n].tag;
-const canDo = (n: FontName, job: string) => (FONTS[n].jobs as readonly string[]).includes(job);
-const fontOptions = (job: string) =>
-  FONT_NAMES.filter((n) => canDo(n, job)).map((n) => ({ value: n, label: n, tag: group(n) }));
+const ROLE_NAME: Record<FontRole, string> = { heading: "Headings", body: "Text", mono: "Code" };
 
-export function SpringType() {
-  const { input, system, line, setInput, setLine } = useSpring();
-  const [mode] = useMode();
+function TypeControls({
+  input,
+  line,
+  setInput,
+  setLine,
+  onBrowse,
+}: Spring & { onBrowse: (r: FontRole) => void }) {
   const t = input.type;
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
-  const [mood, setMood] = useState<keyof typeof MOODS>("neutral");
-  const [manual, setManual] = useState(false);
-  const pool = useMemo(
-    () => pairings(MOODS[mood]!.feel, 4, undefined, input.stack.building),
-    [mood, input.stack.building],
-  );
-  const ob = opticalBase(t.body);
-  const ws = FONTS[t.heading].weights as readonly number[];
+  const ob = opticalBase(t.body, t.extra);
+  const head = fontInfo(t.heading, t.extra);
+  const lo = head.variable?.[0] ?? head.weights[0]!;
+  const hi = head.variable?.[1] ?? head.weights[head.weights.length - 1]!;
+  const fontsId = useId();
   return (
-    <Toy>
+    <>
+      <Dial
+        label="Body size"
+        reset={16}
+        value={t.base}
+        min={12}
+        max={20}
+        step={1}
+        show={`${t.base}px`}
+        onChange={(v) => set({ base: v })}
+      />
+      {fontInfo(t.body, t.extra).measured && Math.abs(ob - t.base) >= 1.5 ? (
+        <p className="toy__caption">
+          {t.body} reads {ob > 16 ? "small" : "large"} here.{" "}
+          <button
+            type="button"
+            className="spring-link"
+            onClick={() => set({ base: Math.round(ob) })}
+          >
+            Use {Math.round(ob)}px
+          </button>
+        </p>
+      ) : null}
+      <Select
+        label="Scale ratio"
+        value={String(t.ratio)}
+        options={ratioOptions(t.ratio, input.stack.building)}
+        onChange={(v) => set({ ratio: Number(v) })}
+      />
+      {hi > lo ? (
+        <Dial
+          label="Heading weight"
+          value={t.headingWeight}
+          min={lo}
+          max={hi}
+          step={head.variable ? 10 : 100}
+          show={String(t.headingWeight)}
+          onChange={(v) => set({ headingWeight: v })}
+        />
+      ) : null}
+      {(["heading", "body", "mono"] as const).map((r) => (
+        <div key={r} className="field">
+          <span className="field__label" id={`${fontsId}-${r}`}>
+            {ROLE_NAME[r]}
+          </span>
+          <button
+            type="button"
+            className="select__trigger"
+            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
+            onClick={() => onBrowse(r)}
+          >
+            <span id={`${fontsId}-${r}-v`} className="select__value">
+              {t[r]}
+            </span>
+            <span className="select__icon" aria-hidden>
+              <Chevron dir="right" />
+            </span>
+          </button>
+        </div>
+      ))}
       <Text
-        label="Your line"
+        label="Sample text"
         value={line}
         onChange={setLine}
         placeholder="A short line about what it does and who it helps."
       />
-      <div className="field">
-        <span className="field__label">Mood</span>
-        <span className="flex flex-wrap gap-x-3">
-          {Object.entries(MOODS).map(([k, m]) => (
-            <button
-              key={k}
-              type="button"
-              className="spring-cmd"
-              aria-pressed={k === mood}
-              onClick={() => setMood(k as keyof typeof MOODS)}
-            >
-              {k === mood ? `[${m.label.toLowerCase()}]` : m.label.toLowerCase()}
-            </button>
-          ))}
-        </span>
-      </div>
-      <div className="spring-pairs">
-        {pool.map((p) => (
-          <PairButton
-            key={`${p.heading}-${p.body}`}
-            p={p}
-            name={input.name}
-            line={line}
-            on={p.heading === t.heading && p.body === t.body}
-            onPick={() => set({ heading: p.heading, body: p.body, mono: p.mono })}
-          />
-        ))}
-      </div>
-      <button
-        type="button"
-        className="spring-cmd"
-        aria-expanded={manual}
-        onClick={() => setManual((m) => !m)}
-      >
-        {manual ? "[x]" : "[ ]"} pick fonts yourself
-      </button>
+    </>
+  );
+}
+
+function TypeOutput({ system, mode }: { system: System; mode: Mode }) {
+  const t = system.input.type;
+  return (
+    <>
+      <Ladder system={system} mode={mode} />
       <div className="spring-grid">
-        {manual ? (
-          <>
-            <Pick
-              label="Headings"
-              value={t.heading}
-              options={fontOptions("heading")}
-              onChange={(v) => set({ heading: v })}
-            />
-            <Pick
-              label="Text"
-              value={t.body}
-              options={fontOptions("body")}
-              onChange={(v) => set({ body: v })}
-            />
-            <Pick
-              label="Code and numbers"
-              value={t.mono}
-              options={fontOptions("mono")}
-              onChange={(v) => set({ mono: v })}
-            />
-          </>
-        ) : null}
-        <Slider
-          label="Body size"
-          value={t.base}
-          min={12}
-          max={20}
-          step={1}
-          show={`${t.base}px`}
-          onChange={(v) => set({ base: v })}
-        />
-        <Choice
-          label="Scale"
-          value={String(t.ratio)}
-          options={ratioOptions(t.ratio)}
-          onChange={(v) => set({ ratio: Number(v) })}
-        />
-        {ws.length > 1 ? (
-          <Slider
-            label="Heading weight"
-            value={t.headingWeight}
-            min={ws[0]!}
-            max={ws[ws.length - 1]!}
-            step={FONTS[t.heading].variable ? 10 : 100}
-            show={String(t.headingWeight)}
-            onChange={(v) => set({ headingWeight: v })}
-          />
-        ) : null}
-      </div>
-      {Math.abs(ob - t.base) >= 1.5 ? (
-        <p className="toy__caption">
-          {t.body} has a {ob > 16 ? "short" : "tall"} x-height, so {t.base}px reads{" "}
-          {ob > 16 ? "small" : "large"}. Its size that matches Inter at 16px rounds to{" "}
-          {Math.round(ob)}px.{" "}
-          <button
-            type="button"
-            className="spring-cmd"
-            onClick={() => set({ base: Math.round(ob) })}
-          >
-            [use {Math.round(ob)}px]
-          </button>
-        </p>
-      ) : null}
-      <p className="toy__caption">{ratioAdvice(input.stack.building, t.ratio)}</p>
-      <Ladder system={system} mode={mode} line={line} />
-      <div className="spring-grid">
-        <Facts font={t.heading} job="Headings" />
+        <Facts font={t.heading} job="Headings" extra={t.extra} />
         {t.body !== t.heading ? (
-          <Facts font={t.body} job="Text" />
+          <Facts font={t.body} job="Text" extra={t.extra} />
         ) : (
-          <Facts font={t.mono} job="Code" />
+          <Facts font={t.mono} job="Code" extra={t.extra} />
         )}
       </div>
-    </Toy>
+    </>
   );
 }
 
-const RATIOS = [
-  { value: "1.125", label: "1.125" },
-  { value: "1.2", label: "1.2" },
-  { value: "1.25", label: "1.25" },
-  { value: "1.333", label: "1.333" },
-  { value: "1.5", label: "1.5" },
-];
-const ratioOptions = (r: number) =>
-  RATIOS.some((o) => Number(o.value) === r)
-    ? RATIOS
-    : [...RATIOS, { value: String(r), label: r.toFixed(3) }].toSorted(
-        (a, b) => Number(a.value) - Number(b.value),
-      );
+// ——— Space and shape ———
 
-/** Why a ratio fits, in a sentence: dense screens need small steps, pages can shout. */
-function ratioAdvice(building: string, r: number): string {
-  const fit =
-    building === "site" ? [1.25, 1.333] : building === "dashboard" ? [1.125, 1.2] : [1.2, 1.25];
-  const what = building === "site" ? "A site" : building === "dashboard" ? "A dashboard" : "An app";
-  const why =
-    building === "site"
-      ? "can afford big jumps: few headings per page, read top to bottom"
-      : "stacks many titles in little room, so small steps keep them from crowding the content";
-  const verdict =
-    r >= fit[0]! && r <= fit[1]!
-      ? "Your scale fits."
-      : r > fit[1]!
-        ? "Yours will feel loud here."
-        : "Yours may flatten the hierarchy.";
-  return `${what} ${why}: ${fit[0]}–${fit[1]}. ${verdict} Phones use a gentler ratio automatically; sizes show phone–desktop.`;
-}
-
-function PairButton({
-  p,
-  name,
-  line,
-  on,
-  onPick,
-}: {
-  p: Pairing;
-  name: string;
-  line: string;
-  on: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button type="button" className="spring-pair" aria-pressed={on} onClick={onPick}>
-      <span className="spring-pair__mark" aria-hidden>
-        {on ? "[x]" : "[ ]"}
-      </span>
-      <span className="spring-pair__name" style={{ fontFamily: `"${p.heading}", serif` }}>
-        {name || "Your name"}
-      </span>
-      <span className="spring-pair__line" style={{ fontFamily: `"${p.body}", sans-serif` }}>
-        {line.trim() || "A short line about what it does."} From{" "}
-        <span className="tabular">€24.00</span> a month.
-      </span>
-      <span className="spring-meta">
-        {p.heading} + {p.body === p.heading ? "same family" : p.body}
-        {on && p.reasons[0] ? `. ${p.reasons[0]}` : ""}
-      </span>
-    </button>
-  );
-}
-
-type FontData = {
-  tag: string;
-  note: string;
-  weights: readonly number[];
-  variable: readonly number[] | null;
-  italic: boolean;
-  scripts: readonly string[];
-  tnum: boolean;
-  kb: number;
-  popularity: number;
-  license: string;
-};
-
-/** What people get wrong when choosing a brand font, on one card. */
-function Facts({ font, job }: { font: FontName; job: string }) {
-  const d = FONTS[font] as unknown as FontData;
-  const tnum = d.tag === "mono" || d.tnum;
-  const weights = d.variable
-    ? `Variable ${d.variable[0]}–${d.variable[1]}`
-    : d.weights.length === 1
-      ? `One (${d.weights[0]})`
-      : d.weights.join(", ");
-  return (
-    <div className="spring-tree">
-      <span>
-        {font.toLowerCase()} <span className="spring-meta">{job.toLowerCase()}</span>
-      </span>
-      <span className="spring-meta">
-        {d.note}
-        {d.popularity <= 10 ? " One of the ten most used fonts on the web." : ""}
-      </span>
-      <dl>
-        {(
-          [
-            [
-              "license",
-              d.license === "OFL" ? "OFL, free for logo, web and apps" : "check before use",
-            ],
-            ["weights", `${weights}${d.italic ? ", italics" : ", no italics"}`],
-            ["scripts", d.scripts.join(", ")],
-            ["numbers", tnum ? "tabular, columns line up" : "proportional, columns won't align"],
-            ["download", `~${d.kb} KB per weight`],
-          ] as const
-        ).map(([k, v], i, all) => (
-          <div key={k}>
-            <dt>
-              {i === all.length - 1 ? "└" : "├"} {k}
-            </dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-// ——— Space, shape and motion ———
-
-export function SpringShape() {
-  const { input, system, setInput } = useSpring();
-  const [mode] = useMode();
-  const [copied, copy, said] = useCopy();
+function ShapeControls({ input, system, setInput }: Spring) {
   const r = system.shape.radius;
   const c = system.space.control;
-  const sp = system.space;
   return (
-    <Toy
-      caption={`Spacing stays on a 4px grid; density moves control heights, gaps, the ${sp.gutter}px gutter and ${sp.section}px section rhythm together, so a denser system stays aligned.`}
-    >
-      <div className="spring-grid">
-        <Slider
-          label="Density"
-          value={input.density}
-          min={0}
-          max={1}
-          step={0.01}
-          show={`controls ${c.sm}/${c.md}/${c.lg}px`}
-          onChange={(v) => setInput((i) => ({ ...i, density: v }))}
-        />
-        <Slider
-          label="Roundness"
-          value={input.roundness}
-          min={0}
-          max={1}
-          step={0.01}
-          show={`${r.sm}/${r.md}/${r.lg}px`}
-          onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
-        />
-      </div>
-      <p className="spring-meta">
-        click a step to copy its var
-        <output className="sr-only">{said}</output>
-      </p>
+    <>
+      <Dial
+        label="Density"
+        scale={100}
+        reset={DEFAULT_INPUT.density}
+        value={input.density}
+        min={0}
+        max={1}
+        step={0.01}
+        show={`controls ${c.sm}/${c.md}/${c.lg}px`}
+        onChange={(v) => setInput((i) => ({ ...i, density: v }))}
+      />
+      <Dial
+        label="Roundness"
+        scale={100}
+        reset={DEFAULT_INPUT.roundness}
+        value={input.roundness}
+        min={0}
+        max={1}
+        step={0.01}
+        show={`${r.sm}/${r.md}/${r.lg}px`}
+        onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
+      />
+      <Nested system={system} />
+    </>
+  );
+}
+
+function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
+  const [copied, copy, said] = useCopy();
+  return (
+    <>
+      <output className="sr-only">{said}</output>
       <div className="spring-ruler">
-        {Object.entries(sp.scale)
+        {Object.entries(system.space.scale)
           .filter(([k]) => k !== "0")
           .toSorted((a, b) => a[1] - b[1])
           .map(([k, px]) => {
@@ -677,7 +801,6 @@ export function SpringShape() {
                 key={k}
                 type="button"
                 className="spring-ruler__row"
-
                 onClick={() => copy(name, `var(${name})`)}
               >
                 <span>{copied === name ? "✓ copied" : name}</span>
@@ -687,9 +810,279 @@ export function SpringShape() {
             );
           })}
       </div>
-      <Nested system={system} />
       <Components system={system} mode={mode} />
-    </Toy>
+    </>
+  );
+}
+
+// ——— Motion ———
+
+function MotionControls({ input, system, setInput, onCommit }: Spring & { onCommit: () => void }) {
+  const m = system.motion;
+  return (
+    <>
+      <Dial
+        label="Energy"
+        scale={100}
+        reset={DEFAULT_INPUT.motion}
+        value={input.motion}
+        min={0}
+        max={1}
+        step={0.01}
+        show={`base ${m.duration.base}ms`}
+        onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
+        onCommit={onCommit}
+      />
+      <dl className="spring-facts">
+        {Object.entries(m.duration).map(([k, ms]) => (
+          <div key={k} className="contents">
+            <dt>--duration-{k}</dt>
+            <dd className="tabular">{ms}ms</dd>
+          </div>
+        ))}
+      </dl>
+    </>
+  );
+}
+
+function MotionOutput({ system, run, onRun }: { system: System; run: number; onRun: () => void }) {
+  const [copied, copy, said] = useCopy();
+  const m = system.motion;
+  return (
+    <>
+      <div className="spring-race">
+        {(
+          [
+            ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI", "base"],
+            ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen", "slow"],
+            [
+              "spring",
+              m.easing.spring,
+              m.duration.spring,
+              "Drag release, playful moments",
+              "spring",
+            ],
+          ] as const
+        ).map(([name, ease, ms, job, dur]) => (
+          <div key={name} className="spring-lane">
+            <span className="spring-lane__head">
+              <span className="spring-meta">
+                {name} · {ms}ms · {job}
+              </span>
+              <button
+                type="button"
+                className="spring-link"
+                title={ease}
+                onClick={() =>
+                  copy(
+                    name,
+                    `transform var(--duration-${dur}) var(--ease-${name.replace("ease-", "")})`,
+                  )
+                }
+              >
+                {copied === name ? "Copied" : "Copy"}
+                <span className="sr-only"> {name} transition</span>
+              </button>
+            </span>
+            <span className="spring-track">
+              <span
+                key={run}
+                className="spring-ball"
+                data-run={run > 0}
+                style={{ "--d": `${ms}ms`, "--e": ease } as React.CSSProperties}
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+      <output className="sr-only">{said}</output>
+      <div className="toy__actions">
+        <button type="button" className="button" onClick={onRun}>
+          Replay
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ——— Tokens ———
+
+function TokensControls({
+  system,
+  input,
+  setInput,
+  files,
+  f,
+  setFile,
+}: Spring & {
+  files: ExportFile[];
+  f: ExportFile;
+  setFile: (label: string) => void;
+}) {
+  const [copied, copy, said] = useCopy();
+  const download = () =>
+    save(
+      `${slug(system.input.name)}.zip`,
+      zip(files.map((x) => ({ path: x.path, content: x.content }))),
+    );
+  const name = f.path.split("/").pop();
+  return (
+    <>
+      <Text
+        label="System name"
+        value={input.name}
+        onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
+      />
+      <div className="spring-export">
+        <button type="button" className="button button--primary" onClick={download}>
+          Download all files (.zip)
+        </button>
+        <span className="spring-export__row">
+          <button type="button" className="button" onClick={() => copy("prompt", toPrompt(system))}>
+            {copied === "prompt" ? "Copied" : "Copy agent prompt"}
+          </button>
+          <button type="button" className="button" onClick={() => copy("link", shareUrl())}>
+            {copied === "link" ? "Copied" : "Copy share link"}
+          </button>
+        </span>
+      </div>
+      <Select
+        label="File"
+        value={f.label}
+        options={files.map((x) => ({ value: x.label, label: x.path }))}
+        onChange={setFile}
+      />
+      <span className="spring-export__row">
+        <button type="button" className="button" onClick={() => copy(f.path, f.content)}>
+          {copied === f.path ? "Copied" : "Copy"}
+        </button>
+        <button
+          type="button"
+          className="button"
+          onClick={() => save(name!, text(f.content, "text/plain"))}
+        >
+          <span aria-hidden>↓</span>
+          <span className="sr-only">Download</span> {name}
+        </button>
+      </span>
+      <output className="sr-only">{said}</output>
+    </>
+  );
+}
+
+// ——— Audit ———
+
+/** Kept but unlinked: it opens only at /spring#audit. */
+function AuditDialog() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const check = () => setOpen(location.hash === "#audit");
+    check();
+    addEventListener("hashchange", check);
+    return () => removeEventListener("hashchange", check);
+  }, []);
+  // "fix all" replaces the whole system, so keep the visitor's own until they move on.
+  const [before, setBefore] = useState<SystemInput | null>(null);
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <span className="flex items-center gap-3">
+        <output className="spring-meta">{before ? "Loaded the audited system." : ""}</output>
+        {before ? (
+          <button
+            type="button"
+            className="spring-link"
+            onClick={() => {
+              loadInput(before);
+              setBefore(null);
+            }}
+          >
+            Undo
+          </button>
+        ) : null}
+      </span>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="palette-backdrop" />
+        <Dialog.Popup className="palette spring spring-dialog">
+          <div className="spring-dialog__head">
+            <Dialog.Title className="spring-dialog__title">Audit a system</Dialog.Title>
+            <Dialog.Close className="button">Close</Dialog.Close>
+          </div>
+          <SpringAudit
+            onFix={(prev) => {
+              setBefore(prev);
+              setOpen(false);
+            }}
+          />
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+const RATIOS = [1.125, 1.2, 1.25, 1.333, 1.5];
+/** Dense screens need small steps; pages can shout. */
+const FITS: Record<string, readonly [number, number]> = {
+  site: [1.25, 1.333],
+  dashboard: [1.125, 1.2],
+};
+const ratioOptions = (r: number, building: string) => {
+  const [lo, hi] = FITS[building] ?? [1.2, 1.25];
+  const fit =
+    building === "site" ? "fits sites" : building === "dashboard" ? "fits dashboards" : "fits apps";
+  const all = RATIOS.includes(r) ? RATIOS : [...RATIOS, r].toSorted((x, y) => x - y);
+  return all.map((v) => ({
+    value: String(v),
+    label: String(v),
+    hint: v >= lo && v <= hi ? fit : undefined,
+  }));
+};
+
+/** What people get wrong when choosing a brand font, on one card. */
+function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {
+  const info = fontInfo(font, extra);
+  const d = isCurated(font) ? FONTS[font] : null;
+  const weights = info.variable
+    ? `Variable ${info.variable[0]}–${info.variable[1]}`
+    : info.weights.length === 1
+      ? `One (${info.weights[0]})`
+      : info.weights.join(", ");
+  const rows: [string, string][] = d
+    ? [
+        ["license", d.license === "OFL" ? "OFL, free for logo, web and apps" : "check before use"],
+        ["weights", `${weights}${d.italic ? ", italics" : ", no italics"}`],
+        ["scripts", d.scripts.join(", ")],
+        [
+          "numbers",
+          d.tag === "mono" || d.tnum
+            ? "tabular, columns line up"
+            : "proportional, columns won't align",
+        ],
+        ["download", `~${d.kb} KB per weight`],
+      ]
+    : [
+        ["weights", weights],
+        ["license", "check it on fonts.google.com before a logo"],
+        ["fallback", "generic stack; Spring hasn't measured this font"],
+      ];
+  return (
+    <div className="spring-tree">
+      <span>
+        {font} <span className="spring-meta">{job}</span>
+      </span>
+      <span className="spring-meta">
+        {d
+          ? `${d.note}${d.popularity <= 10 ? " One of the ten most used fonts on the web." : ""}`
+          : "From the Google Fonts catalogue."}
+      </span>
+      <dl>
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -714,251 +1107,5 @@ function Nested({ system }: { system: System }) {
         </figure>
       ))}
     </div>
-  );
-}
-
-export function SpringMotion() {
-  const { input, system, setInput } = useSpring();
-  const [run, setRun] = useState(0);
-  const [copied, copy, said] = useCopy();
-  const m = system.motion;
-  return (
-    <Toy
-      caption={`Energy sets every duration at once. The spring (stiffness ${m.springConfig.stiffness}, damping ${m.springConfig.damping}) ships as CSS linear() and runs for its settle time, so it needs no library.`}
-    >
-      <Slider
-        label="Energy"
-        value={input.motion}
-        min={0}
-        max={1}
-        step={0.01}
-        show={input.motion < 0.34 ? "calm" : input.motion < 0.67 ? "responsive" : "lively"}
-        onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
-        onCommit={() => setRun((r) => r + 1)}
-      />
-      <div className="spring-race">
-        {(
-          [
-            ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI", "base"],
-            ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen", "slow"],
-            [
-              "spring",
-              m.easing.spring,
-              m.duration.spring,
-              "Drag release, playful moments",
-              "spring",
-            ],
-          ] as const
-        ).map(([name, ease, ms, job, dur]) => (
-          <div key={name} className="spring-lane">
-            <span className="spring-lane__head">
-              <span className="spring-meta">
-                {name} · {ms}ms · {job}
-              </span>
-              <button
-                type="button"
-                className="spring-cmd"
-                title={ease}
-                onClick={() =>
-                  copy(
-                    name,
-                    `transform var(--duration-${dur}) var(--ease-${name.replace("ease-", "")})`,
-                  )
-                }
-              >
-                {copied === name ? "✓ copied" : "[copy]"}
-                <span className="sr-only"> {name} transition</span>
-              </button>
-            </span>
-            <span className="spring-track">
-              <span
-                key={run}
-                className="spring-ball"
-                data-run={run > 0}
-                style={{ "--d": `${ms}ms`, "--e": ease } as React.CSSProperties}
-              />
-            </span>
-          </div>
-        ))}
-      </div>
-      <output className="sr-only">{said}</output>
-      <div className="toy__actions">
-        <button type="button" className="spring-cmd" onClick={() => setRun((r) => r + 1)}>
-          $ race
-        </button>
-      </div>
-    </Toy>
-  );
-}
-
-// ——— Stack ———
-
-export function SpringStack() {
-  const { input, system, setInput } = useSpring();
-  const s = input.stack;
-  const rec = recommend(s);
-  const set = (p: Partial<SystemInput["stack"]>) =>
-    setInput((i) => ({ ...i, stack: { ...i.stack, ...p } }));
-  const comp = COMPONENTS[system.stack.components]!;
-  const icon = ICONS[system.stack.icons]!;
-  const body = system.type.tokens.find((t) => t.role === "body")!;
-  return (
-    <Toy>
-      <Choice
-        label="What are you building?"
-        value={s.building}
-        options={[
-          { value: "site", label: "Site" },
-          { value: "app", label: "App" },
-          { value: "dashboard", label: "Dashboard" },
-        ]}
-        onChange={(v) => set({ building: v, components: undefined, icons: undefined })}
-      />
-      <Choice
-        label="Own the component code, or install a package?"
-        value={s.ownership}
-        options={[
-          { value: "own", label: "Own the code" },
-          { value: "package", label: "Package" },
-        ]}
-        onChange={(v) => set({ ownership: v, components: undefined })}
-      />
-      <Choice
-        label="Styling"
-        value={s.styling}
-        options={[
-          { value: "tailwind", label: "Tailwind v4" },
-          { value: "css", label: "Plain CSS" },
-        ]}
-        onChange={(v) => set({ styling: v, components: undefined })}
-      />
-      <div className="spring-grid">
-        <Pick
-          label="Components"
-          value={system.stack.components}
-          options={Object.values(COMPONENTS).map((c) => ({
-            value: c.id,
-            label: c.name,
-            tag: c.id === rec.components && c.id !== system.stack.components ? "fits" : undefined,
-          }))}
-          onChange={(v) => set({ components: v })}
-        />
-        <Pick
-          label="Icons"
-          value={system.stack.icons}
-          options={Object.values(ICONS).map((c) => ({
-            value: c.id,
-            label: c.name,
-            tag: c.id === rec.icons && c.id !== system.stack.icons ? "fits" : undefined,
-          }))}
-          onChange={(v) => set({ icons: v })}
-        />
-      </div>
-      <p className="toy__caption">
-        {system.stack.components === rec.components ? rec.reasons.components : comp.why}{" "}
-        {system.stack.icons === rec.icons ? rec.reasons.icons : icon.why}
-        {icon.strokeAware
-          ? ` Stroke ${iconStroke(body.weight)}px to match your ${body.weight} body weight.`
-          : ""}
-      </p>
-      <Command command={`${comp.install} && ${icon.install}`} />
-    </Toy>
-  );
-}
-
-// ——— Preview ———
-
-export function SpringPreview() {
-  const { system, line } = useSpring();
-  const [mode, setMode] = useMode();
-  const [width, setWidth] = useState<"desktop" | "phone">("desktop");
-  return (
-    <Toy>
-      <div className="toy__bar">
-        <Segmented
-          label="Theme"
-          options={["light", "dark"] as const}
-          value={mode}
-          onChange={setMode}
-          render={(v) => (v === "light" ? "Light" : "Dark")}
-        />
-        <Segmented
-          label="Width"
-          options={["desktop", "phone"] as const}
-          value={width}
-          onChange={setWidth}
-          render={(v) => (v === "desktop" ? "Desktop" : "Phone")}
-        />
-      </div>
-      <div
-        className="grid gap-4"
-        style={{
-          maxWidth: width === "phone" ? "24rem" : undefined,
-          marginInline: width === "phone" ? "auto" : undefined,
-        }}
-      >
-        <Homepage system={system} mode={mode} line={line} />
-        <AppScreen system={system} mode={mode} />
-      </div>
-    </Toy>
-  );
-}
-
-// ——— Export ———
-
-const slug = (name: string) => name.toLowerCase().replace(/\W+/g, "-") || "design-system";
-
-export function SpringExport() {
-  const { system } = useSpring();
-  const files = useMemo(() => exportAll(system), [system]);
-  const [tab, setTab] = useState(files[0]!.path);
-  const [copied, copy, said] = useCopy();
-  const download = () => {
-    const url = URL.createObjectURL(zip(files.map((f) => ({ path: f.path, content: f.content }))));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug(system.input.name)}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  const f = files.find((x) => x.path === tab) ?? files[0]!;
-  return (
-    <Toy>
-      <div className="toy__actions">
-        <button
-          type="button"
-          className="spring-cmd"
-          onClick={() => copy("prompt", toPrompt(system))}
-        >
-          {copied === "prompt" ? "✓ copied" : "$ copy prompt for your agent"}
-        </button>
-        <button type="button" className="spring-cmd" onClick={download}>
-          $ download {slug(system.input.name)}.zip
-        </button>
-        <button type="button" className="spring-cmd" onClick={() => copy("link", shareUrl())}>
-          {copied === "link" ? "✓ copied" : "$ share link"}
-        </button>
-      </div>
-      <div className="toy__bar">
-        <Segmented
-          label="File"
-          options={files.map((x) => x.path)}
-          value={f.path}
-          onChange={setTab}
-          render={(v) => v.split("/").pop()}
-        />
-        <button type="button" className="spring-cmd" onClick={() => copy(f.path, f.content)}>
-          {copied === f.path ? "✓ copied" : "[copy]"}
-        </button>
-      </div>
-      <output className="sr-only">{said}</output>
-      <textarea
-        className="spring-audit-input spring-code"
-        value={f.content}
-        readOnly
-        aria-label={f.path}
-        spellCheck={false}
-      />
-    </Toy>
   );
 }

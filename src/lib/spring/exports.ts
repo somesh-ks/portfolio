@@ -3,9 +3,9 @@
  * byte-for-byte what you download.
  */
 import { stringifyYaml as stringify } from "./yaml";
-import { STEP_JOBS, STEPS, type Mode } from "./color";
+import { DEFAULT_CURVE, ENDS, STEP_JOBS, STEPS, type Mode } from "./color";
 import { COMPONENTS, ICONS, STYLING, iconStroke } from "./stack";
-import { slug, type ScaleName, type System } from "./system";
+import { CONTRAST_LABEL, slug, type ScaleName, type System } from "./system";
 import { fontStack, googleFontsUrl, ROLE_JOBS } from "./type";
 
 export interface ExportFile {
@@ -14,46 +14,103 @@ export interface ExportFile {
   content: string;
 }
 
-const SCALES: ScaleName[] = ["accent", "neutral", "danger", "warning", "success", "info"];
+const SCALES: ScaleName[] = ["primary", "neutral", "danger", "warning", "success", "info"];
+/** Built-in scales, then the strips the user added. */
+/** Every exported scale: the built-ins, UI strips, and the data strips the ramps use. */
+const scaleNames = (sys: System) => [
+  ...SCALES,
+  ...sys.custom.map((c) => c.key),
+  ...new Set([sys.charts.seq, ...(sys.charts.div ?? [])].filter((k): k is string => !!k)),
+];
 const px = (n: number) => `${n}px`;
+
+/** Foundations every system needs that no slider changes: layers, states, sizes. */
+const Z = {
+  base: 0,
+  raised: 10,
+  dropdown: 1000,
+  sticky: 1100,
+  overlay: 1300,
+  modal: 1400,
+  toast: 1500,
+  tooltip: 1600,
+};
+const OPACITY = { disabled: 0.5, muted: 0.7, scrim: 0.6 };
+const BREAKPOINT = { sm: 640, md: 768, lg: 1024, xl: 1280 };
+const ICON = { sm: 16, md: 20, lg: 24 };
+const FOCUS = { width: 2, offset: 2 };
 
 // ---------------------------------------------------------------- CSS
 
 function colorVars(sys: System, mode: Mode, indent = "  "): string {
   const lines: string[] = [];
-  for (const name of SCALES)
-    for (const s of sys.scales[name][mode]) lines.push(`${indent}--${name}-${s.step}: ${s.css};`);
+  for (const name of scaleNames(sys))
+    for (const s of sys.scales[name]![mode]) lines.push(`${indent}--${name}-${s.step}: ${s.css};`);
   for (const r of sys.roles[mode]) {
     const ref = r.from.match(/^(\w+)\.(\d+)$/);
     lines.push(`${indent}--color-${r.name}: ${ref ? `var(--${ref[1]}-${ref[2]})` : r.css};`);
   }
+  for (const [name, hex] of chartVars(sys, mode)) lines.push(`${indent}--${name}: ${hex};`);
+  lines.push(`${indent}--chart-gap: var(--color-bg);`);
   for (const k of ["sm", "md", "lg"] as const)
     lines.push(`${indent}--shadow-${k}: ${sys.shadows[mode][k]};`);
   return lines.join("\n");
 }
 
-function staticVars(
-  sys: System,
-  indent = "  ",
-  fonts?: { body: string; heading: string; mono: string },
-): string[] {
-  const f = sys.input.type;
-  const out: string[] = [
-    `${indent}--font-body: ${fonts?.body ?? fontStack(f.body)};`,
-    `${indent}--font-heading: ${fonts?.heading ?? fontStack(f.heading)};`,
-    `${indent}--font-mono: ${fonts?.mono ?? fontStack(f.mono)};`,
+/** The DESIGN.md paragraph on charts, written from the data colors that exist. */
+function chartsDoc(sys: System): string {
+  const c = sys.charts;
+  const n = c.keys.length;
+  if (!n) return "No data colors are set; add some before drawing charts.";
+  const names = sys.data.map((d, i) => `\`--chart-${i + 1}\` (${d.name})`).join(", ");
+  const ramps = [
+    c.seq
+      ? `\`--chart-seq-1\` … \`--chart-seq-${c.sequential.light.length}\` are for amounts, light to strong, from ${c.seq}`
+      : "",
+    c.div
+      ? `\`--chart-div-1\` … \`--chart-div-${c.diverging.light.length}\` are for values above and below a midpoint (\`--chart-div-${Math.ceil(c.diverging.light.length / 2)}\`), from ${c.div[0]} to ${c.div[1]}`
+      : "",
+  ].filter(Boolean);
+  return `Data uses its own colors, never the UI roles. ${names} are series colors in a fixed order: use them in order and keep a series' color when filtering. Each is the mark step of a 12-step scale on the same curve as the UI, and every one reaches 3:1 on the page. Past ${n} series, group the rest as \`--chart-other\`.${ramps.length ? ` ${ramps.join("; ")}.` : ""} Separate touching bars and pie slices with a 1–2px \`--chart-gap\`. Label series directly where you can, so color is never the only cue.`;
+}
+
+/** Chart colors as [token name, hex]: one per data color in order, both ramps, "other". */
+function chartVars(sys: System, mode: Mode): [string, string][] {
+  const c = sys.charts;
+  return [
+    ...c.marks[mode].map((h, i): [string, string] => [`chart-${i + 1}`, h]),
+    ...c.sequential[mode].map((h, i): [string, string] => [`chart-seq-${i + 1}`, h]),
+    ...c.diverging[mode].map((h, i): [string, string] => [`chart-div-${i + 1}`, h]),
+    ["chart-other", c.other[mode]],
   ];
-  for (const tok of sys.type.tokens) {
-    out.push(
-      `${indent}--text-${tok.role}: ${tok.size};`,
-      `${indent}--text-${tok.role}--line-height: ${tok.lineHeight};`,
-      `${indent}--text-${tok.role}--letter-spacing: ${tok.tracking}em;`,
-      `${indent}--text-${tok.role}--font-weight: ${tok.weight};`,
-    );
-  }
-  out.push("");
-  for (const [k, v] of Object.entries(sys.space.scale))
-    out.push(`${indent}--space-${k.replace(".", "-")}: ${px(v)};`);
+}
+
+function fontVars(
+  sys: System,
+  indent: string,
+  fonts?: { body: string; heading: string; mono: string },
+) {
+  const f = sys.input.type;
+  return [
+    `${indent}--font-body: ${fonts?.body ?? fontStack(f.body, f.extra)};`,
+    `${indent}--font-heading: ${fonts?.heading ?? fontStack(f.heading, f.extra)};`,
+    `${indent}--font-mono: ${fonts?.mono ?? fontStack(f.mono, f.extra)};`,
+  ];
+}
+
+function typeVars(sys: System, indent: string): string[] {
+  return sys.type.tokens.flatMap((tok) => [
+    `${indent}--text-${tok.role}: ${tok.size};`,
+    `${indent}--text-${tok.role}--line-height: ${tok.lineHeight};`,
+    `${indent}--text-${tok.role}--letter-spacing: ${tok.tracking}em;`,
+    `${indent}--text-${tok.role}--font-weight: ${tok.weight};`,
+  ]);
+}
+
+function spaceVars(sys: System, indent: string): string[] {
+  const out = Object.entries(sys.space.scale).map(
+    ([k, v]) => `${indent}--space-${k.replace(".", "-")}: ${px(v)};`,
+  );
   out.push(
     `${indent}--control-sm: ${px(sys.space.control.sm)};`,
     `${indent}--control-md: ${px(sys.space.control.md)};`,
@@ -68,15 +125,149 @@ function staticVars(
   );
   for (const [k, v] of Object.entries(sys.shape.radius))
     out.push(`${indent}--radius-${k}: ${px(v)};`);
-  out.push(`${indent}--border-width: ${px(sys.shape.border.default)};`, "");
-  const m = sys.motion;
-  for (const [k, v] of Object.entries(m.duration)) out.push(`${indent}--duration-${k}: ${v}ms;`);
   out.push(
+    `${indent}--border-width: ${px(sys.shape.border.default)};`,
+    `${indent}--border-width-strong: ${px(sys.shape.border.strong)};`,
+    `${indent}--focus-width: ${px(FOCUS.width)};`,
+    `${indent}--focus-offset: ${px(FOCUS.offset)};`,
+    "",
+    ...Object.entries(ICON).map(([k, v]) => `${indent}--icon-${k}: ${px(v)};`),
+    ...Object.entries(Z).map(([k, v]) => `${indent}--z-${k}: ${v};`),
+    ...Object.entries(OPACITY).map(([k, v]) => `${indent}--opacity-${k}: ${v};`),
+    `${indent}/* Breakpoints, for reference: custom properties can't be used inside @media. */`,
+    ...Object.entries(BREAKPOINT).map(([k, v]) => `${indent}--breakpoint-${k}: ${px(v)};`),
+  );
+  return out;
+}
+
+function motionVars(sys: System, indent: string): string[] {
+  const m = sys.motion;
+  return [
+    ...Object.entries(m.duration).map(([k, v]) => `${indent}--duration-${k}: ${v}ms;`),
     `${indent}--ease-out: ${m.easing.out};`,
     `${indent}--ease-in-out: ${m.easing.inOut};`,
     `${indent}--ease-spring: ${m.easing.spring};`,
-  );
-  return out;
+  ];
+}
+
+function staticVars(
+  sys: System,
+  indent = "  ",
+  fonts?: { body: string; heading: string; mono: string },
+): string[] {
+  return [
+    ...fontVars(sys, indent, fonts),
+    ...typeVars(sys, indent),
+    "",
+    ...spaceVars(sys, indent),
+    "",
+    ...motionVars(sys, indent),
+  ];
+}
+
+const REDUCED_MOTION = [
+  "@media (prefers-reduced-motion: reduce) {",
+  "  :root {",
+  "    --duration-fast: 0ms;",
+  "    --duration-base: 0ms;",
+  "    --duration-slow: 0ms;",
+  "    --duration-spring: 0ms;",
+  "    --ease-spring: linear;",
+  "  }",
+  "}",
+];
+
+/** Light, explicit dark, and system dark: the same three blocks tokens.css uses. */
+function themed(sys: System, vars: (mode: Mode, indent: string) => string): string[] {
+  return [
+    ":root {",
+    "  color-scheme: light;",
+    vars("light", "  "),
+    "}",
+    "",
+    `:root[data-theme="dark"] {`,
+    "  color-scheme: dark;",
+    vars("dark", "  "),
+    "}",
+    "",
+    "@media (prefers-color-scheme: dark) {",
+    `  :root:not([data-theme="light"]) {`,
+    "    color-scheme: dark;",
+    vars("dark", "    "),
+    "  }",
+    "}",
+  ];
+}
+
+const AREAS = ["color", "type", "space", "motion"] as const;
+export type Area = (typeof AREAS)[number];
+const AREA_JSON: Record<Area, string[]> = {
+  color: ["color"],
+  type: ["font", "typography"],
+  space: ["space", "radius", "shadow", "border", "focus", "icon", "breakpoint", "z", "opacity"],
+  motion: ["duration", "easing"],
+};
+const AREA_NAME: Record<Area, string> = {
+  color: "colors",
+  type: "type",
+  space: "space",
+  motion: "motion",
+};
+
+const shadowLine = (l: string) => l.trimStart().startsWith("--shadow-");
+
+/** One area of the system on its own, as CSS and DTCG, for the per-tool downloads. */
+export function exportArea(sys: System, area: Area): { css: ExportFile; json: ExportFile } {
+  const name = `${slug(sys.input.name)}-${AREA_NAME[area]}`;
+  const head = `/* ${sys.input.name} ${AREA_NAME[area]}. Generated by Spring. */`;
+  const body: string[] =
+    area === "color"
+      ? themed(sys, (m, i) =>
+          colorVars(sys, m, i)
+            .split("\n")
+            .filter((l) => !shadowLine(l))
+            .join("\n"),
+        )
+      : area === "type"
+        ? [
+            `/* Fonts: ${googleFontsUrl([sys.input.type.body, sys.input.type.heading, sys.input.type.mono], sys.input.type.extra)} */`,
+            ...new Set(
+              [
+                sys.type.fallbacks.body.css,
+                sys.type.fallbacks.heading.css,
+                sys.type.fallbacks.mono.css,
+              ].filter(Boolean),
+            ),
+            ":root {",
+            ...fontVars(sys, "  "),
+            ...typeVars(sys, "  "),
+            "}",
+          ]
+        : area === "space"
+          ? [
+              ":root {",
+              ...spaceVars(sys, "  "),
+              "}",
+              "",
+              ...themed(sys, (m, i) =>
+                colorVars(sys, m, i).split("\n").filter(shadowLine).join("\n"),
+              ),
+            ]
+          : [":root {", ...motionVars(sys, "  "), "}", "", ...REDUCED_MOTION];
+  const all = toDtcg(sys);
+  const json = Object.fromEntries(["$description", ...AREA_JSON[area]].map((k) => [k, all[k]]));
+  return {
+    css: {
+      path: `${name}.css`,
+      label: `${AREA_NAME[area]} CSS`,
+      content: [head, "", ...body, ""].join("\n"),
+    },
+    json: {
+      path: `${name}.tokens.json`,
+      label: `${AREA_NAME[area]} DTCG`,
+      content: JSON.stringify(json, null, 2) + "\n",
+    },
+  };
 }
 
 function toCss(sys: System): string {
@@ -84,9 +275,11 @@ function toCss(sys: System): string {
   const fonts = sys.input.type;
   const out: string[] = [
     `/* ${sys.input.name} design tokens. Generated by Spring. Import once at the root. */`,
-    `/* Fonts: ${googleFontsUrl([fonts.body, fonts.heading, fonts.mono])} */`,
+    `/* Fonts: ${googleFontsUrl([fonts.body, fonts.heading, fonts.mono], fonts.extra)} */`,
     "",
-    ...new Set([t.fallbacks.body.css, t.fallbacks.heading.css, t.fallbacks.mono.css]),
+    ...new Set(
+      [t.fallbacks.body.css, t.fallbacks.heading.css, t.fallbacks.mono.css].filter(Boolean),
+    ),
     "",
     ":root {",
     "  color-scheme: light;",
@@ -107,15 +300,7 @@ function toCss(sys: System): string {
     "  }",
     "}",
     "",
-    "@media (prefers-reduced-motion: reduce) {",
-    "  :root {",
-    "    --duration-fast: 0ms;",
-    "    --duration-base: 0ms;",
-    "    --duration-slow: 0ms;",
-    "    --duration-spring: 0ms;",
-    "    --ease-spring: linear;",
-    "  }",
-    "}",
+    ...REDUCED_MOTION,
     "",
   ];
   return out.join("\n");
@@ -152,8 +337,9 @@ function toTailwind(sys: System): string {
     "  --color-current: currentColor;",
   ];
   for (const r of sys.roles.light) lines.push(`  --color-${r.name}: var(--color-${r.name});`);
-  for (const name of SCALES)
+  for (const name of scaleNames(sys))
     for (const s of STEPS) lines.push(`  --color-${name}-${s}: var(--${name}-${s});`);
+  for (const [name] of chartVars(sys, "light")) lines.push(`  --color-${name}: var(--${name});`);
   lines.push(
     "",
     "  --font-*: initial;",
@@ -194,8 +380,8 @@ function toTailwind(sys: System): string {
       "  --card-foreground: var(--color-text);",
       "  --popover: var(--color-bg);",
       "  --popover-foreground: var(--color-text);",
-      "  --primary: var(--color-accent);",
-      "  --primary-foreground: var(--color-accent-fg);",
+      "  --primary: var(--color-primary);",
+      "  --primary-foreground: var(--color-primary-fg);",
       "  --secondary: var(--color-fill);",
       "  --secondary-foreground: var(--color-text);",
       "  --muted: var(--color-fill);",
@@ -217,7 +403,6 @@ function toTailwind(sys: System): string {
         "card-foreground",
         "popover",
         "popover-foreground",
-        "primary",
         "primary-foreground",
         "secondary",
         "secondary-foreground",
@@ -228,8 +413,8 @@ function toTailwind(sys: System): string {
         "destructive",
         "input",
       ]
-        // bg-accent follows shadcn (a hover fill) so it pairs with text-accent-foreground;
-        // the brand color stays on bg-primary.
+        // bg-accent follows shadcn (a hover fill) so it pairs with text-accent-foreground.
+        // Spring's own --color-primary (the brand) is already in the theme above.
         .map((n) => `  --color-${n}: var(--${n});`),
       "}",
     );
@@ -251,10 +436,10 @@ const cubic = (s: string) => s.match(/[\d.]+/g)!.map(Number);
 
 function toDtcg(sys: System): Record<string, unknown> {
   const scale: Record<string, unknown> = {};
-  for (const name of SCALES) {
+  for (const name of scaleNames(sys)) {
     const group: Record<string, unknown> = {};
-    sys.scales[name].light.forEach((s, i) => {
-      const d = sys.scales[name].dark[i]!;
+    sys.scales[name]!.light.forEach((s, i) => {
+      const d = sys.scales[name]!.dark[i]!;
       group[String(s.step)] = {
         $value: dtcgColor(s),
         $description: STEP_JOBS[s.step],
@@ -282,6 +467,15 @@ function toDtcg(sys: System): Record<string, unknown> {
         $extensions: { mode: { light: lit(r.hex, r.css), dark: lit(dark.hex, dark.css) } },
       };
     }
+  }
+  const chart: Record<string, unknown> = {};
+  const dark = new Map(chartVars(sys, "dark"));
+  for (const [name, hex] of chartVars(sys, "light")) {
+    const lit = (h: string) => ({ colorSpace: "srgb", components: hexToRgb(h), hex: h });
+    chart[name.replace(/^chart-/, "")] = {
+      $value: lit(hex),
+      $extensions: { mode: { light: lit(hex), dark: lit(dark.get(name)!) } },
+    };
   }
   const typography: Record<string, unknown> = {};
   for (const t of sys.type.tokens) {
@@ -313,7 +507,7 @@ function toDtcg(sys: System): Record<string, unknown> {
   });
   return {
     $description: `${sys.input.name} design tokens. Generated by Spring. Colors carry light and dark values in $extensions.mode.`,
-    color: { $type: "color", scale, role },
+    color: { $type: "color", scale, role, chart },
     font: {
       $type: "fontFamily",
       body: { $value: [sys.input.type.body, `${sys.input.type.body} Fallback`, "sans-serif"] },
@@ -343,6 +537,32 @@ function toDtcg(sys: System): Record<string, unknown> {
       ),
     },
     shadow: { sm: shadow("sm"), md: shadow("md"), lg: shadow("lg") },
+    border: {
+      $type: "dimension",
+      default: { $value: dim(sys.shape.border.default) },
+      strong: { $value: dim(sys.shape.border.strong) },
+    },
+    focus: {
+      $type: "dimension",
+      width: { $value: dim(FOCUS.width) },
+      offset: { $value: dim(FOCUS.offset) },
+    },
+    icon: {
+      $type: "dimension",
+      ...Object.fromEntries(Object.entries(ICON).map(([k, v]) => [k, { $value: dim(v) }])),
+    },
+    breakpoint: {
+      $type: "dimension",
+      ...Object.fromEntries(Object.entries(BREAKPOINT).map(([k, v]) => [k, { $value: dim(v) }])),
+    },
+    z: {
+      $type: "number",
+      ...Object.fromEntries(Object.entries(Z).map(([k, v]) => [k, { $value: v }])),
+    },
+    opacity: {
+      $type: "number",
+      ...Object.fromEntries(Object.entries(OPACITY).map(([k, v]) => [k, { $value: v }])),
+    },
     duration: {
       $type: "duration",
       ...Object.fromEntries(
@@ -375,11 +595,11 @@ export function toDesignMd(sys: System): string {
   const icon = ICONS[sys.stack.icons]!;
   const stroke = iconStroke(T.body!.weight);
   const tokenNames: Record<string, string> = {
-    primary: "accent",
-    "on-primary": "accent-fg",
-    "primary-hover": "accent-hover",
-    "primary-subtle": "accent-subtle",
-    "primary-text": "accent-text",
+    primary: "primary",
+    "on-primary": "primary-fg",
+    "primary-hover": "primary-hover",
+    "primary-subtle": "primary-subtle",
+    "primary-text": "primary-text",
     neutral: "bg",
     surface: "bg-subtle",
     fill: "fill",
@@ -524,19 +744,23 @@ export function toDesignMd(sys: System): string {
 
 ## Overview
 
-${sys.input.name} is a ${dens}, ${isRound} interface with ${mot} motion. One accent color carries every primary action; everything else is neutral. Light and dark themes are equal citizens: dark values are generated for dark backgrounds, not inverted.
+${sys.input.name} is a ${dens}, ${isRound} interface with ${mot} motion. One primary color carries every primary action; everything else is neutral. Light and dark themes are equal citizens: dark values are generated for dark backgrounds, not inverted.
 
 Source files: \`tokens.css\` (all values, both themes), \`tokens.json\` (DTCG), ${sys.stack.styling === "tailwind" ? "`theme.css` (Tailwind v4)" : "no framework layer"}. When a value isn't in these files, it isn't in the system: ask, don't invent.
 
 ## Colors
 
-The accent is **${l.accent!.hex}** (light) / **${d.accent!.hex}** (dark). Neutrals are tinted toward the accent hue so surfaces and brand feel related. Every text pair below passes WCAG 2.2 AA in both themes.
+The primary is **${l.primary!.hex}** (light) / **${d.primary!.hex}** (dark). Neutrals are tinted toward the primary hue so surfaces and brand feel related. Every text pair below passes ${CONTRAST_LABEL[sys.input.contrast ?? "aa"]} in both themes.
 
 | Role | Light | Dark | Use for |
 |---|---|---|---|
 ${sys.roles.light.map((r) => row(r.name, r.job)).join("\n")}
 
-Each color is also a 12-step scale (\`--accent-1\` … \`--accent-12\`). Steps have fixed jobs: 1–2 backgrounds, 3–5 component fills (rest, hover, pressed), 6–8 borders, 9–10 solid fills, 11–12 text. Use a step only for its job.
+Each color is also a 12-step scale (\`--primary-1\` … \`--primary-12\`). Steps run one way along a lightness curve and have jobs: 1–2 backgrounds, 3–5 component fills (rest, hover, pressed), 6–8 borders, 11–12 text. The brand color sits on step ${sys.scales.primary.anchor.light} and solid buttons use step ${sys.solid.primary.light} (light) / ${sys.solid.primary.dark} (dark); use the \`primary\` role rather than the step. \`palette.js\` regenerates every scale from the seed and curve.
+
+### Charts
+
+${chartsDoc(sys)}
 
 ## Typography
 
@@ -573,11 +797,11 @@ Corners are ${isRound}: ${Object.entries(sys.shape.radius)
 
 Built with **${comp.name}** (${comp.url}). Icons: **${icon.name}** only${icon.strokeAware ? `, ${stroke}px stroke to match ${T.body!.weight} weight text` : ""}, sized to the text they sit beside (16px with body, 20px with h3). Styling: **${STYLING[sys.stack.styling].name}**.
 
-- **Primary button:** \`accent\` fill, \`accent-fg\` label, one per view.
+- **Primary button:** \`primary\` fill, \`primary-fg\` label, one per view.
 - **Secondary button:** \`fill\` with \`text\`; hover \`fill-hover\`, pressed \`fill-active\`.
 - **Input:** \`bg\` fill, \`border\` edge, \`border-strong\` on hover, \`ring\` on focus (2px, offset 2px); placeholder \`text-muted\`; error \`danger\` border with \`danger-text\` message.
 - **Card:** \`bg-subtle\`, \`border-subtle\` edge, \`lg\` radius, ${sys.space.gutter}px padding.
-- **Badge:** \`accent-subtle\` with \`accent-text\`; status badges use \`<status>-subtle\` with \`<status>-text\`.
+- **Badge:** \`primary-subtle\` with \`primary-text\`; status badges use \`<status>-subtle\` with \`<status>-text\`.
 
 ## Motion
 
@@ -590,9 +814,9 @@ Durations: ${Object.entries(sys.motion.duration)
 
 ## Do's and Don'ts
 
-- Do use one \`accent\` action per view; everything else is secondary.
+- Do use one \`primary\` action per view; everything else is secondary.
 - Do use roles (\`text\`, \`bg-subtle\`, \`border\`) in components, and raw scale steps only for one-off illustration.
-- Don't put \`text-muted\` on \`accent\`, or body text on any step-9 fill.
+- Don't put \`text-muted\` on \`primary\`, or body text on any solid fill.
 - Don't add colors, sizes, radii or shadows that aren't tokens. If one is missing, flag it.
 - Don't mix icon sets. ${icon.name} only.
 - Don't use the same radius on nested elements.
@@ -619,8 +843,8 @@ The system lives in \`DESIGN.md\` (rules and rationale) and \`tokens.css\` (ever
 ## Hard rules
 
 1. **Tokens only.** Every color, font size, line height, spacing, radius, shadow, duration and easing comes from a token. No hex codes, no arbitrary px, no Tailwind arbitrary values like \`p-[13px]\`. If a value is missing, say so and stop; don't invent one.
-2. **Roles before steps.** Use role tokens (\`bg\`, \`text\`, \`text-muted\`, \`fill\`, \`border\`, \`accent\`, \`accent-fg\`…). Raw scale steps (\`accent-3\`) only for their documented step job.
-3. **One primary action per view** uses \`accent\`. Everything else is secondary (\`fill\`) or ghost.
+2. **Roles before steps.** Use role tokens (\`bg\`, \`text\`, \`text-muted\`, \`fill\`, \`border\`, \`primary\`, \`primary-fg\`…). Raw scale steps (\`primary-3\`) only for their documented step job.
+3. **One primary action per view** uses \`primary\`. Everything else is secondary (\`fill\`) or ghost.
 4. **Type roles only:** display, h1, h2, h3, body-lg, body, label, caption, code. Never set font-size by hand.
 5. **Icons: ${icon.name} only.**${icon.strokeAware ? ` Stroke ${iconStroke(sys.type.tokens.find((t) => t.role === "body")!.weight)}px.` : ""} Never import a second icon library.
 6. **Components: ${comp.name}.** Extend it; don't add another component library.
@@ -648,7 +872,7 @@ export function toPrompt(sys: System): string {
 
 1. Save the attached files: \`DESIGN.md\` at the repo root, \`tokens.css\` and ${sys.stack.styling === "tailwind" ? "`theme.css` next to the global stylesheet (import `theme.css` from it instead of `tailwindcss`)" : "import `tokens.css` once in the root layout"}, \`tokens.json\` in \`tokens/\`, and the skill in \`.claude/skills/${slug(sys.input.name)}-design-system/SKILL.md\` (or \`.agents/skills/\`).
 2. Add the AGENTS.md snippet below to AGENTS.md (create it if missing).
-3. Load the fonts: ${googleFontsUrl([sys.input.type.body, sys.input.type.heading, sys.input.type.mono])}${sys.input.type.body === "Geist" || sys.input.type.heading === "Geist" ? " (or the `geist` npm package)" : ""}.
+3. Load the fonts: ${googleFontsUrl([sys.input.type.body, sys.input.type.heading, sys.input.type.mono], sys.input.type.extra)}${sys.input.type.body === "Geist" || sys.input.type.heading === "Geist" ? " (or the `geist` npm package)" : ""}.
 4. Install: ${[COMPONENTS[sys.stack.components]!.install, ICONS[sys.stack.icons]!.install].join(" and ")}.
 5. Replace any existing hardcoded colors, font sizes and radii in global styles with the new tokens. Show me what you changed.
 
@@ -676,6 +900,85 @@ export function exportAll(sys: System): ExportFile[] {
       content: toSkill(sys),
     },
     { path: "AGENTS.md", label: "AGENTS.md snippet", content: toAgentsSnippet(sys) },
+    { path: "palette.js", label: "Headless palette", content: toPaletteJs(sys) },
   );
   return files;
+}
+
+/**
+ * The palette as code: the seed, the curve and a dependency-free generator, so
+ * any repo or agent can rebuild every scale (or a new hue) without Spring.
+ * Mirrors buildScale in color.ts; the unit test runs it and compares.
+ */
+function toPaletteJs(sys: System): string {
+  const i = sys.input;
+  const curve = i.curve ?? DEFAULT_CURVE;
+  // Grays and statuses hold one hue; the brand and added strips bend with the hue shift.
+  const bends = new Set(["primary", ...sys.custom.map((c) => c.key)]);
+  const scales = Object.fromEntries(
+    scaleNames(sys).map((k) => [k, { ...sys.scales[k]!.seed, bend: bends.has(k) }]),
+  );
+  return `// ${i.name} palette, generated by Spring (someshks.com/spring).
+// Headless: change a seed or the curve and call scale() to rebuild. No dependencies.
+// Note: the system's contrast fixes (nudged text steps) are applied on top in tokens.css.
+
+export const curve = ${JSON.stringify(curve)};
+export const ends = ${JSON.stringify(ENDS)};
+export const seeds = ${JSON.stringify(scales, null, 2)};
+
+const cubic = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t ** 2 * (1 - t) + t ** 3;
+export function ease([x1, y1, x2, y2], x) {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (cubic(x1, x2, mid) < x) lo = mid; else hi = mid;
+  }
+  return cubic(y1, y2, (lo + hi) / 2);
+}
+
+function toLinear({ l, c, h }) {
+  const r = (h * Math.PI) / 180, a = c * Math.cos(r), b = c * Math.sin(r);
+  const L = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const M = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const S = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [
+    4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S,
+    -1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S,
+    -0.0041960863 * L - 0.7034186147 * M + 1.707614701 * S,
+  ];
+}
+const inGamut = (c) => toLinear(c).every((v) => v >= -1e-4 && v <= 1 + 1e-4);
+function fit(c) {
+  if (inGamut(c)) return c;
+  let lo = 0, hi = c.c;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (inGamut({ ...c, c: mid })) lo = mid; else hi = mid;
+  }
+  return { ...c, c: lo };
+}
+const gamma = (v) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+export function hex(c) {
+  return "#" + toLinear(fit(c)).map((v) => Math.round(Math.min(1, Math.max(0, gamma(v))) * 255).toString(16).padStart(2, "0")).join("");
+}
+
+/** 12 steps, page to text, bent through the seed's lightness. mode: "light" | "dark". */
+export function scale({ hue, chroma, l: target, bend = true }, mode = "light", c = curve) {
+  const [from, to] = ends[mode];
+  const e = Array.from({ length: 12 }, (_, i) => ease(c.bezier, i / 11));
+  const raw = e.map((y) => from + (to - from) * y);
+  let k = 3;
+  for (let s = 3; s <= 10; s++) if (Math.abs(raw[s - 1] - target) < Math.abs(raw[k - 1] - target)) k = s;
+  const ek = e[k - 1];
+  const lb = Math.min(Math.max(target, Math.min(from, to) + 0.02), Math.max(from, to) - 0.02);
+  const tk = (k - 1) / 11;
+  return e.map((y, i) => {
+    const t = i / 11;
+    const l = i < k - 1 ? from + (lb - from) * (ek ? y / ek : 0) : lb + (to - lb) * (ek < 1 ? (y - ek) / (1 - ek) : 0);
+    const w = t < tk ? Math.max(tk, 0.35) : 0.55;
+    const share = Math.max(t > tk ? 0.4 : 0.05, 1 - ((t - tk) / w) ** 2);
+    return hex({ l, c: chroma * share * (mode === "dark" ? (c.darkChroma ?? 1) : 1), h: (((hue + (bend ? c.hueShift : 0) * (t - tk)) % 360) + 360) % 360 });
+  });
+}
+`;
 }

@@ -3,8 +3,15 @@
  * generated values, so links stay short and always rebuild with the
  * current engine. `v` lets a future engine migrate old links.
  */
-import { DEFAULT_INPUT, type SystemInput } from "./system";
-import { FONT_NAMES } from "./type";
+import { CHART_MAX } from "./charts";
+import {
+  DEFAULT_INPUT,
+  MAX_STRIPS,
+  STATUS_RANGE,
+  type StatusName,
+  type SystemInput,
+} from "./system";
+import { FONT_NAMES, SAFE_FONT, type FontMeta, type FontTag } from "./type";
 
 const b64url = {
   encode: (s: string) =>
@@ -19,6 +26,7 @@ const b64url = {
 };
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
+const r4 = (n: number) => Math.round(n * 10000) / 10000;
 
 export function encodeInput(input: SystemInput): string {
   const i = input;
@@ -26,10 +34,10 @@ export function encodeInput(input: SystemInput): string {
     i.v,
     i.name,
     [
-      Math.round(i.accent.hue),
-      r3(i.accent.chroma),
-      i.accent.solidL === undefined ? null : r3(i.accent.solidL),
-      i.accent.label ?? "auto",
+      Math.round(i.primary.hue * 10) / 10,
+      r4(i.primary.chroma),
+      i.primary.solidL === undefined ? null : r4(i.primary.solidL),
+      i.primary.label ?? "auto",
     ],
     i.neutralHue === undefined ? r3(i.neutralTint) : [r3(i.neutralTint), Math.round(i.neutralHue)],
     [
@@ -40,6 +48,9 @@ export function encodeInput(input: SystemInput): string {
       r3(i.type.ratio),
       i.type.headingWeight,
       i.type.fluid ? 1 : 0,
+      ...(i.type.extra
+        ? [Object.entries(i.type.extra).map(([n, m]) => [n, m.tag, m.weights, m.variable ?? 0])]
+        : []),
     ],
     r3(i.density),
     r3(i.roundness),
@@ -51,14 +62,75 @@ export function encodeInput(input: SystemInput): string {
       i.stack.components ?? null,
       i.stack.icons ?? null,
     ],
+    i.curve
+      ? [
+          ...i.curve.bezier.map(r3),
+          Math.round(i.curve.hueShift),
+          ...(i.curve.darkChroma === undefined ? [] : [r3(i.curve.darkChroma)]),
+        ]
+      : null,
+    i.status ? STATUSES.map((n) => i.status?.[n] ?? null) : null,
+    i.contrast ?? null,
+    i.colors?.length ? i.colors.map((c) => [c.name, c.hex]) : null,
+    // a[13] held the old chart settings; links that carry it ignore it now.
+    null,
+    i.data ? i.data.map((c) => [c.name, c.hex]) : null,
+    i.ramps ? [i.ramps.seq ?? null, i.ramps.div ?? null] : null,
   ];
+  // Old links end at the curve; keep new ones as short when the extras are unset.
+  while (compact.length > 9 && compact.at(-1) === null) compact.pop();
   return b64url.encode(JSON.stringify(compact));
 }
+
+const finite = (v: unknown, lo: number, hi: number) =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
+const index = (v: unknown) => {
+  const n = finite(v, 0, CHART_MAX - 1);
+  return n === undefined ? undefined : Math.round(n);
+};
+const ramps = ([seq, div]: unknown[]) => {
+  const a = Array.isArray(div) ? [index(div[0]), index(div[1])] : [];
+  return {
+    seq: index(seq),
+    div: a[0] !== undefined && a[1] !== undefined ? ([a[0], a[1]] as [number, number]) : undefined,
+  };
+};
+const strips = (v: unknown[], max: number) =>
+  v
+    .slice(0, max)
+    .filter(
+      (c): c is [string, string] => Array.isArray(c) && typeof c[0] === "string" && isHex(c[1]),
+    )
+    .map(([name, hex]) => ({ name: name.slice(0, 24), hex }));
+
+const STATUSES = Object.keys(STATUS_RANGE) as StatusName[];
+const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
 const num = (v: unknown, lo: number, hi: number, d: number) =>
   typeof v === "number" && v >= lo && v <= hi ? v : d;
 const oneOf = <T extends string>(v: unknown, opts: readonly T[], d: T): T =>
   opts.includes(v as T) ? (v as T) : d;
+
+const TAGS = ["sans", "serif", "display", "mono", "hand"] as const satisfies FontTag[];
+const weight = (w: unknown) => typeof w === "number" && Number.isInteger(w) && w >= 1 && w <= 1000;
+
+/** Extra fonts come from a URL anyone can write, so every field is checked. */
+function decodeExtra(v: unknown): Record<string, FontMeta> | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: Record<string, FontMeta> = {};
+  for (const row of v.slice(0, 3)) {
+    if (!Array.isArray(row)) continue;
+    const [n, tag, ws, vr] = row as unknown[];
+    if (typeof n !== "string" || !SAFE_FONT.test(n)) continue;
+    if (!Array.isArray(ws) || !ws.length || ws.length > 18 || !ws.every(weight)) continue;
+    const variable =
+      Array.isArray(vr) && vr.length === 2 && vr.every(weight) && vr[0] < vr[1]
+        ? ([vr[0], vr[1]] as [number, number])
+        : null;
+    out[n] = { tag: oneOf(tag, TAGS, "sans"), weights: ws as number[], variable };
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 export function decodeInput(s: string | null | undefined): SystemInput | null {
   if (!s) return null;
@@ -67,25 +139,28 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
     if (!Array.isArray(a) || a[0] !== 1) return null;
     const D = DEFAULT_INPUT;
     const [acc, t, st] = [a[2] as unknown[], a[4] as unknown[], a[8] as unknown[]];
+    const extra = decodeExtra(t?.[7]);
+    const fonts = [...FONT_NAMES, ...Object.keys(extra ?? {})];
     return {
       v: 1,
       name: typeof a[1] === "string" ? a[1].slice(0, 60) : D.name,
-      accent: {
-        hue: num(acc?.[0], 0, 360, D.accent.hue),
-        chroma: num(acc?.[1], 0, 0.4, D.accent.chroma),
+      primary: {
+        hue: num(acc?.[0], 0, 360, D.primary.hue),
+        chroma: num(acc?.[1], 0, 0.4, D.primary.chroma),
         solidL: typeof acc?.[2] === "number" ? num(acc[2], 0.2, 0.95, 0.55) : undefined,
         label: oneOf(acc?.[3], ["auto", "white", "ink"] as const, "auto"),
       },
       neutralTint: num(Array.isArray(a[3]) ? a[3][0] : a[3], 0, 1, D.neutralTint),
       neutralHue: Array.isArray(a[3]) ? num(a[3][1], 0, 360, 0) : undefined,
       type: {
-        body: oneOf(t?.[0], FONT_NAMES, D.type.body),
-        heading: oneOf(t?.[1], FONT_NAMES, D.type.heading),
-        mono: oneOf(t?.[2], FONT_NAMES, D.type.mono),
+        body: oneOf(t?.[0], fonts, D.type.body),
+        heading: oneOf(t?.[1], fonts, D.type.heading),
+        mono: oneOf(t?.[2], fonts, D.type.mono),
         base: num(t?.[3], 12, 22, D.type.base),
         ratio: num(t?.[4], 1.05, 1.7, D.type.ratio),
         headingWeight: num(t?.[5], 100, 900, D.type.headingWeight),
         fluid: t?.[6] !== 0,
+        ...(extra ? { extra } : {}),
       },
       density: num(a[5], 0, 1, D.density),
       roundness: num(a[6], 0, 1, D.roundness),
@@ -97,6 +172,34 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
         components: typeof st?.[3] === "string" ? st[3] : undefined,
         icons: typeof st?.[4] === "string" ? st[4] : undefined,
       },
+      ...(Array.isArray(a[9]) && (a[9].length === 5 || a[9].length === 6)
+        ? {
+            curve: {
+              bezier: [
+                num(a[9][0], 0, 1, 0.4),
+                num(a[9][1], -0.5, 1.5, 0.08),
+                num(a[9][2], 0, 1, 0.9),
+                num(a[9][3], -0.5, 1.5, 0.6),
+              ],
+              hueShift: num(a[9][4], -60, 60, 0),
+              ...(typeof a[9][5] === "number" ? { darkChroma: num(a[9][5], 0.4, 1.2, 1) } : {}),
+            },
+          }
+        : {}),
+      ...(Array.isArray(a[10])
+        ? {
+            status: Object.fromEntries(
+              STATUSES.flatMap((n, k) => {
+                const v = (a[10] as unknown[])[k];
+                return isHex(v) ? [[n, v]] : [];
+              }),
+            ),
+          }
+        : {}),
+      ...(a[11] === "aaa" || a[11] === "apca" ? { contrast: a[11] } : {}),
+      ...(Array.isArray(a[12]) ? { colors: strips(a[12], MAX_STRIPS) } : {}),
+      ...(Array.isArray(a[14]) ? { data: strips(a[14], CHART_MAX) } : {}),
+      ...(Array.isArray(a[15]) ? { ramps: ramps(a[15]) } : {}),
     };
   } catch {
     return null;

@@ -1,33 +1,34 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import { audit, type Finding } from "@/lib/spring/audit";
-import { SAMPLES } from "@/lib/spring/samples";
-import { useSpring } from "./store";
+import { useDeferredValue, useId, useMemo, useState } from "react";
+import { audit } from "@/lib/spring/audit";
+import type { SystemInput } from "@/lib/spring/system";
+import { getInput, setInput } from "./store";
 import "./spring.css";
 
-const ORDER = { fail: 0, warn: 1, pass: 2 };
 const MARK = { fail: "✕", warn: "!", pass: "✓" };
-const sorted = (f: Finding[]) => [...f].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
-export function SpringAudit() {
+export function SpringAudit({ onFix }: { onFix?: (before: SystemInput) => void }) {
   const id = useId();
-  const { setInput } = useSpring();
   const [text, setText] = useState("");
   const [fixed, setFixed] = useState(false);
+  // Typing stays responsive on big pastes: the audit catches up after the keystroke.
+  const pasted = useDeferredValue(text);
   const report = useMemo(() => {
-    if (!text.trim()) return null;
+    if (!pasted.trim()) return null;
     try {
-      return audit(text);
-    } catch {
-      return "error" as const;
+      return audit(pasted);
+    } catch (e) {
+      return { error: (e as Error).message };
     }
-  }, [text]);
+  }, [pasted]);
 
   return (
-    <div className="toy spring">
+    <div className="spring-audit">
       <label className="field" htmlFor={id}>
-        <span className="field__label">DESIGN.md, tokens.json or CSS variables</span>
+        <span className="field__label">
+          DESIGN.md, tokens.json, CSS variables or a Tailwind config
+        </span>
         <textarea
           id={id}
           className="spring-audit-input"
@@ -40,18 +41,9 @@ export function SpringAudit() {
           spellCheck={false}
         />
       </label>
-      <div className="toy__actions">
-        {SAMPLES.map((s) => (
-          <button key={s.id} type="button" className="spring-cmd" onClick={() => setText(s.text)}>
-            $ load {s.label.toLowerCase()}
-          </button>
-        ))}
-      </div>
       <div aria-live="polite" className="grid gap-4">
-        {report === "error" ? (
-          <p className="toy__caption">
-            Couldn't read that. Paste DESIGN.md, tokens.json or CSS custom properties.
-          </p>
+        {report && "error" in report ? (
+          <p className="toy__caption">{report.error}</p>
         ) : report ? (
           <>
             <div className="flex items-center gap-4">
@@ -62,7 +54,7 @@ export function SpringAudit() {
               </span>
             </div>
             <ul className="spring-findings">
-              {sorted(report.findings).map((f) => (
+              {report.findings.map((f) => (
                 <li key={f.id}>
                   <span className="spring-meta" aria-label={f.status}>
                     {MARK[f.status]}
@@ -76,13 +68,15 @@ export function SpringAudit() {
             <div className="toy__actions">
               <button
                 type="button"
-                className="spring-cmd"
+                className="button button--primary"
                 onClick={() => {
+                  const before = getInput();
                   setInput(report.input);
                   setFixed(true);
+                  onFix?.(before);
                 }}
               >
-                {fixed ? "✓ loaded into the tools above" : "$ fix all →"}
+                {fixed ? "Loaded into the workbench" : "Fix all and open in Spring"}
               </button>
             </div>
           </>

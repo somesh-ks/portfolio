@@ -8,7 +8,7 @@ const csp = [
   // Cloudflare Web Analytics (free, cookieless) is injected at the edge.
   "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com" +
     (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
-  // Google Fonts serves the type choices on /projects/spring, and only there.
+  // Google Fonts serves the type choices in Spring (/spring), and only there.
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob:",
   "font-src 'self' https://fonts.gstatic.com",
@@ -44,7 +44,13 @@ const config: NextConfig = {
   },
   async redirects() {
     return [
-      { source: "/spring", destination: "/projects/spring", permanent: false },
+      // Share links from before Spring became its own app; the query carries over.
+      {
+        source: "/projects/spring",
+        has: [{ type: "query", key: "s" }],
+        destination: "/spring",
+        permanent: true,
+      },
       {
         source: "/projects/fun-experiments.md",
         destination: "/experiments/tide.md",

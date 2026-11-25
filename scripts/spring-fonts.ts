@@ -88,8 +88,6 @@ for (const [family, c] of Object.entries(CURATED)) {
   const { bytes, tnum } = await regularLatin(family);
   fonts[family] = {
     tag: c.genre,
-    jobs: c.jobs,
-    feel: c.feel,
     note: c.note,
     weights,
     variable: wght ? [wght.min, wght.max] : null,

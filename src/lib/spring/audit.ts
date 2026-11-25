@@ -1,20 +1,32 @@
 /**
  * Audit: read a design system someone (or some agent) already made, from a
- * DESIGN.md, a DTCG tokens.json or plain CSS variables, and report what's
- * broken. Then infer the closest Spring input so "fix all" can rebuild it.
+ * DESIGN.md, a DTCG tokens.json, CSS variables or a Tailwind config, and
+ * report what's broken. Then infer the closest Spring input so "fix all" can
+ * rebuild it.
  */
 import { parseYaml } from "./yaml";
-import { contrast, distance, parseColor } from "./color";
+import { contrast, parseColor } from "./color";
 import { FONT_NAMES, opticalBase, type FontName } from "./type";
 import { DEFAULT_INPUT, type SystemInput } from "./system";
-import { oklchToHex } from "./colormath";
+import { oklchToHex, over } from "./colormath";
+import { namedColor } from "./css-names";
 
-type Format = "design.md" | "dtcg" | "css";
+type Format = "design.md" | "dtcg" | "css" | "tailwind";
+
+interface Color {
+  name: string;
+  /** For display and nearness; rounded to 8 bits. */
+  hex: string;
+  /** The value as written, resolved, for exact contrast (keeps alpha and oklch precision). */
+  css: string;
+  /** The dark theme's value, when the system has one. */
+  dark?: string;
+}
 
 interface Parsed {
   format: Format;
   name?: string;
-  colors: { name: string; hex: string; dark?: string }[];
+  colors: Color[];
   type: {
     name: string;
     size: number;
@@ -26,11 +38,13 @@ interface Parsed {
   radii: { name: string; px: number }[];
   spacing: { name: string; px: number }[];
   hasDark: boolean;
+  /** Only a dark theme: its values sit in `css`. */
+  darkOnly?: boolean;
 }
 
 type Status = "pass" | "warn" | "fail";
 
-export interface Finding {
+interface Finding {
   id: string;
   area: "Color" | "Type" | "Space" | "Shape" | "Coverage";
   status: Status;
@@ -65,26 +79,42 @@ const toPx = (v: unknown): number | undefined => {
   return m[2] === "rem" || m[2] === "em" ? n * 16 : n;
 };
 
-const hexOf = (v: unknown): string | undefined => {
+/** Any color value as a CSS string parseColor can read, or undefined. */
+const cssOf = (v: unknown): string | undefined => {
   if (typeof v === "string") {
-    const c = parseColor(v);
-    return c ? oklchToHex(c) : undefined;
+    const s = v.trim();
+    const named = namedColor(s);
+    if (named) return named;
+    // Old shadcn style: bare HSL channels, used as hsl(var(--x)).
+    if (/^-?[\d.]+(deg)?\s+[\d.]+%\s+[\d.]+%(\s*\/\s*[\d.]+%?)?$/.test(s)) return `hsl(${s})`;
+    return s.toLowerCase() === "transparent" || parseColor(s) ? s : undefined;
   }
   if (v && typeof v === "object") {
-    const o = v as { hex?: string; colorSpace?: string; components?: number[] };
-    if (o.hex) return hexOf(o.hex);
+    const o = v as { hex?: string; colorSpace?: string; components?: number[]; alpha?: number };
+    const a = o.alpha !== undefined && o.alpha < 1 ? ` / ${o.alpha}` : "";
     if (o.colorSpace && o.components) {
-      const [a, b, c] = o.components;
-      if (o.colorSpace === "oklch") return hexOf(`oklch(${a} ${b} ${c})`);
-      if (o.colorSpace === "srgb") return hexOf(`rgb(${a! * 255} ${b! * 255} ${c! * 255})`);
+      const [x, y, z] = o.components;
+      if (o.colorSpace === "oklch") return `oklch(${x} ${y} ${z}${a})`;
+      if (o.colorSpace === "srgb") return `rgb(${x! * 255} ${y! * 255} ${z! * 255}${a})`;
     }
+    if (o.hex) return cssOf(o.hex);
   }
   return undefined;
+};
+
+const color = (name: string, v: unknown, dark?: unknown): Color | undefined => {
+  const css = cssOf(v);
+  const c = css ? parseColor(css) : null;
+  if (!css || !c) return undefined;
+  const d = dark === undefined ? undefined : cssOf(dark);
+  return { name, hex: oklchToHex(c), css, dark: d };
 };
 
 function detect(text: string): Format {
   const t = text.trimStart();
   if (t.startsWith("{")) return "dtcg";
+  if (/module\.exports|export\s+default|\btheme\s*:\s*\{/.test(t) && !/--[\w-]+\s*:/.test(t))
+    return "tailwind";
   if (t.startsWith("---") || /^#\s/m.test(t)) return "design.md";
   return "css";
 }
@@ -94,12 +124,14 @@ const dims = (o: unknown) =>
     .map(([name, v]) => ({ name, px: toPx(v) }))
     .filter((d): d is { name: string; px: number } => d.px !== undefined);
 
+const isColor = (c: Color | undefined): c is Color => !!c;
+
 function parseDesignMd(text: string): Parsed {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const y = (m ? parseYaml(m[1]!) : {}) as Record<string, unknown>;
   const colors = Object.entries((y.colors ?? {}) as Record<string, unknown>)
-    .map(([name, v]) => ({ name, hex: hexOf(v) }))
-    .filter((c): c is { name: string; hex: string } => !!c.hex);
+    .map(([name, v]) => color(name, v))
+    .filter(isColor);
   const type = Object.entries(
     (y.typography ?? {}) as Record<string, Record<string, unknown>>,
   ).flatMap(([name, t]) => {
@@ -131,8 +163,18 @@ function parseDesignMd(text: string): Parsed {
   };
 }
 
+/** Font sizes, line heights and tracking are dimensions too; they aren't spacing. */
+const TYPE_DIM = /(font|size|line|letter|tracking|leading|text)/i;
+
 function parseDtcg(text: string): Parsed {
-  const root = JSON.parse(text) as Record<string, unknown>;
+  let root: Record<string, unknown>;
+  try {
+    root = JSON.parse(text) as Record<string, unknown>;
+  } catch (e) {
+    throw new Error(`Not valid JSON, so nothing was audited: ${(e as Error).message}`, {
+      cause: e,
+    });
+  }
   const out: Parsed = {
     format: "dtcg",
     colors: [],
@@ -142,6 +184,15 @@ function parseDtcg(text: string): Parsed {
     hasDark: false,
   };
   const all = new Map<string, unknown>();
+  // Follow alias chains ({a} -> {b} -> value), not just one hop.
+  const deref = (v: unknown) => {
+    for (let hop = 0; hop < 10 && typeof v === "string" && /^\{.+\}$/.test(v); hop++) {
+      const next = all.get(v.slice(1, -1));
+      if (next === undefined) break;
+      v = next;
+    }
+    return v;
+  };
   const walk = (node: unknown, path: string[], inherited?: string) => {
     if (!node || typeof node !== "object") return;
     const o = node as Record<string, unknown>;
@@ -149,41 +200,38 @@ function parseDtcg(text: string): Parsed {
     if ("$value" in o) {
       all.set(path.join("."), o.$value);
       const name = path.join("-");
-      let v = o.$value;
-      // Follow alias chains ({a} -> {b} -> value), not just one hop.
-      for (let hop = 0; hop < 10 && typeof v === "string" && /^\{.+\}$/.test(v); hop++) {
-        const next = all.get(v.slice(1, -1));
-        if (next === undefined) break;
-        v = next;
-      }
+      const v = deref(o.$value);
       const ext = (o.$extensions as Record<string, unknown> | undefined)?.mode as
         | Record<string, unknown>
         | undefined;
       if (ext?.dark) out.hasDark = true;
       if (type === "color") {
-        const hex = hexOf(v);
-        if (hex) out.colors.push({ name, hex, dark: ext?.dark ? hexOf(ext.dark) : undefined });
+        const c = color(name, v, ext?.dark === undefined ? undefined : deref(ext.dark));
+        if (c) out.colors.push(c);
       } else if (type === "typography" && v && typeof v === "object") {
-        const t = v as Record<string, unknown>;
+        const t = Object.fromEntries(
+          Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, deref(x)]),
+        );
         const size = toPx(t.fontSize);
+        const lh = t.lineHeight;
+        const ls = t.letterSpacing as { value?: number; unit?: string } | string | undefined;
         if (size)
           out.type.push({
             name,
             size,
-            lineHeight: typeof t.lineHeight === "number" ? t.lineHeight : undefined,
+            lineHeight: typeof lh === "number" ? lh : toPx(lh) ? toPx(lh)! / size : undefined,
             tracking:
-              (t.letterSpacing as { value?: number; unit?: string })?.unit === "em"
-                ? (t.letterSpacing as { value: number }).value
-                : undefined,
-            weight: typeof t.fontWeight === "number" ? t.fontWeight : undefined,
-            family:
-              typeof t.fontFamily === "string" && !t.fontFamily.startsWith("{")
-                ? t.fontFamily
-                : undefined,
+              typeof ls === "object" && ls?.unit === "em"
+                ? ls.value
+                : typeof ls === "string" && ls.endsWith("em")
+                  ? parseFloat(ls)
+                  : undefined,
+            weight: t.fontWeight !== undefined ? Number(t.fontWeight) : undefined,
+            family: typeof t.fontFamily === "string" ? t.fontFamily : undefined,
           });
       } else if (type === "dimension") {
         const px = toPx(v);
-        if (px !== undefined)
+        if (px !== undefined && !TYPE_DIM.test(name))
           (/radius|round|corner/i.test(name) ? out.radii : out.spacing).push({ name, px });
       }
       return;
@@ -202,25 +250,64 @@ function parseDtcg(text: string): Parsed {
   return out;
 }
 
+const DARK =
+  /prefers-color-scheme:\s*dark|\.dark\b|\[data-(theme|mode|color-scheme)=["']?dark|theme-dark|dark-theme/i;
+/** Blocks that aren't a theme: high contrast, forced colors, print. */
+const OTHER = /prefers-contrast|forced-colors|\bprint\b/i;
+
+/** Custom properties per theme, with later rules winning as in the cascade. */
+function cssThemes(text: string) {
+  const light = new Map<string, string>();
+  const dark = new Map<string, string>();
+  let schemeDark = false;
+  const src = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const stack: string[] = [];
+  let buf = "";
+  const take = () => {
+    const ctx = stack.join(" ");
+    const m = buf.match(/^\s*--([\w-]+)\s*:\s*([\s\S]+?)\s*$/);
+    if (m && !OTHER.test(ctx)) (DARK.test(ctx) ? dark : light).set(m[1]!, m[2]!);
+    if (/^\s*color-scheme\s*:\s*dark\s*$/.test(buf) && !DARK.test(ctx)) schemeDark = true;
+    buf = "";
+  };
+  for (const ch of src) {
+    if (ch === "{") {
+      stack.push(buf.trim());
+      buf = "";
+    } else if (ch === "}") {
+      take();
+      stack.pop();
+    } else if (ch === ";") take();
+    else buf += ch;
+  }
+  take();
+  return { light, dark, schemeDark };
+}
+
+/** Replace var(--x, fallback) with its value, a few levels deep. */
+function resolveVars(v: string, vars: Map<string, string>): string {
+  for (let i = 0; i < 8 && v.includes("var("); i++)
+    v = v.replace(/var\(\s*--([\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\))?[^()]*))?\)/g, (all, n, fb) =>
+      vars.has(n) ? vars.get(n)! : fb !== undefined ? fb.trim() : all,
+    );
+  return v.trim();
+}
+
 function parseCss(text: string): Parsed {
+  const { light, dark, schemeDark } = cssThemes(text);
+  const darkOnly = schemeDark && !dark.size;
+  const darkVars = new Map([...light, ...dark]);
   const out: Parsed = {
     format: "css",
     colors: [],
     type: [],
     radii: [],
     spacing: [],
-    hasDark: /prefers-color-scheme:\s*dark|data-theme=["']?dark|\.dark\b/i.test(text),
+    hasDark: dark.size > 0 || darkOnly,
+    darkOnly,
   };
-  const vars = new Map<string, string>();
-  // Only the first (light/root) definition of each variable counts.
-  for (const m of text.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g))
-    if (!vars.has(m[1]!)) vars.set(m[1]!, m[2]!.trim());
-  const resolve = (v: string, depth = 0): string => {
-    const ref = v.match(/^var\(--([\w-]+)\)$/);
-    return ref && depth < 5 && vars.has(ref[1]!) ? resolve(vars.get(ref[1]!)!, depth + 1) : v;
-  };
-  for (const [name, raw] of vars) {
-    const v = resolve(raw);
+  const vars = new Map([...light].map(([k, v]) => [k, resolveVars(v, light)]));
+  for (const [name, v] of vars) {
     if (/(radius|rounded)/i.test(name)) {
       const px = toPx(v);
       if (px !== undefined) out.radii.push({ name, px });
@@ -233,13 +320,23 @@ function parseCss(text: string): Parsed {
     }
     if (
       /(font-size|text-[\w-]+$|fs-)/i.test(name) &&
-      !/(line-height|letter-spacing|weight|color)/i.test(name)
+      !/(line-height|letter-spacing|weight|color|leading|tracking)/i.test(name)
     ) {
       const px = toPx(v);
       if (px !== undefined) {
-        const lh = vars.get(`${name}--line-height`) ?? vars.get(`${name}-line-height`);
+        // Tailwind 4 pairs --text-sm with --text-sm--line-height; others use --leading-sm.
+        const key = name.replace(/^(text|font-size|fs)-/, "");
+        const lh =
+          vars.get(`${name}--line-height`) ??
+          vars.get(`${name}-line-height`) ??
+          vars.get(`leading-${key}`) ??
+          vars.get(`line-height-${key}`) ??
+          vars.get("leading") ??
+          vars.get("line-height");
         const tr = (
-          vars.get(`${name}--letter-spacing`) ?? vars.get(`${name}-letter-spacing`)
+          vars.get(`${name}--letter-spacing`) ??
+          vars.get(`${name}-letter-spacing`) ??
+          vars.get(`tracking-${key}`)
         )?.match(/^(-?[\d.]+)em$/);
         out.type.push({
           name,
@@ -251,21 +348,101 @@ function parseCss(text: string): Parsed {
       }
     }
     if (/(shadow|font|ease|duration|transition|z-|index)/i.test(name)) continue;
-    const hex = hexOf(v);
-    if (hex) out.colors.push({ name, hex });
+    const c = color(
+      name,
+      v,
+      dark.size ? resolveVars(darkVars.get(name) ?? v, darkVars) : undefined,
+    );
+    if (c) out.colors.push(c);
   }
   return out;
 }
 
+/** A Tailwind config's theme object, read as data (functions and imports can't be). */
+function parseTailwind(text: string): Parsed {
+  const src = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'])\/\/.*$/gm, "$1");
+  const at = src.search(/\btheme\s*:\s*\{/);
+  if (at < 0) throw new Error("No theme object found in this Tailwind config.");
+  const start = src.indexOf("{", at);
+  let depth = 0;
+  let end = start;
+  for (; end < src.length; end++) {
+    if (src[end] === "{") depth++;
+    else if (src[end] === "}" && --depth === 0) break;
+  }
+  const json = src
+    .slice(start, end + 1)
+    .replace(/'([^'\\]*)'/g, (_, s: string) => JSON.stringify(s))
+    .replace(/([{,]\s*)([\w$-]+)\s*:/g, '$1"$2":')
+    .replace(/,(\s*[}\]])/g, "$1");
+  let theme: Record<string, unknown>;
+  try {
+    theme = JSON.parse(json) as Record<string, unknown>;
+  } catch (e) {
+    throw new Error("This Tailwind theme uses code (functions or imports), so it can't be read.", {
+      cause: e,
+    });
+  }
+  const t = { ...theme, ...(theme.extend as Record<string, unknown> | undefined) };
+  const colors: Color[] = [];
+  const flat = (o: unknown, path: string[]) => {
+    if (o && typeof o === "object")
+      for (const [k, v] of Object.entries(o)) flat(v, k === "DEFAULT" ? path : [...path, k]);
+    else {
+      const c = color(path.join("-"), o);
+      if (c) colors.push(c);
+    }
+  };
+  flat(t.colors, []);
+  const type = Object.entries((t.fontSize ?? {}) as Record<string, unknown>).flatMap(
+    ([name, v]) => {
+      const [s, opts] = Array.isArray(v) ? v : [v];
+      const size = toPx(s);
+      if (!size) return [];
+      const o = (typeof opts === "object" ? opts : { lineHeight: opts }) as Record<string, unknown>;
+      const lh = o.lineHeight;
+      const n = typeof lh === "string" && /^[\d.]+$/.test(lh) ? Number(lh) : lh;
+      const ls =
+        typeof o.letterSpacing === "string" ? o.letterSpacing.match(/^(-?[\d.]+)em$/) : null;
+      return [
+        {
+          name,
+          size,
+          lineHeight: typeof n === "number" ? n : toPx(n) ? toPx(n)! / size : undefined,
+          tracking: ls ? Number(ls[1]) : undefined,
+          weight: o.fontWeight !== undefined ? Number(o.fontWeight) : undefined,
+        },
+      ];
+    },
+  );
+  return {
+    format: "tailwind",
+    colors,
+    type,
+    radii: dims(t.borderRadius),
+    spacing: dims(t.spacing),
+    hasDark: false,
+  };
+}
+
 function parseSystem(text: string): Parsed {
   const f = detect(text);
-  return f === "dtcg" ? parseDtcg(text) : f === "design.md" ? parseDesignMd(text) : parseCss(text);
+  if (f === "dtcg") return parseDtcg(text);
+  if (f === "tailwind") return parseTailwind(text);
+  return f === "design.md" ? parseDesignMd(text) : parseCss(text);
 }
 
 // ------------------------------------------------------------------ checks
 
-const TEXT = /(^|-)(text|foreground|fg|ink|content|on-[\w-]+)(-|$)/i;
-const BG = /(^|-)(bg|background|surface|canvas|base|paper|neutral|page)(-|$)/i;
+const TEXT = /(^|-)(text|foreground|fg|ink|content|link|placeholder|on-[\w-]+)(-|$)/i;
+/** Text that isn't meant for the page: labels on fills, disabled (exempt in WCAG), inverse. */
+const NOT_PAGE_TEXT = /(^on-|-on-|inverse|disabled|white|black|^text-(xs|sm|base|lg|\d?xl))/i;
+/** A page-level surface that text sits on. */
+const SURFACE =
+  /^(bg|background|surface|canvas|paper|page|panel|card|popover|sidebar)(-(subtle|raised|elevated|sunken|alt|alternate|secondary|tertiary|default|base|inset|\d))?$/i;
+const NOT_SURFACE =
+  /(-(fg|foreground|text|border|ring|hover|active|pressed)|inverse|overlay|scrim)$/i;
+const RING = /(^|-)(ring|focus|focus-ring|outline)$/i;
 const BRAND = /(primary|accent|brand)(?!.*(fg|foreground|text|on-))/i;
 
 /** Name without the usual prefixes: "color-role-accent" -> "accent". */
@@ -282,21 +459,19 @@ function byNames<T extends { name: string }>(items: T[], names: string[]): T | u
 }
 
 function pickBg(p: Parsed) {
-  const exact = byNames(p.colors, [
-    "bg",
-    "background",
-    "surface",
-    "neutral",
-    "canvas",
-    "page",
-    "base",
-  ]);
+  const exact = byNames(p.colors, ["bg", "background", "surface", "canvas", "page", "base"]);
   return (
     exact ??
-    p.colors.find((c) => BG.test(c.name)) ??
-    p.colors.find((c) => (parseColor(c.hex)?.l ?? 0) > 0.95)
+    p.colors.find((c) => SURFACE.test(bare(c.name)) && !NOT_SURFACE.test(bare(c.name))) ??
+    p.colors.find((c) => (parseColor(c.hex)?.l ?? 0) > (p.darkOnly ? -1 : 0.95))
   );
 }
+
+/** Two decimals, never rounding a failing ratio up to the bar it misses. */
+const shown = (r: number, min: number) => {
+  const n = Math.round(r * 100) / 100;
+  return (r < min && n >= min ? Math.floor(r * 100) / 100 : n).toFixed(2);
+};
 
 function checkColor(p: Parsed, findings: Finding[]) {
   const bg = pickBg(p);
@@ -308,62 +483,104 @@ function checkColor(p: Parsed, findings: Finding[]) {
       title: "No background color found",
       detail: "Couldn't tell which color is the page background, so text contrast wasn't checked.",
     });
-  } else {
-    const failing: string[] = [];
-    for (const c of p.colors) {
-      if (!TEXT.test(bare(c.name)) || isOn(c.name) || isScaleStep(c.name)) continue;
-      const r = contrast(c.hex, bg.hex);
-      if (r < 4.5) failing.push(`${c.name} ${r.toFixed(2)}:1`);
-      // DTCG dark values from $extensions.mode.dark get the same check on the dark background.
-      if (c.dark && bg.dark) {
-        const d = contrast(c.dark, bg.dark);
-        if (d < 4.5) failing.push(`${c.name} (dark) ${d.toFixed(2)}:1`);
-      }
-    }
-    // on-X pairs
-    for (const c of p.colors) {
-      const b = bare(c.name);
-      const m = b.match(/^on-(.+)$/) ?? b.match(/^(.+)-(?:fg|foreground)$/);
-      if (!m) continue;
-      const base = p.colors.find((x) => bare(x.name) === m[1]);
-      if (!base) continue;
-      const r = contrast(c.hex, base.hex);
-      if (r < 4.5) failing.push(`${c.name} on ${base.name} ${r.toFixed(2)}:1`);
-      if (c.dark && base.dark) {
-        const d = contrast(c.dark, base.dark);
-        if (d < 4.5) failing.push(`${c.name} on ${base.name} (dark) ${d.toFixed(2)}:1`);
-      }
-    }
-    findings.push(
-      failing.length
-        ? {
-            id: "contrast",
-            area: "Color",
-            status: "fail",
-            title:
-              failing.length > 1
-                ? `${failing.length} text pairs fail WCAG AA`
-                : "1 text pair fails WCAG AA",
-            detail: failing.slice(0, 8).join(", ") + (failing.length > 8 ? "…" : ""),
-            fix: "Text steps are generated to pass 4.5:1 on every surface, in both themes.",
-          }
-        : {
-            id: "contrast",
-            area: "Color",
-            status: "pass",
-            title: "Text pairs pass WCAG AA",
-            detail: `Checked against ${bg.name} and every on-color pair.`,
-          },
-    );
+    return dupesAndSprawl(p, findings);
   }
+  const by = new Map(p.colors.map((c) => [bare(c.name), c]));
+  const surfaces = p.colors.filter(
+    (c) => SURFACE.test(bare(c.name)) && !NOT_SURFACE.test(bare(c.name)),
+  );
+  if (!surfaces.includes(bg)) surfaces.unshift(bg);
+  const modes: ("light" | "dark")[] = p.colors.some((c) => c.dark) ? ["light", "dark"] : ["light"];
+  const failing: string[] = [];
+  const rings: string[] = [];
+  const pairs: string[] = [];
+  /** Check fg on bg in every theme; text needs 4.5, rings and borders 3. */
+  const pair = (fg: Color, on: Color, min: number, into: string[]) => {
+    for (const mode of modes) {
+      const f = mode === "dark" ? fg.dark : fg.css;
+      const b0 = mode === "dark" ? on.dark : on.css;
+      if (!f || !b0) continue;
+      const page = (mode === "dark" ? bg.dark : bg.css) ?? "#ffffff";
+      const b = over(b0, page);
+      const r = contrast(over(f, b), b);
+      pairs.push(fg.name);
+      if (r < min)
+        into.push(`${fg.name} on ${on.name}${mode === "dark" ? " (dark)" : ""} ${shown(r, min)}:1`);
+    }
+  };
+  for (const c of p.colors) {
+    const b = bare(c.name);
+    if (isScaleStep(c.name)) continue;
+    // Page text, on every page surface.
+    if (TEXT.test(b) && !isOn(c.name) && !NOT_PAGE_TEXT.test(b))
+      for (const s of surfaces) if (s !== c) pair(c, s, 4.5, failing);
+    // A label on its fill: on-X, X-fg, X-foreground.
+    const m = b.match(/^on-(.+)$/) ?? b.match(/^(.+)-(?:fg|foreground)$/);
+    const fill = m ? by.get(m[1]!) : undefined;
+    if (fill) pair(c, fill, 4.5, failing);
+    // Component text on its own background: tooltip-fg / tooltip-muted on tooltip-bg.
+    const scoped = b.match(/^(.+)-(fg|text|muted|foreground)$/);
+    const own = scoped ? by.get(`${scoped[1]}-bg`) : undefined;
+    if (own && own !== fill) pair(c, own, 4.5, failing);
+    // Focus rings: 3:1 on the page, or on their own scope (sidebar-ring on sidebar).
+    if (RING.test(b)) {
+      const scope = b.match(/^(.+)-(?:ring|focus|focus-ring|outline)$/)?.[1];
+      const home = scope ? by.get(scope) : undefined;
+      pair(c, home ?? bg, 3, rings);
+    }
+  }
+  findings.push(
+    failing.length
+      ? {
+          id: "contrast",
+          area: "Color",
+          status: "fail",
+          title:
+            failing.length > 1
+              ? `${failing.length} text pairs fail WCAG AA`
+              : "1 text pair fails WCAG AA",
+          detail: failing.slice(0, 8).join(", ") + (failing.length > 8 ? "…" : ""),
+          fix: "Text steps are generated to pass 4.5:1 on every surface, in both themes.",
+        }
+      : {
+          id: "contrast",
+          area: "Color",
+          status: "pass",
+          title: "Text pairs pass WCAG AA",
+          detail: `${new Set(pairs).size} colors checked on ${surfaces.map((s) => s.name).join(", ")}${modes.length > 1 ? ", in light and dark" : ""}.`,
+        },
+  );
+  if (rings.length)
+    findings.push({
+      id: "ring",
+      area: "Color",
+      status: "fail",
+      title: "Focus ring under 3:1",
+      detail: rings.slice(0, 6).join(", "),
+      fix: "The ring uses a step that passes 3:1 on every surface.",
+    });
+  dupesAndSprawl(p, findings);
+}
+
+const HUE_WORD =
+  /(^|-)(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|gray|grey|slate|zinc)(-|$)/i;
+
+function dupesAndSprawl(p: Parsed, findings: Finding[]) {
   // Scale steps and on-colors are excluded: they're meant to be close or white.
   const roles = p.colors.filter((c) => !isScaleStep(c.name) && !isOn(c.name));
   const dupes: string[] = [];
+  // OKLab once per color, so the pairwise check stays fast on 400-variable pastes.
+  const lab = roles.map((c) => {
+    const o = parseColor(c.hex)!;
+    const r = (o.h * Math.PI) / 180;
+    return [o.l, o.c * Math.cos(r), o.c * Math.sin(r)] as const;
+  });
   for (let i = 0; i < roles.length; i++)
     for (let j = i + 1; j < roles.length; j++) {
-      const a = roles[i]!;
-      const b = roles[j]!;
-      if (a.hex !== b.hex && distance(a.hex, b.hex) < 0.005) dupes.push(`${a.name} ≈ ${b.name}`);
+      const [a, b] = [roles[i]!, roles[j]!];
+      const [x, y] = [lab[i]!, lab[j]!];
+      if (a.hex !== b.hex && Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 0.005)
+        dupes.push(`${a.name} ≈ ${b.name}`);
     }
   if (dupes.length)
     findings.push({
@@ -373,6 +590,22 @@ function checkColor(p: Parsed, findings: Finding[]) {
       title: `${dupes.length} near-identical color${dupes.length > 1 ? "s" : ""}`,
       detail: `Indistinguishable side by side: ${dupes.slice(0, 6).join(", ")}. Each one is a choice an agent can get wrong.`,
       fix: "One scale per hue, with a fixed job per step.",
+    });
+  // A role named for its value ("action-purple") breaks when the brand changes.
+  const byValue = roles.filter(
+    (c) => HUE_WORD.test(bare(c.name)) && /[a-z]-[a-z]/i.test(bare(c.name)),
+  );
+  if (byValue.length)
+    findings.push({
+      id: "value-names",
+      area: "Color",
+      status: "warn",
+      title: "Roles named by their color",
+      detail: `${byValue
+        .map((c) => c.name)
+        .slice(0, 4)
+        .join(", ")}: a role says its job, not its hue, so a rebrand doesn't make the name lie.`,
+      fix: "Every role is named for its job.",
     });
   const uniq = new Set(roles.map((c) => c.hex)).size;
   if (uniq > 45)
@@ -448,6 +681,32 @@ function checkType(p: Parsed, findings: Finding[]) {
           : "1 size without a line height",
       detail: "Line height left to the browser default (about 1.2) is too tight for body text.",
       fix: "Line height per role, on a 4px grid.",
+    });
+  // Wrapped text needs room between lines; headings are judged separately below.
+  const tight = p.type.filter(
+    (t) => t.size < 24 && t.lineHeight !== undefined && t.lineHeight < 1.35,
+  );
+  if (tight.length)
+    findings.push({
+      id: "tight",
+      area: "Type",
+      status: "warn",
+      title: "Text line height too tight",
+      detail:
+        tight
+          .map((t) => `${t.name} ${t.size}px at ${Math.round(t.lineHeight! * 100) / 100}`)
+          .join(", ") + ". Text that wraps needs about 1.4 or more.",
+      fix: "Line height per role, on a 4px grid.",
+    });
+  const thin = p.type.filter((t) => t.size < 24 && t.weight !== undefined && t.weight < 400);
+  if (thin.length)
+    findings.push({
+      id: "thin",
+      area: "Type",
+      status: "warn",
+      title: "Light weight at small size",
+      detail: `${thin.map((t) => `${t.name} ${t.size}px at ${t.weight}`).join(", ")}. Under 400, small text loses its strokes on low-density screens.`,
+      fix: "400 or heavier below display sizes.",
     });
   const loose = p.type.filter((t) => t.size >= 28 && (t.lineHeight ?? 0) > 1.35);
   if (loose.length)
@@ -533,12 +792,12 @@ function checkCoverage(p: Parsed, findings: Finding[]) {
   if (!/(ring|focus|outline)/i.test(names)) missing.push("focus ring");
   if (!/(error|danger|destructive|critical)/i.test(names)) missing.push("error");
   if (
-    !/(muted|secondary-text|subtle-text|text-2|tertiary|text-(light|soft|faint|secondary|subtle))/i.test(
+    !/(muted|faint|variant|secondary-text|subtle-text|text-2|tertiary|text-(light|soft|secondary|subtle))/i.test(
       names,
     )
   )
     missing.push("muted text");
-  if (!/(border|stroke|outline|divider)/i.test(names)) missing.push("border");
+  if (!/(border|stroke|outline|divider|line)/i.test(names)) missing.push("border");
   if (missing.length)
     findings.push({
       id: "roles",
@@ -627,13 +886,13 @@ function inferInput(p: Parsed): SystemInput {
   return {
     ...DEFAULT_INPUT,
     name: p.name ?? "Audited system",
-    accent: bc
+    primary: bc
       ? {
           hue: Math.round(bc.h || 0),
           chroma: Math.max(0.02, Math.min(0.3, bc.c)),
           solidL: Math.min(0.9, Math.max(0.3, bc.l)),
         }
-      : DEFAULT_INPUT.accent,
+      : DEFAULT_INPUT.primary,
     // Invert buildNeutral from the text color (step 12 carries half the neutral's
     // peak chroma); near-white backgrounds lose too much chroma to hex rounding.
     neutralTint: ink
@@ -652,6 +911,10 @@ function inferInput(p: Parsed): SystemInput {
 
 export function audit(text: string): Report {
   const parsed = parseSystem(text);
+  if (!parsed.colors.length && !parsed.type.length && !parsed.spacing.length)
+    throw new Error(
+      "Found no colors, sizes or spacing. Paste DESIGN.md, tokens.json, CSS variables or a Tailwind config.",
+    );
   const findings: Finding[] = [];
   checkColor(parsed, findings);
   checkType(parsed, findings);

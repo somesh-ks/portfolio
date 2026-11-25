@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: absoluteUrl("/"), changeFrequency: "monthly", priority: 1 },
     { url: absoluteUrl("/resume"), changeFrequency: "monthly", priority: 0.8 },
+    { url: absoluteUrl("/spring"), changeFrequency: "monthly", priority: 0.7 },
     // Locked case studies are listed by their public teaser URL only.
     ...allEntries().map((entry) => ({
       url: absoluteUrl(entry.href),

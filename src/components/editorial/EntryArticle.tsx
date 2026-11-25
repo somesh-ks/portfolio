@@ -22,8 +22,10 @@ const repoName = (url: string) =>
 
 export function EntryArticle({ entry, next, children }: EntryArticleProps) {
   const { meta } = entry;
+  // Tools are used, not read: back link, title, one line, then the tool at full width.
+  const tool = (meta.layout ?? (meta.kind === "experiment" ? "tool" : "article")) === "tool";
   return (
-    <article className="entry">
+    <article className={tool ? "entry entry--tool" : "entry"}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(entryGraph(entry)) }}
@@ -47,13 +49,19 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
           </p>
         ) : null}
       </header>
-      <MetricsStrip metrics={meta.metrics} />
-      <FactsList meta={meta} />
-      <div className="entry__body">
-        <ArticleOutline />
+      {tool ? (
         <div className="prose">{children}</div>
-      </div>
-      {next ? (
+      ) : (
+        <>
+          <MetricsStrip metrics={meta.metrics} />
+          <FactsList meta={meta} />
+          <div className="entry__body">
+            <ArticleOutline />
+            <div className="prose">{children}</div>
+          </div>
+        </>
+      )}
+      {next && !tool ? (
         <nav aria-label="Next" className="entry__next">
           <Link href={next.href as Route} className="next-link pressable">
             <span className="next-link__label">Next</span>

@@ -20,6 +20,8 @@ export const ContentMetaSchema = z
     metrics: z.array(z.string()).default([]),
     tags: z.array(z.string()).default([]),
     protected: z.boolean().default(false),
+    /** "tool": the interactive piece is the page, full width, no facts or outline. Experiments default to it. */
+    layout: z.enum(["article", "tool"]).optional(),
     /** false keeps the page live (URL, Cmd+K, llms.txt) but off the homepage lists. */
     home: z.boolean().default(true),
     canonicalUrl: z.url().optional(),

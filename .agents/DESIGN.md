@@ -21,6 +21,8 @@ Somesh made these calls. They win over the general guidance further down this fi
 - **Motion:** CSS only. No `motion/react`.
 - **Components:** Base UI only for behaviour. Cmd+K is built on Base UI and lazy-loaded on first open. There is one shared, platform-aware `Kbd`. Every component is listed in [`docs/ui-kit.md`](../docs/ui-kit.md), and a drift test enforces this.
 - **Hero:** never change the name and headline in `content/profile.ts` unless Somesh asks.
+- **Two page templates:** `layout: article` (case studies, writing) keeps facts, outline and the next link. `layout: tool` (experiments by default, and Spring) shows the back link, title, one line, then the tool at full width (76rem). It has no Stack row, facts, outline or next card.
+- **Spring is a pro tool:** a workbench: plain tabs on top, the open tool's controls on the left, and on the right its output or a live preview (one switch). Never trim its tools for simplicity. No presets.
 - **Media:** video posters are the Framer thumbnails, stored next to the videos.
 
 ## Case study format

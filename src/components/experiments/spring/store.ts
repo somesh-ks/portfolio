@@ -13,7 +13,7 @@ import { buildSystem, DEFAULT_INPUT, type SystemInput } from "@/lib/spring/syste
 const STARTER: SystemInput = {
   ...DEFAULT_INPUT,
   name: "Acme",
-  accent: { hue: 255, chroma: 0.17 },
+  primary: { hue: 255, chroma: 0.17 },
   neutralTint: 0.2,
   type: {
     ...DEFAULT_INPUT.type,
@@ -49,7 +49,7 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
-function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput)) {
+export function setInput(next: SystemInput | ((prev: SystemInput) => SystemInput)) {
   input = typeof next === "function" ? next(input) : next;
   emit();
   clearTimeout(timer);
@@ -83,6 +83,11 @@ export function useSpring() {
   return { input: i, system, line: l, setInput, setLine };
 }
 
+/** The current input, read on demand (no subscription, no rebuild). */
+export function getInput(): SystemInput {
+  return input;
+}
+
 export function shareUrl(): string {
   const url = new URL(location.href);
   url.search = `?s=${encodeInput(input)}`;
@@ -90,39 +95,20 @@ export function shareUrl(): string {
   return url.toString();
 }
 
-/**
- * Which theme the previews show. Follows the site's theme until the visitor
- * picks one in any tool; one choice drives every preview on the page.
- */
-let modeOverride: Mode | null = null;
-const modeListeners = new Set<() => void>();
-
 function subscribeSite(l: () => void) {
   const o = new MutationObserver(l);
   o.observe(document.documentElement, { attributeFilter: ["data-theme"] });
   return () => o.disconnect();
 }
 
-export function useMode(): [Mode, (m: Mode) => void] {
+/** Which theme the tools show: the site's own, so the page toggle is the only one. */
+export function useMode(): Mode {
   // Read the attribute next-themes sets; the server snapshot keeps hydration stable.
-  const site = useSyncExternalStore<Mode>(
+  return useSyncExternalStore<Mode>(
     subscribeSite,
     () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
     () => "light",
   );
-  const override = useSyncExternalStore(
-    (l) => {
-      modeListeners.add(l);
-      return () => modeListeners.delete(l);
-    },
-    () => modeOverride,
-    () => null,
-  );
-  const set = (m: Mode) => {
-    modeOverride = m === site ? null : m;
-    for (const l of modeListeners) l();
-  };
-  return [override ?? site, set];
 }
 
 /** Copy text and remember which thing was copied for 1.5s. A denied clipboard shows nothing. */
