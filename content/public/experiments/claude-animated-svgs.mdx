@@ -1,19 +1,24 @@
 ---
-title: Claude studio
+title: Claude sticker studio
 slug: claude-animated-svgs
 kind: experiment
 order: 2
 summary: Customize your claude
 publishedAt: 2026-07-01
-tags: [svg, animation, web components]
-stack: [SVG, Web Components, WebCodecs]
+tags: [svg, animation, stickers]
+stack: [SVG, Lottie, GIF]
+layout: tool
+href: /stickers
+newTab: true
 ---
 
-The mascot has no image files. It's a grid of rectangles, and each animation maps time to rectangles. Turn on the grid to see exactly what the renderer sees.
+The mascot has no image files. It's a grid of rectangles, and each move maps time to rectangles. Pick a move, add props, and export it still or animated.
 
-<ClaudeMascotStudio />
+<a className="button" href="/stickers" target="_blank" rel="noopener">
+  Open studio ↗
+</a>
 
-Because it's just rects, it exports cleanly: an animated SVG that respects reduced motion, a Lottie file for motion designers, a framework-free `<claude-mascot>` element, or an MP4 via WebCodecs.
+Because it's just rects, it exports cleanly: PNG for stills (with a square version for Slack), GIF, an animated SVG that respects reduced motion, or a Lottie file for motion designers. Props like hats, shades and a mug follow the pose, and a die-cut outline turns it into a sticker.
 
 ## What I learned
 

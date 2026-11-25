@@ -10,4 +10,5 @@ bun run dev
 
 - Checks and rules: [`.agents/CODE.md`](.agents/CODE.md)
 - NDA case studies: [`docs/protected-content.md`](docs/protected-content.md)
+- Sticker studio, adding an item or action: [`docs/stickers.md`](docs/stickers.md)
 - Agent-readable views: `/llms.txt`, `/llms-full.txt`, and `<any page>.md`

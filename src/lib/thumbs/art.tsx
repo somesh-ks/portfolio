@@ -13,16 +13,23 @@ export interface ThumbArt {
   draw: () => ReactNode;
 }
 
-/** Claude, from the runner sprite at half resolution; `e` is the eyes. */
-const CLAUDE = [
-  "..########..",
-  "..#e####e#..",
-  "############",
-  "############",
-  "..########..",
-  "..########..",
-  "..#.#..#.#..",
-  "..#.#..#.#..",
+/** Claude as a die-cut sticker in a beanie: `o` the white cut, `l` its edge, `h` the hat, `b` its brim. */
+const STICKER = [
+  ".....llllll.....",
+  "...llloooolll...",
+  "..llooohhoooll..",
+  "..loohhhhhhool..",
+  "..lobbbbbbbbol..",
+  "lllo########olll",
+  "looo#e####e#oool",
+  "lo############ol",
+  "lo############ol",
+  "looo########oool",
+  "lllo########olll",
+  "..lo#o#oo#o#ol..",
+  "..lo#o#oo#o#ol..",
+  "..looooooooool..",
+  "..llllllllllll..",
 ];
 
 /** A caped hero, hands on hips: `#` suit, `e` mask eyes, `s` chest mark, `c` cape. */
@@ -193,27 +200,28 @@ export const THUMBS: Record<string, ThumbArt> = {
     },
   },
 
-  // Claude and the colours you can dress it in.
+  // Two Claude stickers in different beanies: dress it up, cut it out.
   "claude-animated-svgs": {
     accent: "--thumb-studio",
     draw: () => (
       <>
-        <Pixels
-          rows={CLAUDE}
-          x={112}
-          y={40}
-          cell={8}
-          palette={{ "#": "accent", e: "var(--illustration-mascot-ink)" }}
-        />
-        {[
-          "var(--illustration-mascot)",
-          "var(--illustration-sky)",
-          "var(--illustration-moss)",
-          "var(--illustration-sand)",
-        ].map((fill, i) => (
-          <Box key={fill} x={98 + i * 34} y={140} w={24} h={24} tone={fill} />
+        {[24, 168].map((x, i) => (
+          <Pixels
+            key={x}
+            rows={STICKER}
+            x={x}
+            y={40}
+            cell={8}
+            palette={{
+              "#": "accent",
+              e: "var(--illustration-mascot-ink)",
+              h: i ? "muted" : "var(--illustration-mascot-ink)",
+              b: i ? "var(--illustration-mascot-ink)" : "muted",
+              o: "on",
+              l: "line",
+            }}
+          />
         ))}
-        <Box x={94} y={136} w={32} h={32} stroke={2} />
       </>
     ),
   },

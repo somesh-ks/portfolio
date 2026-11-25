@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { NDA_SENTINELS } from "../tests/fixtures/sentinels.ts";
 
-const BUDGET_KB = 500; // gzipped client JS across every chunk, a regression alarm. Spring (/spring) is ~45 KB of it, loaded only on that page.
+// Raised to 540 by Somesh on 2026-11-25 for the sticker studio (route-only, loads on /stickers).
+const BUDGET_KB = 540; // gzipped client JS across every chunk, a regression alarm. Spring (/spring) is ~45 KB of it, loaded only on that page.
 const ROOTS = [".next/static", ".next/server/app"];
 // Next's legacy polyfills load only in browsers without ES modules (<script
 // noModule>), so no current browser downloads them; they don't count.

@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: absoluteUrl("/resume"), changeFrequency: "monthly", priority: 0.8 },
     { url: absoluteUrl("/spring"), changeFrequency: "monthly", priority: 0.7 },
     { url: absoluteUrl("/spring/app"), changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/stickers"), changeFrequency: "monthly", priority: 0.7 },
     // Locked case studies are listed by their public teaser URL only.
     ...allEntries()
       .filter((entry) => entry.page)

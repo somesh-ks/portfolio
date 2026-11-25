@@ -17,7 +17,7 @@ const FINAL: Record<Kind, [title: string, summary?: string][]> = {
   ],
   experiment: [
     ["Tide", "Ambient sound and visuals to unwind"],
-    ["Claude studio", "Customize your claude"],
+    ["Claude sticker studio", "Customize your claude"],
   ],
   "case-study": [
     ["Making graphic comics"],

@@ -15,8 +15,6 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   RoycWhiteLabelSwitcher:
     "Live re-theming of an investor card across four white-label bank themes.",
   LuminovoExpressionBuilder: "Builder for machine-time cost formulas with live evaluation.",
-  ClaudeMascotStudio:
-    "Rect-based pixel mascot with switchable animations and an inspectable rect model.",
   ClaudeRunner:
     "Playable endless runner: Claude walks, skates, scoots, bikes, flies a kite or drives, jumping desk obstacles (Space or tap). Fullscreen, a local best and a shared top-10 leaderboard by first name.",
   OklchTokenInspector:
