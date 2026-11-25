@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Card, springLook } from "./BeforeAfter";
+import { Card, springLook } from "./Sample";
 import { useLandingMotion } from "./Motion";
 
 /** Brand colors of well-known systems, as each publishes them. */

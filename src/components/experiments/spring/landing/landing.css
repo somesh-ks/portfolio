@@ -221,15 +221,6 @@
 .spring-ba__stage > .spring-ba__card {
   place-self: center;
 }
-/* Both looks share one frame: same width, height and top edge, so the split reads as one screen. */
-.spring-ba__stage--compare .spring-ba__card {
-  height: 19rem;
-  align-content: space-between;
-}
-.spring-ba__stage--compare > .spring-ba__card {
-  place-self: start center;
-  margin-top: 3rem;
-}
 .spring-ba__k {
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -370,110 +361,99 @@
   }
 }
 
-/* Before / after */
-.spring-ba__stage--compare::before,
-.spring-ba__stage--compare::after {
-  position: absolute;
-  top: var(--space-3);
-  z-index: 2;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
+/* Proof: Documenso's drift, then what changed */
+.spring-ba__bar a {
+  color: inherit;
+  text-decoration: none;
 }
-.spring-ba__stage--compare::before {
-  content: "before";
-  left: var(--space-4);
-}
-.spring-ba__stage--compare::after {
-  content: "after";
-  right: var(--space-4);
-}
-.spring-ba__after {
+.spring-proof__drift {
   display: grid;
-  place-items: start center;
-  padding-top: 3rem;
-  background: var(--surface-sunken);
-  clip-path: inset(0 0 0 var(--split, 50%));
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
 }
-.spring-ba__handle {
-  position: absolute;
-  inset: 0 auto 0 var(--split, 50%);
-  z-index: 3;
-  width: 1px;
-  background: var(--text-primary);
-  pointer-events: none;
-}
-.spring-ba__handle::after {
-  content: "‹ ›";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  translate: -50% -50%;
-  background: var(--text-primary);
-  color: var(--surface-canvas);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  border-radius: 50%;
-}
-.spring-ba__stage:has(.spring-ba__range:focus-visible) .spring-ba__handle::after {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
-}
-.spring-ba__range {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: ew-resize;
-  touch-action: pan-y;
-}
-.spring-ba__notes {
+.spring-proof__drift > div {
   display: grid;
   align-content: start;
-  gap: var(--space-5);
+  gap: var(--space-3);
   padding: var(--space-6);
+}
+.spring-proof__drift > div + div {
   border-left: 1px solid var(--border-subtle);
-  font-size: var(--step-sm);
-  list-style: none;
 }
-.spring-ba__notes li {
-  display: grid;
-  align-content: start;
-  gap: var(--space-1);
-  font-variant-numeric: tabular-nums;
-}
-.spring-ba__notes s {
-  color: var(--text-danger);
-  text-decoration-thickness: 1px;
-}
-.spring-ba__notes b {
-  color: var(--text-success);
+.spring-proof__drift b,
+.spring-proof__fact b {
+  color: var(--text-primary);
   font-weight: 500;
 }
-.spring-ba__strip {
+.spring-proof__sw {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+.spring-proof__sw--loose {
+  grid-template-columns: repeat(auto-fill, minmax(1.625rem, 1fr));
+  gap: 4px;
+}
+.spring-proof__sw i {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text-primary) 10%, transparent);
+}
+.spring-proof__facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
   border-top: 1px solid var(--border-subtle);
 }
+.spring-proof__fact {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-6);
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+  font-variant-numeric: tabular-nums;
+}
+.spring-proof__fact + .spring-proof__fact {
+  border-left: 1px solid var(--border-subtle);
+}
+.spring-proof__fact > b {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.spring-proof__fact--img {
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: var(--space-5);
+}
+.spring-proof__fact--img > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.spring-proof__fact img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+.spring-proof__fact s {
+  color: var(--text-danger);
+}
+.spring-proof__cap {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+}
 @media (max-width: 52rem) {
-  .spring-ba__notes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .spring-proof__drift,
+  .spring-proof__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .spring-proof__drift > div + div,
+  .spring-proof__fact + .spring-proof__fact {
     border-left: 0;
     border-top: 1px solid var(--border-subtle);
-    padding: var(--space-5) var(--space-4);
-  }
-  .spring-ba__strip {
-    grid-template-columns: auto minmax(0, 1fr);
   }
 }
 
