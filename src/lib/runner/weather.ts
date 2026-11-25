@@ -63,8 +63,11 @@ export function skyFromCurrent(current: Current): Sky | null {
   if (sky !== "rain" && sky !== "snow") return sky;
   const amount = current.precipitation;
   if (typeof amount !== "number") return sky;
-  const snowing = sky === "snow" || (current.snowfall ?? 0) > 0;
-  if (snowing && amount >= FLURRY) return "snow";
+  const snowfall = current.snowfall ?? 0;
+  // Light snow can round to 0.0 mm and still be visible; a rain code needs
+  // real snow in the mix (about 0.1 mm of water) before it reads as snow.
+  if (sky === "snow" && (snowfall > 0 || amount >= FLURRY)) return "snow";
+  if (snowfall >= 0.07 && amount >= FLURRY) return "snow";
   if (amount >= WET) return "rain";
   return "cloudy";
 }

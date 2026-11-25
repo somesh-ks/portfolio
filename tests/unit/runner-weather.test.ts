@@ -46,6 +46,8 @@ describe("weather mapping", () => {
     expect(skyFromCurrent({ weather_code: 71, precipitation: 0.1, snowfall: 0.07 })).toBe("snow");
     expect(skyFromCurrent({ weather_code: 61, precipitation: 0.5, snowfall: 0.2 })).toBe("snow");
     expect(skyFromCurrent({ weather_code: 3, precipitation: 0.3 })).toBe("cloudy");
+    expect(skyFromCurrent({ weather_code: 71, precipitation: 0, snowfall: 0.01 })).toBe("snow");
+    expect(skyFromCurrent({ weather_code: 61, precipitation: 0.3, snowfall: 0.01 })).toBe("rain");
     expect(skyFromCurrent({ weather_code: 45, precipitation: 0 })).toBe("fog");
     expect(skyFromCurrent({})).toBeNull();
   });
