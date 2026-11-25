@@ -29,6 +29,10 @@ export interface Sprite {
   /** Visible width, and the collision box measured from the left edge. */
   width: number;
   hitbox: { x: number; w: number };
+  /** World cells per art pixel, when the art is drawn smaller than 1:1. */
+  cell?: number;
+  /** The same frames smoothed to twice the pixels, for screens with room. */
+  fine?: Sprite;
 }
 
 export const COSTUMES = ["walk", "skate", "scooter", "bike", "kite", "car"] as const;
@@ -53,6 +57,40 @@ const LOOPS: Record<Costume, readonly [number, number]> = {
   kite: [52, 83],
   car: [13, 29],
 };
+
+/** The car's art is twice the others' length, so it rides at two thirds of
+ * a cell per art pixel. Shrinking it by dropping pixels broke the wheels and
+ * face into noise; every pixel is kept instead, and the engine rounds edges
+ * to device pixels. */
+const CELL: Partial<Record<Costume, number>> = { car: 2 / 3 };
+/** Rides that also get a smoothed copy (see `Sprite.fine`). */
+const SMOOTHED = new Set<Costume>(["car"]);
+
+/** Scale2x (EPX): doubles pixel art, rounding stair-steps into diagonals
+ * without inventing colours, so the design stays the same. */
+function scale2x(raw: RawSprite, frames: Uint8Array[]) {
+  const { w, h } = raw;
+  const scaled = frames.map((pixels) => {
+    const out = new Uint8Array(w * h * 4);
+    const at = (x: number, y: number, fallback: number) =>
+      x < 0 || y < 0 || x >= w || y >= h ? fallback : (pixels[y * w + x] ?? 255);
+    for (let y = 0; y < h; y += 1)
+      for (let x = 0; x < w; x += 1) {
+        const p = pixels[y * w + x] ?? 255;
+        const a = at(x, y - 1, p);
+        const b = at(x + 1, y, p);
+        const c = at(x - 1, y, p);
+        const d = at(x, y + 1, p);
+        const row = 2 * y * 2 * w;
+        out[row + 2 * x] = c === a && c !== d && a !== b ? a : p;
+        out[row + 2 * x + 1] = a === b && a !== c && b !== d ? b : p;
+        out[row + 2 * w + 2 * x] = d === c && d !== b && c !== a ? c : p;
+        out[row + 2 * w + 2 * x + 1] = b === d && b !== a && d !== c ? d : p;
+      }
+    return out;
+  });
+  return { raw: { ...raw, w: w * 2, h: h * 2 }, frames: scaled };
+}
 
 /** The front of the body collides; a long car's tail is forgiven. */
 const MAX_HIT_WIDTH = 20;
@@ -158,9 +196,16 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
 }
 
 export function buildSprite(source: RawSprite, costume: Costume): Sprite {
-  if (costume === "car") return carSprite();
-  const raw = source;
-  const all = decodePixels(source);
+  return build(source, decodePixels(source), costume, CELL[costume] ?? 1, SMOOTHED.has(costume));
+}
+
+function build(
+  raw: RawSprite,
+  all: Uint8Array[],
+  costume: Costume,
+  cell: number,
+  smooth: boolean,
+): Sprite {
   const [start, end] = LOOPS[costume];
   const flown = all.slice(start, end);
   const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
@@ -169,94 +214,21 @@ export function buildSprite(source: RawSprite, costume: Costume): Sprite {
   // The kite flies ahead of Claude; only its feet can hit. Other rides hit
   // with their full front, body included, since tall obstacles reach it.
   const front = (costume === "kite" ? box.footRight : box.right) - box.left + 1;
-  const hit = Math.min(front, MAX_HIT_WIDTH);
+  const hit = Math.min(front * cell, MAX_HIT_WIDTH);
   return {
     fps: raw.fps,
     frames: loop.map((pixels) => toRects(raw, pixels, box)),
     idle: toRects(raw, all[0] ?? new Uint8Array(), box),
-    width,
-    hitbox: { x: front - hit + 2, w: hit - 4 },
+    width: Math.ceil(width * cell),
+    hitbox: { x: Math.round(front * cell - hit) + 2, w: Math.round(hit) - 4 },
+    ...(cell === 1 ? {} : { cell }),
+    ...(smooth ? { fine: smoothed(raw, all, costume, cell) } : {}),
   };
 }
 
-/** The car is drawn by hand at game size: a scaled-down copy of the big
- * source art broke its wheels and face into noise. A low racer, Claude in
- * the cockpit, rear wing behind, and wheels whose rims turn. */
-const CAR_BODY = [
-  "..............CCCCCCCCCC............",
-  ".............SCCCCCCCCCC............",
-  ".............SCKKCCCCKKC............",
-  ".............SCKKCCCCKKC............",
-  "KKKKKK.....CCSCCCCCCCCCCCC..........",
-  "KCCCCK.....CCSCCCCCCCCCCCC..........",
-  "KKKKKK...KKKKKKKKKKKKKKKKKKKK.......",
-  "...KK...KWWWWWWWWWWWWWWWWWWWWKKKK...",
-  "...KKKKKBBBBBBBBBBBBBBBBBBBBBBBBBKK.",
-  "..KBBBBBCCCCCCCCCCCCCCCCCCCCCCCBBBBK",
-  "..KBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBKK.",
-  "...KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK...",
-];
-/** Two turns of a wheel: the rim's light marks swap from top and bottom to
- * the sides. */
-const CAR_WHEELS = [
-  ["..KKKK..", ".KDWWDK.", "KDDDDDDK", "KDDGGDDK", "KDDGGDDK", "KDDDDDDK", ".KDWWDK.", "..KKKK.."],
-  ["..KKKK..", ".KDDDDK.", "KDDDDDDK", "KWDGGDWK", "KWDGGDWK", "KDDDDDDK", ".KDDDDK.", "..KKKK.."],
-];
-const CAR_COLOURS: Record<string, string> = {
-  K: "#141413",
-  C: "#d97757",
-  S: "#be684d",
-  W: "#f9f8f4",
-  // A mid grey body reads on both the light and the dark page.
-  B: "#9b9a91",
-  D: "#2f2f2d",
-  G: "#5d5d58",
-};
-const CAR_HEIGHT = 16;
-const CAR_WHEEL_TOP = 8;
-const CAR_AXLES = [4, 25];
-
-function carFrame(wheel: readonly string[]): SpriteRect[] {
-  const grid = Array.from({ length: CAR_HEIGHT }, (_, y) => [
-    ...(CAR_BODY[y] ?? "").padEnd(36, "."),
-  ]);
-  for (const x0 of CAR_AXLES)
-    wheel.forEach((row, dy) =>
-      [...row].forEach((ch, dx) => {
-        const line = grid[CAR_WHEEL_TOP + dy];
-        if (ch !== "." && line) line[x0 + dx] = ch;
-      }),
-    );
-  const out: SpriteRect[] = [];
-  grid.forEach((line, y) => {
-    let x = 0;
-    while (x < line.length) {
-      const colour = CAR_COLOURS[line[x] ?? ""];
-      if (!colour) {
-        x += 1;
-        continue;
-      }
-      let end = x;
-      while (end < line.length && line[end] === line[x]) end += 1;
-      out.push([x, y - CAR_HEIGHT, end - x, 1, colour]);
-      x = end;
-    }
-  });
-  return out;
-}
-
-function carSprite(): Sprite {
-  const frames = CAR_WHEELS.map(carFrame);
-  const width = 36;
-  const hit = Math.min(width, MAX_HIT_WIDTH);
-  return {
-    // Two rim frames: slow enough to read as turning, not strobing.
-    fps: 6,
-    frames,
-    idle: frames[0] ?? [],
-    width,
-    hitbox: { x: width - hit + 2, w: hit - 4 },
-  };
+function smoothed(raw: RawSprite, all: Uint8Array[], costume: Costume, cell: number): Sprite {
+  const twice = scale2x(raw, all);
+  return build(twice.raw, twice.frames, costume, cell / 2, false);
 }
 
 /** The walking Claude, for the server-rendered frame. */
