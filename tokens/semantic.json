@@ -685,38 +685,20 @@
         }
       }
     },
-    "comics-red": {
+    "comics-suit": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.511, 0.2, 27.0]
+        "components": [0.511, 0.086, 186.4]
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.511, 0.2, 27.0]
+            "components": [0.511, 0.086, 186.4]
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.6, 0.2, 27.0]
-          }
-        }
-      }
-    },
-    "comics-blue": {
-      "$value": {
-        "colorSpace": "oklch",
-        "components": [0.511, 0.16, 262.0]
-      },
-      "$extensions": {
-        "mode": {
-          "light": {
-            "colorSpace": "oklch",
-            "components": [0.511, 0.16, 262.0]
-          },
-          "dark": {
-            "colorSpace": "oklch",
-            "components": [0.6, 0.16, 262.0]
+            "components": [0.6, 0.1, 186.4]
           }
         }
       }

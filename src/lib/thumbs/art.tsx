@@ -42,30 +42,31 @@ function placed([look, cx, cy, height, deg]: (typeof SHEET)[number]) {
 }
 
 /**
- * Spider-Man leaping out of a book, fist first (fan art; Somesh's pick for his personal portfolio):
- * `K` black line and web, `R` red, `B` blue, `W` eye lenses. Fixed colours, so he reads the same in both themes.
+ * An original masked hero leaping out of a book, fist first:
+ * `K` ink line, `M` mask band and `W` eyes (fixed black and white, so the mask reads in both themes),
+ * `S` suit, `C` cape, `Y` chevron and belt, `G` gloves and boots.
  */
 const HERO = [
   "................KK.",
-  "...............KRRK",
-  "..............KRRK.",
-  ".............KRRK..",
-  ".....KKKKKK.KRRK...",
-  "....KRRRRRRKRRK....",
-  "....KWWRRWWKRK.....",
-  "....KWWKKWWKK......",
-  "....KRRKKRRK.......",
-  ".....KRRRRK........",
-  "..KBBBRRRRBBBK.....",
-  ".KBBKBRKKRBBBK.....",
-  "KBBK.KRKKRBK.......",
-  "KRRK.KRRRRBK.......",
-  ".KK..KBBBBBK.......",
-  ".....KBBKBBBK......",
-  "....KBBK.KBBK......",
-  "...KBBK...KBBK.....",
-  "..KRRRK.....KRRK...",
-  "..KKKKK.....KKKK...",
+  "...............KGGK",
+  "..............KGGK.",
+  ".............KSSK..",
+  ".....KKKKKK.KSSK...",
+  "....KSSSSSSKSSK....",
+  "....KMMMMMMKSK.....",
+  "....KWWMMWWKK......",
+  "....KSSSSSSK.......",
+  "..CCKKSSSSKKK......",
+  ".CCCKSYSSSYSSK.....",
+  "CCCCKSSYSYSSGGK....",
+  "CCCCKSSSYSSSGGK....",
+  ".CCCKSSSSSSSKK.....",
+  "..CCKYYYYYYYK......",
+  "...CKSSSKSSSK......",
+  "....KSSSK.KSSK.....",
+  "...KSSSK...KSSK....",
+  "..KGGGK.....KGGK...",
+  "..KKKK.......KKK...",
 ];
 
 /** A tick drawn as a path, since the mono font may not carry ✓. */
@@ -258,7 +259,7 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // A comic panel: Spider-Man bursting out of a novel's pages, with a POW.
+  // A comic panel: an original masked hero bursting out of a novel's pages, with a POW.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
@@ -283,10 +284,13 @@ export const THUMBS: Record<string, ThumbArt> = {
               y={30}
               cell={7}
               palette={{
-                K: "var(--thumb-ramp-low)",
-                R: "var(--thumb-comics-red)",
-                B: "var(--thumb-comics-blue)",
+                K: "ink",
+                M: "var(--thumb-ramp-low)",
                 W: "var(--thumb-ramp-high)",
+                S: "var(--thumb-comics-suit)",
+                C: tint(45),
+                Y: "accent",
+                G: "accent",
               }}
             />
             {/* The open book: drawn over the hero's boots, so the hero leaps out of it. */}
