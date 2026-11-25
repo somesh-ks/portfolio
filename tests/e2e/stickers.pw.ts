@@ -42,7 +42,7 @@ test("picks an action, toggles and clears items, and keeps the look in the URL",
   page,
 }) => {
   await open(page);
-  await page.getByRole("radio", { name: "Dance" }).check({ force: true });
+  await page.locator(".stickers-tile", { has: page.getByRole("radio", { name: "Dance" }) }).click();
   await expect(page.getByRole("radio", { name: "Dance" })).toBeChecked();
   await expect(page).toHaveURL(/m=dance/);
 
@@ -120,13 +120,13 @@ test("the Export panel links to the right files, for the right frame, size and s
   await exportButton(page).click();
   await expect(page.getByText("Animated", { exact: true })).toBeVisible();
 
-  // Playing: the still is the action's hero frame (Wave: 2, shown as 3).
-  await expect(page.getByText("Still · frame 3")).toBeVisible();
-  const png0 = await query(page, "Download PNG, frame 3");
+  // Playing: the still is the action's hero frame (Wave: 3, shown as 4).
+  await expect(page.getByText("Still · frame 4")).toBeVisible();
+  const png0 = await query(page, "Download PNG, frame 4");
   expect([png0.get("f"), png0.get("s"), png0.get("fr"), png0.get("sq")]).toEqual([
     "png",
     "512",
-    "2",
+    "3",
     null,
   ]);
   const gif0 = await query(page, "Download GIF");
@@ -183,8 +183,10 @@ for (const scheme of ["light", "dark"] as const) {
       await open(page);
       const tile = page.getByRole("button", { name: "Beanie", exact: true });
       await expect(tile).toHaveAttribute("aria-pressed", "true");
-      const shadow = await tile.evaluate((el) => getComputedStyle(el).boxShadow);
-      expect(shadow).toContain("2px");
+      const thumb = tile.locator(".stickers-thumb");
+      await expect
+        .poll(() => thumb.evaluate((el) => getComputedStyle(el).boxShadow))
+        .toContain("2px");
     });
   });
 }
@@ -226,7 +228,7 @@ for (const [width, height] of [
     });
   }
 
-test("the bar strip clears the title and the window edge; the outline control is labelled", async ({
+test("the bar strip clears the title and the window edge; the outline control sits in the sidebar", async ({
   page,
 }) => {
   for (const [w, h] of [
@@ -240,14 +242,60 @@ test("the bar strip clears the title and the window edge; the outline control is
     const name = (await page.locator(".stickers .spring-app__name").boundingBox())!;
     expect(strip.x - (name.x + name.width)).toBeGreaterThanOrEqual(8);
     expect(w - (strip.x + strip.width)).toBeGreaterThanOrEqual(15);
-    await expect(page.locator(".stickers-outline__label")).toBeVisible();
+    const outline = page.getByRole("heading", { name: "Outline", level: 2 });
+    await expect(outline).toBeVisible();
+    await expect(page.locator(".stickers-side").getByRole("button", { name: "Thin" })).toHaveCount(
+      1,
+    );
+    await expect(
+      page.locator(".stickers-transport").getByRole("button", { name: "Thin" }),
+    ).toHaveCount(0);
   }
 });
 
-test("tile names show in a caption on hover and for the selected tile", async ({ page }) => {
+test("the timeline is compact and centred under the sticker", async ({ page }) => {
+  await open(page);
+  const bar = (await page.locator(".stickers-scrub").boundingBox())!;
+  const stage = (await page.locator(".stickers-stage").boundingBox())!;
+  expect(bar.width).toBeGreaterThanOrEqual(300);
+  expect(bar.width).toBeLessThanOrEqual(420);
+  expect(Math.abs(bar.x + bar.width / 2 - (stage.x + stage.width / 2))).toBeLessThanOrEqual(2);
+});
+
+test("there is no caption line; tiles are named by tooltip or label", async ({ page }, info) => {
   await page.goto("/stickers");
-  const caps = page.locator(".stickers-cap");
-  await expect(caps.first()).toHaveText("Wave");
-  await page.getByRole("radio", { name: "Run" }).focus();
-  await expect(caps.first()).toHaveText("Run");
+  await expect(page.locator(".stickers-cap")).toHaveCount(0);
+  const tile = page.locator(".stickers-tile", {
+    has: page.getByRole("radio", { name: "Run" }),
+  });
+  if (info.project.name === "mobile") {
+    // Touch: every tile has its name under it and no tooltip appears on tap.
+    const labels = page.locator(".stickers-label");
+    await expect(labels.first()).toBeVisible();
+    await expect(tile.locator(".stickers-label")).toHaveText("Run");
+    const thumb = (await tile.locator(".stickers-thumb").boundingBox())!;
+    const label = (await tile.locator(".stickers-label").boundingBox())!;
+    expect(label.y).toBeGreaterThanOrEqual(thumb.y + thumb.height);
+    await tile.tap();
+    await expect(page.locator(".tooltip")).toHaveCount(0);
+  } else {
+    await expect(page.locator(".stickers-label").first()).toBeHidden();
+    await tile.hover();
+    const tip = page.locator(".tooltip", { hasText: "Run" });
+    await expect(tip).toBeVisible();
+    const t = (await tile.boundingBox())!;
+    const p = (await tip.boundingBox())!;
+    expect(Math.abs(p.x + p.width / 2 - (t.x + t.width / 2))).toBeLessThanOrEqual(40);
+    expect(t.y - (p.y + p.height)).toBeGreaterThanOrEqual(0);
+    expect(t.y - (p.y + p.height)).toBeLessThanOrEqual(40);
+    // Moving to the next tile shows its name at once.
+    await page
+      .locator(".stickers-tile", {
+        has: page.getByRole("radio", { name: "Jump" }),
+      })
+      .hover();
+    await expect(page.locator(".tooltip", { hasText: "Jump" })).toBeVisible({
+      timeout: 150,
+    });
+  }
 });

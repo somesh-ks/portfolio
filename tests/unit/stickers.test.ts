@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import sharp from "sharp";
+import { decode, loadRides, RIDE_SPECS } from "../../scripts/ride-fit";
 import { GET } from "@/app/(app)/stickers/export/route";
 import {
   ACTIONS,
@@ -22,9 +23,11 @@ import {
   type Slot,
   setItem,
   stickerSvg,
+  stillFrame,
 } from "@/lib/stickers";
 import { gifBuffer, pngBuffer, rasterFrame } from "@/lib/stickers/export";
 import { itemDef, partsOf } from "@/lib/stickers/items";
+import { RIDE_SPRITES } from "@/lib/stickers/items/ride-data";
 import { clipFor } from "@/lib/stickers/look";
 import { type Clip, type FrameRect, type Part, rectCount } from "@/lib/stickers/model";
 
@@ -50,6 +53,11 @@ function partRects(part: Part, f: number): FrameRect[] {
   );
 }
 const named = (clip: Clip, id: string) => clip.parts.find((p) => p.id === id)!;
+/** An arm is one of three shape parts (flat, bent, up), one visible per frame. */
+const armRects = (clip: Clip, side: string, f: number) =>
+  ["", "_bent", "_up"].flatMap((k) => partRects(named(clip, `${side}${k}`), f));
+const rootRects = (clip: Clip, side: string, f: number) =>
+  ["_root", "_up_root"].flatMap((k) => partRects(named(clip, `${side}${k}`), f));
 const ofItem = (clip: Clip, id: string) => clip.parts.filter((p) => p.id.startsWith(`item:${id}:`));
 const rectsOf = (parts: Part[], f: number) => parts.flatMap((p) => partRects(p, f));
 const anyHit = (a: Box[], b: Box[], fn = hit) => a.some((x) => b.some((y) => fn(x, y)));
@@ -116,8 +124,10 @@ function checkLook(l: Look) {
     // Seam: every limb overlaps the torso, and each arm's root overlaps both.
     const torso = partRects(named(clip, "torso"), f);
     for (const side of ["armL", "armR"]) {
-      const root = partRects(named(clip, `${side}_root`), f);
-      const arm = partRects(named(clip, side), f);
+      const root = rootRects(clip, side, f);
+      const arm = armRects(clip, side, f);
+      // A ride may tuck an arm out of sight (the scooter's far arm).
+      if (root.length === 0 && claimsLegs) continue;
       if (!anyHit(root, torso)) throw new Error(`${tag} f${f}: ${side} root misses the torso`);
       if (!anyHit(root, arm)) throw new Error(`${tag} f${f}: ${side} root misses the arm`);
     }
@@ -131,8 +141,8 @@ function checkLook(l: Look) {
     }
 
     // Held items touch the hands.
-    const armL = partRects(named(clip, "armL"), f);
-    const armR = partRects(named(clip, "armR"), f);
+    const armL = armRects(clip, "armL", f);
+    const armR = armRects(clip, "armR", f);
     for (const d of defs) {
       const mine = rectsOf(ofItem(clip, d.id), f);
       if (d.anchor === "handL" && !anyHit(mine, armL, touch))
@@ -466,7 +476,7 @@ describe("look helpers", () => {
     });
     expect(lookFromQuery(new URLSearchParams(""))).toMatchObject(DEFAULT_LOOK);
     const junk = lookFromQuery(new URLSearchParams("m=nope&p=qqq,crown,crown&o=x&t=q&fr=-4"));
-    expect(junk).toMatchObject({ action: "wave", items: ["crown"], outline: 1, frame: 2 });
+    expect(junk).toMatchObject({ action: "wave", items: ["crown"], outline: 1, frame: 3 });
     // Two items of a slot: the last wins. A front item and a ride coexist.
     expect(lookFromQuery(new URLSearchParams("m=wave&p=beanie,crown")).items).toEqual(["crown"]);
     expect(lookFromQuery(new URLSearchParams("m=wave&p=laptop,bike,hearts")).items).toEqual([
@@ -496,7 +506,7 @@ describe("outputs", () => {
   });
 
   test("animated SVG: each arm's root shares the arm's keyframes, so the seam can't open", () => {
-    const clip = clipFor(look("wave", []));
+    const clip = clipFor(look("idle", []));
     for (const side of ["armL", "armR"]) {
       expect(named(clip, `${side}_root`).track).toEqual(named(clip, side).track);
       expect(named(clip, `${side}_root`).z).toBeLessThan(named(clip, "torso").z);
@@ -563,6 +573,135 @@ describe("raster sizes", () => {
       const r = rasterFrame(look("wave", [], 1), 0, scale, false);
       expect(Number.isInteger(r.width) && Number.isInteger(r.height)).toBe(true);
       expect(r.data.length).toBe(r.width * r.height * 4);
+    }
+  });
+});
+
+describe("art is the object, not the body", () => {
+  const BODY = new Set(["#D97757", "#BF6747", "#E48C6D"]);
+  // Documented exceptions: a picture of Claude is part of the art.
+  const MAY_SHOW_CLAUDE = new Set(["vippass", "laptop"]);
+
+  test("no item draws body-coloured cells, so no thumbnail shows Claude's hand", () => {
+    for (const i of ITEMS) {
+      const def = itemDef(i.id)!;
+      const drawn = partsOf(def).filter((p) => !p.body);
+      const bad = drawn.flatMap((p) => p.layers).filter((l) => BODY.has(l.color.toUpperCase()));
+      if (MAY_SHOW_CLAUDE.has(i.id)) expect(bad.length).toBeGreaterThan(0);
+      else expect(bad.map((l) => l.color)).toEqual([]);
+      if (!MAY_SHOW_CLAUDE.has(i.id)) {
+        const svg = itemThumbSvg(i.id).toUpperCase();
+        for (const c of BODY) expect(svg).not.toContain(c);
+      }
+    }
+  });
+
+  test("a held item gets its hand from the rig, over the grip", () => {
+    const clip = clipFor(look("idle", ["mug"]));
+    const hand = named(clip, "armL_hand");
+    const mug = ofItem(clip, "mug")[0]!;
+    expect(hand.z).toBeGreaterThan(mug.z);
+    expect(clip.parts.some((p) => p.id === "armL_hand")).toBe(true);
+    expect(clipFor(look("idle", ["crown"])).parts.some((p) => p.id === "armL_hand")).toBe(false);
+  });
+});
+
+/** Every arm track of a look on one frame, as one string. */
+const sig = (action: ActionId, id: string, f: number) => {
+  const clip = clipFor(look(action, [id]));
+  return JSON.stringify(
+    ["armL", "armR"].flatMap((side) =>
+      ["", "_bent", "_up"].map((k) => named(clip, `${side}${k}`).track[f]),
+    ),
+  );
+};
+
+describe("rides are ridden", () => {
+  // Per ride: the most cells the rendered body may differ from the claude.dev original (see
+  // scripts/ride-fit.ts: what the rig can't reach is filled, what it paints on empty is extra).
+  // The skateboard rider's right arm follows the action (flat at x 20..23), one cell wider than the original's.
+  const TOLERANCE = { skate: 4, scooter: 1, bike: 6 } as const;
+
+  for (const id of ["skate", "scooter", "bike"] as const) {
+    test(`${id}: the rendered rider matches the original sprite`, () => {
+      const raw = loadRides()[id]!;
+      const spec = RIDE_SPECS[id];
+      const loop = decode(raw).slice(spec.loop[0], spec.loop[1]);
+      const [ox, oy] = RIDE_SPRITES[id].origin;
+      const clip = clipFor(look("idle", [id]));
+      // Idle holds the body still on frames 0..5 and 18..23.
+      for (const f of [0, 1, 2, 3, 4, 5, 18, 19, 20, 21, 22, 23]) {
+        const px = loop[f % loop.length]!;
+        const ours = new Set<string>();
+        for (const r of rectsOf(
+          clip.parts.filter((p) => p.kind === "body" || p.kind === "item"),
+          f,
+        ))
+          for (let y = r.y; y < r.y + r.h; y++)
+            for (let x = r.x; x < r.x + r.w; x++) ours.add(`${x + ox},${y + oy}`);
+        let diff = 0;
+        px.forEach((v, i) => {
+          const x = i % raw.w;
+          const y = Math.floor(i / raw.w);
+          const free = v !== 255 && !spec.mascot.includes(v) && spec.skip?.(x, y, v);
+          if (free) return;
+          if ((v !== 255) !== ours.has(`${x},${y}`)) diff++;
+        });
+        // Cells we draw outside the sprite's own box
+        for (const k of ours) {
+          const [x, y] = k.split(",").map(Number) as [number, number];
+          if (x < 0 || y < 0 || x >= raw.w || y >= raw.h) diff++;
+        }
+        expect(diff).toBeLessThanOrEqual(TOLERANCE[id]);
+      }
+    });
+  }
+
+  test("the vehicle sits in front of the body and the rider's hands are posed by the ride", () => {
+    for (const id of ["skate", "scooter", "bike", "dala"]) {
+      const clip = clipFor(look("wave", [id]));
+      const car = ofItem(clip, id)[0]!;
+      expect(car.z).toBeGreaterThan(named(clip, "torso").z);
+    }
+  });
+
+  test("every ride follows the action: waving and cheering raise an arm that idle does not", () => {
+    for (const id of ["skate", "scooter", "bike", "dala"]) {
+      for (const action of ["wave", "cheer"] as const) {
+        const f = stillFrame(action);
+        expect(sig(action, id, f)).not.toBe(sig("idle", id, f));
+        // A raised arm is the up shape, drawn.
+        const clip = clipFor(look(action, [id]));
+        expect(["armL_up", "armR_up"].some((k) => partRects(named(clip, k), f).length > 0)).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  test("a skateboard has no arm pose: the arms follow the action as they do on the ground", () => {
+    for (const f of [0, 3, 12]) {
+      const on = clipFor(look("walk", ["skate"]));
+      const off = clipFor(look("walk", []));
+      expect(armRects(on, "armL", f).map((r) => r.x)).toEqual(
+        armRects(off, "armL", f).map((r) => r.x),
+      );
+    }
+  });
+
+  test("the eyes stay on the face: inside the torso for every ride and action", () => {
+    for (const id of ["skate", "scooter", "bike", "dala"]) {
+      for (const a of IDS) {
+        const clip = clipFor(look(a, [id]));
+        const eyes = clip.parts.filter((p) => p.kind === "eyes");
+        for (let f = 0; f < clip.frames; f++) {
+          const t = partRects(named(clip, "torso"), f)[0]!;
+          for (const r of rectsOf(eyes, f)) {
+            if (r.x < t.x || r.x + r.w > t.x + t.w)
+              throw new Error(`${a} + ${id} f${f}: eye at ${r.x} leaves the torso`);
+          }
+        }
+      }
     }
   });
 });

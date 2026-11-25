@@ -4,7 +4,9 @@ import Link from "next/link";
 
 import {
   type KeyboardEvent,
+  type ReactElement,
   type CSSProperties,
+  Fragment,
   useEffect,
   useId,
   useMemo,
@@ -35,6 +37,7 @@ import {
 } from "@/lib/stickers";
 import { useSound } from "@/components/providers/SoundProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Tooltip, TooltipGroup } from "@/components/ui/Tooltip";
 import { Segmented } from "../Segmented";
 import { ExportMenu } from "./ExportMenu";
 import "../spring/spring.css";
@@ -91,6 +94,16 @@ const MARK_CELLS = MARK.flatMap((row, y) =>
   [...row].flatMap((c, x) => (c === "." ? [] : [{ x, y, ink: c === "K" }])),
 );
 
+/** A section title in bold, with the current pick after it in the regular weight. */
+function Title({ name, current }: { name: string; current: string | undefined }) {
+  return (
+    <span className="stickers-head__t">
+      {name}
+      {current ? <span className="stickers-head__cur"> · {current}</span> : null}
+    </span>
+  );
+}
+
 function BrandMark() {
   return (
     <svg
@@ -115,6 +128,64 @@ function BrandMark() {
   );
 }
 
+/**
+ * One action in the radio group. The radio is the focused element but the label is the tooltip's
+ * trigger, so keyboard focus opens the name from here (fine pointers only; touch shows labels).
+ */
+function ActionTile({
+  name,
+  fine,
+  checked,
+  groupName,
+  thumb,
+  onSelect,
+}: {
+  name: string;
+  fine: boolean;
+  checked: boolean;
+  groupName: string;
+  thumb: string;
+  onSelect: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const tile = (
+    <label className="stickers-tile pressable">
+      <input
+        type="radio"
+        name={groupName}
+        className="sr-only"
+        aria-label={name}
+        checked={checked}
+        onChange={onSelect}
+        onFocus={(e) => setFocused(e.currentTarget.matches(":focus-visible"))}
+        onBlur={() => setFocused(false)}
+      />
+      <span
+        className="stickers-thumb"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: thumb }}
+      />
+      <span className="stickers-label" aria-hidden="true">
+        {name}
+      </span>
+    </label>
+  );
+  if (!fine) return tile;
+  return (
+    <Tooltip
+      content={name}
+      open={hovered || focused}
+      onOpenChange={(open) => {
+        setHovered(open);
+        if (!open) setFocused(false);
+      }}
+    >
+      {tile}
+    </Tooltip>
+  );
+}
+
 export function StickerStudio() {
   const { play } = useSound();
   const [look, setLook] = useState<Look>(DEFAULT_LOOK);
@@ -123,7 +194,7 @@ export function StickerStudio() {
   const [onScreen, setOnScreen] = useState(true);
   const [ready, setReady] = useState(false);
   const [box, setBox] = useState({ w: 0, h: 0, left: 0, top: 0 });
-  const [tip, setTip] = useState<{ sec: string; name: string } | null>(null);
+  const [fine, setFine] = useState(false);
   const stage = useRef<HTMLButtonElement>(null);
   const art = useRef<HTMLDivElement>(null);
   const posRef = useRef(pos);
@@ -136,9 +207,11 @@ export function StickerStudio() {
     const { frame: f, ...l } = lookFromQuery(q);
     setLook(l);
     const hero = stillFrame(l.action);
-    const shared = q.has("fr") && f !== hero;
+    // Any explicit frame in the link pauses there, even the hero frame.
+    const shared = q.has("fr");
     setPos(shared ? f : hero);
     if (shared || matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
+    setFine(matchMedia("(hover: hover) and (pointer: fine)").matches);
     setReady(true);
     /* oxlint-enable react/set-state-in-effect */
   }, []);
@@ -266,17 +339,9 @@ export function StickerStudio() {
   const actionThumbs = useMemo(() => ACTIONS.map((m) => actionThumbSvg(m.id)), []);
   const itemThumbs = useMemo(() => new Map(ITEMS.map((p) => [p.id, itemThumbSvg(p.id)])), []);
 
-  const tipProps = (sec: string, name: string) => ({
-    onPointerEnter: () => setTip({ sec, name }),
-    onPointerLeave: () => setTip(null),
-    onFocus: () => setTip({ sec, name }),
-    onBlur: () => setTip(null),
-  });
-  const caption = (sec: string, selected: string | undefined) => (
-    <p className="stickers-cap" aria-hidden="true">
-      {(tip?.sec === sec ? tip.name : selected) ?? "\u00a0"}
-    </p>
-  );
+  // Names show as tooltips on hover and focus with a fine pointer; touch gets labels under the tiles.
+  const named = (name: string, tile: ReactElement) =>
+    fine ? <Tooltip content={name}>{tile}</Tooltip> : tile;
 
   const actionName = ACTIONS.find((m) => m.id === look.action)?.name;
   const moves = useMemo(() => hasMotion(look), [look]);
@@ -297,89 +362,114 @@ export function StickerStudio() {
         </span>
       </header>
       <aside className="spring-app__side stickers-side" aria-label="Sticker">
-        <button
-          type="button"
-          className="button stickers-shuffle pressable"
-          onClick={() => {
-            play("tick");
-            change(shuffled(look));
-          }}
-        >
-          <Shuffle aria-hidden="true" size={16} strokeWidth={1.75} />
-          Shuffle
-        </button>
-        <section className="stickers-section">
-          <h2 className="stickers-head">
-            <span>Action · {actionName}</span>
-          </h2>
-          <div role="radiogroup" aria-label="Action" className="stickers-grid">
-            {ACTIONS.map((m, i) => (
-              <label key={m.id} className="stickers-tile pressable" {...tipProps("action", m.name)}>
-                <input
-                  type="radio"
-                  name={`${groupId}-action`}
-                  className="sr-only"
-                  aria-label={m.name}
-                  checked={m.id === look.action}
-                  onChange={() => {
-                    play("tick");
-                    change({ ...look, action: m.id as ActionId });
-                  }}
-                />
-                <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: actionThumbs[i]! }} />
-              </label>
-            ))}
-          </div>
-          {caption("action", actionName)}
-        </section>
-        {SLOTS.map((slot) => {
-          const current = look.items.find((id) => ITEMS.find((i) => i.id === id)?.slot === slot.id);
-          return (
-            <section key={slot.id} className="stickers-section">
-              <h2 className="stickers-head">
-                <span>
-                  {slot.name}
-                  {current ? ` · ${nameOf(current)}` : ""}
-                </span>
-                {current ? (
-                  <button
-                    type="button"
-                    className="stickers-clear pressable"
-                    aria-label={`Clear ${slot.name.toLowerCase()}`}
-                    title={`Clear ${slot.name.toLowerCase()}`}
-                    data-sound="none"
-                    onClick={() => {
+        <TooltipGroup>
+          <button
+            type="button"
+            className="button stickers-shuffle pressable"
+            onClick={() => {
+              play("tick");
+              change(shuffled(look));
+            }}
+          >
+            <Shuffle aria-hidden="true" size={16} strokeWidth={1.75} />
+            Shuffle
+          </button>
+          <section className="stickers-section">
+            <h2 className="stickers-head">
+              <span>Outline</span>
+            </h2>
+            <Segmented
+              label="Outline"
+              options={OUTLINES}
+              value={outlineName(look.outline)}
+              onChange={(n) => {
+                play("tick");
+                change({ ...look, outline: outlineValue(n) });
+              }}
+            />
+          </section>
+          <section className="stickers-section">
+            <h2 className="stickers-head">
+              <Title name="Action" current={actionName} />
+            </h2>
+            <div role="radiogroup" aria-label="Action" className="stickers-grid">
+              {ACTIONS.map((m, i) => (
+                <Fragment key={m.id}>
+                  <ActionTile
+                    name={m.name}
+                    fine={fine}
+                    checked={m.id === look.action}
+                    groupName={`${groupId}-action`}
+                    thumb={actionThumbs[i]!}
+                    onSelect={() => {
                       play("tick");
-                      change(clearSlot(look, slot.id));
+                      change({ ...look, action: m.id as ActionId });
                     }}
-                  >
-                    <X aria-hidden="true" size={14} strokeWidth={1.75} />
-                  </button>
-                ) : null}
-              </h2>
-              <fieldset className="stickers-grid">
-                <legend className="sr-only">{slot.name}</legend>
-                {ITEMS.filter((i) => i.slot === slot.id).map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    aria-pressed={look.items.includes(p.id)}
-                    aria-label={p.name}
-                    className="stickers-tile pressable"
-                    {...tipProps(slot.id, p.name)}
-                    data-sound="none"
-                    onClick={() => {
-                      play("tick");
-                      change(setItem(look, p.id));
-                    }}
-                    dangerouslySetInnerHTML={{ __html: itemThumbs.get(p.id)! }}
                   />
-                ))}
-              </fieldset>
-              {caption(slot.id, current ? nameOf(current) : undefined)}
-            </section>
-          );
-        })}
+                </Fragment>
+              ))}
+            </div>
+          </section>
+          {SLOTS.map((slot) => {
+            const current = look.items.find(
+              (id) => ITEMS.find((i) => i.id === id)?.slot === slot.id,
+            );
+            return (
+              <section key={slot.id} className="stickers-section">
+                <h2 className="stickers-head">
+                  <Title name={slot.name} current={current ? nameOf(current) : undefined} />
+                  {current ? (
+                    <button
+                      type="button"
+                      className="stickers-clear pressable"
+                      aria-label={`Clear ${slot.name.toLowerCase()}`}
+                      title={`Clear ${slot.name.toLowerCase()}`}
+                      data-sound="none"
+                      onClick={() => {
+                        play("tick");
+                        change(clearSlot(look, slot.id));
+                      }}
+                    >
+                      <X aria-hidden="true" size={14} strokeWidth={1.75} />
+                    </button>
+                  ) : null}
+                </h2>
+                <fieldset className="stickers-grid">
+                  <legend className="sr-only">{slot.name}</legend>
+                  {ITEMS.filter((i) => i.slot === slot.id).map((p) => (
+                    <Fragment key={p.id}>
+                      {named(
+                        p.name,
+                        <button
+                          type="button"
+                          aria-pressed={look.items.includes(p.id)}
+                          aria-label={p.name}
+                          className="stickers-tile pressable"
+                          data-sound="none"
+                          onClick={() => {
+                            play("tick");
+                            change(setItem(look, p.id));
+                          }}
+                        >
+                          <span
+                            className="stickers-thumb"
+                            aria-hidden="true"
+                            dangerouslySetInnerHTML={{
+                              __html: itemThumbs.get(p.id)!,
+                            }}
+                          />
+                          <span className="stickers-label" aria-hidden="true">
+                            {p.name}
+                          </span>
+                        </button>,
+                      )}
+                    </Fragment>
+                  ))}
+                </fieldset>
+              </section>
+            );
+          })}
+        </TooltipGroup>
       </aside>
       <section className="spring-app__canvas stickers-canvas" aria-label="Stage">
         <button
@@ -403,7 +493,9 @@ export function StickerStudio() {
               top: place(box.h, artH, box.top),
             }}
             aria-hidden="true"
-            dangerouslySetInnerHTML={{ __html: animating ? animatedSvg : staticSvg }}
+            dangerouslySetInnerHTML={{
+              __html: animating ? animatedSvg : staticSvg,
+            }}
           />
         </button>
         <div className="stickers-transport">
@@ -433,7 +525,9 @@ export function StickerStudio() {
                 step={1}
                 value={shown}
                 style={
-                  { "--p": `${frames > 1 ? (shown / (frames - 1)) * 100 : 0}%` } as CSSProperties
+                  {
+                    "--p": `${frames > 1 ? (shown / (frames - 1)) * 100 : 0}%`,
+                  } as CSSProperties
                 }
                 onPointerDown={pause}
                 onKeyDown={onSlider}
@@ -446,20 +540,6 @@ export function StickerStudio() {
           ) : (
             <span className="stickers-scrub" />
           )}
-          <div className="stickers-outline">
-            <span className="stickers-outline__label" aria-hidden="true">
-              Outline
-            </span>
-            <Segmented
-              label="Outline"
-              options={OUTLINES}
-              value={outlineName(look.outline)}
-              onChange={(n) => {
-                play("tick");
-                change({ ...look, outline: outlineValue(n) });
-              }}
-            />
-          </div>
         </div>
       </section>
     </div>

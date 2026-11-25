@@ -45,3 +45,12 @@ export function Tooltip({
     </Base.Root>
   );
 }
+
+/** Wrap a set of tooltips so moving from one trigger to the next shows the next name at once. */
+export function TooltipGroup({ children }: { children: ReactNode }) {
+  return (
+    <Base.Provider delay={300} timeout={600}>
+      {children}
+    </Base.Provider>
+  );
+}
