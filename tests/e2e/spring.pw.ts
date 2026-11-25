@@ -33,13 +33,13 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
   expect((await one).suggestedFilename()).toMatch(/-color\.zip$/);
 });
 
-test("data colors reorder with their move buttons", async ({ page }) => {
+test("data colors reorder with their grip", async ({ page }) => {
   await page.goto("/spring");
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
-  await page.getByRole("button", { name: `Move ${first} down` }).click();
+  await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
   await expect(names.nth(0)).toHaveValue(second);
   await expect(names.nth(1)).toHaveValue(first);
 });
@@ -64,7 +64,7 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
-  await page.getByRole("button", { name: `Move ${first} down` }).click();
+  await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
   await expect(page).toHaveURL(/\?s=/);
   await page.goto("/spring");
   await expect(names.nth(0)).toHaveValue(second);
@@ -296,12 +296,27 @@ test("every strip shows its color value", async ({ page }) => {
     await expect(page.getByRole("textbox", { name, exact: true })).not.toHaveValue("");
 });
 
-test("Suggest colors gives a new set each press", async ({ page }) => {
+test("Suggest adds a color and keeps the others", async ({ page }) => {
   await page.goto("/spring");
   const names = page.locator(".spring-data .spring-strip__rename");
-  const before = await names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
-  await page.getByRole("button", { name: "Suggest colors" }).click();
-  await expect
-    .poll(() => names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value)))
-    .not.toEqual(before);
+  const read = () => names.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
+  const before = await read();
+  await page.getByRole("button", { name: "Suggest color" }).click();
+  await expect.poll(read).toHaveLength(before.length + 1);
+  expect((await read()).slice(0, before.length)).toEqual(before);
+});
+
+test("a data color drags to a new place by its grip", async ({ page, isMobile }) => {
+  test.skip(isMobile, "pointer drag is covered on desktop");
+  await page.goto("/spring");
+  const names = page.locator(".spring-data .spring-strip__rename");
+  const first = await names.nth(0).inputValue();
+  const grip = page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) });
+  const third = await page.locator(".spring-data [data-order]").nth(2).boundingBox();
+  const box = (await grip.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 4, third!.y + third!.height * 0.75, { steps: 6 });
+  await page.mouse.up();
+  await expect(names.nth(2)).toHaveValue(first);
 });
