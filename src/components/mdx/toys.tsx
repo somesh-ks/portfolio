@@ -32,10 +32,6 @@ export const LuminovoExpressionBuilder = dynamic(() =>
   import("../case-studies/LuminovoExpressionBuilder").then((m) => m.LuminovoExpressionBuilder),
 );
 /** @public used by MDX through the namespace import */
-export const ClaudeMascotStudio = dynamic(() =>
-  import("../experiments/ClaudeMascotStudio").then((m) => m.ClaudeMascotStudio),
-);
-/** @public used by MDX through the namespace import */
 export const OklchTokenInspector = dynamic(() =>
   import("../experiments/OklchTokenInspector").then((m) => m.OklchTokenInspector),
 );

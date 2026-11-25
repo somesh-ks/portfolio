@@ -1,4 +1,4 @@
-/** A stored (uncompressed) zip: tokens are small text, so no deflate needed. */
+/** A stored (uncompressed) zip: tokens are small text and stickers are already compressed, so no deflate. */
 const TABLE = Array.from({ length: 256 }, (_, n) => {
   let c = n;
   for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
@@ -11,14 +11,14 @@ export function crc32(bytes: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-export function zip(files: { path: string; content: string }[]): Blob {
+export function zip(files: { path: string; content: string | Uint8Array }[]): Blob {
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const central: Uint8Array[] = [];
   let offset = 0;
   for (const f of files) {
     const name = enc.encode(f.path);
-    const data = enc.encode(f.content);
+    const data = typeof f.content === "string" ? enc.encode(f.content) : f.content;
     const crc = crc32(data);
     const head = (sig: number, extra: number) => {
       const b = new Uint8Array(extra + name.length);

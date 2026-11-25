@@ -46,10 +46,7 @@ const TARGETS: Record<
   tide: { url: "https://tide.someshks.com" },
   // Experiments
   "claude-runner": { url: `${LOCAL}/experiments/claude-runner`, clip: ".runner__screen" },
-  "claude-animated-svgs": {
-    url: `${LOCAL}/experiments/claude-animated-svgs`,
-    clip: ".stage__canvas",
-  },
+  "claude-animated-svgs": { url: `${LOCAL}/stickers`, dark: true },
   "oklch-token-inspector": { url: `${LOCAL}/experiments/oklch-token-inspector`, clip: ".toy" },
   "agentic-stream-states": {
     url: `${LOCAL}/experiments/agentic-stream-states`,
