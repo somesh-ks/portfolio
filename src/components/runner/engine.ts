@@ -104,6 +104,8 @@ const MAX_STEPS = 5;
 const MILESTONE = 100;
 /** Largest cell, in CSS pixels. */
 const MAX_CELL_PX = 6;
+/** Cells above the ground that the tallest ride fills. */
+const HEADROOM = 24;
 /** How long the crash pose holds before Claude walks again. */
 const CRASH_HOLD_MS = 600;
 /** Between runs Claude strolls; in a run the same loop plays faster. */
@@ -211,7 +213,12 @@ export function createEngine(
     // Ground stays near the bottom like the static frame; extra room goes on top,
     // or is split when a tall screen leaves a lot over.
     const spare = height - WORLD.height * scale;
-    offsetY = spare > WORLD.height * scale ? Math.round(spare / 2) : spare;
+    const split = spare > WORLD.height * scale;
+    offsetY = split ? Math.round(spare / 2) : spare;
+    // When the world floats mid-screen, the game-over panel sits in the sky
+    // just above Claude instead of on top of it.
+    const sky = (offsetY + (WORLD.ground - HEADROOM) * scale) / dpr;
+    canvas.parentElement?.style.setProperty("--runner-sky", split ? `${Math.round(sky)}px` : "");
     draw();
   }
 
