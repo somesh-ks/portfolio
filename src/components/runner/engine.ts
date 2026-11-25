@@ -63,6 +63,8 @@ function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite>
   return Object.fromEntries(
     // A ride that failed to load falls back to the classic walk, loops and all.
     COSTUMES.map((costume) => {
+      // The car is drawn in code; it needs nothing from the file.
+      if (costume === "car") return [costume, buildSprite(walkSprite, "car")];
       const raw = costume === "walk" ? undefined : rides[costume];
       return [costume, raw ? buildSprite(raw, costume) : buildSprite(walkSprite, "walk")];
     }),
@@ -126,6 +128,8 @@ export interface Engine {
   jump: () => void;
   setCostume: (costume: Costume) => void;
   setWeather: (weather: Weather) => void;
+  /** Keep the crash scene in place (while a score is being saved). */
+  hold: (on: boolean) => void;
   destroy: () => void;
 }
 
@@ -157,6 +161,7 @@ export function createEngine(
   /** Between runs Claude walks in place; null while a run plays or a crash holds. */
   let walkFrame: number | null = null;
   let holdUntil = 0;
+  let holding = false;
   let onScreen = true;
   // Pick up where the SVG clouds' CSS animation is, so the handover doesn't jump.
   let cloudShift = motion.matches
@@ -399,7 +404,14 @@ export function createEngine(
   /** Between runs: hold the crash pose, then clear the desk and walk in place.
    * Reduced motion stands still instead. */
   function idle(now: number) {
-    if (now < holdUntil) return schedule();
+    if (now < holdUntil || holding) {
+      // The crash stays put; only the weather keeps falling.
+      tickWeather(now);
+      if (!motion.matches && particleSpeed(weather.sky) !== null) draw();
+      // A still, held scene needs no frames until hold(false).
+      if (now < holdUntil || !motion.matches) schedule();
+      return;
+    }
     if (run?.over && run.obstacles.length) {
       run.obstacles = [];
       run.height = 0;
@@ -526,6 +538,10 @@ export function createEngine(
     setWeather(next) {
       weather = next;
       draw();
+    },
+    hold(on) {
+      holding = on;
+      schedule();
     },
     destroy() {
       cancelAnimationFrame(raf);
