@@ -240,27 +240,9 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
                   {t.role}
                 </span>
                 <span>
-                  {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx}
-                </span>
-                <span>
-                  {t.weight}
+                  {t.min === t.max ? px : `${t.min}–${px}`}px / {t.lineHeightPx} · {t.weight}
                   {t.tracking ? ` · ${t.tracking > 0 ? "+" : ""}${t.tracking}em` : ""}
                 </span>
-                <button
-                  type="button"
-                  className="spring-rung__copy"
-                  title={t.size}
-
-                  onClick={() =>
-                    copy(
-                      t.role,
-                      `font-size: ${t.size};\nline-height: ${t.lineHeight};\nletter-spacing: ${t.tracking}em;\nfont-weight: ${t.weight};`,
-                    )
-                  }
-                >
-                  {copied === t.role ? "Copied" : "Copy CSS"}
-                  <span className="sr-only"> for {t.role}</span>
-                </button>
               </span>
               <span
                 className="spring-rung__sample"
@@ -275,6 +257,21 @@ export function Ladder({ system, mode }: { system: System; mode: Mode }) {
               >
                 {t.role === "display" ? displayOf(system.input.name) : SAMPLE[t.role]}
               </span>
+              <button
+                type="button"
+                className="spring-rung__copy"
+                title={t.size}
+
+                onClick={() =>
+                  copy(
+                    t.role,
+                    `font-size: ${t.size};\nline-height: ${t.lineHeight};\nletter-spacing: ${t.tracking}em;\nfont-weight: ${t.weight};`,
+                  )
+                }
+              >
+                {copied === t.role ? "Copied" : "Copy CSS"}
+                <span className="sr-only"> for {t.role}</span>
+              </button>
             </div>
           );
         })}

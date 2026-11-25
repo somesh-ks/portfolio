@@ -10,17 +10,16 @@ test("Spring runs as its own app, without the site frame", async ({ page }) => {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring$/);
 });
 
-test("the project page opens Spring in a new tab, and old share links follow", async ({
-  page,
-  request,
-}) => {
-  await page.goto("/projects/spring");
-  const open = page.getByRole("link", { name: /Open Spring/ });
-  await expect(open).toHaveAttribute("href", "/spring");
-  await expect(open).toHaveAttribute("target", "_blank");
-  const old = await request.get("/projects/spring?s=abc", { maxRedirects: 0 });
-  expect(old.status()).toBe(308);
-  expect(old.headers().location).toMatch(/\/spring\?s=abc$/);
+test("the old project page and share links 308 to Spring", async ({ request }) => {
+  for (const [from, to] of [
+    ["/projects/spring", /\/spring$/],
+    ["/projects/spring?s=abc", /\/spring\?s=abc$/],
+    ["/projects/spring.md", /\/spring\.md$/],
+  ] as const) {
+    const old = await request.get(from, { maxRedirects: 0 });
+    expect(old.status()).toBe(308);
+    expect(old.headers().location).toMatch(to);
+  }
 });
 
 test("Export downloads everything, or one area from its menu", async ({ page }) => {
@@ -28,7 +27,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
   const all = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await all).suggestedFilename()).toMatch(/\.zip$/);
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   const one = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /Color/ }).click();
   expect((await one).suggestedFilename()).toMatch(/-color\.zip$/);
@@ -36,6 +35,7 @@ test("Export downloads everything, or one area from its menu", async ({ page }) 
 
 test("data colors reorder with their move buttons", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator(".spring-reveal > summary").click();
   const names = page.locator(".spring-strip__rename");
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
@@ -52,6 +52,7 @@ test("the audit stays reachable at #audit", async ({ page }) => {
 
 test("the color page opens its charts in Preview", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator(".spring-reveal > summary").click();
   await page.getByRole("button", { name: "See them in charts" }).click();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveAttribute(
     "aria-pressed",
@@ -62,6 +63,7 @@ test("the color page opens its charts in Preview", async ({ page }) => {
 
 test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator(".spring-reveal > summary").click();
   const names = page.locator(".spring-strip__rename");
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
@@ -69,7 +71,7 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   await expect(page).toHaveURL(/\?s=/);
   await page.goto("/spring");
   await expect(names.nth(0)).toHaveValue(second);
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect(names.nth(0)).toHaveValue(first);
@@ -86,7 +88,7 @@ test("a seed link loads its system", async ({ page }) => {
 
 test("Export gives spring.json, valid and self-describing", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   const dl = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: /spring\.json/ }).click();
   const file = await (await dl).path();
@@ -97,7 +99,7 @@ test("Export gives spring.json, valid and self-describing", async ({ page }) => 
 
 test("Import reads a spring.json", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
@@ -114,7 +116,7 @@ test("Import reads a spring.json", async ({ page }) => {
 
 test("Import turns CSS variables into a starting point", async ({ page }) => {
   await page.goto("/spring");
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog
@@ -127,7 +129,7 @@ test("Import turns CSS variables into a starting point", async ({ page }) => {
 });
 
 const importText = async (page: import("@playwright/test").Page, text: string) => {
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   await page.getByRole("menuitem", { name: /Import/ }).click();
   const dialog = page.getByRole("dialog", { name: "Import" });
   await dialog.getByLabel(/Paste or drop/).fill(text);
@@ -164,7 +166,7 @@ test("Import sends a DTCG tokens.json and a view file to the audit, with Undo", 
 
 test("Start over drops seed params from the URL", async ({ page }) => {
   await page.goto("/spring?primary=%23e11d48&name=Seedtest&font=Inter");
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect.poll(() => new URL(page.url()).search).toBe("");
@@ -172,6 +174,7 @@ test("Start over drops seed params from the URL", async ({ page }) => {
 
 test("a curve handle follows the pointer", async ({ page }) => {
   await page.goto("/spring");
+  await page.locator("summary", { hasText: "scale" }).click();
   const plot = page.locator(".spring-curve__plot");
   await plot.scrollIntoViewIfNeeded();
   const field = page.getByLabel("cubic-bezier");
@@ -206,6 +209,30 @@ test("a Dial's value field takes typed digits after Enter without appending", as
   await expect(page.getByLabel("hue", { exact: true })).toHaveValue("5");
 });
 
+test("a Dial scrubs from its value on drag and sets the point on a plain click", async ({
+  page,
+}) => {
+  await page.goto("/spring?primary=%232563eb");
+  const slider = page.getByLabel("hue", { exact: true });
+  const row = page.locator(".dial").filter({ has: slider });
+  await row.scrollIntoViewIfNeeded();
+  const box = (await row.boundingBox())!;
+  const y = box.y + box.height / 2;
+  const start = Number(await slider.inputValue());
+  // Pressing near the left edge doesn't jump; dragging moves from the current value.
+  await page.mouse.move(box.x + 10, y);
+  await page.mouse.down();
+  await expect(slider).toHaveValue(String(start));
+  await page.mouse.move(box.x + 10 + box.width / 4, y, { steps: 5 });
+  await page.mouse.up();
+  const scrubbed = Number(await slider.inputValue());
+  expect(scrubbed).toBeGreaterThan(start);
+  await expect(slider).toBeFocused();
+  // A click without a drag sets the value at that point.
+  await page.mouse.click(box.x + 2, y);
+  expect(Number(await slider.inputValue())).toBeLessThan(scrubbed);
+});
+
 test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   const errors: Error[] = [];
   page.on("pageerror", (e) => errors.push(e));
@@ -228,13 +255,40 @@ test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
 test("the share link comes first and the Export button confirms it", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/spring");
-  await page.getByRole("button", { name: "More export options" }).click();
+  await page.getByRole("button", { name: "Export, import and reset" }).click();
   await expect(page.getByRole("menuitem").first()).toHaveText("Copy share link");
   await page.getByRole("menuitem", { name: "Copy share link" }).click();
   await expect(page.getByText("Link copied")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
-  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute(
-    "href",
-    "/projects/spring",
+  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute("href", "/spring");
+});
+
+test("a strip is one tab stop; arrows walk its steps", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "keyboard navigation is a desktop check");
+  await page.goto("/spring");
+  const strip = page.getByRole("toolbar", { name: "primary steps" });
+  await expect(strip.locator('button[tabindex="0"]')).toHaveCount(1);
+  await strip.locator("button").first().focus();
+  await page.keyboard.press("End");
+  await expect(strip.locator("button").last()).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(strip.locator("button").nth(10)).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("toolbar", { name: "primary steps" }).locator(":focus")).toHaveCount(
+    0,
   );
+});
+
+test("a picked status color clears back to auto from its picker", async ({ page }) => {
+  await page.goto("/spring");
+  const field = page.getByRole("textbox", { name: "danger color, blank for auto" });
+  await expect(field).toHaveCount(0);
+  await page.getByRole("button", { name: "Pick danger color" }).click();
+  const hex = page.getByRole("textbox", { name: "danger color", exact: true });
+  await hex.fill("#ff00ff");
+  await hex.press("Enter");
+  await expect(field).toHaveCount(1);
+  await hex.fill("");
+  await hex.press("Enter");
+  await expect(field).toHaveCount(0);
 });

@@ -7,17 +7,14 @@ export interface Tune {
   hue: number | null;
   type: "sans" | "mono";
   size: "14" | "15" | "16";
-  /** Multiplier on the steps above base: lg × k, xl × k², 2xl × k³. */
-  scale: number;
   /** Multiplier on every space step. */
   density: number;
 }
 
-export const TUNE_DEFAULT: Tune = { hue: null, type: "sans", size: "14", scale: 1, density: 1 };
+export const TUNE_DEFAULT: Tune = { hue: null, type: "sans", size: "14", density: 1 };
 
 export const TUNE_RANGE = {
   hue: { min: 0, max: 359, step: 1, first: 250 },
-  scale: { min: 0.9, max: 1.25, step: 0.01 },
   density: { min: 0.75, max: 1.5, step: 0.05 },
 } as const;
 
@@ -25,7 +22,6 @@ export const isDefault = (t: Tune) =>
   t.hue === null &&
   t.type === TUNE_DEFAULT.type &&
   t.size === TUNE_DEFAULT.size &&
-  t.scale === TUNE_DEFAULT.scale &&
   t.density === TUNE_DEFAULT.density;
 
 /** Attributes and custom properties for <html>; an absent key means remove it. */
@@ -35,13 +31,12 @@ export function tuneOutput(t: Tune): {
 } {
   const attrs: Record<string, string> = {};
   const vars: Record<string, string> = {};
-  if (t.size !== "14" || t.scale !== 1 || t.density !== 1) {
+  if (t.size !== "14" || t.density !== 1) {
     attrs["data-tune"] = "";
     vars["--tune-f"] = String(Number(t.size) / 14);
-    vars["--tune-k"] = String(t.scale);
     vars["--tune-d"] = String(t.density);
   }
-  if (t.type === "mono") attrs["data-tune-type"] = "mono";
+  if (t.type !== "sans") attrs["data-tune-type"] = t.type;
   if (t.hue !== null) {
     attrs["data-tune-hue"] = "";
     vars["--tune-h"] = String(t.hue);
@@ -50,7 +45,7 @@ export function tuneOutput(t: Tune): {
 }
 
 const TUNE_ATTRS = ["data-tune", "data-tune-type", "data-tune-hue"] as const;
-const TUNE_VARS = ["--tune-f", "--tune-k", "--tune-d", "--tune-h"] as const;
+const TUNE_VARS = ["--tune-f", "--tune-d", "--tune-h"] as const;
 
 /** Writes a tune to <html>, clearing whatever it doesn't set. */
 export function applyTune(el: HTMLElement, t: Tune) {

@@ -12,7 +12,21 @@ interface ListRowProps {
   external?: boolean;
   /** Decorative still shown beside the row on wide screens with a mouse. */
   thumb?: string;
+  /** The same still in dark mode; falls back to `thumb`. */
+  thumbDark?: string;
 }
+
+const Thumb = ({ src, theme }: { src: string; theme?: "light" | "dark" }) => (
+  <Image
+    src={src}
+    alt=""
+    width={320}
+    height={200}
+    sizes="160px"
+    unoptimized
+    className={theme ? `list-row__thumb list-row__thumb--${theme}` : "list-row__thumb"}
+  />
+);
 
 /** One editorial row: title and meta on the first line, summary under it.
  * The whole row is the link, so the target spans the full width on phones.
@@ -25,6 +39,7 @@ export function ListRow({
   locked = false,
   external = false,
   thumb,
+  thumbDark,
 }: ListRowProps) {
   const content = (
     <>
@@ -40,16 +55,13 @@ export function ListRow({
         {external ? <ArrowUpRight aria-hidden="true" size={14} className="list-row__icon" /> : null}
       </span>
       <span className="list-row__summary">{summary}</span>
-      {thumb ? (
-        <Image
-          src={thumb}
-          alt=""
-          width={320}
-          height={200}
-          sizes="160px"
-          unoptimized
-          className="list-row__thumb"
-        />
+      {thumb && thumbDark ? (
+        <>
+          <Thumb src={thumb} theme="light" />
+          <Thumb src={thumbDark} theme="dark" />
+        </>
+      ) : thumb ? (
+        <Thumb src={thumb} />
       ) : null}
     </>
   );

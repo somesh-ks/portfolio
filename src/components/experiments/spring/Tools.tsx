@@ -155,13 +155,13 @@ function ExportMenu({ system }: { system: System }) {
       <Menu.Root>
         <Menu.Trigger
           className="button button--primary spring-split__more"
-          aria-label="More export options"
+          aria-label="Export, import and reset"
         >
           <Chevron />
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
-            <Menu.Popup className="select__popup">
+            <Menu.Popup className="select__popup spring-menu">
               <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
                 <span className="select__text">Copy share link</span>
               </Menu.Item>
@@ -187,6 +187,7 @@ function ExportMenu({ system }: { system: System }) {
               <Menu.Item className="select__item" onClick={() => setImporting(true)}>
                 <span className="select__text">Import…</span>
               </Menu.Item>
+              <Menu.Separator className="spring-menu__rule" />
               <Menu.Item
                 className="select__item"
                 onClick={() => {
@@ -194,7 +195,7 @@ function ExportMenu({ system }: { system: System }) {
                     resetInput();
                 }}
               >
-                <span className="select__text">Start over</span>
+                <span className="select__text spring-menu__danger">Start over</span>
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>
@@ -423,6 +424,11 @@ export function SpringApp() {
   const mode = useMode();
   const [tab, setTab] = useState<Tab>("color");
   const [view, setView] = useState<"output" | "preview">("output");
+  // Tokens has no preview: its sidebar works on the file shown in the canvas.
+  const go = (t: Tab) => {
+    setTab(t);
+    if (t === "tokens") setView("output");
+  };
   const [charts, setCharts] = useState(false);
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
@@ -443,7 +449,7 @@ export function SpringApp() {
       <Fonts type={input.type} />
       <header className="spring-app__bar">
         <h1 className="spring-app__name">
-          <Link href="/projects/spring">Spring</Link>
+          <Link href="/spring">Spring</Link>
         </h1>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (
@@ -456,7 +462,7 @@ export function SpringApp() {
               aria-controls={`${tabsId}-panel`}
               tabIndex={t === tab ? 0 : -1}
               className="spring-tab"
-              onClick={() => setTab(t)}
+              onClick={() => go(t)}
               onKeyDown={(e) => {
                 const i = TABS.indexOf(tab);
                 const next =
@@ -471,7 +477,7 @@ export function SpringApp() {
                           : undefined;
                 if (!next) return;
                 e.preventDefault();
-                setTab(next);
+                go(next);
                 document.getElementById(`${tabsId}-${next}`)?.focus();
               }}
             >
@@ -494,6 +500,31 @@ export function SpringApp() {
         </span>
       </header>
       <AuditDialog />
+      {/* The panel first: it follows its tabs for keyboards and screen readers; the grid places it. */}
+      <aside
+        role="tabpanel"
+        id={`${tabsId}-panel`}
+        aria-labelledby={`${tabsId}-${tab}`}
+        className="spring-app__side"
+      >
+        {tab === "color" ? (
+          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
+        ) : null}
+        {tab === "type" ? (
+          <TypeControls
+            {...spring}
+            onBrowse={(r) => {
+              setBrowse(r);
+              setView("output");
+            }}
+          />
+        ) : null}
+        {tab === "space" ? <ShapeControls {...spring} /> : null}
+        {tab === "motion" ? (
+          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
+        ) : null}
+        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
+      </aside>
       <section
         className="spring-app__canvas"
         aria-label={view === "preview" ? "Live preview" : `${TAB_LABEL[tab]} output`}
@@ -584,30 +615,6 @@ export function SpringApp() {
           </>
         )}
       </section>
-      <aside
-        role="tabpanel"
-        id={`${tabsId}-panel`}
-        aria-labelledby={`${tabsId}-${tab}`}
-        className="spring-app__side"
-      >
-        {tab === "color" ? (
-          <ColorControls {...spring} mode={mode} format={format} setFormat={setFormat} />
-        ) : null}
-        {tab === "type" ? (
-          <TypeControls
-            {...spring}
-            onBrowse={(r) => {
-              setBrowse(r);
-              setView("output");
-            }}
-          />
-        ) : null}
-        {tab === "space" ? <ShapeControls {...spring} /> : null}
-        {tab === "motion" ? (
-          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
-        ) : null}
-        {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
-      </aside>
     </div>
   );
 }
@@ -750,95 +757,103 @@ function ColorControls({
           />
         ))
       )}
-      <hr className="spring-rule" />
-      <p className="spring-group">scale</p>
-      <CurveEditor
-        curve={curve}
-        mode={mode}
-        strips={[
-          primary[mode],
-          ...Object.entries(system.scales)
-            .filter(([k]) => k !== "primary")
-            .map(([, sc]) => sc![mode]),
-        ]}
-        onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
-      />
-      <Dial
-        label="hue shift"
-        reset={0}
-        value={curve.hueShift}
-        min={-40}
-        max={40}
-        step={1}
-        show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
-        onChange={(v) => setCurve({ hueShift: v })}
-      />
-      <hr className="spring-rule" />
-      <p className="spring-group">grays</p>
-      <Row label="lean">
-        <Segmented
-          label="Gray hue"
-          options={["primary", "warm", "cool"] as const}
-          value={grays ?? ("" as "primary")}
-          onChange={(v) =>
-            setInput((i) => ({ ...i, neutralHue: v === "primary" ? undefined : GRAY_SNAP[v] }))
-          }
-          render={(v) => v[0]!.toUpperCase() + v.slice(1)}
+      <Group label="scale">
+        <CurveEditor
+          curve={curve}
+          mode={mode}
+          strips={[
+            primary[mode],
+            ...Object.entries(system.scales)
+              .filter(([k]) => k !== "primary")
+              .map(([, sc]) => sc![mode]),
+          ]}
+          onChange={(c) => setInput((i) => ({ ...i, curve: c }))}
         />
-      </Row>
-      <Dial
-        label="tint"
-        scale={100}
-        reset={DEFAULT_INPUT.neutralTint}
-        value={input.neutralTint}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`${Math.round(input.neutralTint * 100)}%`}
-        onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
-      />
+        <Dial
+          label="hue shift"
+          reset={0}
+          value={curve.hueShift}
+          min={-40}
+          max={40}
+          step={1}
+          show={`${curve.hueShift > 0 ? "+" : ""}${curve.hueShift}°`}
+          onChange={(v) => setCurve({ hueShift: v })}
+        />
+      </Group>
+      <Group label="grays">
+        <Row label="lean">
+          <Segmented
+            label="Gray hue"
+            options={["primary", "warm", "cool"] as const}
+            value={grays ?? ("" as "primary")}
+            onChange={(v) =>
+              setInput((i) => ({ ...i, neutralHue: v === "primary" ? undefined : GRAY_SNAP[v] }))
+            }
+            render={(v) => v[0]!.toUpperCase() + v.slice(1)}
+          />
+        </Row>
+        <Dial
+          label="tint"
+          scale={100}
+          reset={DEFAULT_INPUT.neutralTint}
+          value={input.neutralTint}
+          min={0}
+          max={1}
+          step={0.01}
+          show={`${Math.round(input.neutralTint * 100)}%`}
+          onChange={(v) => setInput((i) => ({ ...i, neutralTint: v }))}
+        />
+      </Group>
       {system.data.length ? (
-        <>
-          <hr className="spring-rule" />
-          <p className="spring-group">data viz</p>
+        <Group label="data viz">
           <DataRamps system={system} setInput={setInput} />
-        </>
+        </Group>
       ) : null}
-      <hr className="spring-rule" />
-      <p className="spring-group">rules</p>
-      <Row label="contrast">
-        <Segmented
-          label="Contrast target"
-          options={["aa", "aaa", "apca"] as const}
-          value={input.contrast ?? "aa"}
-          onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
-          render={(v) => v.toUpperCase()}
-        />
-      </Row>
-      <Row label="button text">
-        <Segmented
-          label="Text on primary buttons"
-          options={["auto", "white", "ink"] as const}
-          value={a.label ?? "auto"}
-          onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, label: v } }))}
-          render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
-        />
-      </Row>
-      {system.adjustments.length ? (
-        <div className="spring-changed">
-          <p className="spring-group">what the rules changed</p>
-          <ul>
-            {system.adjustments.map((t) => (
-              <li key={t} className="spring-meta">
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
-      )}
+      <Group label="rules">
+        <Row label="contrast">
+          <Segmented
+            label="Contrast target"
+            options={["aa", "aaa", "apca"] as const}
+            value={input.contrast ?? "aa"}
+            onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
+            render={(v) => v.toUpperCase()}
+          />
+        </Row>
+        <Row label="button text">
+          <Segmented
+            label="Text on primary buttons"
+            options={["auto", "white", "ink"] as const}
+            value={a.label ?? "auto"}
+            onChange={(v) => setInput((i) => ({ ...i, primary: { ...i.primary, label: v } }))}
+            render={(v) => (v === "auto" ? "Auto" : v === "white" ? "White" : "Dark")}
+          />
+        </Row>
+        {system.adjustments.length ? (
+          <div className="spring-changed">
+            <p className="spring-group">what the rules changed</p>
+            <ul>
+              {system.adjustments.map((t) => (
+                <li key={t} className="spring-meta">
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="spring-meta">Every pair already passes; nothing needed moving.</p>
+        )}
+      </Group>
     </>
+  );
+}
+
+/** A sidebar group that starts closed, so first load shows only the brand color. */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <details className="spring-fold">
+      <summary className="spring-group">{label}</summary>
+      <div className="spring-fold__body">{children}</div>
+    </details>
   );
 }
 
@@ -920,7 +935,7 @@ function TypeControls({
   return (
     <>
       <Dial
-        label="Body size"
+        label="body size"
         reset={16}
         value={t.base}
         min={12}
@@ -949,7 +964,7 @@ function TypeControls({
       />
       {hi > lo ? (
         <Dial
-          label="Heading weight"
+          label="heading weight"
           value={t.headingWeight}
           min={lo}
           max={hi}
@@ -1013,7 +1028,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
   return (
     <>
       <Dial
-        label="Density"
+        label="density"
         scale={100}
         reset={DEFAULT_INPUT.density}
         value={input.density}
@@ -1024,7 +1039,7 @@ function ShapeControls({ input, system, setInput }: Spring) {
         onChange={(v) => setInput((i) => ({ ...i, density: v }))}
       />
       <Dial
-        label="Roundness"
+        label="roundness"
         scale={100}
         reset={DEFAULT_INPUT.roundness}
         value={input.roundness}
@@ -1076,7 +1091,7 @@ function MotionControls({ input, system, setInput, onCommit }: Spring & { onComm
   return (
     <>
       <Dial
-        label="Energy"
+        label="energy"
         scale={100}
         reset={DEFAULT_INPUT.motion}
         value={input.motion}
@@ -1174,7 +1189,6 @@ function TokensControls({
   setFile: (label: string) => void;
 }) {
   const [copied, copy, said] = useCopy();
-  const download = () => save(`${slug(system.input.name)}.zip`, zip(withJson(system, files)));
   const name = f.path.split("/").pop();
   return (
     <>
@@ -1183,19 +1197,10 @@ function TokensControls({
         value={input.name}
         onChange={(v) => setInput((i) => ({ ...i, name: v.slice(0, 60) }))}
       />
-      <div className="spring-export">
-        <button type="button" className="button button--primary" onClick={download}>
-          Download all files (.zip)
-        </button>
-        <span className="spring-export__row">
-          <button type="button" className="button" onClick={() => copy("prompt", toPrompt(system))}>
-            {copied === "prompt" ? "Copied" : "Copy agent prompt"}
-          </button>
-          <button type="button" className="button" onClick={() => copy("link", shareUrl())}>
-            {copied === "link" ? "Copied" : "Copy share link"}
-          </button>
-        </span>
-      </div>
+      {/* The zip and the share link live in the Export menu; this panel is for one file at a time. */}
+      <button type="button" className="button" onClick={() => copy("prompt", toPrompt(system))}>
+        {copied === "prompt" ? "Copied" : "Copy agent prompt"}
+      </button>
       <Select
         label="File"
         value={f.label}

@@ -3,26 +3,41 @@ import matter from "gray-matter";
 
 const KIND_PATH = { projects: "/projects", experiments: "/experiments", "case-studies": "/work" };
 
-/** Every public route, read from the content folders so new entries are covered. */
-export function publicRoutes(): string[] {
-  const entries = Object.entries(KIND_PATH).flatMap(([dir, base]) =>
-    readdirSync(`content/public/${dir}`)
-      .filter((file) => file.endsWith(".mdx"))
-      .map((file) => `${base}/${file.replace(/\.mdx$/, "")}`),
-  );
-  return ["/", "/resume", ...entries];
-}
-
-/** Routes the homepage lists: every entry without `home: false` in its frontmatter. */
-export function homeRoutes(): string[] {
+/** Every entry, read from the content folders so new entries are covered.
+ * `href` is where it opens: its own page, or frontmatter `href` (a path or URL). */
+function entries() {
   return Object.entries(KIND_PATH).flatMap(([dir, base]) =>
     readdirSync(`content/public/${dir}`)
       .filter((file) => file.endsWith(".mdx"))
-      .filter(
-        (file) => matter(readFileSync(`content/public/${dir}/${file}`, "utf8")).data.home !== false,
-      )
-      .map((file) => `${base}/${file.replace(/\.mdx$/, "")}`),
+      .map((file) => {
+        const { data } = matter(readFileSync(`content/public/${dir}/${file}`, "utf8"));
+        const page = `${base}/${file.replace(/\.mdx$/, "")}`;
+        return {
+          page,
+          href: (data.href as string | undefined) ?? page,
+          own: !data.href,
+          home: data.home !== false,
+        };
+      }),
   );
+}
+
+/** Every public route with its own page. */
+export function publicRoutes(): string[] {
+  return [
+    "/",
+    "/resume",
+    ...entries()
+      .filter((e) => e.own)
+      .map((e) => e.page),
+  ];
+}
+
+/** On-site routes the homepage links: entries without `home: false`, minus links out. */
+export function homeRoutes(): string[] {
+  return entries()
+    .filter((e) => e.home && e.href.startsWith("/"))
+    .map((e) => e.href);
 }
 
 export const LOCKED = ["/work/royc", "/work/luminovo"];

@@ -12,10 +12,10 @@ describe("tune output", () => {
     expect(isDefault(TUNE_DEFAULT)).toBe(true);
   });
 
-  test("size, scale and density switch the token multipliers on", () => {
+  test("size and density switch the token multipliers on", () => {
     const out = tuneOutput({ ...TUNE_DEFAULT, size: "16", density: 1.5 });
     expect(out.attrs).toEqual({ "data-tune": "" });
-    expect(out.vars).toEqual({ "--tune-f": String(16 / 14), "--tune-k": "1", "--tune-d": "1.5" });
+    expect(out.vars).toEqual({ "--tune-f": String(16 / 14), "--tune-d": "1.5" });
   });
 
   test("type and hue are independent of the multipliers", () => {

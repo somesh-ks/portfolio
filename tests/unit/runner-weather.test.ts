@@ -16,7 +16,13 @@ import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/
 import { createRun, GRAVITY, step, STEP } from "@/lib/runner/sim";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES, type Cell, type ObstacleKind } from "@/lib/runner/sprites";
-import { localNight, roundCoord, skyFromCode, weatherLabel } from "@/lib/runner/weather";
+import {
+  localNight,
+  roundCoord,
+  skyFromCode,
+  skyFromCurrent,
+  weatherLabel,
+} from "@/lib/runner/weather";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -30,6 +36,20 @@ describe("weather mapping", () => {
     expect([45, 48].map(skyFromCode)).toEqual(["fog", "fog"]);
     expect([51, 61, 67, 80, 95, 99].map(skyFromCode)).toEqual(Array(6).fill("rain"));
     expect([71, 75, 77, 85, 86].map(skyFromCode)).toEqual(Array(5).fill("snow"));
+  });
+
+  test("a trace of drizzle is a grey sky, not rain", () => {
+    // Stockholm, 2026-11-25: code 51 with 0.1 mm while the streets stayed dry.
+    expect(skyFromCurrent({ weather_code: 51, precipitation: 0.1, snowfall: 0 })).toBe("cloudy");
+    expect(skyFromCurrent({ weather_code: 61, precipitation: 0.4, snowfall: 0 })).toBe("rain");
+    expect(skyFromCurrent({ weather_code: 95, precipitation: 0 })).toBe("cloudy");
+    expect(skyFromCurrent({ weather_code: 71, precipitation: 0.1, snowfall: 0.07 })).toBe("snow");
+    expect(skyFromCurrent({ weather_code: 61, precipitation: 0.5, snowfall: 0.2 })).toBe("snow");
+    expect(skyFromCurrent({ weather_code: 3, precipitation: 0.3 })).toBe("cloudy");
+    expect(skyFromCurrent({ weather_code: 71, precipitation: 0, snowfall: 0.01 })).toBe("snow");
+    expect(skyFromCurrent({ weather_code: 61, precipitation: 0.3, snowfall: 0.01 })).toBe("rain");
+    expect(skyFromCurrent({ weather_code: 45, precipitation: 0 })).toBe("fog");
+    expect(skyFromCurrent({})).toBeNull();
   });
 
   test("coordinates round to about 11 km", () => {
@@ -105,9 +125,11 @@ describe("scene", () => {
 
 describe("accessories", () => {
   test("every frame of every ride has a face to dress", () => {
-    // The scaled-down car's eyes are single pixels: it rides undressed.
-    for (const costume of COSTUMES.filter((ride) => ride !== "car")) {
-      const raw = costume === "walk" ? walkSprite : (rides as Record<string, RawSprite>)[costume]!;
+    for (const costume of COSTUMES) {
+      const raw =
+        costume === "walk" || costume === "car"
+          ? walkSprite
+          : (rides as Record<string, RawSprite>)[costume]!;
       const sprite = buildSprite(raw, costume);
       for (const frame of [sprite.idle, ...sprite.frames]) {
         const face = findFace(frame);
@@ -132,11 +154,15 @@ describe("accessories", () => {
 describe("weather label", () => {
   test("condition and temperature, no city", () => {
     expect(weatherLabel({ sky: "rain", night: false, temp: 12, unit: "C", city: "Munich" })).toBe(
-      "LOCAL WEATHER · RAIN · 12°C",
+      "RAINY, 12°C",
     );
-    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe(
-      "LOCAL WEATHER · SNOW · 27°F",
-    );
+    expect(weatherLabel({ sky: "snow", night: true, temp: 27, unit: "F" })).toBe("SNOWY, 27°F");
+  });
+
+  test("a clear sky is sunny by day, clear at night", () => {
+    expect(weatherLabel({ sky: "clear", night: false, temp: 20 })).toBe("SUNNY, 20°C");
+    expect(weatherLabel({ sky: "clear", night: true, temp: 3 })).toBe("CLEAR, 3°C");
+    expect(weatherLabel({ sky: "fog", night: true, temp: 3 })).toBe("FOGGY, 3°C");
   });
 
   test("no temperature, no label", () => {
