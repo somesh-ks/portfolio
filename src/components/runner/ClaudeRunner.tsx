@@ -34,7 +34,7 @@ import {
 } from "@/lib/runner/claude-sprites";
 import { WORLD } from "@/lib/runner/sim";
 import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/sprites";
-import { isSky, localNight, weatherLabel, type Weather } from "@/lib/runner/weather";
+import { isSky, localNight, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
 import { beatUrl, parseBeat, shareText } from "@/lib/runner/share";
 
@@ -43,7 +43,7 @@ function weatherOverride(): Weather | null {
   const value = new URLSearchParams(window.location.search).get("weather");
   if (!value) return null;
   const [sky, time] = value.split("-");
-  return isSky(sky) ? { sky, night: time === "night", temp: null } : null;
+  return isSky(sky) ? { sky, night: time === "night" } : null;
 }
 
 let weatherRequest: Promise<Weather> | null = null;
@@ -52,7 +52,7 @@ function loadWeather(): Promise<Weather> {
   weatherRequest ??= (async () => {
     const override = weatherOverride();
     if (override) return override;
-    const fallback: Weather = { sky: "cloudy", night: localNight(), temp: null };
+    const fallback: Weather = { sky: "cloudy", night: localNight() };
     try {
       const response = await fetch("/api/runner/weather", { signal: AbortSignal.timeout(3000) });
       const body = (await response.json()) as Weather | null;
@@ -206,7 +206,6 @@ export function ClaudeRunner() {
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
   /** Set once the visitor's real weather arrives; overrides and misses get none. */
-  const [weatherCaption, setWeatherCaption] = useState<string | null>(null);
   const [jumped, setJumped] = useState(false);
   /** The last input used, so hints say TAP or [SPACE] to match. */
   const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
@@ -300,12 +299,10 @@ export function ClaudeRunner() {
     const pick = COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
     if (pick !== "walk") costumeRef.current = pick;
     // The engine draws the horizon and the weather, so it always loads once
-    // idle; the caption waits for the visitor's real weather.
+    // idle. The weather only changes the scene; nothing on screen names it.
     const load = () => {
       void ensureEngine();
-      void loadWeather().then((weather) =>
-        setWeatherCaption(weatherOverride() ? null : weatherLabel(weather)),
-      );
+      void loadWeather();
     };
     // Safari has no requestIdleCallback; a short timeout stands in.
     if (typeof window.requestIdleCallback === "function") {
@@ -620,10 +617,6 @@ export function ClaudeRunner() {
               <Key click="CLICK TO" touch="TAP TO" /> PLAY
             </span>
           </button>
-        ) : null}
-
-        {phase === "idle" && weatherCaption ? (
-          <p className="runner__weather">{weatherCaption}</p>
         ) : null}
 
         {phase === "running" && !jumped ? (

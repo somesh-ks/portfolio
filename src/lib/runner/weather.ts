@@ -9,33 +9,6 @@ export type Sky = (typeof SKIES)[number];
 export interface Weather {
   sky: Sky;
   night: boolean;
-  /** Whole degrees in `unit`, or null when unknown. */
-  temp: number | null;
-  unit?: "C" | "F";
-  /** The visitor's city, only while SHOW_CITY is on. */
-  city?: string | null;
-}
-
-/** Off: IP cities are often wrong (VPNs, carriers) and feel creepy on a
- * screen-share. The condition and temperature can be checked out the window. */
-export const SHOW_CITY = false;
-
-/** How each sky reads in a sentence; a clear night isn't sunny. */
-const FEELS: Record<Sky, string> = {
-  clear: "sunny",
-  cloudy: "cloudy",
-  fog: "foggy",
-  rain: "rainy",
-  snow: "snowy",
-};
-
-/** The caption under the play prompt, e.g. `RAINY, 12°C`. */
-export function weatherLabel(weather: Weather): string | null {
-  if (weather.temp === null) return null;
-  const feel = weather.sky === "clear" && weather.night ? "clear" : FEELS[weather.sky];
-  const parts = [feel, `${weather.temp}°${weather.unit ?? "C"}`];
-  if (SHOW_CITY && weather.city) parts.unshift(weather.city);
-  return parts.join(", ").toUpperCase();
 }
 
 /** WMO weather interpretation codes, as Open-Meteo reports them. */
@@ -57,7 +30,6 @@ const FLURRY = 0.1;
 interface Current {
   weather_code?: number;
   is_day?: number;
-  temperature_2m?: number;
   /** Millimetres in the last 15 minutes. */
   precipitation?: number;
   /** Centimetres in the last 15 minutes. */
@@ -102,16 +74,11 @@ interface OpenMeteoCurrent {
 }
 
 /** One rounded cell asks Open-Meteo at most every 15 minutes. */
-export async function fetchWeather(
-  lat: number,
-  lon: number,
-  unit: "C" | "F" = "C",
-): Promise<Weather | null> {
+export async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(roundCoord(lat)));
   url.searchParams.set("longitude", String(roundCoord(lon)));
-  url.searchParams.set("current", "weather_code,is_day,temperature_2m,precipitation,snowfall");
-  if (unit === "F") url.searchParams.set("temperature_unit", "fahrenheit");
+  url.searchParams.set("current", "weather_code,is_day,precipitation,snowfall");
   try {
     const response = await fetch(url, {
       next: { revalidate: 900 },
@@ -124,8 +91,6 @@ export async function fetchWeather(
     return {
       sky,
       night: current.is_day === 0,
-      temp: typeof current.temperature_2m === "number" ? Math.round(current.temperature_2m) : null,
-      unit,
     };
   } catch {
     return null;
