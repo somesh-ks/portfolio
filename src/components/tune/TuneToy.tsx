@@ -8,6 +8,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -32,10 +33,44 @@ export function TuneToy() {
   const [tune, setTune] = useState<Tune>(TUNE_DEFAULT);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // The panel must mount closed to play its grow transition; until it has, the button stays.
+  const [ready, setReady] = useState(false);
+  const shown = open && ready;
   const button = useRef<HTMLButtonElement>(null);
 
+  // The panel grows from the button's footprint and folds back onto it, so it needs
+  // the button's size each time (a picked hue adds a swatch).
+  const toggle = useCallback((next: boolean) => {
+    const rect = button.current?.getBoundingClientRect();
+    if (rect) {
+      const root = document.documentElement.style;
+      root.setProperty("--tune-from-w", `${rect.width}px`);
+      root.setProperty("--tune-from-h", `${rect.height}px`);
+    }
+    setOpen(next);
+  }, []);
+  // Fetch the panel when the page is idle, or sooner on intent, so the first tap grows at once.
+  const warm = () => setLoaded(true);
+  useEffect(() => {
+    if ("requestIdleCallback" in window) {
+      const id = requestIdleCallback(() => setLoaded(true), { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => setLoaded(true), 1500);
+    return () => clearTimeout(id);
+  }, []);
+  const onReady = useCallback(() => setReady(true), []);
+
   useEffect(() => applyTune(document.documentElement, tune), [tune]);
-  useEffect(() => () => applyTune(document.documentElement, TUNE_DEFAULT), []);
+  useEffect(
+    () => () => {
+      const root = document.documentElement;
+      applyTune(root, TUNE_DEFAULT);
+      root.style.removeProperty("--tune-from-w");
+      root.style.removeProperty("--tune-from-h");
+    },
+    [],
+  );
   // A new typeface flips the text on screen into place, like a departures board.
   const shownType = useRef(tune.type);
   useEffect(() => {
@@ -53,11 +88,14 @@ export function TuneToy() {
         className="tune-button tune-exempt pressable"
         aria-label="Tune this page"
         aria-haspopup="dialog"
-        aria-expanded={open}
-        data-open={open || undefined}
+        aria-expanded={shown}
+        data-open={shown || undefined}
+        onPointerEnter={warm}
+        onPointerDown={warm}
+        onFocus={warm}
         onClick={() => {
           setLoaded(true);
-          setOpen(true);
+          toggle(true);
         }}
       >
         <span
@@ -76,8 +114,9 @@ export function TuneToy() {
       {loaded && (
         <Suspense fallback={null}>
           <TunePanel
-            open={open}
-            onOpenChange={setOpen}
+            open={shown}
+            onOpenChange={toggle}
+            onReady={onReady}
             tune={tune}
             onTune={setTune}
             returnFocus={button}
