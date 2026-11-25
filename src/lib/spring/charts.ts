@@ -5,7 +5,7 @@
  * seeds whose marks stay apart for everyone, the two ramps, and the checks.
  */
 import { clampChroma, linearToOklch, oklchToHex, oklchToLinear, wcagContrast } from "./colormath";
-import { buildScale, type BuiltScale, type Curve, type Mode, type Step } from "./color";
+import { buildScale, parseColor, type BuiltScale, type Curve, type Mode, type Step } from "./color";
 
 export const CHART_MAX = 10;
 /** How many data strips a system suggests when its input names none. */
@@ -160,9 +160,19 @@ export function suggest(
   count: number,
   pages: Record<Mode, string>,
   curve?: Curve,
+  /** Seeds already in use: they stay as they are, and the pick adds what keeps furthest from them. */
+  keep?: string[],
 ): string[] {
   // A system with no data colors set rebuilds on every change; the pick only depends on these.
-  const key = JSON.stringify([primary.hue, primary.chroma, primary.solidL, count, pages, curve]);
+  const key = JSON.stringify([
+    primary.hue,
+    primary.chroma,
+    primary.solidL,
+    count,
+    pages,
+    curve,
+    keep,
+  ]);
   if (memo?.key === key) return memo.seeds;
   type Cand = { seed: string; see: Record<Mode, Record<Vision, Lab>> };
   const cand = (h: number, l: number, c: number): Cand => {
@@ -176,12 +186,18 @@ export function suggest(
   const c = Math.max(0.12, Math.min(0.2, primary.chroma));
   const pool: Cand[] = [];
   for (let h = 0; h < 360; h += 15) for (const l of [0.45, 0.58, 0.72]) pool.push(cand(h, l, c));
+  const kept = (keep ?? []).flatMap((hex) => {
+    const o = parseColor(hex);
+    return o ? [{ ...cand(o.h, o.l, o.c), seed: hex }] : [];
+  });
   // A gray brand makes a poor first series; start from a plain blue instead.
-  const chosen = [
-    primary.chroma < 0.05
-      ? cand(250, 0.5, c)
-      : cand(primary.hue, primary.solidL ?? 0.55, primary.chroma),
-  ];
+  const chosen = kept.length
+    ? kept
+    : [
+        primary.chroma < 0.05
+          ? cand(250, 0.5, c)
+          : cand(primary.hue, primary.solidL ?? 0.55, primary.chroma),
+      ];
   const gap = (p: Cand) => {
     let min = Infinity;
     for (const q of chosen)

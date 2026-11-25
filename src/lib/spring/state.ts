@@ -171,7 +171,7 @@ export function decodeInput(s: string | null | undefined): SystemInput | null {
       stack: {
         building: oneOf(st?.[0], ["site", "app", "dashboard"] as const, D.stack.building),
         ownership: oneOf(st?.[1], ["own", "package"] as const, D.stack.ownership),
-        styling: oneOf(st?.[2], ["tailwind", "css"] as const, D.stack.styling),
+        styling: oneOf(st?.[2], ["tailwind", "css", "dtcg"] as const, D.stack.styling),
         components: pick(st?.[3], COMPONENTS),
         icons: pick(st?.[4], ICONS),
       },

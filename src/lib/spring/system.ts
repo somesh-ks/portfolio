@@ -330,7 +330,8 @@ function buildRoles(
   custom: CustomStrip[],
 ): Role[] {
   const at = (scale: string) => solid[scale]![mode];
-  const hover = (scale: string) => (at(scale) + towardContrast(labels[scale]![mode], mode)) as Step;
+  const hover = (scale: string, n = 1) =>
+    Math.min(12, Math.max(1, at(scale) + n * towardContrast(labels[scale]![mode], mode))) as Step;
   const r = (name: string, scale: string, step: Step, job: string): Role => {
     const s = get(scales, scale, mode, step);
     return { name, hex: s.hex, css: s.css, from: `${scale}.${step}`, job };
@@ -352,12 +353,16 @@ function buildRoles(
     r("text", "neutral", 12, "Body and heading text"),
     r("primary", "primary", at("primary"), "Primary action, one per view"),
     r("primary-hover", "primary", hover("primary"), "Hovered primary action"),
+    r("primary-active", "primary", hover("primary", 2), "Pressed primary action"),
     on("primary-fg", "primary", "Text and icons on primary"),
     r("primary-subtle", "primary", 3, "Selected rows, soft badges"),
     r("primary-subtle-hover", "primary", 4, "Hovered soft primary"),
+    r("selected", "primary", 4, "Selected rows, tabs and options"),
     r("primary-border", "primary", 7, "Borders of primary-subtle elements"),
     r("primary-text", "primary", 11, "Links and primary text on bg"),
     r("ring", "primary", at("primary"), "Focus ring"),
+    r("disabled", "neutral", 3, "Disabled control fill"),
+    r("disabled-text", "neutral", 8, "Disabled label; exempt from contrast (WCAG 1.4.3)"),
   ];
   for (const s of Object.keys(STATUS_HUES) as StatusName[]) {
     roles.push(
@@ -386,6 +391,7 @@ const BASE_PAIRS: Array<[fg: string, bg: string, min: Level, why: string, adviso
   ["text-muted", "fill", "text", "Placeholders in inputs"],
   ["primary-fg", "primary", "text", "Primary button label"],
   ["primary-fg", "primary-hover", "text", "Hovered primary button label"],
+  ["primary-fg", "primary-active", "text", "Pressed primary button label"],
   ["primary-text", "bg", "text", "Links"],
   ["primary-text", "primary-subtle", "text", "Text in soft primary badges"],
   ["ring", "bg", "ui", "Focus ring is visible (WCAG 2.4.13)"],
@@ -415,6 +421,34 @@ function runChecks(roles: Role[], m: Meter, custom: CustomStrip[]): Check[] {
 }
 
 /** Plain hue names for suggested seeds, each kept clear of the ones before it. */
+/** Suggested data colors: the default set, or with `keep` those plus one more that stays apart from them. */
+export function suggestData(input: SystemInput, keep?: DataColor[]): DataColor[] {
+  const flat = input.curve ? { ...input.curve, hueShift: 0 } : undefined;
+  const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
+  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
+  if (!keep) return named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
+  const seeds = suggest(
+    input.primary,
+    keep.length + 1,
+    pages,
+    input.curve,
+    keep.map((c) => c.hex),
+  );
+  // The pick is always last, even if a kept value was unreadable and got dropped.
+  const hex = seeds.at(-1);
+  if (!hex || keep.some((c) => c.hex === hex)) return keep;
+  return [
+    ...keep,
+    {
+      name: freshName(
+        parseColor(hex)!,
+        keep.map((c) => c.name),
+      ),
+      hex,
+    },
+  ];
+}
+
 function named(seeds: string[]): DataColor[] {
   const out: DataColor[] = [];
   for (const hex of seeds)
@@ -443,8 +477,7 @@ export function buildSystem(input: SystemInput): System {
     });
   };
   const neutral = buildNeutral(input.neutralHue ?? input.primary.hue, input.neutralTint, flat);
-  const pages = { light: neutral.light[0]!.hex, dark: neutral.dark[0]!.hex };
-  const dataIn = input.data ?? named(suggest(input.primary, CHART_SUGGESTED, pages, input.curve));
+  const dataIn = input.data ?? suggestData(input);
   const colorsIn = input.colors ?? [];
   // UI and data strips share one token namespace, so "blue" in both becomes blue and blue-2.
   const keys = stripKeys([...colorsIn, ...dataIn]);

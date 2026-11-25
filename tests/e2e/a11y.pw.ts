@@ -11,6 +11,7 @@ for (const scheme of ["light", "dark"] as const) {
       ...publicRoutes(),
       ...LOCKED,
       "/spring",
+      "/spring/app",
       "/spring/view",
       "/stickers",
     ])) {

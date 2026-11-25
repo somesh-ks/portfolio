@@ -436,7 +436,8 @@ function parseSystem(text: string): Parsed {
 
 const TEXT = /(^|-)(text|foreground|fg|ink|content|link|placeholder|on-[\w-]+)(-|$)/i;
 /** Text that isn't meant for the page: labels on fills, disabled (exempt in WCAG), inverse. */
-const NOT_PAGE_TEXT = /(^on-|-on-|inverse|disabled|white|black|^text-(xs|sm|base|lg|\d?xl))/i;
+const NOT_PAGE_TEXT =
+  /(^on-|-on-|inverse|disabled|white|black|^text-(xs|sm|base|lg|\d?xl)|(^|-)(border|divider|outline|shadow|illustration)(-|$))/i;
 /** A page-level surface that text sits on. */
 const SURFACE =
   /^(bg|background|surface|canvas|paper|page|panel|card|popover|sidebar)(-(subtle|raised|elevated|sunken|alt|alternate|secondary|tertiary|default|base|inset|\d))?$/i;
@@ -525,8 +526,9 @@ function checkColor(p: Parsed, findings: Finding[]) {
     // Focus rings: 3:1 on the page, or on their own scope (sidebar-ring on sidebar).
     if (RING.test(b)) {
       const scope = b.match(/^(.+)-(?:ring|focus|focus-ring|outline)$/)?.[1];
-      const home = scope ? by.get(scope) : undefined;
-      pair(c, home ?? bg, 3, rings);
+      // "focus-ring" names its job, not a scope: a ring beside another focus color sits on the page.
+      const home = scope && !RING.test(scope) ? by.get(scope) : undefined;
+      pair(c, home && home !== c ? home : bg, 3, rings);
     }
   }
   findings.push(
@@ -565,6 +567,11 @@ function checkColor(p: Parsed, findings: Finding[]) {
 const HUE_WORD =
   /(^|-)(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|gray|grey|slate|zinc)(-|$)/i;
 
+/** Written with alpha below 1: #rgba, #rrggbbaa, or a "/ a" in a color function. */
+const seeThrough = (css: string) =>
+  /^#([0-9a-f]{4}|[0-9a-f]{8})$/i.test(css.trim()) ||
+  /\/\s*(0?\.\d+|[1-9]?\d(\.\d+)?%)\s*\)\s*$/.test(css);
+
 function dupesAndSprawl(p: Parsed, findings: Finding[]) {
   // Scale steps and on-colors are excluded: they're meant to be close or white.
   const roles = p.colors.filter((c) => !isScaleStep(c.name) && !isOn(c.name));
@@ -579,7 +586,12 @@ function dupesAndSprawl(p: Parsed, findings: Finding[]) {
     for (let j = i + 1; j < roles.length; j++) {
       const [a, b] = [roles[i]!, roles[j]!];
       const [x, y] = [lab[i]!, lab[j]!];
-      if (a.hex !== b.hex && Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 0.005)
+      // A translucent copy (a ring at 50%) is a derived role, not a duplicate.
+      if (
+        seeThrough(a.css) === seeThrough(b.css) &&
+        a.hex !== b.hex &&
+        Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 0.005
+      )
         dupes.push(`${a.name} ≈ ${b.name}`);
     }
   if (dupes.length)
