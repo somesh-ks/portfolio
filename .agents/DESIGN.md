@@ -9,20 +9,50 @@
 
 ## Site decisions (someshks.com)
 
-Somesh made these calls. They win over the general guidance further down this file. Don't reopen them without asking him.
+Somesh made these calls, most of them more than once. They win over the general guidance further down this file. Don't reopen them without asking him. Check every visual change against this list before anyone shows it to him. The review process lives in [`AGENTS.md`](../AGENTS.md#before-somesh-sees-visual-work).
 
-- **Look:** a neutral black and white canvas in the style of claude.dev. Use mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines and a terminal feel. Borrow the structure, never Anthropic's fonts, mascot, orange or wording.
-- **No box inside a box.** Sections are separated by hairlines and space. Don't add a filled or bordered card inside another frame. Hairlines replace the shadows described under "Shadows over Borders" below.
-- **No AI-slop patterns.** No pill tag or badge stacked over a title, no tinted chips used as decoration, no gradient heroes, no emoji markers. If a label is needed, use a plain mono meta line.
-- **Full bleed media, one left edge.** Case study figures and videos run edge to edge on phones. On wide screens they extend 8rem to the right of the text column, but their left edge always lines up with the text, so no heading or paragraph ever looks indented.
-- **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon, never in text. Body text is a flat 14px.
-- **Copy:** brief, at Salaja's level. List subtitles stay around the length of "A design system written for coding agents."
-- **Modes:** mobile first. Light and dark get equal care.
-- **Motion:** CSS only. No `motion/react`.
-- **Components:** Base UI only for behaviour. Cmd+K is built on Base UI and lazy-loaded on first open. There is one shared, platform-aware `Kbd`. Every component is listed in [`docs/ui-kit.md`](../docs/ui-kit.md), and a drift test enforces this.
-- **Hero:** never change the name and headline in `content/profile.ts` unless Somesh asks.
-- **Two page templates:** `layout: article` (case studies, writing) keeps facts, outline and the next link. `layout: tool` (experiments by default, and Spring) shows the back link, title, one line, then the tool at full width (76rem). It has no Stack row, facts, outline or next card.
-- **Spring is a pro tool:** a workbench: plain tabs on top, the open tool's controls on the left, and on the right its output or a live preview (one switch). Never trim its tools for simplicity. No presets.
+### Look
+
+- **Pixel terminal vibe, everywhere.** A neutral black and white canvas in the style of claude.dev: mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines. Every control and frame, including tool chrome in Spring and Stickers, reads as a terminal. Borrow claude.dev's structure, never Anthropic's fonts, orange or wording; Claude-themed art (runner, stickers) may use the official claude.dev costumes and palette. Modern, never dated: no framed card on a coloured band.
+- **No shadows, anywhere.** Hairlines replace the shadows described under "Shadows over Borders" below.
+- **No box inside a box.** Sections are separated by hairlines and space. No filled or bordered card inside another frame, no window chrome around a demo or game. Full bleed and simple.
+- **No AI slop.** No pill tag or badge over a title, no tinted chips as decoration, no gradient heroes, no emoji markers, no stat-card or pricing-trio filler, no overline or eyebrow above a title. A needed label is a plain mono meta line.
+- **Neutral canvas, colour only inside the thing.** Accent colour lives inside thumbnails, logos and demos, never as a field across the page. Tool chrome stays neutral ink, since a hue there biases colour judgement.
+- **Both themes, equal care.** Default theme is system. Every text and edge pair must pass contrast in light and in dark (keycaps, labels on buttons, thin lines at 1x). A label that disappears in one theme "should never happen in the first place".
+- **Full bleed media, one left edge.** Figures and videos run edge to edge on phones. On wide screens they extend 8rem to the right of the text column, but their left edge lines up with the text, so nothing looks indented.
+- **Type:** Geist Sans and Geist Mono only. Geist Pixel appears only in the SK favicon. No serif. Body text is a flat 14px; hierarchy comes from colour and weight, not size. A font preview (Spring's browser, the tune toy) renders in its own font under a private family name, so it never replaces Geist elsewhere.
+- **Links** are plain underlines. External links and links to tools open in a new tab with the `↗` arrow. "Made with Spring" opens the tool (`/spring/app`), never a page about it.
+
+### Layout and actions
+
+- **One primary action visible at a time.** Never two of the same CTA on screen (a scroll-linked nav CTA hides while the hero CTA shows). One-off actions such as Export or Click to play get outline weight, not a solid fill. Secondary actions (shuffle, share) sit away from the primary.
+- **Label every action.** Add an icon only when it adds meaning, never one that repeats the label. Icon-only tiles get a tooltip on hover and a visible label on touch, and a selected tile shows its name. Every numeric readout has a label ("HI SCORE"). Keyboard hints use one keycap ("⌘K").
+- **Gapless strips.** Buttons in a top bar or segmented group share hairlines, with no gaps or padding between them, and run the full bar height. Controls in one row share one height.
+- **Every control does something visible.** A control with no visible effect on its page is removed, never shipped. Never silently disable an option; make it work or say why. A demo shows one number and one state change, no prose.
+- **Brevity over explanation.** Few controls that explain themselves. Progressive disclosure for depth, but no accordion stacks and no paragraphs of hints. One scroll region per screen.
+- **Phones:** mobile first. Nothing wraps or overflows at 320px. Output above controls. Hover previews have a touch equivalent. Keyboard hints and keycaps show only for a keyboard (detect by pointer type or last input, not width). Never hide the only navigation action on mobile. Fixed controls never vanish on scroll and never cover content or other controls.
+- **Hero breathes.** The gap below the hero is one step larger than the section gap (80px phone, 96px desktop). A subtitle never competes with the title or the main action.
+- **Modals keep their context.** The scene behind a dialog or score entry stays visible until it closes.
+- **Chrome stays out of the way.** The top bar is hidden over the hero and slides in after it. The back link reads "← Home".
+
+### Motion, sound and art
+
+- **Motion:** CSS only, no `motion/react`. Calm and subtle: glides and blends, no hard swipes, no big glows. Reduced motion keeps fades and drops travel. Nothing may resize or shift the page (demos included); reserve the slot, then fade content in.
+- **Sound:** on by default (case-study demos start muted), mute remembered and last in the footer. Plays only on real state changes.
+- **Art is modular and drawn.** Thumbnails draw "the thing itself" at 160×100, legible at 1x in both themes; no screen grabs unless the visuals are the product (Tide), no abstract glyphs. Sprites and stickers are built from parts that compose (any prop with any pose); nothing is baked into one frame. Parts overlap so no seam shows, and every pose, prop and frame is checked. Pixel art scales by whole numbers and stays sharp; check it at 1x and 2x.
+- **Logos** are coloured inline SVGs with no borders, painted in the same frame as the text.
+
+### Copy
+
+- **Finalized copy is never reworded** or recased without his yes (rule in AGENTS.md).
+- **New copy is brief**, at Salaja's level: a list subtitle is around seven words ("A design system written for coding agents."). Natural phrasing ("Rain (12°C)"), no dot-separated fragments, no `$` or bracket labels a user has to decode, no names or presets that sound generated.
+
+### Templates
+
+- **Two page templates:** `layout: article` (case studies, writing) keeps facts, outline and the next link. `layout: tool` (experiments by default) shows the back link, title, one line, then the tool at full width (76rem). It has no Stack row, facts, outline or next card.
+- **Standalone apps:** Spring (`/spring`, `/spring/app`) and Stickers (`/stickers`) have their own shell and full-bleed landing, with no site header, footer or Home link. They share one control set. Spring makes colour and type tokens only; auditing lives in the design-sys skill, not in Spring.
+- **Components:** Base UI only for behaviour. Cmd+K is built on Base UI and lazy-loaded on first open. There is one shared, platform-aware `Kbd`, and the keycap leads its label ("⌘K jump"). Every component is listed in [`docs/ui-kit.md`](../docs/ui-kit.md), and a drift test enforces this.
+- **Hero:** only the name and "Design engineer". Never change `content/profile.ts` unless Somesh asks.
 - **Media:** video posters are the Framer thumbnails, stored next to the videos.
 
 ## Case study format
