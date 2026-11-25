@@ -151,6 +151,96 @@ main:focus {
   font-weight: 500;
 }
 
+/* Footer previews (ContactPreview): the company card, sized for the contribution grid. */
+.contact-card {
+  width: auto;
+}
+.contact-card__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-secondary);
+}
+.contact-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--step-sm);
+  font-weight: 500;
+}
+.contact-card__line {
+  color: var(--text-secondary);
+}
+.contact-card__mark {
+  flex-shrink: 0;
+}
+.contrib {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.contrib [data-level="0"] {
+  fill: color-mix(in oklch, var(--text-primary) 8%, var(--surface-raised));
+}
+.contrib [data-level="1"] {
+  fill: color-mix(in oklch, var(--text-success) 45%, var(--surface-raised));
+}
+.contrib [data-level="2"] {
+  fill: color-mix(in oklch, var(--text-success) 65%, var(--surface-raised));
+}
+.contrib [data-level="3"] {
+  fill: color-mix(in oklch, var(--text-success) 82%, var(--surface-raised));
+}
+.contrib [data-level="4"] {
+  fill: var(--text-success);
+}
+
+/* Easter egg (EasterEggs): the Konami code toggles a CRT look. Scanlines sit
+   over the page and never take a click; text keeps its colours, so contrast holds. */
+html[data-egg="crt"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    color-mix(in oklch, var(--text-primary) var(--crt-line, 4%), transparent) 2px 3px
+  );
+}
+/* Dark only (next-themes always sets the resolved theme): stronger lines and a faint phosphor glow, invisible on white. */
+html[data-egg="crt"][data-theme="dark"] body {
+  --crt-line: 7%;
+  text-shadow: 0 0 0.35em color-mix(in oklch, var(--text-success) 45%, transparent);
+}
+.egg-status {
+  position: fixed;
+  left: max(var(--space-6), env(safe-area-inset-left));
+  bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  z-index: 101;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--text-primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-popover) var(--ease-out);
+}
+.egg-status[data-on] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .egg-status {
+    transition: none;
+  }
+}
+
 /* ---------- Mascot stage ---------- */
 /* Frames are flat: hairlines top and bottom, full column width, one box at most. */
 .stage {

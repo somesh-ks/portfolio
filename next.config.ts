@@ -64,7 +64,8 @@ const config: NextConfig = {
   // Content files are read at build time by server code; keep them in the
   // serverless trace so /api/md and the locked teasers can read them at runtime.
   outputFileTracingIncludes: {
-    "/**": ["./content/public/**/*"],
+    // The GitHub calendar cache feeds the footer on the per-request /work pages too.
+    "/**": ["./content/public/**/*", "./.cache/github-contributions.json"],
   },
   async redirects() {
     return [
