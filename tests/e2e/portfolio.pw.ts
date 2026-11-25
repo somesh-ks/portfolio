@@ -46,7 +46,7 @@ test("the hero runner plays, crashes and offers a retry", async ({ page }) => {
   await expect(runner.locator(".runner__over")).toBeVisible({ timeout: 20_000 });
   await expect(runner.locator(".runner__final")).toHaveText(/^\d{5}$/);
   // No Redis in tests: the leaderboard stays hidden and nothing errors.
-  await expect(runner.getByLabel("First name")).toHaveCount(0);
+  await expect(runner.getByLabel("Name", { exact: true })).toHaveCount(0);
   // Space on the focused game starts the next run after a short beat.
   await page.waitForTimeout(700);
   await runner.locator(".runner__screen").press("Space");

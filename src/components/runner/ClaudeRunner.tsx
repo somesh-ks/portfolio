@@ -578,14 +578,14 @@ export function ClaudeRunner() {
             {canSubmit ? (
               <form className="runner__form" onSubmit={submit}>
                 <label className="sr-only" htmlFor={nameId}>
-                  First name
+                  Name
                 </label>
                 <input
                   id={nameId}
                   className="runner__input"
                   value={name}
                   onChange={(event) => setName(event.target.value.slice(0, 12))}
-                  placeholder="FIRST NAME"
+                  placeholder="NAME"
                   maxLength={12}
                   autoComplete="off"
                   spellCheck={false}
