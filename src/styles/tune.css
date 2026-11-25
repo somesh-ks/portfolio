@@ -26,9 +26,6 @@
   --tune-f: 1;
   --tune-d: 1;
 }
-:root[data-tune-type="serif"] {
-  --font-sans: var(--font-source-serif), ui-serif, Georgia, serif;
-}
 :root[data-tune-type="mono"] {
   --font-sans: var(--font-mono);
 }

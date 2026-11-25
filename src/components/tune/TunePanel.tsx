@@ -15,7 +15,7 @@ export interface TunePanelProps {
 }
 
 const SIZES = ["14", "15", "16"] as const;
-const TYPES = ["sans", "serif", "mono"] as const;
+const TYPES = ["sans", "mono"] as const;
 /** Double-clicking the hue dial passes this back: neutral greys again. */
 const HUE_OFF = -1;
 

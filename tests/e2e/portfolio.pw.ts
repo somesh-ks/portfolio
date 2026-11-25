@@ -237,11 +237,8 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
   await panel.getByRole("button", { name: "16" }).click();
   await expect(bio).toHaveCSS("font-size", "16px");
   const bioText = await bio.textContent();
-  await panel.getByRole("button", { name: "serif" }).click();
-  await expect(page.locator(".page")).toHaveAttribute("aria-busy", "true");
-  await expect(root).toHaveAttribute("data-tune-type", "serif");
-  await expect(bio).toHaveCSS("font-family", /Source Serif/);
   await panel.getByRole("button", { name: "mono" }).click();
+  await expect(page.locator(".page")).toHaveAttribute("aria-busy", "true");
   await expect(root).toHaveAttribute("data-tune-type", "mono");
   // The type switch flips the text, then every character comes back as it was.
   await expect(page.locator(".page")).not.toHaveAttribute("aria-busy", "true");

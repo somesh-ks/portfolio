@@ -58,11 +58,8 @@ function collect(root: Element): { runs: Run[]; blocks: HTMLElement[] } {
   return { runs, blocks: [...blocks.keys()] };
 }
 
-/**
- * Flips the text in `root` at once and settles it after `ready` (a font load,
- * say). Returns a function that stops the pass and puts all text back.
- */
-export function scramble(root: Element, ready: Promise<unknown> = Promise.resolve()): () => void {
+/** Starts a pass over `root` and returns a function that stops it and puts all text back. */
+export function scramble(root: Element): () => void {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
   let done = false;
   let frame = 0;
@@ -88,24 +85,10 @@ export function scramble(root: Element, ready: Promise<unknown> = Promise.resolv
     restore();
     return restore;
   }
-  // Everything flips until the new face is ready; the settling clock starts then.
-  let start = Infinity;
+  const start = performance.now();
   let tick = -1;
-  const settle = () => {
-    if (done) return;
-    // The new face may wrap differently: re-hold each block at its real height,
-    // measured with the real text, all before the next paint.
-    for (const run of runs) if (run.node.data === run.last) run.node.data = run.last = run.text;
-    for (const block of blocks) block.style.blockSize = "";
-    const heights = blocks.map((block) => block.getBoundingClientRect().height);
-    blocks.forEach((block, i) => (block.style.blockSize = `${heights[i]}px`));
-    tick = -1;
-    start = performance.now();
-  };
-  // A failed font load still settles the text, in whatever face the page fell back to.
-  ready.then(settle, settle);
   const step = (now: number) => {
-    const t = Math.max(0, now - start);
+    const t = now - start;
     if (t >= FLIP + WAVE) return restore();
     const nextTick = Math.floor(now / TICK);
     if (nextTick !== tick) {

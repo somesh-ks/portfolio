@@ -42,11 +42,7 @@ export function TuneToy() {
     if (tune.type === shownType.current) return;
     shownType.current = tune.type;
     const page = document.querySelector(".page");
-    if (!page) return;
-    // Serif downloads on first pick; settle once it's in, or after 600ms regardless.
-    const font = `1em ${getComputedStyle(page).fontFamily}`;
-    const ready = Promise.race([document.fonts.load(font), new Promise((r) => setTimeout(r, 600))]);
-    return scramble(page, ready);
+    return page ? scramble(page) : undefined;
   }, [tune.type]);
 
   return (

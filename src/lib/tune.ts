@@ -5,7 +5,7 @@
 export interface Tune {
   /** Hue for tinted neutrals; null keeps the greys neutral. */
   hue: number | null;
-  type: "sans" | "serif" | "mono";
+  type: "sans" | "mono";
   size: "14" | "15" | "16";
   /** Multiplier on every space step. */
   density: number;
