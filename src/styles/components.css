@@ -405,11 +405,44 @@ claude-mascot:defined > * {
   font: inherit;
   letter-spacing: inherit;
 }
+/* The whole screen starts a run; the outline only shows where to press. It
+   sits on the page colour so rain and scenery don't run through it. */
+.runner__play {
+  display: inline-flex;
+  gap: 1ch;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-link);
+  background: var(--surface-canvas);
+  transition: border-color var(--duration-press) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner__play,
+  .runner__over .runner__save {
+    transition: none;
+  }
+}
+@media (hover: hover) {
+  .runner__prompt:hover .runner__play {
+    border-color: var(--text-primary);
+  }
+}
+.runner__prompt:focus-visible {
+  outline: none;
+}
+.runner__prompt:focus-visible .runner__play {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 /* A caption under the play prompt, placed absolutely so it lands without a shift. */
 .runner__weather {
   position: absolute;
   inset-inline: 0;
-  top: calc(50% + 1.75em);
+  top: calc(50% + 2.25em);
+  width: fit-content;
+  margin-inline: auto;
+  padding-inline: 1ch;
+  /* On the page colour, so the horizon's palms don't run through the words. */
+  background: var(--surface-canvas);
   color: var(--text-secondary);
   text-align: center;
   pointer-events: none;
@@ -501,6 +534,9 @@ claude-mascot:defined > * {
 }
 .runner__board {
   display: grid;
+  /* On the page colour, so clouds and snow don't run through the rows. */
+  padding-inline: 1ch;
+  background: var(--surface-canvas);
   grid-template-columns: auto minmax(0, 12ch) auto;
   gap: 0 var(--space-4);
   margin: 0;
@@ -526,14 +562,19 @@ claude-mascot:defined > * {
   justify-content: center;
   gap: var(--space-2);
 }
+/* The name field and SAVE are one control: same height, same outline. */
+.runner__input,
+.runner__save {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-height: 0;
+  border: 1px solid var(--border-link);
+  border-radius: 0;
+  background: var(--surface-canvas);
+}
 .runner__input {
   width: 14ch;
-  min-height: 2.25rem;
   padding: 0 var(--space-2);
-  border: 0;
-  border-bottom: 1px solid var(--border-strong);
-  border-radius: 0;
-  background: none;
   color: var(--text-primary);
   font: inherit;
   /* iOS zooms into inputs under 16px. */
@@ -567,6 +608,33 @@ claude-mascot:defined > * {
 }
 .runner__action:disabled {
   opacity: 0.6;
+}
+/* Beats the touch and coarse-pointer action sizes, so SAVE always matches
+   the field's height. */
+.runner__over .runner__save {
+  height: 2.5rem;
+  min-height: 0;
+  padding-inline: var(--space-3);
+  transition: border-color var(--duration-press) var(--ease-out);
+}
+@media (hover: hover) {
+  .runner__save:hover:not(:disabled),
+  .runner__input:hover {
+    border-color: var(--text-primary);
+  }
+}
+/* A finger gets the full 44px target; field and SAVE grow together. */
+@media (pointer: coarse) {
+  .runner__input,
+  .runner__over .runner__save {
+    height: 2.75rem;
+  }
+}
+/* Focus thickens the field's own outline instead of stacking a ring on it. */
+.runner__input:focus-visible {
+  outline: none;
+  border-color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--text-primary);
 }
 .runner__key {
   color: var(--text-primary);
