@@ -195,7 +195,7 @@ function Steps({
               : null;
     if (to === null) return;
     e.preventDefault();
-    setActive(to);
+    // Focus moves the tab stop too (onFocus below), as a click does.
     (e.currentTarget.children[to] as HTMLElement | undefined)?.focus();
   };
   return (

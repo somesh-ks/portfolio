@@ -130,8 +130,8 @@ export function ColorPicker({
     setDraft(null);
   };
   const second = space === "oklch" ? "chroma" : "saturation";
-  // "Brand color" names its sliders "Brand hue"; "danger color", "danger hue".
-  const name = label.replace(/\s*colou?r$/i, "");
+  // Every label ends in " color": "Brand color" names its sliders "Brand hue".
+  const name = label.slice(0, -6);
 
   return (
     <div className="field spring-picker">
