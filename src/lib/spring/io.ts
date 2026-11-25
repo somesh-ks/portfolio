@@ -4,6 +4,7 @@
  * goes through decodeInput's checks, so a hand-written file, an agent's
  * request and a share link are held to the same rules.
  */
+import { SEED_PARAMS } from "./params";
 import { decodeInput, encodeInput } from "./state";
 import { namedColor } from "./css-names";
 import { DEFAULT_INPUT, inputFromSeed, type SystemInput } from "./system";
@@ -159,20 +160,7 @@ export function inputFromParams(
     if (isObj(json)) prepare?.(json);
     return readInput(json);
   }
-  const SEEDS = [
-    "primary",
-    "name",
-    "font",
-    "body",
-    "heading",
-    "mono",
-    "base",
-    "ratio",
-    "contrast",
-    "styling",
-    "building",
-  ];
-  if (!SEEDS.some((k) => q.has(k))) return null;
+  if (!SEED_PARAMS.some((k) => q.has(k))) return null;
   const n = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
   const font = q.get("font") ?? undefined;
   const type: Obj = {};

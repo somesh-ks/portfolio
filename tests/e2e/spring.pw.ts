@@ -33,7 +33,7 @@ test("old app links land in the app", async ({ page, request }) => {
 test("the old project page and share links 308 to Spring", async ({ request }) => {
   for (const [from, to] of [
     ["/projects/spring", /\/spring$/],
-    ["/projects/spring?s=abc", /\/spring\?s=abc$/],
+    ["/projects/spring?s=abc", /\/spring\/app\?s=abc$/],
     ["/projects/spring.md", /\/spring\.md$/],
   ] as const) {
     const old = await request.get(from, { maxRedirects: 0 });

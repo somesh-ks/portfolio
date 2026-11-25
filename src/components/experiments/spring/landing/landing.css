@@ -183,6 +183,7 @@
   height: 3rem;
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
+/* Exception to the transform/opacity rule: the demo is the colour changing, step by step. */
 .spring-palette__step {
   position: relative;
   transition: background-color 520ms var(--ease-out);

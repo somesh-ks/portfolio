@@ -1227,7 +1227,7 @@ function TokensControls({
 
 // ——— Audit ———
 
-/** Kept but unlinked: it opens only at /spring#audit. */
+/** Kept but unlinked: it opens only at /spring/app#audit. */
 function AuditDialog() {
   const [open, setOpen] = useState(false);
   useEffect(() => {

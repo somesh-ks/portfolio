@@ -188,9 +188,14 @@ export function TypeDemo() {
     const start =
       performance.now() -
       Math.asin(Math.max(-1, Math.min(1, (ratio - 1.3) / 0.18))) * (6000 / (2 * Math.PI));
+    // About 20 updates a second: each one relays out the rows, so 60 would only cost battery.
+    let last = 0;
     const tick = (now: number) => {
-      const t = ((now - start) / 6000) * 2 * Math.PI;
-      setRatio(Math.round((1.3 + 0.18 * Math.sin(t)) * 1000) / 1000);
+      if (now - last > 50) {
+        last = now;
+        const t = ((now - start) / 6000) * 2 * Math.PI;
+        setRatio(Math.round((1.3 + 0.18 * Math.sin(t)) * 1000) / 1000);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -213,7 +218,7 @@ export function TypeDemo() {
   );
   const rows = ROLES.map((r) => type.tokens.find((t) => t.role === r)!);
   const name = ratioName(ratio);
-  const fonts = useMemo(() => googleFontsUrl(FONTS.filter((f) => f !== "Geist")), []);
+  const fonts = useMemo(() => googleFontsUrl([...FONTS]), []);
   return (
     <Demo
       title="Type scale"
@@ -326,7 +331,12 @@ export function MotionDemo() {
           step={0.01}
           value={energy}
           aria-label="Energy, calm to lively"
-          onChange={(e) => setEnergy(Number(e.target.value))}
+          onPointerDown={() => auto.setPaused(true)}
+          onKeyDown={() => auto.setPaused(true)}
+          onChange={(e) => {
+            auto.setPaused(true);
+            setEnergy(Number(e.target.value));
+          }}
         />
       </label>
       <div className="spring-motion">

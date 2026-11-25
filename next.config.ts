@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import type { NextConfig } from "next";
+import { SYSTEM_PARAMS } from "./src/lib/spring/params.ts";
 
 /** Entries whose frontmatter `href` points elsewhere have no page: their old
  * URL (and its .md) 308s to it, so shared links keep working. */
@@ -23,23 +24,6 @@ function entryRedirects() {
       }),
   );
 }
-
-/** Query keys that carry a Spring system: io.ts inputFromParams reads these. */
-const SPRING_PARAMS = [
-  "s",
-  "j",
-  "primary",
-  "name",
-  "font",
-  "body",
-  "heading",
-  "mono",
-  "base",
-  "ratio",
-  "contrast",
-  "styling",
-  "building",
-];
 
 // Static CSP: a nonce-based policy would force every page to render
 // dynamically and give up static generation. Inline scripts are limited to
@@ -86,15 +70,17 @@ const config: NextConfig = {
   },
   async redirects() {
     return [
-      // Includes /projects/spring, so old Spring share links (?s=) carry over.
+      // /spring is the landing page now; links that carry a system open the app in one hop
+      // (query carries over). Before entryRedirects, which would send /projects/spring to /spring first.
+      ...["/spring", "/projects/spring"].flatMap((source) =>
+        SYSTEM_PARAMS.map((key) => ({
+          source,
+          has: [{ type: "query" as const, key }],
+          destination: "/spring/app",
+          permanent: true,
+        })),
+      ),
       ...entryRedirects(),
-      // /spring is the landing page now; links that carry a system open the app (query carries over).
-      ...SPRING_PARAMS.map((key) => ({
-        source: "/spring",
-        has: [{ type: "query" as const, key }],
-        destination: "/spring/app",
-        permanent: true,
-      })),
       {
         source: "/projects/fun-experiments.md",
         destination: "/experiments/tide.md",
