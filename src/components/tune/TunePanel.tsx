@@ -43,7 +43,8 @@ export default function TunePanel({
                 [reset]
               </button>
               <Dialog.Close className="tune-panel__close pressable" aria-label="Close">
-                [esc]
+                <span className="tune-panel__key">[esc]</span>
+                <span className="tune-panel__word">[close]</span>
               </Dialog.Close>
             </div>
           </div>

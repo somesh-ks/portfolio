@@ -3199,6 +3199,18 @@ claude-mascot:defined > * {
   min-height: 2.75rem;
   border-top: 1px solid var(--border-subtle);
 }
+.tune-panel__word {
+  display: none;
+}
+/* Phones have no Esc key. */
+@media (pointer: coarse) {
+  .tune-panel__key {
+    display: none;
+  }
+  .tune-panel__word {
+    display: inline;
+  }
+}
 .tune-panel__credit {
   color: var(--text-secondary);
   text-decoration: none;
@@ -3263,7 +3275,7 @@ claude-mascot:defined > * {
       0 100% / 100% 3px no-repeat,
     linear-gradient(
         to right,
-        var(--surface-hover) var(--p),
+        transparent var(--p),
         var(--text-primary) var(--p) calc(var(--p) + var(--dial-line, 1px)),
         transparent calc(var(--p) + var(--dial-line, 1px))
       )
@@ -3283,6 +3295,7 @@ claude-mascot:defined > * {
     width: 2.75rem;
     height: 2.75rem;
     padding: 0;
+    border-color: var(--border-strong);
     justify-content: center;
     gap: var(--space-1);
   }
