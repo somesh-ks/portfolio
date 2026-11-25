@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import { buildScale, parseColor, STEPS, type Mode } from "@/lib/spring/color";
+import { buildScale, parseColor } from "@/lib/spring/color";
 import { buildMotion } from "@/lib/spring/scales";
 import { buildType, googleFontsUrl } from "@/lib/spring/type";
+import { useSound } from "@/components/providers/SoundProvider";
 
 /** The demos move on their own while on screen, until a visitor takes over or asks for less motion. */
-function useAutoplay(ref: RefObject<HTMLElement | null>) {
+export function useAutoplay(ref: RefObject<HTMLElement | null>) {
   const [seen, setSeen] = useState(false);
   const [reduced, setReduced] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -22,7 +23,7 @@ function useAutoplay(ref: RefObject<HTMLElement | null>) {
       io.disconnect();
     };
   }, [ref]);
-  return { playing: seen && !reduced && !paused, reduced, paused, setPaused };
+  return { playing: seen && !reduced && !paused, seen, reduced, paused, setPaused };
 }
 
 function Demo({
@@ -66,7 +67,7 @@ function Demo({
 /* ---------- Palette ---------- */
 
 /** Brand colors of well-known systems, as each publishes them. */
-const SEEDS = [
+export const SEEDS = [
   { name: "Tailwind", hex: "#3b82f6", note: "blue-500" },
   { name: "Radix", hex: "#6e56cf", note: "violet 9" },
   { name: "Polaris", hex: "#008060", note: "primary" },
@@ -75,84 +76,15 @@ const SEEDS = [
   { name: "shadcn", hex: "#171717", note: "primary" },
 ] as const;
 
-function scaleFor(hex: string) {
+export function scaleFor(hex: string) {
   const c = parseColor(hex)!;
   // Same seed rules as the app: a near-gray stays a gray, a color keeps its own lightness.
   const gray = c.c < 0.03;
   return buildScale({
     hue: c.h || 0,
-    chroma: gray ? 0.02 : Math.min(0.3, Math.max(0.06, c.c)),
+    chroma: gray ? 0.005 : Math.min(0.3, Math.max(0.06, c.c)),
     solidL: Math.min(0.9, Math.max(0.35, c.l)),
   });
-}
-
-export function PaletteDemo() {
-  const ref = useRef<HTMLElement>(null);
-  const auto = useAutoplay(ref);
-  const [i, setI] = useState(0);
-  const { playing } = auto;
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => setI((n) => (n + 1) % SEEDS.length), 2400);
-    return () => clearInterval(t);
-  }, [playing]);
-  const seed = SEEDS[i]!;
-  const scale = useMemo(() => scaleFor(seed.hex), [seed.hex]);
-  return (
-    <Demo
-      title="Palette"
-      caption="One brand color, 12 steps, light and dark."
-      auto={auto}
-      frameRef={ref}
-    >
-      <fieldset className="spring-demo__chips">
-        <legend className="sr-only">Brand color</legend>
-        {SEEDS.map((s, n) => (
-          <button
-            key={s.name}
-            type="button"
-            className="spring-demo__chip pressable"
-            aria-pressed={n === i}
-            onClick={() => {
-              setI(n);
-              auto.setPaused(true);
-            }}
-          >
-            <span className="spring-demo__dot" style={{ background: s.hex }} aria-hidden="true" />
-            {s.name}
-          </button>
-        ))}
-      </fieldset>
-      <div className="spring-palette" aria-live="off">
-        {(["light", "dark"] as Mode[]).map((mode) => (
-          <div key={mode} className="spring-palette__row" data-mode={mode}>
-            <span className="spring-palette__mode">{mode}</span>
-            <ol className="spring-palette__steps" aria-label={`${seed.name} ${mode} scale`}>
-              {STEPS.map((step, n) => {
-                const sw = scale[mode][n]!;
-                return (
-                  <li
-                    key={step}
-                    className="spring-palette__step"
-                    style={{ background: sw.hex, transitionDelay: `${n * 28}ms` }}
-                    data-anchor={scale.anchor[mode] === step || undefined}
-                    title={`${step} ${sw.hex}`}
-                  >
-                    <span className="sr-only">
-                      Step {step}, {sw.hex}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        ))}
-        <p className="spring-demo__readout tabular">
-          {seed.name} {seed.note} {seed.hex} → step {scale.anchor.light}
-        </p>
-      </div>
-    </Demo>
-  );
 }
 
 /* ---------- Type ---------- */
@@ -178,6 +110,7 @@ const ratioName = (r: number) =>
 export function TypeDemo() {
   const ref = useRef<HTMLElement>(null);
   const auto = useAutoplay(ref);
+  const { notes } = useSound();
   const [ratio, setRatio] = useState(1.25);
   const [font, setFont] = useState<(typeof FONTS)[number]>("Inter");
   const { playing } = auto;
@@ -254,6 +187,9 @@ export function TypeDemo() {
           aria-valuetext={`${ratio.toFixed(3)}, near ${name}`}
           onPointerDown={() => auto.setPaused(true)}
           onKeyDown={() => auto.setPaused(true)}
+          // Type ratios are named after musical intervals: on release, play this one.
+          onPointerUp={() => notes([220, 220 * ratio])}
+          onKeyUp={() => notes([220, 220 * ratio])}
           onChange={(e) => {
             auto.setPaused(true);
             setRatio(Number(e.target.value));
@@ -294,6 +230,7 @@ export function TypeDemo() {
 export function MotionDemo() {
   const ref = useRef<HTMLElement>(null);
   const auto = useAutoplay(ref);
+  const { play } = useSound();
   const [energy, setEnergy] = useState(0.9);
   const [right, setRight] = useState(false);
   const motion = useMemo(() => buildMotion(energy), [energy]);
@@ -360,6 +297,7 @@ export function MotionDemo() {
           <span
             className="spring-motion__block"
             data-right={right || undefined}
+            onTransitionEnd={() => auto.paused && play("tick")}
             style={{
               transitionDuration: `${ms}ms`,
               transitionTimingFunction: motion.easing.spring,

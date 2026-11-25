@@ -14,8 +14,12 @@ test("the landing page leads with the skill and opens the app", async ({ page })
   await page.goto("/spring");
   await expect(page).toHaveTitle("Spring");
   await expect(page.getByText("npx skills add somesh-ks/skills --skill spring")).toBeVisible();
-  for (const name of ["Palette", "Type scale", "Motion"])
+  for (const name of ["Type scale", "Motion"])
     await expect(page.getByRole("heading", { name })).toBeVisible();
+  // A color typed in the terminal builds a real scale.
+  await page.getByLabel("spring build --primary").fill("#e11d48");
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("#e11d48, 12 steps")).toBeVisible();
   await page.getByRole("link", { name: "Open app" }).first().click();
   await page.waitForURL(/\/spring\/app$/);
 });
