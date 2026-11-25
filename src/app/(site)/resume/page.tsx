@@ -11,11 +11,12 @@ import {
 } from "@content/resume";
 import { BackLink } from "@/components/editorial/BackLink";
 import { PERSON_ID, serializeJsonLd } from "@/lib/schema-org";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, OG_BASE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Resume",
-  description: RESUME_SUMMARY.slice(0, 155),
+  description: RESUME_SUMMARY,
+  openGraph: { ...OG_BASE, url: "/resume", title: "Resume", description: RESUME_SUMMARY },
   alternates: {
     canonical: "/resume",
     types: { "text/markdown": "/resume.md" },

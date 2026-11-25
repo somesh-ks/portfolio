@@ -6,7 +6,7 @@ import { DevFeedback } from "@/components/dev/DevFeedback";
 import { SoundProvider } from "@/components/providers/SoundProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { personGraph, serializeJsonLd } from "@/lib/schema-org";
-import { SITE_NAME, SITE_URL, THEME_COLOR } from "@/lib/site";
+import { OG_BASE, SITE_NAME, SITE_URL, THEME_COLOR } from "@/lib/site";
 import "@/styles/globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -25,10 +25,9 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   authors: [{ name: PROFILE.name, url: SITE_URL }],
   creator: PROFILE.name,
-  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/" },
+  openGraph: { ...OG_BASE, url: "/" },
   twitter: { card: "summary_large_image" },
   alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
-  robots: { index: true, follow: true },
   formatDetection: { telephone: false },
 };
 

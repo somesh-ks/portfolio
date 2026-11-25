@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_BASE } from "@/lib/site";
 import { SpringApp } from "@/components/experiments/spring/Tools";
 
 const description =
@@ -7,8 +8,8 @@ const description =
 export const metadata: Metadata = {
   title: { absolute: "Spring" },
   description,
-  alternates: { canonical: "/spring" },
-  openGraph: { url: "/spring", title: "Spring", description },
+  alternates: { canonical: "/spring", types: { "text/markdown": "/spring/llms.txt" } },
+  openGraph: { ...OG_BASE, url: "/spring", title: "Spring", description },
 };
 
 export default function SpringPage() {
