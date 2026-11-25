@@ -18,7 +18,15 @@ import { ColorPicker } from "./ColorPicker";
 import { useCopy } from "./store";
 
 type SetInput = (f: (i: SystemInput) => SystemInput) => void;
-type Copy = { copied: string | null; copy: (key: string, text: string) => void };
+/** A tapped step's pair, in plain words, for the section's readout line. */
+type Told = { section: "ui" | "data"; text: string };
+type Copy = {
+  copied: string | null;
+  copy: (key: string, text: string) => void;
+  /** The last step tapped and what its number measures, read out under its strip on touch. */
+  told: Told | null;
+  tell: (t: Told) => void;
+};
 
 /** A typed color in the chosen format. Any CSS color works; empty clears it when `onClear` is given. */
 function ValueField({
@@ -284,17 +292,29 @@ function Steps({
         const cellInk = ink(sw.hex, all[0]!.hex, all[11]!.hex);
         // [foreground, background, what the number means]. The button fill is
         // measured with its label wherever it lands, even on a fill or border step.
-        const [fg, bg, what] =
+        // The last entry says the same for the touch readout, which has no cell to point at.
+        const n = sw.step;
+        const [fg, bg, what, pair] =
           pairs === "page"
-            ? [sw.hex, page, "on the page"]
-            : sw.step === solid || sw.step === 9 || sw.step === 10
-              ? [cellInk, sw.hex, "its label on this fill"]
-              : sw.step <= 5
-                ? [all[11]!.hex, sw.hex, "step 12 text on this step"]
-                : sw.step <= 8
-                  ? [sw.hex, page, "on the page"]
-                  : [sw.hex, page, "as text on the page"];
+            ? [sw.hex, page, "on the page", `Step ${n} on the page`]
+            : n === solid || n === 9 || n === 10
+              ? [cellInk, sw.hex, "its label on this fill", `Label on step ${n}`]
+              : n <= 5
+                ? [all[11]!.hex, sw.hex, "step 12 text on this step", `Step 12 text on step ${n}`]
+                : n <= 8
+                  ? [sw.hex, page, "on the page", `Step ${n} on the page`]
+                  : [sw.hex, page, "as text on the page", `Step ${n} text on the page`];
         const num = apca ? lc(fg, bg) : contrast(fg, bg).toFixed(1);
+        const note =
+          sw.step === mark && markFrom && markFrom !== mark
+            ? `${value} · chart color, step ${mark} (was ${markFrom}, moved to stay distinct from the other series)`
+            : `${value} · ${num === "·" ? "under Lc 7" : num} ${what}`;
+        // The readout sits under the section, away from the strip, so it names the color.
+        const said =
+          sw.step === mark && markFrom && markFrom !== mark
+            ? `chart color: step ${mark}, moved from ${markFrom}`
+            : `${pair.toLowerCase()}: ${num === "·" ? "under Lc 7" : num}`;
+        const told = `${name[0]!.toUpperCase()}${name.slice(1)} ${said}`;
         const keyStep = sw.step === brand || sw.step === solid || sw.step === mark || i >= 10;
         return (
           <button
@@ -305,21 +325,20 @@ function Steps({
               // The strip's own ends where they read; plain black or white on mid steps where neither does.
               color: cellInk,
             }}
-            title={
-              sw.step === mark && markFrom && markFrom !== mark
-                ? `${value} · chart color, step ${mark} (was ${markFrom}, moved to stay distinct from the other series)`
-                : `${value} · ${num === "·" ? "under Lc 7" : num} ${what}`
-            }
+            title={note}
             data-brand={sw.step === brand || undefined}
             data-solid={sw.step === solid || undefined}
             data-mark={sw.step === mark || undefined}
             data-key={keyStep || undefined}
             tabIndex={i === active ? 0 : -1}
             onFocus={() => setActive(i)}
-            onClick={() => copy.copy(key, value)}
+            onClick={() => {
+              copy.copy(key, value);
+              copy.tell({ section: pairs === "page" ? "data" : "ui", text: told });
+            }}
           >
             <span className="sr-only">
-              Copy {value}, {name} step {sw.step}
+              Copy {value}, {name} step {sw.step}, {said}
             </span>
             {copy.copied === key ? (
               <span aria-hidden>✓</span>
@@ -444,7 +463,8 @@ export function ColorOutput({
   vision: Vision;
 }) {
   const [copied, copyText, said] = useCopy();
-  const copy = { copied, copy: copyText };
+  const [told, tell] = useState<Copy["told"]>(null);
+  const copy = { copied, copy: copyText, told, tell };
   const apca = system.input.contrast === "apca";
   const page = system.scales.neutral[mode][0]!.hex;
   const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -659,6 +679,7 @@ export function ColorOutput({
         <span className="spring-legend__solid">button fill</span>
         <span className="spring-legend__brand">your color</span>
       </p>
+      <Readout told={told} section="ui" />
 
       <DataSection
         system={system}
@@ -671,6 +692,7 @@ export function ColorOutput({
         steps={steps}
         pick={pick}
         newColor={newColor}
+        told={told}
       />
       <output className="sr-only">{said}</output>
     </>
@@ -687,6 +709,7 @@ function DataSection({
   steps,
   pick,
   newColor,
+  told,
   allSteps,
 }: {
   system: System;
@@ -703,6 +726,7 @@ function DataSection({
   ) => ReactNode;
   pick: (name: string, hex: string, onHex: (hex: string) => void) => ReactNode;
   newColor: (h: number) => DataColor;
+  told: Told | null;
 }) {
   const c = system.charts;
   const data = system.data;
@@ -810,6 +834,20 @@ function DataSection({
       ) : (
         <p className="spring-meta">No data colors. Suggest some, or add your own.</p>
       )}
+      {data.length > 0 && <Readout told={told} section="data" />}
     </section>
+  );
+}
+
+/**
+ * Touch has no tooltips, so the section keeps two lines that name the pair a
+ * tapped step's number measures. The slot is always there on touch: nothing moves.
+ */
+function Readout({ told, section }: { told: Told | null; section: Told["section"] }) {
+  const text = told?.section === section ? told.text : "";
+  return (
+    <p className="spring-meta spring-told" aria-hidden>
+      <span key={text}>{text}</span>
+    </p>
   );
 }

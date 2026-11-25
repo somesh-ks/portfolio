@@ -1594,3 +1594,30 @@
     justify-content: flex-end;
   }
 }
+
+/* Touch has no tooltips: a tapped step names its pair on the section's two
+   reserved lines, so nothing below it moves. */
+.spring-told {
+  display: none;
+  /* Two lines: a long color name wraps the readout without moving what follows. */
+  min-height: 2lh;
+  margin-top: 0;
+}
+.spring-told > span {
+  animation: spring-told-in var(--duration-tooltip) var(--ease-out);
+}
+@keyframes spring-told-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (hover: none) {
+  .spring-told {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spring-told > span {
+    animation: none;
+  }
+}
