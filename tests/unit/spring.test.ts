@@ -674,3 +674,26 @@ describe("primary rename and formats", () => {
     expect(freshName(c, ["blue", "light blue"])).toBe("blue 2");
   });
 });
+
+describe("audit: edges and rings are not text", () => {
+  test("a border named like a link and an illustration ink are not text pairs", () => {
+    const css = `:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --border-link: oklch(20% 0 0 / 0.35);
+  --illustration-mascot-ink: #fafafa;
+}`;
+    const contrast = audit(css).findings.find((f) => f.id === "contrast")!;
+    expect(contrast.status).toBe("pass");
+  });
+
+  test("focus-ring next to a focus color is checked on the page, not on itself", () => {
+    const css = `:root {
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --color-focus: #111111;
+  --focus-ring: #111111;
+}`;
+    expect(audit(css).findings.some((f) => f.id === "ring")).toBe(false);
+  });
+});

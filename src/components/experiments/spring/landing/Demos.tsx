@@ -44,7 +44,7 @@ const SCAN = {
 } as const;
 const FINDINGS = [
   ["Sizes don't follow a scale", "×1.07 to ×1.18"],
-  ["12 sizes without a line height", "browser default"],
+  ["18 sizes without a line height", "browser default"],
   ["Roles named by their color", "illustration-sky"],
 ] as const;
 const FIXES = ["One ratio, applied to roles.", "Line height per role, on a 4px grid."];

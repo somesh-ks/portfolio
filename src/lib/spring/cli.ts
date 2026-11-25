@@ -323,7 +323,7 @@ function findingLines({ items, error }: Findings): string[] {
   return [
     `Findings: ${look.length} to look at`,
     ...look.map((f) => `  ${f.status === "fail" ? "✕" : "!"} ${f.title}. ${f.detail}`),
-    `  ✓ ${items.length - look.length} checks pass`,
+    `  ✓ ${items.length - look.length} ${items.length - look.length === 1 ? "check passes" : "checks pass"}`,
   ];
 }
 

@@ -819,7 +819,9 @@ function Findings({ view }: { view: View }) {
           </ul>
           {passed.length ? (
             <details className="spring-view__more">
-              <summary>{passed.length} checks pass</summary>
+              <summary>
+                {passed.length} {passed.length === 1 ? "check passes" : "checks pass"}
+              </summary>
               <ul className="spring-findings">
                 {passed.map((f) => (
                   <li key={f.id}>

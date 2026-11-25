@@ -95,7 +95,7 @@ describe("spring scan findings and --open", () => {
   test("prints findings counts, never a grade", () => {
     const { printed } = run([], { "tokens.css": css });
     expect(printed).toMatch(/^Findings: \d+ to look at$/m);
-    expect(printed).toMatch(/^ {2}✓ \d+ checks pass$/m);
+    expect(printed).toMatch(/^ {2}✓ \d+ checks? pass(es)?$/m);
     expect(printed).not.toMatch(/grade|score/i);
   });
 

@@ -436,7 +436,8 @@ function parseSystem(text: string): Parsed {
 
 const TEXT = /(^|-)(text|foreground|fg|ink|content|link|placeholder|on-[\w-]+)(-|$)/i;
 /** Text that isn't meant for the page: labels on fills, disabled (exempt in WCAG), inverse. */
-const NOT_PAGE_TEXT = /(^on-|-on-|inverse|disabled|white|black|^text-(xs|sm|base|lg|\d?xl))/i;
+const NOT_PAGE_TEXT =
+  /(^on-|-on-|inverse|disabled|white|black|^text-(xs|sm|base|lg|\d?xl)|(^|-)(border|divider|outline|shadow|illustration)(-|$))/i;
 /** A page-level surface that text sits on. */
 const SURFACE =
   /^(bg|background|surface|canvas|paper|page|panel|card|popover|sidebar)(-(subtle|raised|elevated|sunken|alt|alternate|secondary|tertiary|default|base|inset|\d))?$/i;
@@ -525,8 +526,9 @@ function checkColor(p: Parsed, findings: Finding[]) {
     // Focus rings: 3:1 on the page, or on their own scope (sidebar-ring on sidebar).
     if (RING.test(b)) {
       const scope = b.match(/^(.+)-(?:ring|focus|focus-ring|outline)$/)?.[1];
-      const home = scope ? by.get(scope) : undefined;
-      pair(c, home ?? bg, 3, rings);
+      // "focus-ring" names its job, not a scope: a ring beside another focus color sits on the page.
+      const home = scope && !RING.test(scope) ? by.get(scope) : undefined;
+      pair(c, home && home !== c ? home : bg, 3, rings);
     }
   }
   findings.push(
