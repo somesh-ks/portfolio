@@ -1,7 +1,8 @@
 /**
  * Contact sheet: every action at its hero frame with no items, then every item on idle (rides and
  * hand-held items on wave), outline thin. Writes engine-sheet.png (light) and engine-sheet-dark.png
- * (plus combo-sheet.png: twelve hand-picked combinations) into the folder given as the first
+ * (plus combo-sheet.png: twelve hand-picked combinations and rides-sheet.png: every ride
+ * under every action at frames 0 and 12) into the folder given as the first
  * argument (default /mnt/project-files/sticker-studio/v3).
  * Optional second argument: an outline width 0, 1 or 2.
  */
@@ -115,3 +116,36 @@ async function sheet(file: string, bg: string, fg: string, cells: Cell[] = allCe
 await sheet("engine-sheet.png", "#F3F1EA", "#141413");
 await sheet("engine-sheet-dark.png", "#1F1E1D", "#E8E6DC");
 await sheet("combo-sheet.png", "#F3F1EA", "#141413", comboCells);
+
+// Rides: a row per ride and frame, a column per action, outline thin.
+{
+  const RS = 4;
+  const T = 46 * RS;
+  const rides = ITEMS.filter((i) => i.slot === "ride").map((i) => i.id);
+  const frames = [0, 12];
+  const tiles: OverlayOptions[] = [];
+  for (const [r, ride] of rides.entries())
+    for (const [k, f] of frames.entries())
+      for (const [c, a] of ACTIONS.entries()) {
+        const l: Look = { action: a.id, items: [ride], outline };
+        const { width, height, data } = rasterFrame(l, f % frameCount(l), RS, true, T);
+        tiles.push({
+          input: Buffer.from(data),
+          raw: { width, height, channels: 4 },
+          left: c * T,
+          top: (r * frames.length + k) * T,
+        });
+      }
+  await sharp({
+    create: {
+      width: ACTIONS.length * T,
+      height: rides.length * frames.length * T,
+      channels: 4,
+      background: "#E9E6DE",
+    },
+  })
+    .composite(tiles)
+    .png()
+    .toFile(path.join(out, "rides-sheet.png"));
+  console.warn(`wrote ${path.join(out, "rides-sheet.png")}`);
+}

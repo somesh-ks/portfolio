@@ -137,8 +137,11 @@ export function stickerSvg(
   );
 }
 
-/** Thumbnails carry a one-cell white ring, like the die-cut, so dark ink survives on dark tiles. */
-function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>): string {
+/**
+ * Thumbnails carry a one-cell white ring, like the die-cut, so dark ink survives on dark tiles.
+ * `marks` (picker cues) are drawn over it in the tile's text colour and stay out of the ring.
+ */
+function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>, marks: Rect[] = []): string {
   const ring: Layer = {
     color: "#FFFFFF",
     alpha: 1,
@@ -147,20 +150,57 @@ function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>): string {
     ),
   };
   const all = [{ layer: ring, dx: 0, dy: 0 }, ...items];
+  if (marks.length)
+    all.push({ layer: { color: "currentColor", alpha: 1, rects: marks }, dx: 0, dy: 0 });
   return `${open(boxOf(all), null)}${flatPaths(all)}</svg>`;
 }
+
+const bar = (x: number, y: number, w: number): Rect => ({ x, y, w, h: 1 });
+/** A 3 x 3 "z". */
+const zed = (x: number, y: number): Rect[] => [
+  bar(x, y, 3),
+  bar(x + 1, y + 1, 1),
+  bar(x, y + 2, 3),
+];
+
+/**
+ * Comic marks for the picker's thumbnails only (never exports), in mascot cells and the tile's
+ * text colour: motion cues where the pose alone reads as idle (arcs by the waving hand, a down
+ * chevron over a nod, speed ticks behind a walker and a runner) and the cue that tells two
+ * similar poses apart: a "z" for sleep, a ground line under a hovering zen and a jumper, the
+ * vertical edge a peeker leans past.
+ */
+const MARKS: Partial<Record<ActionId, Rect[]>> = {
+  wave: [
+    { x: 25, y: -3, w: 1, h: 3 },
+    { x: 27, y: -4, w: 1, h: 5 },
+  ],
+  nod: [
+    { x: 10, y: -5, w: 1, h: 1 },
+    { x: 14, y: -5, w: 1, h: 1 },
+    { x: 11, y: -4, w: 1, h: 1 },
+    { x: 13, y: -4, w: 1, h: 1 },
+    { x: 12, y: -3, w: 1, h: 1 },
+  ],
+  walk: [bar(-5, 6, 3), bar(-5, 10, 3)],
+  run: [bar(-7, 4, 4), bar(-9, 8, 6), bar(-7, 12, 4)],
+  peek: [{ x: -5, y: -4, w: 1, h: 21 }],
+  jump: [bar(6, 17, 12)],
+  zen: [bar(8, 16, 8)],
+  sleep: [...zed(21, -2), ...zed(25, -6)],
+};
 
 /** The mascot at the action's still frame, no items, outline off, cropped to what is drawn. */
 export function actionThumbSvg(action: ActionId): string {
   const look: Look = { action, items: [], outline: 0 };
-  return thumb(frameItems(clipFor(look), stillFrame(action), true));
+  return thumb(frameItems(clipFor(look), stillFrame(action), true), MARKS[action]);
 }
 
 /** The item art alone, cropped, on the frame where it shows the most. */
 export function itemThumbSvg(id: string): string {
   const def = itemDef(id);
   if (!def) return `${open({ x: 0, y: 0, w: 1, h: 1 }, null)}</svg>`;
-  const parts = partsOf(def);
+  const parts = def.thumb ?? partsOf(def).filter((p) => !p.body);
   const n = 24;
   let best: Array<{ layer: Layer; dx: number; dy: number }> = [];
   let bestCount = -1;
