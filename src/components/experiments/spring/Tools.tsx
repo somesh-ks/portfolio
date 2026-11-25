@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
-import { Eye } from "lucide-react";
+import { Braces, Eye, Variable } from "lucide-react";
 import { exportAll, exportArea, toPrompt, type Area, type ExportFile } from "@/lib/spring/exports";
 import { FONTS } from "@/lib/spring/fonts.data";
 import { readInput, writeInput } from "@/lib/spring/io";
+import { FORMAT_LABEL, FORMATS, formatOf, withFormat, type Format } from "@/lib/spring/names";
 import {
   DEFAULT_INPUT,
   inputFromSeed,
@@ -18,6 +19,7 @@ import {
 import {
   FONT_NAMES,
   fontInfo,
+  buildType,
   googleFontsUrl,
   isCurated,
   opticalBase,
@@ -36,7 +38,7 @@ import { CurveEditor } from "./CurveEditor";
 import dynamic from "next/dynamic";
 import { ColorOutput } from "./Strips";
 import { FontBrowser, type FontRole } from "./FontBrowser";
-import { AppScreen, ChartsScreen, Components, Homepage, Ladder } from "./Preview";
+import { AppScreen, ChartsScreen, Homepage, Ladder } from "./Preview";
 import {
   getInput,
   importRoute,
@@ -52,8 +54,6 @@ import "./spring.css";
 
 // The audit engine only runs once its dialog opens, so it loads then.
 const SpringAudit = dynamic(() => import("./Audit").then((m) => m.SpringAudit));
-
-type TypeExtra = TypeInput["extra"];
 
 // One stylesheet for every curated family; browsers fetch only the faces in use.
 const ALL_FONTS = googleFontsUrl(FONT_NAMES);
@@ -140,12 +140,7 @@ function ExportMenu({ system }: { system: System }) {
   };
   return (
     <span className="spring-split">
-      <button
-        type="button"
-        className="button button--primary spring-split__main"
-        aria-label="Export"
-        onClick={all}
-      >
+      <button type="button" className="button spring-split__main" aria-label="Export" onClick={all}>
         {["Export", "Link copied", "Saved"].map((t, i) => (
           <span key={t} aria-hidden="true" data-on={i === label || undefined}>
             {t}
@@ -153,10 +148,7 @@ function ExportMenu({ system }: { system: System }) {
         ))}
       </button>
       <Menu.Root>
-        <Menu.Trigger
-          className="button button--primary spring-split__more"
-          aria-label="Export, import and reset"
-        >
+        <Menu.Trigger className="button spring-split__more" aria-label="Export, import and reset">
           <Chevron />
         </Menu.Trigger>
         <Menu.Portal>
@@ -403,13 +395,41 @@ function Text({
   );
 }
 
-const TABS = ["color", "type", "space", "motion", "tokens"] as const;
+// Color and type only: space, radius and motion keep sensible defaults in the exports.
+/** Monochrome marks, so the picker reads as one terminal list, not a logo wall. */
+const FORMAT_ICON: Record<Format, React.ReactNode> = {
+  css: <Variable strokeWidth={1.75} />,
+  tailwind: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35.98 1 2.12 2.15 4.59 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C15.61 7.15 14.47 6 12 6zm-5 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35C8.39 16.85 9.53 18 12 18c2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C10.61 13.15 9.47 12 7 12z" />
+    </svg>
+  ),
+  shadcn: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+    >
+      <path d="M19.5 12 12 19.5M18 4.5 4.5 18" />
+    </svg>
+  ),
+  dtcg: <Braces strokeWidth={1.75} />,
+};
+/** The type token in that format, so the choice shows what it changes. */
+const FORMAT_HINT: Record<Format, string> = {
+  css: "--text-h1",
+  tailwind: "text-h1",
+  shadcn: "text-h1",
+  dtcg: "typography.h1",
+};
+
+const TABS = ["color", "type", "tokens"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   color: "Color",
   type: "Type",
-  space: "Space",
-  motion: "Motion",
   tokens: "Tokens",
 };
 
@@ -433,8 +453,6 @@ export function SpringApp() {
   const [browse, setBrowse] = useState<FontRole | null>(null);
   const [width, setWidth] = useState<"phone" | "tablet" | "desktop">("desktop");
   const [format, setFormat] = useState<ColorFormat>("oklch");
-  // Starts at 1 so the curves play as soon as the Motion tab opens.
-  const [run, setRun] = useState(1);
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
   const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
   // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
@@ -485,7 +503,24 @@ export function SpringApp() {
             </button>
           ))}
         </div>
+        {/* The format names every token in the app and leads the export. */}
+        <span className="spring-app__format">
+          <Select
+            label="Token format"
+            hideLabel
+            value={formatOf(input.stack)}
+            options={FORMATS.map((fmt) => ({
+              value: fmt,
+              label: FORMAT_LABEL[fmt],
+              icon: FORMAT_ICON[fmt],
+              hint: FORMAT_HINT[fmt],
+            }))}
+            onChange={(fmt) => setInput((i) => ({ ...i, stack: withFormat(i.stack, fmt) }))}
+          />
+        </span>
         <span className="spring-app__actions">
+          {/* Theme first, so the strip ends on its one menu: Export. */}
+          <ThemeToggle className="button spring-square pressable" />
           <button
             type="button"
             className="button spring-app__preview"
@@ -496,7 +531,6 @@ export function SpringApp() {
             <span>Preview</span>
           </button>
           <ExportMenu system={system} />
-          <ThemeToggle className="button spring-square pressable" />
         </span>
       </header>
       <AuditDialog />
@@ -518,10 +552,6 @@ export function SpringApp() {
               setView("output");
             }}
           />
-        ) : null}
-        {tab === "space" ? <ShapeControls {...spring} /> : null}
-        {tab === "motion" ? (
-          <MotionControls {...spring} onCommit={() => setRun((r) => r + 1)} />
         ) : null}
         {f ? <TokensControls {...spring} files={files} f={f} setFile={setFile} /> : null}
       </aside>
@@ -560,7 +590,7 @@ export function SpringApp() {
             {charts ? (
               <ChartsScreen system={system} mode={mode} />
             ) : building === "site" ? (
-              <Homepage system={system} mode={mode} line={spring.line} />
+              <Homepage system={system} mode={mode} />
             ) : (
               <AppScreen system={system} mode={mode} />
             )}
@@ -588,7 +618,7 @@ export function SpringApp() {
                 current={input.type}
                 sample={{
                   heading: `${input.name || "Your name"} ships calm, quick software`,
-                  body: spring.line.trim() || "A short line about what it does and who it helps.",
+                  body: "Send invoices and close the month without a spreadsheet.",
                   mono: "const total = 5517.60;",
                 }}
                 onPick={(r, n, meta) =>
@@ -598,10 +628,6 @@ export function SpringApp() {
               />
             ) : tab === "type" ? (
               <TypeOutput system={system} mode={mode} />
-            ) : null}
-            {tab === "space" ? <ShapeOutput system={system} mode={mode} /> : null}
-            {tab === "motion" ? (
-              <MotionOutput system={system} run={run} onRun={() => setRun((r) => r + 1)} />
             ) : null}
             {f ? (
               <textarea
@@ -919,13 +945,7 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
 
 const ROLE_NAME: Record<FontRole, string> = { heading: "Headings", body: "Text", mono: "Code" };
 
-function TypeControls({
-  input,
-  line,
-  setInput,
-  setLine,
-  onBrowse,
-}: Spring & { onBrowse: (r: FontRole) => void }) {
+function TypeControls({ input, setInput, onBrowse }: Spring & { onBrowse: (r: FontRole) => void }) {
   const t = input.type;
   const set = (p: Partial<SystemInput["type"]>) =>
     setInput((i) => ({ ...i, type: { ...i.type, ...p } }));
@@ -936,6 +956,30 @@ function TypeControls({
   const fontsId = useId();
   return (
     <>
+      {(["heading", "body", "mono"] as const).map((r) => (
+        <div key={r} className="field">
+          <span className="field__label" id={`${fontsId}-${r}`}>
+            {ROLE_NAME[r]}
+          </span>
+          <button
+            type="button"
+            className="select__trigger"
+            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
+            onClick={() => onBrowse(r)}
+          >
+            <span
+              id={`${fontsId}-${r}-v`}
+              className="select__value"
+              style={{ fontFamily: `"${t[r]}", var(--font-sans)` }}
+            >
+              {t[r]}
+            </span>
+            <span className="select__icon" aria-hidden>
+              <Chevron dir="right" />
+            </span>
+          </button>
+        </div>
+      ))}
       <Dial
         label="body size"
         reset={16}
@@ -961,7 +1005,7 @@ function TypeControls({
       <Select
         label="Scale ratio"
         value={String(t.ratio)}
-        options={ratioOptions(t.ratio, input.stack.building)}
+        options={ratioOptions(t)}
         onChange={(v) => set({ ratio: Number(v) })}
       />
       {hi > lo ? (
@@ -975,32 +1019,6 @@ function TypeControls({
           onChange={(v) => set({ headingWeight: v })}
         />
       ) : null}
-      {(["heading", "body", "mono"] as const).map((r) => (
-        <div key={r} className="field">
-          <span className="field__label" id={`${fontsId}-${r}`}>
-            {ROLE_NAME[r]}
-          </span>
-          <button
-            type="button"
-            className="select__trigger"
-            aria-labelledby={`${fontsId}-${r} ${fontsId}-${r}-v`}
-            onClick={() => onBrowse(r)}
-          >
-            <span id={`${fontsId}-${r}-v`} className="select__value">
-              {t[r]}
-            </span>
-            <span className="select__icon" aria-hidden>
-              <Chevron dir="right" />
-            </span>
-          </button>
-        </div>
-      ))}
-      <Text
-        label="Sample text"
-        value={line}
-        onChange={setLine}
-        placeholder="A short line about what it does and who it helps."
-      />
     </>
   );
 }
@@ -1010,168 +1028,7 @@ function TypeOutput({ system, mode }: { system: System; mode: Mode }) {
   return (
     <>
       <Ladder system={system} mode={mode} />
-      <div className="spring-grid">
-        <Facts font={t.heading} job="Headings" extra={t.extra} />
-        {t.body !== t.heading ? (
-          <Facts font={t.body} job="Text" extra={t.extra} />
-        ) : (
-          <Facts font={t.mono} job="Code" extra={t.extra} />
-        )}
-      </div>
-    </>
-  );
-}
-
-// ——— Space and shape ———
-
-function ShapeControls({ input, system, setInput }: Spring) {
-  const r = system.shape.radius;
-  const c = system.space.control;
-  return (
-    <>
-      <Dial
-        label="density"
-        scale={100}
-        reset={DEFAULT_INPUT.density}
-        value={input.density}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`controls ${c.sm}/${c.md}/${c.lg}px`}
-        onChange={(v) => setInput((i) => ({ ...i, density: v }))}
-      />
-      <Dial
-        label="roundness"
-        scale={100}
-        reset={DEFAULT_INPUT.roundness}
-        value={input.roundness}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`${r.sm}/${r.md}/${r.lg}px`}
-        onChange={(v) => setInput((i) => ({ ...i, roundness: v }))}
-      />
-      <Nested system={system} />
-    </>
-  );
-}
-
-function ShapeOutput({ system, mode }: { system: System; mode: Mode }) {
-  const [copied, copy, said] = useCopy();
-  return (
-    <>
-      <output className="sr-only">{said}</output>
-      <div className="spring-ruler">
-        {Object.entries(system.space.scale)
-          .filter(([k]) => k !== "0")
-          .toSorted((a, b) => a[1] - b[1])
-          .map(([k, px]) => {
-            const name = `--space-${k.replace(".", "-")}`;
-            return (
-              <button
-                key={k}
-                type="button"
-                className="spring-ruler__row"
-                onClick={() => copy(name, `var(${name})`)}
-              >
-                <span>{copied === name ? "✓ copied" : name}</span>
-                <span className="tabular">{px}px</span>
-                <span className="spring-ruler__bar" style={{ width: px }} aria-hidden />
-              </button>
-            );
-          })}
-      </div>
-      <Components system={system} mode={mode} />
-    </>
-  );
-}
-
-// ——— Motion ———
-
-function MotionControls({ input, system, setInput, onCommit }: Spring & { onCommit: () => void }) {
-  const m = system.motion;
-  return (
-    <>
-      <Dial
-        label="energy"
-        scale={100}
-        reset={DEFAULT_INPUT.motion}
-        value={input.motion}
-        min={0}
-        max={1}
-        step={0.01}
-        show={`base ${m.duration.base}ms`}
-        onChange={(v) => setInput((i) => ({ ...i, motion: v }))}
-        onCommit={onCommit}
-      />
-      <dl className="spring-facts">
-        {Object.entries(m.duration).map(([k, ms]) => (
-          <div key={k} className="contents">
-            <dt>--duration-{k}</dt>
-            <dd className="tabular">{ms}ms</dd>
-          </div>
-        ))}
-      </dl>
-    </>
-  );
-}
-
-function MotionOutput({ system, run, onRun }: { system: System; run: number; onRun: () => void }) {
-  const [copied, copy, said] = useCopy();
-  const m = system.motion;
-  return (
-    <>
-      <div className="spring-race">
-        {(
-          [
-            ["ease-out", m.easing.out, m.duration.base, "Entering, hover, most UI", "base"],
-            ["ease-in-out", m.easing.inOut, m.duration.slow, "Moving across the screen", "slow"],
-            [
-              "spring",
-              m.easing.spring,
-              m.duration.spring,
-              "Drag release, playful moments",
-              "spring",
-            ],
-          ] as const
-        ).map(([name, ease, ms, job, dur]) => (
-          <div key={name} className="spring-lane">
-            <span className="spring-lane__head">
-              <span className="spring-meta">
-                {name} · {ms}ms · {job}
-              </span>
-              <button
-                type="button"
-                className="spring-link"
-                title={ease}
-                onClick={() =>
-                  copy(
-                    name,
-                    `transform var(--duration-${dur}) var(--ease-${name.replace("ease-", "")})`,
-                  )
-                }
-              >
-                {copied === name ? "Copied" : "Copy"}
-                <span className="sr-only"> {name} transition</span>
-              </button>
-            </span>
-            <span className="spring-track">
-              <span
-                key={run}
-                className="spring-ball"
-                data-run={run > 0}
-                style={{ "--d": `${ms}ms`, "--e": ease } as React.CSSProperties}
-              />
-            </span>
-          </div>
-        ))}
-      </div>
-      <output className="sr-only">{said}</output>
-      <div className="toy__actions">
-        <button type="button" className="button" onClick={onRun}>
-          Replay
-        </button>
-      </div>
+      <FontNotes type={t} />
     </>
   );
 }
@@ -1276,93 +1133,50 @@ function AuditDialog() {
   );
 }
 
-const RATIOS = [1.125, 1.2, 1.25, 1.333, 1.5];
-/** Dense screens need small steps; pages can shout. */
-const FITS: Record<string, readonly [number, number]> = {
-  site: [1.25, 1.333],
-  dashboard: [1.125, 1.2],
-};
-const ratioOptions = (r: number, building: string) => {
-  const [lo, hi] = FITS[building] ?? [1.2, 1.25];
-  const fit =
-    building === "site" ? "fits sites" : building === "dashboard" ? "fits dashboards" : "fits apps";
-  const all = RATIOS.includes(r) ? RATIOS : [...RATIOS, r].toSorted((x, y) => x - y);
-  return all.map((v) => ({
-    value: String(v),
-    label: String(v),
-    hint: v >= lo && v <= hi ? fit : undefined,
-  }));
-};
+/** Each ratio with the products it suits: small steps for dense screens, big ones for pages that shout. */
+const RATIOS: [number, string][] = [
+  [1.125, "dense data"],
+  [1.2, "app UI"],
+  [1.25, "general web"],
+  [1.333, "editorial"],
+  [1.5, "hero only"],
+];
+/** Each option also says what it does to h1 at this body size. */
+const ratioOptions = (t: TypeInput) =>
+  (RATIOS.some(([v]) => v === t.ratio)
+    ? RATIOS
+    : [...RATIOS, [t.ratio, "custom"] as [number, string]]
+  )
+    .toSorted((x, y) => x[0] - y[0])
+    .map(([v, use]) => {
+      const h1 = buildType({ ...t, ratio: v }).tokens.find((x) => x.role === "h1")!.max;
+      return { value: String(v), label: String(v), hint: `${use} · h1 ${h1}px` };
+    });
 
-/** What people get wrong when choosing a brand font, on one card. */
-function Facts({ font, job, extra }: { font: FontName; job: string; extra?: TypeExtra }) {
-  const info = fontInfo(font, extra);
-  const d = isCurated(font) ? FONTS[font] : null;
-  const weights = info.variable
-    ? `Variable ${info.variable[0]}–${info.variable[1]}`
-    : info.weights.length === 1
-      ? `One (${info.weights[0]})`
-      : info.weights.join(", ");
-  const rows: [string, string][] = d
-    ? [
-        ["license", d.license === "OFL" ? "OFL, free for logo, web and apps" : "check before use"],
-        ["weights", `${weights}${d.italic ? ", italics" : ", no italics"}`],
-        ["scripts", d.scripts.join(", ")],
-        [
-          "numbers",
-          d.tag === "mono" || d.tnum
-            ? "tabular, columns line up"
-            : "proportional, columns won't align",
-        ],
-        ["download", `~${d.kb} KB per weight`],
-      ]
-    : [
-        ["weights", weights],
-        ["license", "check it on fonts.google.com before a logo"],
-        ["fallback", "generic stack; Spring hasn't measured this font"],
-      ];
+/** One line per font in use, with only the facts that bite: numbers, license, cuts, fallback. */
+function FontNotes({ type: t }: { type: TypeInput }) {
+  const roles = new Map<FontName, string[]>();
+  for (const r of ["heading", "body", "mono"] as const)
+    roles.set(t[r], [...(roles.get(t[r]) ?? []), ROLE_NAME[r].toLowerCase()]);
   return (
-    <div className="spring-tree">
-      <span>
-        {font} <span className="spring-meta">{job}</span>
-      </span>
-      <span className="spring-meta">
-        {d
-          ? `${d.note}${d.popularity <= 10 ? " One of the ten most used fonts on the web." : ""}`
-          : "From the Google Fonts catalogue."}
-      </span>
-      <dl>
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-/** The one corner rule most systems miss: inner radius = outer radius − padding. */
-function Nested({ system }: { system: System }) {
-  const outer = system.shape.radius.lg;
-  const pad = system.space.paddingX.sm;
-  const inner = Math.max(0, outer - pad);
-  return (
-    <div className="spring-nested">
-      {[
-        { label: `inner ${outer}px: gap bulges`, r: outer, bad: true },
-        { label: `${outer} − ${pad} = ${inner}px: gap even`, r: inner, bad: false },
-      ].map((x) => (
-        <figure key={x.label} className="spring-nested__case">
-          <span className="spring-nested__outer" style={{ borderRadius: outer, padding: pad }}>
-            <span className="spring-nested__inner" style={{ borderRadius: x.r }} />
-          </span>
-          <figcaption className="spring-meta">
-            {x.bad ? "✕" : "✓"} {x.label}
-          </figcaption>
-        </figure>
-      ))}
-    </div>
+    <ul className="spring-notes">
+      {[...roles].map(([font, jobs]) => {
+        const info = fontInfo(font, t.extra);
+        const d = isCurated(font) ? FONTS[font] : null;
+        const notes = [
+          info.tag !== "mono" && !d?.tnum ? "proportional numbers, columns won't align" : "",
+          d && d.license !== "OFL" ? "check the license" : "",
+          !d ? "not measured, generic fallback" : "",
+          !info.variable && info.weights.length === 1 ? "one weight" : "",
+          d && !d.italic ? "no italics" : "",
+        ].filter(Boolean);
+        return (
+          <li key={font} className="spring-meta">
+            <span className="spring-notes__font">{font}</span> {jobs.join(", ")}
+            {notes.length ? ` · ${notes.join(" · ")}` : " · nothing to watch"}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

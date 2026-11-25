@@ -72,3 +72,26 @@ describe("contrastPairs", () => {
     expect(ratio(view("#ffffff"), "primary")).toBeGreaterThan(1);
   });
 });
+
+describe("scan-only build (design-sys skill)", () => {
+  test("refuses build and prints only the scan commands", () => {
+    process.env.SPRING_SCAN_ONLY = "1";
+    let printed = "";
+    const out = spyOn(process.stdout, "write").mockImplementation((s) => {
+      printed += String(s);
+      return true;
+    });
+    const exit = spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    try {
+      expect(() => main(["build", "--primary", "#e11d48"])).toThrow("exit");
+      expect(printed).toContain("spring scan");
+      expect(printed).not.toContain("spring build");
+    } finally {
+      out.mockRestore();
+      exit.mockRestore();
+      delete process.env.SPRING_SCAN_ONLY;
+    }
+  });
+});

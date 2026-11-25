@@ -7,7 +7,7 @@
 import { art, type ObstacleKind, type ObstacleSprite, type Cell, type Tone } from "./sprites";
 import type { Sky, Weather } from "./weather";
 
-export const DEFAULT_WEATHER: Weather = { sky: "cloudy", night: false, temp: null };
+export const DEFAULT_WEATHER: Weather = { sky: "cloudy", night: false };
 
 export const SUN: Cell[] = art(
   [".GGGGG.", "GGGGGGG", "GGGGGGG", "GGGGGGG", "GGGGGGG", "GGGGGGG", ".GGGGG."],

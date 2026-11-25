@@ -17,6 +17,7 @@ function entries() {
           href: (data.href as string | undefined) ?? page,
           own: !data.href,
           home: data.home !== false,
+          newTab: data.newTab === true,
         };
       }),
   );
@@ -33,10 +34,10 @@ export function publicRoutes(): string[] {
   ];
 }
 
-/** On-site routes the homepage links: entries without `home: false`, minus links out. */
+/** On-site routes the homepage opens in place: entries without `home: false`, minus links out and new tabs. */
 export function homeRoutes(): string[] {
   return entries()
-    .filter((e) => e.home && e.href.startsWith("/"))
+    .filter((e) => e.home && !e.newTab && e.href.startsWith("/"))
     .map((e) => e.href);
 }
 
