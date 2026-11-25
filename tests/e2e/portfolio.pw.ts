@@ -316,9 +316,12 @@ test("the first-load entrance plays once and never hides content", async ({ brow
   await expect(still.locator("h1")).toHaveCSS("opacity", "1");
   await noJs.close();
 
-  // A page reached in-app just appears.
+  // A page reached in-app just appears. The clock is frozen, so only the navigation closes the gate.
+  await page.clock.install();
   await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-entered");
   await page.locator("main a[href^='/']:not([target])").first().click();
+  await page.waitForURL((url) => url.pathname !== "/");
   await expect(page.locator("html")).toHaveAttribute("data-entered", "");
   expect(await animation(page)).toBe("none");
 });

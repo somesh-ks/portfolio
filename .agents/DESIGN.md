@@ -191,7 +191,7 @@ One documented exception: a full-height drawer using `--ease-drawer` may run to 
 
 ### First load
 
-Each page sets itself with one calm entrance per visit (`src/styles/entrance.css`), and later in-app navigations simply appear (`EntranceGate`). Only the page title rises, 4px; everything else fades in place, so the viewport never drifts (Somesh gets dizzy from heavy motion). `--duration-enter` (280ms) per element, gaps shrinking from 50ms, the whole page settled by about 470ms. The largest text block starts with the first support beat, so LCP isn't held back. Tools (Spring app, sticker studio) get one quick fade, controls ready almost at once. Reduced motion: the same fade, no rise and no sequence. Nav bars, footers, list rows and anything below the fold don't animate.
+Each page sets itself with one calm entrance per visit (`src/styles/entrance.css`), and later in-app navigations simply appear (`EntranceGate`). Only the page title rises, 4px; everything else fades in place, so the viewport never drifts (Somesh gets dizzy from heavy motion). `--duration-enter` (280ms) per element, delays in steps of `--duration-stagger-step` with shrinking gaps, the whole page settled by about 480ms. The largest text block starts with the first support beat, so LCP isn't held back. Tools (Spring app, sticker studio) get one quick fade, controls ready almost at once. Reduced motion: the same fade, no rise and no sequence. Nav bars and footers don't animate. Lists and article bodies fade as one block each, never row by row.
 
 ### Physicality & Origin
 
