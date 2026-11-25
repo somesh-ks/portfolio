@@ -189,6 +189,10 @@ Decision order: entering/exiting → `ease-out` · on-screen movement → `ease-
 
 One documented exception: a full-height drawer using `--ease-drawer` may run to 500ms, because the curve spends most of that time near its endpoint. The theme switch's pixel dissolve (`--duration-theme`, 480ms) is the second, approved by Somesh: it plays once per explicit theme change and the page stays readable throughout. Nothing else crosses 300ms.
 
+### First load
+
+Each page sets itself with one calm entrance per visit (`src/styles/entrance.css`), and later in-app navigations simply appear (`EntranceGate`). Only the page title rises, 4px; everything else fades in place, so the viewport never drifts (Somesh gets dizzy from heavy motion). `--duration-enter` (280ms) per element, gaps shrinking from 50ms, the whole page settled by about 470ms. The largest text block starts with the first support beat, so LCP isn't held back. Tools (Spring app, sticker studio) get one quick fade, controls ready almost at once. Reduced motion: the same fade, no rise and no sequence. Nav bars, footers, list rows and anything below the fold don't animate.
+
 ### Physicality & Origin
 
 - **Never `scale(0)`.** Start from `scale(0.95)` and `opacity: 0`. Nothing in the real world appears from nothing.

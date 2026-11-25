@@ -44,6 +44,13 @@
         "unit": "ms"
       }
     },
+    "enter": {
+      "$value": {
+        "value": 280,
+        "unit": "ms"
+      },
+      "$description": "First-load entrance of a page, once per visit."
+    },
     "stagger-step": {
       "$value": {
         "value": 50,
