@@ -1,6 +1,6 @@
 # Code rules for this portfolio
 
-Values (durations, easing, spacing, contrast) live in `DESIGN.md` and the token files. This file says how to build.
+Values (durations, easing, spacing, contrast) live in `STANDARDS.md`, `DESIGN.md` and the token files. This file says how to build.
 
 ## Stack
 
