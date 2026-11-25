@@ -3,16 +3,17 @@
 import { useEffect, useRef } from "react";
 import type { BrandData } from "./data";
 import { useLandingMotion } from "./Motion";
+import { BAYER, type Lab, toLab, toRgb } from "./oklab";
 
-// prettier-ignore
-const BAYER = [0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21];
-/** Cell sizes in CSS px, coarse to fine; the last frame is drawn crisp. */
-const STEPS = [16, 12, 8, 6, 4, 3, 2];
-const STEP_MS = 180;
+const MORPH_MS = 700;
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
-const rgb = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16);
-  return [n >> 16, (n >> 8) & 255, n & 255] as const;
+/** Every color the specimen draws with: 12 light steps, 12 dark steps, then button, label, link. */
+const paletteOf = (m: BrandData) =>
+  [...m.ramp, ...m.horizon, m.ui.primary, m.ui.primaryFg, m.ui.link].map(toLab);
+const css = (c: Lab) => {
+  const [r, g, b] = toRgb(c);
+  return `rgb(${r} ${g} ${b})`;
 };
 
 interface Ink {
@@ -29,9 +30,13 @@ function specimen(
   W: number,
   H: number,
   m: BrandData,
+  pal: string[],
   ink: Ink,
   dpr: number,
 ) {
+  const ramp = pal.slice(0, 12);
+  const horizon = pal.slice(12, 24);
+  const [primary, primaryFg, link] = pal.slice(24);
   const s = Math.min(W / 640, H / 560);
   // Labels stay readable on a phone, where the picture itself scales down.
   const small = Math.round(Math.max(12 * s, 11 * dpr));
@@ -49,12 +54,12 @@ function specimen(
   let y = pad + Math.round(12 * s);
   label("primary · light, dark", pad, y);
   y += Math.round(10 * s);
-  m.ramp.forEach((c, i) => {
+  ramp.forEach((c, i) => {
     o.fillStyle = c;
     o.fillRect(Math.round(pad + i * cw), y, Math.ceil(cw), rowH);
   });
   y += rowH;
-  m.horizon.forEach((c, i) => {
+  horizon.forEach((c, i) => {
     o.fillStyle = c;
     o.fillRect(Math.round(pad + i * cw), y, Math.ceil(cw), rowH);
   });
@@ -82,11 +87,11 @@ function specimen(
   const bh = Math.round(44 * s);
   o.font = `500 ${Math.round(15 * s)}px ${ink.sans}`;
   const bw = o.measureText("Button").width + Math.round(44 * s);
-  o.fillStyle = m.ui.primary;
+  o.fillStyle = primary!;
   o.fillRect(pad, by, bw, bh);
-  o.fillStyle = m.ui.primaryFg;
+  o.fillStyle = primaryFg!;
   o.fillText("Button", pad + Math.round(22 * s), by + bh / 2 + Math.round(5 * s));
-  o.fillStyle = m.ui.link;
+  o.fillStyle = link!;
   const lx = pad + bw + Math.round(24 * s);
   o.fillText("Link", lx, by + bh / 2 + Math.round(5 * s));
   o.fillRect(lx, by + bh / 2 + Math.round(9 * s), o.measureText("Link").width, Math.max(1, s));
@@ -106,104 +111,77 @@ function specimen(
         Math.min(0.999, ((yy - top) / (H - top)) ** 1.3 * 0.9 + 0.05 * Math.sin(gx / 6)) * 11;
       const lo = Math.max(0, Math.floor(v));
       o.fillStyle =
-        m.horizon[Math.min(11, lo + (v - lo > BAYER[(gy & 7) * 8 + (gx & 7)]! / 64 ? 1 : 0))]!;
+        horizon[Math.min(11, lo + (v - lo > BAYER[(gy & 7) * 8 + (gx & 7)]! / 64 ? 1 : 0))]!;
       o.fillRect(xx, yy, c, c);
     }
 }
 
 /**
- * The hero's picture: a calm Bayer field in the brand's 12 dark steps that dissolves, cell by cell
- * and coarse to fine, into the system Spring builds from that color. Each new brand runs it again.
+ * The hero's picture: the system Spring builds from the brand on show. A new brand morphs in:
+ * every color glides to its new value in OKLab over 0.7s, while the layout and dither stay put.
  */
 export function Stage({ brands }: { brands: BrandData[] }) {
   const { seed, reduced } = useLandingMotion();
   const m = brands.find((b) => b.hex === seed) ?? brands[0]!;
   const ref = useRef<HTMLCanvasElement>(null);
+  /** The colors on screen right now, so a morph cut short starts from where it stopped. */
+  const shown = useRef<Lab[] | null>(null);
   useEffect(() => {
     const cv = ref.current;
     const ctx = cv?.getContext("2d");
     if (!cv || !ctx) return;
-    const off = document.createElement("canvas");
-    const octx = off.getContext("2d")!;
-    const field = m.horizon.map(rgb);
     let raf = 0;
-    let start = -1;
     let gone = false;
-    const ink = (): Ink => {
-      const cs = getComputedStyle(cv);
-      const mono = getComputedStyle(cv.parentElement!).getPropertyValue("--font-mono");
-      return {
-        bg: cs.backgroundColor,
-        text: cs.color,
-        muted: cs.getPropertyValue("--text-secondary").trim() || cs.color,
-        sans: cs.fontFamily,
-        mono: mono.trim() || "monospace",
-      };
-    };
-    const frame = (i: number) => {
+    let ink: Ink | null = null;
+    const to = paletteOf(m);
+    const draw = () => {
       const dpr = Math.min(2, devicePixelRatio || 1);
       const r = cv.getBoundingClientRect();
       const W = Math.round(r.width * dpr);
       const H = Math.round(r.height * dpr);
-      if (!W || !H) return;
+      if (!W || !H || !shown.current) return;
       if (cv.width !== W || cv.height !== H) {
         cv.width = W;
         cv.height = H;
       }
-      if (off.width !== W || off.height !== H) {
-        off.width = W;
-        off.height = H;
+      if (!ink) {
+        const cs = getComputedStyle(cv);
+        const mono = getComputedStyle(cv.parentElement!).getPropertyValue("--font-mono");
+        ink = {
+          bg: cs.backgroundColor,
+          text: cs.color,
+          muted: cs.getPropertyValue("--text-secondary").trim() || cs.color,
+          sans: cs.fontFamily,
+          mono: mono.trim() || "monospace",
+        };
       }
-      specimen(octx, W, H, m, ink(), dpr);
-      if (i >= STEPS.length) {
-        ctx.drawImage(off, 0, 0);
-        return;
-      }
-      // Dither the specimen at this cell size, and let the field show through where the
-      // Bayer threshold says the dissolve hasn't reached yet.
-      const c = Math.round(STEPS[i]! * dpr);
-      const q = (i + 1) / (STEPS.length + 1);
-      const lv = 2 + i * 2;
-      const src = octx.getImageData(0, 0, W, H).data;
-      const cols = Math.ceil(W / c);
-      const rows = Math.ceil(H / c);
-      for (let y = 0; y < rows; y++)
-        for (let x = 0; x < cols; x++) {
-          const th = BAYER[(y & 7) * 8 + (x & 7)]! / 64;
-          let col: readonly number[];
-          if (th >= q) {
-            const v = (0.12 + 0.55 * (y / rows) + 0.08 * Math.sin(x / 5 + y / 9)) * 11;
-            const lo = Math.max(0, Math.min(11, Math.floor(v)));
-            col = field[Math.min(11, lo + (v - lo > th ? 1 : 0))]!;
-          } else {
-            const sx = Math.min(W - 1, x * c + (c >> 1));
-            const sy = Math.min(H - 1, y * c + (c >> 1));
-            const k = (sy * W + sx) * 4;
-            col = [0, 1, 2].map(
-              (j) =>
-                (Math.min(lv - 1, Math.floor((src[k + j]! / 255) * (lv - 1) + th)) * 255) /
-                (lv - 1),
-            );
-          }
-          ctx.fillStyle = `rgb(${col[0]} ${col[1]} ${col[2]})`;
-          ctx.fillRect(x * c, y * c, c, c);
-        }
-    };
-    const run = (now: number) => {
-      if (gone) return;
-      if (start < 0) start = now;
-      const i = Math.floor((now - start) / STEP_MS);
-      frame(i);
-      if (i < STEPS.length) raf = requestAnimationFrame(run);
+      specimen(ctx, W, H, m, shown.current.map(css), ink, dpr);
     };
     void document.fonts.ready.then(() => {
       if (gone) return;
-      if (reduced) frame(STEPS.length);
-      else raf = requestAnimationFrame(run);
+      const from = shown.current;
+      const same = from?.every((c, i) => c.every((v, j) => v === to[i]![j]));
+      if (reduced || !from || same) {
+        shown.current = to;
+        draw();
+        return;
+      }
+      let t0 = -1;
+      const step = (now: number) => {
+        if (gone) return;
+        if (t0 < 0) t0 = now;
+        const q = Math.min(1, (now - t0) / MORPH_MS);
+        const k = ease(q);
+        shown.current = from.map((a, i) => a.map((v, j) => v + (to[i]![j]! - v) * k) as Lab);
+        draw();
+        raf = q < 1 ? requestAnimationFrame(step) : 0;
+      };
+      raf = requestAnimationFrame(step);
     });
-    // A resize redraws the finished picture; it never replays the dissolve.
+    // A resize redraws the colors on screen; it never restarts the morph.
     const ro = new ResizeObserver(() => {
-      if (start >= 0 || reduced) frame(STEPS.length);
+      ink = null;
+      if (!raf) draw();
     });
     ro.observe(cv);
     return () => {

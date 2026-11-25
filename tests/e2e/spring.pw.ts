@@ -13,9 +13,7 @@ test("Spring runs as its own app, without the site frame", async ({ page }) => {
 test("the landing page is its own site, tries a color, and opens the app", async ({ page }) => {
   await page.goto("/spring");
   await expect(page).toHaveTitle("Spring: color and type tokens");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /One color\.\s*A whole system\./,
-  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Color and type, sorted.");
   // No portfolio chrome: no link back to the site's home.
   await expect(page.getByRole("link", { name: /Home/ })).toHaveCount(0);
   // A picked brand holds, and the one way in opens the app with it.
@@ -32,11 +30,9 @@ test("the landing page is its own site, tries a color, and opens the app", async
   await expect(bar).toBeVisible();
   await expect(page.getByRole("row", { name: /primary-text/ })).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).
-  const pause = bar.getByRole("button", { name: "Pause" });
-  if (await pause.isVisible()) {
-    await pause.click();
-    await expect(bar.getByRole("button", { name: "Play" })).toHaveAttribute("aria-pressed", "true");
-  }
+  const pause = bar.getByRole("button", { name: "Pause animations" });
+  await pause.click();
+  await expect(pause).toHaveAttribute("aria-pressed", "true");
   await bar.getByRole("link", { name: "Open Spring" }).click();
   await page.waitForURL(/\/spring\/app$/);
 });
@@ -80,8 +76,12 @@ test("data colors reorder with their grip", async ({ page }) => {
   await expect(names.first()).toBeVisible();
   const first = await names.nth(0).inputValue();
   const second = await names.nth(1).inputValue();
-  await page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) }).press("ArrowDown");
-  await expect(names.nth(0)).toHaveValue(second);
+  // A press before hydration does nothing, so retry it until the move lands.
+  const grip = page.getByRole("button", { name: new RegExp(`^Reorder ${first},`) });
+  await expect(async () => {
+    await grip.press("ArrowDown");
+    await expect(names.nth(0)).toHaveValue(second, { timeout: 500 });
+  }).toPass();
   await expect(names.nth(1)).toHaveValue(first);
 });
 

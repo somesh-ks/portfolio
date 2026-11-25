@@ -303,3 +303,25 @@ test("tune toy retunes the page live and puts it back", async ({ page }) => {
   await expect(root).not.toHaveAttribute("data-tune");
   expect(errors).toEqual([]);
 });
+
+test("the first-load entrance plays once and never hides content", async ({ browser, page }) => {
+  const animation = (p: typeof page) =>
+    p.locator("h1").evaluate((h1) => getComputedStyle(h1).animationName);
+
+  // Without JavaScript the page still enters, then ends fully visible.
+  const noJs = await browser.newContext({ javaScriptEnabled: false });
+  const still = await noJs.newPage();
+  await still.goto("/");
+  expect(await animation(still)).toBe("enter-rise");
+  await expect(still.locator("h1")).toHaveCSS("opacity", "1");
+  await noJs.close();
+
+  // A page reached in-app just appears. The clock is frozen, so only the navigation closes the gate.
+  await page.clock.install();
+  await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-entered");
+  await page.locator("main a[href^='/']:not([target])").first().click();
+  await page.waitForURL((url) => url.pathname !== "/");
+  await expect(page.locator("html")).toHaveAttribute("data-entered", "");
+  expect(await animation(page)).toBe("none");
+});
