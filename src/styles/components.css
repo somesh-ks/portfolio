@@ -3111,8 +3111,12 @@ claude-mascot:defined > * {
 .audit-demo__prompt {
   color: var(--text-primary);
 }
-.audit-demo .target-demo__readout {
-  justify-self: center;
+/* Transcripts start at the top, so both sides' prompts line up. */
+.before-after__stage:has(.audit-demo) {
+  align-content: start;
+}
+.audit-demo .target-demo__readout::before {
+  content: "→ ";
 }
 
 /* Stable button: the fixed version stacks every state in one grid cell. */
