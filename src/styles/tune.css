@@ -1,0 +1,56 @@
+/* Homepage "tune" toy (src/components/tune). Inputs come from src/lib/tune.ts.
+   Bases mirror tokens.css and fluid.css; tests/unit/tune.test.ts fails when they drift. */
+:root[data-tune],
+:root[data-tune] .tune-exempt {
+  --space-1: calc(0.25rem * var(--tune-d));
+  --space-2: calc(0.5rem * var(--tune-d));
+  --space-3: calc(0.75rem * var(--tune-d));
+  --space-4: calc(1rem * var(--tune-d));
+  --space-5: calc(1.25rem * var(--tune-d));
+  --space-6: calc(1.5rem * var(--tune-d));
+  --space-8: calc(2rem * var(--tune-d));
+  --space-10: calc(2.5rem * var(--tune-d));
+  --space-12: calc(3rem * var(--tune-d));
+  --space-16: calc(4rem * var(--tune-d));
+  --space-20: calc(5rem * var(--tune-d));
+  --space-24: calc(6rem * var(--tune-d));
+  --step-xs: calc(0.75rem * var(--tune-f));
+  --step-sm: calc(0.8125rem * var(--tune-f));
+  --step-base: calc(0.875rem * var(--tune-f));
+  --step-lg: calc(clamp(0.9375rem, 0.913rem + 0.1087vw, 1rem) * var(--tune-f) * var(--tune-k));
+  --step-xl: calc(
+    clamp(1.125rem, 1.0761rem + 0.2174vw, 1.25rem) * var(--tune-f) * var(--tune-k) * var(--tune-k)
+  );
+  --step-2xl: calc(
+    clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem) * var(--tune-f) * var(--tune-k) *
+      var(--tune-k) * var(--tune-k)
+  );
+}
+/* The toy itself stays put while it retunes the page around it. */
+.tune-exempt {
+  --tune-f: 1;
+  --tune-k: 1;
+  --tune-d: 1;
+}
+:root[data-tune-type="mono"] {
+  --font-sans: var(--font-mono);
+}
+/* Tinted neutrals: same lightness (so contrast holds), a little chroma, more in the darks. */
+:root[data-tune-hue] {
+  --color-gray-25: oklch(98.8% 0.012 var(--tune-h));
+  --color-gray-50: oklch(97.6% 0.012 var(--tune-h));
+  --color-gray-100: oklch(95.8% 0.012 var(--tune-h));
+  --color-gray-150: oklch(93.5% 0.012 var(--tune-h));
+  --color-gray-200: oklch(90.5% 0.012 var(--tune-h));
+  --color-gray-300: oklch(84% 0.02 var(--tune-h));
+  --color-gray-400: oklch(72% 0.02 var(--tune-h));
+  --color-gray-500: oklch(60% 0.02 var(--tune-h));
+  --color-gray-600: oklch(50% 0.02 var(--tune-h));
+  --color-gray-700: oklch(42% 0.02 var(--tune-h));
+  --color-gray-800: oklch(32% 0.02 var(--tune-h));
+  --color-gray-850: oklch(26.5% 0.028 var(--tune-h));
+  --color-gray-900: oklch(22.5% 0.028 var(--tune-h));
+  --color-gray-925: oklch(20% 0.028 var(--tune-h));
+  --color-gray-950: oklch(17.8% 0.028 var(--tune-h));
+  --color-gray-975: oklch(15.5% 0.028 var(--tune-h));
+}

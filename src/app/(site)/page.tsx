@@ -5,6 +5,7 @@ import { Bio } from "@/components/editorial/Bio";
 import { ListRow } from "@/components/editorial/ListRow";
 import { ListSection } from "@/components/editorial/ListSection";
 import { ClaudeRunner } from "@/components/runner/ClaudeRunner";
+import { TuneToy } from "@/components/tune/TuneToy";
 import { entriesOf } from "@/lib/content";
 import type { Kind } from "@/lib/schema";
 
@@ -64,6 +65,7 @@ export default function HomePage() {
           />
         ))}
       </ListSection>
+      <TuneToy />
     </>
   );
 }
