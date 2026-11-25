@@ -8,6 +8,10 @@ Somesh's portfolio at https://someshks.com. Next.js 16 App Router, React 19, Bun
 - Skills live in [`.agents/skills/`](.agents/skills/README.md). Use them for tokens, typography, motion, layout, accessibility, mobile and interface review.
 - Before you push, run `bun run check && bun test && bun run build && bun run size && bun run test:e2e`.
 
+## Somesh's copy is final
+
+Copy Somesh wrote or approved (homepage titles and summaries, hero, bio) is final. Don't reword, recase, shorten or "improve" it, even in passing while doing other work. If you think it should change, ask him and keep his text until he says yes. `tests/unit/home-copy.test.ts` locks the homepage list; update it only in the PR that applies text he asked for.
+
 ## Domains
 
 DNS for someshks.com is on Cloudflare; the sites run on Vercel. Subdomains (news, tide) are CNAMEs to Vercel and may stay proxied (orange cloud). A new host returns Cloudflare 525 for a few minutes until Vercel issues its certificate; wait, don't switch the proxy off. If the 525 persists or returns later, check the domain's certificate status in Vercel (a CAA record that excludes Let's Encrypt or a failed challenge won't fix itself), that SSL/TLS mode is Full (strict), and that `/.well-known/acme-challenge/*` isn't blocked or cached. Renaming a host: add a CNAME for the new subdomain in Cloudflare, add the domain on Vercel and wait for its certificate, then 308 the old host to it. Keep the old Cloudflare record so old links still resolve.

@@ -43,7 +43,7 @@ export default function HomePage() {
             summary={entry.meta.summary}
             thumb={thumbFor(entry.meta.slug)}
             thumbDark={thumbFor(entry.meta.slug, true)}
-            external={isExternal(entry.href)}
+            external={isExternal(entry.href) || entry.meta.newTab}
           />
         ))}
       </ListSection>
@@ -56,7 +56,7 @@ export default function HomePage() {
             summary={entry.meta.summary}
             thumb={thumbFor(entry.meta.slug)}
             thumbDark={thumbFor(entry.meta.slug, true)}
-            external={isExternal(entry.href)}
+            external={isExternal(entry.href) || entry.meta.newTab}
           />
         ))}
       </ListSection>
