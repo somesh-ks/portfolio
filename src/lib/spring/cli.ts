@@ -12,7 +12,7 @@
  *     The closest spring.json to the repo's current system, to rebuild it cleanly.
  *   spring schema [input|view]
  */
-import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve as resolvePath, dirname, basename } from "node:path";
 import { deflateRawSync } from "node:zlib";
@@ -78,10 +78,12 @@ function* walk(root: string, dir = root, seen = { n: 0 }): Generator<string> {
     const path = join(dir, name);
     let st;
     try {
-      st = statSync(path);
+      // lstat: a symlink could point out of the repo or back into it (loops).
+      st = lstatSync(path);
     } catch {
       continue;
     }
+    if (st.isSymbolicLink()) continue;
     if (st.isDirectory()) {
       if (!SKIP_DIRS.has(name) && !(name.startsWith(".") && name !== ".storybook"))
         yield* walk(root, path, seen);
@@ -148,7 +150,7 @@ const LITERAL =
 /** JS lines that set styles: elsewhere a hex is as likely an id or a hash. */
 const STYLE_LINE =
   /(color|background|border|fill|stroke|shadow|style|className|class=|theme|palette|gradient)/i;
-const DEFINES = /^\s*--[\w-]+\s*:/;
+const DEFINES = /(^|[{;\s])--[\w-]+\s*:/;
 
 /** Which tokens a utility class could mean, by Tailwind v4 namespace (and shadcn's bare names). */
 function candidates(util: string, x: string): string[] {

@@ -34,7 +34,7 @@ describe("readInput", () => {
     expect(r.input.primary.hue).toBe(120);
     expect(r.input.primary.chroma).toBe(DEFAULT_INPUT.primary.chroma);
   });
-  test("out-of-range values are clamped to defaults, each with a note", () => {
+  test("out-of-range numbers clamp to the nearest edge (hues wrap), each with a note", () => {
     const r = readInput({
       primary: { hue: 400, chroma: 0.9 },
       density: 5,
@@ -42,19 +42,20 @@ describe("readInput", () => {
       type: { base: 99, body: "Not A Font" },
       stack: { building: "mainframe" },
     });
-    expect(r.notes).toContain("primary.hue: 400 isn't allowed; used 264.");
-    expect(r.notes).toContain("primary.chroma: 0.9 isn't allowed; used 0.2.");
-    expect(r.notes).toContain("density: 5 isn't allowed; used 0.5.");
-    expect(r.notes).toContain("motion: -1 isn't allowed; used 0.4.");
-    expect(r.notes).toContain("type.base: 99 isn't allowed; used 16.");
+    expect(r.notes).toContain("primary.hue: 400 wraps to 40.");
+    expect(r.notes).toContain("primary.chroma: 0.9 is outside 0–0.4; used 0.4.");
+    expect(r.notes).toContain("density: 5 is outside 0–1; used 1.");
+    expect(r.notes).toContain("motion: -1 is outside 0–1; used 0.");
+    expect(r.notes).toContain("type.base: 99 is outside 12–22; used 22.");
     expect(r.notes).toContain(`type.body: "Not A Font" isn't allowed; used "Inter".`);
     expect(r.notes).toContain(`stack.building: "mainframe" isn't allowed; used "app".`);
-    expect(r.input.density).toBe(0.5);
+    expect(r.input.density).toBe(1);
+    expect(r.input.primary.hue).toBe(40);
   });
   test("a wrong-typed field is replaced and reported, not thrown", () => {
     const r = readInput({ density: "high" });
     expect(r.input.density).toBe(0.5);
-    expect(r.notes).toEqual([`density: "high" isn't allowed; used 0.5.`]);
+    expect(r.notes).toEqual([`density: "high" isn't a number; used the default.`]);
   });
   test("a dropped optional field is reported as dropped", () => {
     const r = readInput({ ramps: { seq: 9 }, data: [{ name: "a", hex: "#ffffff" }] });
@@ -188,7 +189,7 @@ describe("inputFromParams", () => {
   });
   test("bad seed values are clamped with notes, never thrown", () => {
     const r = inputFromParams(q("base=100&ratio=abc&styling=sass&contrast=ultra&primary=zzz"))!;
-    expect(r.input.type.base).toBe(DEFAULT_INPUT.type.base);
+    expect(r.input.type.base).toBe(22);
     expect(r.input.type.ratio).toBe(DEFAULT_INPUT.type.ratio);
     expect(r.input.stack.styling).toBe("tailwind");
     expect(r.input.contrast).toBeUndefined();

@@ -54,7 +54,13 @@ export function readInput(json: unknown): Read {
   const known = new Set(Object.keys(DEFAULT_INPUT).concat(KNOWN_OPTIONAL));
   for (const k of Object.keys(raw))
     if (!known.has(k)) notes.push(`${k}: not a Spring field; ignored.`);
+  for (const k of ["primary", "type", "stack", "curve", "status"])
+    if (k in raw && !isObj(raw[k])) {
+      notes.push(`${k}: should be an object; used the default.`);
+      delete raw[k];
+    }
   const merged = withDefaults(raw);
+  clamp(merged, notes);
   let input: SystemInput | null = null;
   try {
     input = decodeInput(encodeInput(merged as unknown as SystemInput));
@@ -71,6 +77,45 @@ export function readInput(json: unknown): Read {
     else if (now !== v) notes.push(`${p}: ${v} isn't allowed; used ${now}.`);
   }
   return { input, notes };
+}
+
+/** Ranges the share code enforces; out-of-range numbers clamp to the edge rather than reset. */
+const RANGES: [string, number, number][] = [
+  ["primary.hue", 0, 360],
+  ["primary.chroma", 0, 0.4],
+  ["primary.solidL", 0.2, 0.95],
+  ["neutralTint", 0, 1],
+  ["neutralHue", 0, 360],
+  ["type.base", 12, 22],
+  ["type.ratio", 1.05, 1.7],
+  ["type.headingWeight", 100, 900],
+  ["density", 0, 1],
+  ["roundness", 0, 1],
+  ["motion", 0, 1],
+  ["curve.hueShift", -60, 60],
+  ["curve.darkChroma", 0.4, 1.2],
+];
+
+function clamp(o: Obj, notes: string[]) {
+  for (const [path, lo, hi] of RANGES) {
+    const keys = path.split(".");
+    const parent = keys.length === 2 ? o[keys[0]!] : o;
+    const k = keys.at(-1)!;
+    if (!isObj(parent) || !(k in parent) || parent[k] === undefined) continue;
+    const v = parent[k];
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      notes.push(`${path}: ${JSON.stringify(v) ?? String(v)} isn't a number; used the default.`);
+      delete parent[k];
+    } else if (k.endsWith("ue") && (v < lo || v > hi)) {
+      const w = Math.round((((v % 360) + 360) % 360) * 10) / 10;
+      notes.push(`${path}: ${v} wraps to ${w}.`);
+      parent[k] = w;
+    } else if (v < lo || v > hi) {
+      const c = Math.min(hi, Math.max(lo, v));
+      notes.push(`${path}: ${v} is outside ${lo}–${hi}; used ${c}.`);
+      parent[k] = c;
+    }
+  }
 }
 
 const KNOWN_OPTIONAL = ["neutralHue", "curve", "status", "colors", "contrast", "data", "ramps"];

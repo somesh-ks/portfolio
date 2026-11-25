@@ -36,7 +36,10 @@ function respond(input: SystemInput, notes: string[], file: string | null, cache
     ...(cache ? { "Cache-Control": "public, max-age=3600, s-maxage=86400" } : {}),
   };
   if (file) {
-    const f = files.find((x) => x.path === file || x.path.endsWith(`/${file}`));
+    const want = file.toLowerCase();
+    const f = files.find(
+      (x) => x.path.toLowerCase() === want || x.path.toLowerCase().endsWith(`/${want}`),
+    );
     if (!f) return error(404, `No file "${file}". Files: ${files.map((x) => x.path).join(", ")}`);
     const type = f.path.endsWith(".json")
       ? "application/json"
@@ -82,6 +85,8 @@ export function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY)
+    return error(413, "spring.json is over 64 KB.");
   const text = await request.text();
   if (text.length > MAX_BODY) return error(413, "spring.json is over 64 KB.");
   let json: unknown;

@@ -67,7 +67,7 @@ describe("/api/spring", () => {
     );
     const body = (await res.json()) as { notes: string[]; input: { density: number } };
     expect(res.status).toBe(200);
-    expect(body.input.density).toBe(0.5);
+    expect(body.input.density).toBe(1);
     expect(body.notes.join(" ")).toContain("density");
     expect(body.notes.join(" ")).toContain("Nope Sans");
   });

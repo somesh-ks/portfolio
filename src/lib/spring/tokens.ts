@@ -56,14 +56,23 @@ export interface SourceFile {
 export const MAX_TOKENS = 3000;
 const MAX_SCOPED = 40;
 export const MAX_MODES = 8;
+const RESOLVED_MAX = 2000;
 
 // ------------------------------------------------------------------ CSS
 
 /** Blocks that aren't a theme: high contrast, forced colors, print, reduced motion. */
 const SKIP = /prefers-contrast|forced-colors|\bprint\b|prefers-reduced/i;
 const NOT = /:not\((?:[^()]|\([^()]*\))*\)/g;
-const DARK_SEL =
-  /prefers-color-scheme:\s*dark|\.dark\b|\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?dark|\.theme-dark\b|\.dark-theme\b|\.dark-mode\b/i;
+const DARK_MEDIA = /prefers-color-scheme:\s*dark/i;
+/** A selector that is the dark theme itself, not a component inside it (".dark .card") or a ".dark-sidebar". */
+const DARK_PART =
+  /^(?:html|:root|body|:host)?(?:\.dark|\.theme-dark|\.dark-theme|\.dark-mode|\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?dark["']?\])$/i;
+const isDark = (c: string) =>
+  DARK_MEDIA.test(c) ||
+  c
+    .replace(NOT, "")
+    .split(",")
+    .some((p) => DARK_PART.test(p.trim()));
 const ROOTISH = /^(:root|html|body|:host|@theme(\s+(inline|static|reference))*|\*|::?backdrop)$/i;
 
 /**
@@ -73,10 +82,16 @@ const ROOTISH = /^(:root|html|body|:host|@theme(\s+(inline|static|reference))*|\
 function themeOf(ctx: string[]): { mode: string } | { scoped: string } | null {
   const plain = ctx.map((c) => c.replace(NOT, "").trim());
   if (plain.some((c) => SKIP.test(c))) return null;
-  if (plain.some((c) => DARK_SEL.test(c))) return { mode: "dark" };
+  const darkMedia = plain.some((c) => DARK_MEDIA.test(c));
   const sel = plain.toReversed().find((c) => !/^@(media|supports|layer|container)\b/i.test(c));
-  if (sel === undefined) return { mode: "light" };
+  // A width, hover or container query changes values for some screens, not the theme.
+  const other = plain.find(
+    (c) => /^@(media|container)\b/i.test(c) && !/prefers-color-scheme/i.test(c),
+  );
+  if (other) return { scoped: `${other} ${sel ?? ""}`.trim() };
+  if (sel === undefined) return { mode: darkMedia ? "dark" : "light" };
   const parts = sel.split(",").map((s) => s.trim());
+  if (parts.some((p) => DARK_PART.test(p))) return { mode: "dark" };
   for (const p of parts) {
     const m =
       p.match(/\[data-(?:theme|mode|color-scheme|bs-theme)\s*=\s*["']?([\w-]+)/i) ??
@@ -84,7 +99,7 @@ function themeOf(ctx: string[]): { mode: string } | { scoped: string } | null {
     if (m) return { mode: m[1]!.toLowerCase() === "light" ? "light" : m[1]!.toLowerCase() };
     if (/^(?:html|:root)?\.light$/i.test(p)) return { mode: "light" };
   }
-  if (parts.some((p) => ROOTISH.test(p))) return { mode: "light" };
+  if (parts.some((p) => ROOTISH.test(p))) return { mode: darkMedia ? "dark" : "light" };
   return { scoped: sel };
 }
 
@@ -105,8 +120,10 @@ const put = (acc: Acc, name: string, mode: string, value: string) => {
   acc.tokens.get(name)!.set(mode, value.trim());
 };
 
-function readCss(text: string, acc: Acc) {
-  const src = text.replace(/\/\*[\s\S]*?\*\//g, "");
+function readCss(text: string, acc: Acc, path = "") {
+  let src = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  // SCSS and Less allow // comments; an apostrophe in one would open a string.
+  if (/\.(scss|sass|less)$/i.test(path)) src = src.replace(/(^|[^:"'\\])\/\/.*$/gm, "$1");
   const stack: string[] = [];
   let buf = "";
   let quote = "";
@@ -119,15 +136,18 @@ function readCss(text: string, acc: Acc) {
       const t = themeOf(stack);
       if (t && "mode" in t) local.push([m[1]!, t.mode, m[2]!.replace(/\s*!important\s*$/, "")]);
       else if (t) acc.scoped.set(t.scoped, (acc.scoped.get(t.scoped) ?? 0) + 1);
-    } else if (/^\s*color-scheme\s*:\s*dark\s*$/i.test(buf) && !stack.some((c) => DARK_SEL.test(c)))
+    } else if (/^\s*color-scheme\s*:\s*dark\s*$/i.test(buf) && !stack.some(isDark))
       schemeDark = true;
     buf = "";
   };
   let depth = 0; // parens, so ; and { inside url() or a value don't split it
+  let escaped = false;
   for (const ch of src) {
     if (quote) {
       buf += ch;
-      if (ch === quote) quote = "";
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === quote) quote = "";
       continue;
     }
     if (ch === '"' || ch === "'") {
@@ -182,6 +202,19 @@ const unit = (v: unknown): string | undefined => {
   return undefined;
 };
 
+/** Spaces CSS's color() takes; the rest have their own function. */
+const PREDEFINED = new Set([
+  "srgb",
+  "srgb-linear",
+  "display-p3",
+  "a98-rgb",
+  "prophoto-rgb",
+  "rec2020",
+  "xyz",
+  "xyz-d50",
+  "xyz-d65",
+]);
+
 /** A DTCG $value as CSS, or undefined for shapes that don't have one. */
 function dtcgCss(v: unknown, type?: string): string | undefined {
   if (typeof v === "string") return refs(v);
@@ -195,10 +228,12 @@ function dtcgCss(v: unknown, type?: string): string | undefined {
   if (typeof v.colorSpace === "string" && Array.isArray(v.components)) {
     const [x, y, z] = v.components as number[];
     const a = typeof v.alpha === "number" && v.alpha < 1 ? ` / ${v.alpha}` : "";
-    if (v.colorSpace === "oklch") return `oklch(${x} ${y} ${z}${a})`;
-    if (v.colorSpace === "srgb") return `color(srgb ${x} ${y} ${z}${a})`;
+    const space = v.colorSpace.toLowerCase();
+    if (space === "hsl" || space === "hwb") return `${space}(${x} ${y}% ${z}%${a})`;
+    if (["oklch", "oklab", "lab", "lch"].includes(space)) return `${space}(${x} ${y} ${z}${a})`;
+    if (PREDEFINED.has(space)) return `color(${space} ${x} ${y} ${z}${a})`;
     if (typeof v.hex === "string") return v.hex;
-    return `color(${v.colorSpace} ${x} ${y} ${z}${a})`;
+    return undefined;
   }
   if ("value" in v && "unit" in v) return unit(v);
   if (type === "shadow" || "offsetX" in v || "blur" in v) {
@@ -310,7 +345,11 @@ function readTailwind(text: string, path: string, acc: Acc) {
     return 0;
   }
   const before = acc.tokens.size;
-  const t: Obj = { ...theme, ...(isObj(theme.extend) ? theme.extend : {}) };
+  // extend adds to each key rather than replacing it.
+  const t: Obj = { ...theme };
+  if (isObj(theme.extend))
+    for (const [k, v] of Object.entries(theme.extend))
+      t[k] = isObj(t[k]) && isObj(v) ? { ...t[k], ...v } : v;
   for (const [key, ns] of Object.entries(TW_NS)) {
     const flat = (o: unknown, trail: string[]) => {
       if (isObj(o)) {
@@ -397,7 +436,7 @@ export function extract(files: SourceFile[], name?: string): View {
     if (!k) continue;
     const n =
       k === "css"
-        ? readCss(f.text, acc)
+        ? readCss(f.text, acc, f.path)
         : k === "json"
           ? readJson(f.text, f.path, acc)
           : k === "tailwind"
@@ -556,7 +595,8 @@ export function resolve(view: View, name: string, mode: string): string | undefi
     const next = replaceVars(v, (n) => {
       return modeValue(Object.hasOwn(view.tokens, n) ? view.tokens[n] : undefined, mode, view);
     });
-    if (next === v) break;
+    // A hostile link can nest references to blow up exponentially; real values stay short.
+    if (next === v || next.length > RESOLVED_MAX) break;
     v = next;
   }
   return v;
