@@ -7,7 +7,16 @@
  * - Whole device pixels per cell, so pixels stay square and crisp.
  * - Colours come from CSS custom properties and are re-read on theme change.
  */
-import { createRun, grounded, score, step, STEP, WORLD, type RunState } from "@/lib/runner/sim";
+import {
+  createRun,
+  GRAVITY,
+  grounded,
+  score,
+  step,
+  STEP,
+  WORLD,
+  type RunState,
+} from "@/lib/runner/sim";
 import {
   buildSprite,
   COSTUMES,
@@ -25,6 +34,29 @@ import {
   type Cell,
   type Tone,
 } from "@/lib/runner/sprites";
+import {
+  accessoryFor,
+  cloudCount,
+  hillHeight,
+  scenery,
+  SCENERY_STRIP,
+  dress,
+  findFace,
+  type Face,
+  DEFAULT_WEATHER,
+  makeParticles,
+  MOON,
+  particleSpeed,
+  RESKINS,
+  STARS,
+  stepParticles,
+  stepSway,
+  swayRow,
+  SPLASH,
+  type Sway,
+  SUN,
+} from "@/lib/runner/scene";
+import type { Weather } from "@/lib/runner/weather";
 
 /** Rides arrive as /runner/rides.json (static, outside the JS bundle). */
 function buildSprites(rides: Record<string, RawSprite>): Record<Costume, Sprite> {
@@ -51,6 +83,23 @@ const TONE_VARS: Record<Tone, string> = {
   cream: "--illustration-cream",
   steel: "--illustration-steel",
 };
+/** A low fog bank, as row runs [x, y, w] in a 40x5 box, and where banks sit
+ * along the 200-cell strip: [x, y]. */
+const FOG_BANK: readonly (readonly [number, number, number])[] = [
+  [6, 0, 18],
+  [2, 1, 28],
+  [0, 2, 36],
+  [0, 3, 40],
+  [0, 4, 40],
+];
+/** Fog and scenery stay right of this column: the widest ride (the car) plus a gap. */
+const CLEAR_OF_CLAUDE = WORLD.mascotX + 52;
+const FOG_SPOTS: readonly (readonly [number, number])[] = [
+  [0, 47],
+  [55, 49],
+  [105, 46],
+  [150, 50],
+];
 const MAX_STEPS = 5;
 const MILESTONE = 100;
 /** Largest cell, in CSS pixels. */
@@ -62,6 +111,8 @@ const STROLL = 0.6;
 const RUN = 1.5;
 /** Clouds drift a few cells a second at rest and at a sixth of the run speed. */
 const CLOUD_PARALLAX = 1 / 6;
+/** The horizon rolls by at a third of the run speed: nearer than clouds. */
+const SCENERY_PARALLAX = 1 / 3;
 
 export interface EngineCallbacks {
   onScore: (points: number) => void;
@@ -74,6 +125,7 @@ export interface Engine {
   start: (seed: number, costume: Costume) => void;
   jump: () => void;
   setCostume: (costume: Costume) => void;
+  setWeather: (weather: Weather) => void;
   destroy: () => void;
 }
 
@@ -82,6 +134,7 @@ export function createEngine(
   initialCostume: Costume,
   rides: Record<string, RawSprite>,
   callbacks: EngineCallbacks,
+  initialWeather: Weather = DEFAULT_WEATHER,
 ): Engine {
   const SPRITES = buildSprites(rides);
   const context = canvas.getContext("2d");
@@ -110,7 +163,16 @@ export function createEngine(
     ? 0
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
+  let sceneryShift = 0;
   let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
+  let weather = initialWeather;
+  const particles = makeParticles();
+  const sway: Sway = { offset: 0, speed: 0 };
+  const faces = new WeakMap<object, Face | null>();
+  /** The open umbrella's columns and canopy row: no rain falls below it. */
+  let shelter: readonly [number, number, number] | null = null;
+  /** Weather moves on its own clock, so rain falls between runs too. */
+  let weatherLast: number | null = null;
 
   function readColors() {
     const style = getComputedStyle(canvas);
@@ -185,22 +247,117 @@ export function createEngine(
     const span = Math.ceil((viewWidth + 14) / CLOUD_STRIP) * CLOUD_STRIP;
     const shift = Math.floor(cloudShift);
     for (let copy = 0; copy < span / CLOUD_STRIP; copy += 1)
-      for (const [spotX, y] of CLOUD_SPOTS) {
+      for (const [spotX, y] of CLOUD_SPOTS.slice(0, cloudCount(weather.sky))) {
         // Wrap 14 cells (a cloud's width) early so clouds slide off the left edge.
         const x = ((((spotX + copy * CLOUD_STRIP - shift + 14) % span) + span) % span) - 14;
         for (const [cx, cy, w] of CLOUD) fill(x + cx, y + cy, w, 1, colors.cloud);
       }
   }
 
+  /** Sun by day in a clear sky, moon and stars at night; they hold still. */
+  function drawLights() {
+    if (weather.night) {
+      for (const [x, y] of STARS) if (x < viewWidth) fill(x, y, 1, 1, colors.muted);
+      if (weather.sky !== "fog") drawCells(MOON, viewWidth - 22, 5);
+    } else if (weather.sky === "clear") drawCells(SUN, viewWidth - 22, 5);
+  }
+
+  function drawParticles() {
+    if (!particleSpeed(weather.sky)) return;
+    const color = colors.sky;
+    if (weather.sky === "snow") {
+      for (const { x, y } of particles)
+        for (let copy = x; copy < viewWidth; copy += 200) fill(copy, Math.floor(y), 1, 1, color);
+      return;
+    }
+    // Rain: short drops slanting down to the left, near ones a cell longer,
+    // each with a two-dot splash where it lands.
+    for (const { x, y, near, splash, splashX } of particles) {
+      const length = 2 + near;
+      const top = Math.floor(y);
+      for (let copy = x; copy < viewWidth + 200; copy += 200) {
+        const left = Math.floor(copy);
+        for (let cell = 0; cell < length; cell += 1) {
+          const row = top - cell;
+          const column = left + Math.ceil(cell / 2);
+          const covered =
+            shelter && column >= shelter[0] && column <= shelter[1] && row >= shelter[2];
+          if (row >= 0 && row < WORLD.ground && !covered) fill(column, row, 1, 1, color);
+        }
+        const at = Math.floor(splashX + copy - x);
+        const dry = shelter && at >= shelter[0] - 2 && at <= shelter[1] + 2;
+        if (splash < SPLASH && !dry) {
+          const spread = splash < SPLASH / 2 ? 1 : 2;
+          fill(at - spread, WORLD.ground - 1, 1, 1, color);
+          fill(at + spread, WORLD.ground - 1, 1, 1, color);
+        }
+      }
+    }
+  }
+
+  /** Fog: wide, flat banks drifting along the ground with the clouds, drawn
+   * behind the obstacles so fog never makes a run harder. */
+  function drawFog() {
+    if (weather.sky !== "fog") return;
+    const span = Math.ceil((viewWidth + 40) / CLOUD_STRIP) * CLOUD_STRIP;
+    const shift = Math.floor(cloudShift);
+    for (let copy = 0; copy < span; copy += CLOUD_STRIP)
+      for (const [spot, y] of FOG_SPOTS) {
+        // Wrap a bank's width early so banks slide off the left edge.
+        const x = ((((spot + copy - shift + 40) % span) + span) % span) - 40;
+        // Banks thin out before they reach Claude, so fog never sits on him.
+        for (const [cx, cy, w] of FOG_BANK) {
+          const left = Math.max(x + cx, CLEAR_OF_CLAUDE);
+          const right = x + cx + w;
+          // A sliver cut off at the edge would float; skip it.
+          if (right - left >= Math.min(w, 16)) fill(left, y + cy, right - left, 1, colors.cloud);
+        }
+      }
+  }
+
+  /** Advance the weather by real time; under reduced motion it holds still. */
+  function tickWeather(now: number) {
+    const dt = weatherLast === null ? 0 : Math.min(now - weatherLast, 100) / 1000;
+    weatherLast = now;
+    if (!motion.matches) stepParticles(particles, weather.sky, dt, WORLD.ground);
+  }
+
+  /** Faint horizon: hills and trees in a light grey, behind everything that
+   * matters. They hold still at rest and roll by slowly during a run. */
+  function drawScenery() {
+    const shift = Math.floor(sceneryShift);
+    const strip = SCENERY_STRIP;
+    const offset = ((shift % strip) + strip) % strip;
+    ctx.globalAlpha = 0.5;
+    for (let x = 0; x < viewWidth; x += 1) {
+      const height = hillHeight((x + offset) % strip);
+      if (height) fill(x, WORLD.ground - height, 1, height, colors.cloud);
+    }
+    ctx.globalAlpha = 1;
+    for (let copy = -strip; copy < viewWidth + strip; copy += strip)
+      for (const [spot, cells, height] of scenery(weather.sky)) {
+        const x = spot + copy - offset;
+        if (x > viewWidth || x < -20) continue;
+        const base = WORLD.ground - hillHeight(spot) - height;
+        for (const [cx, cy, w, h] of cells) fill(x + cx, base + cy, w, h, colors.cloud);
+      }
+    ctx.globalAlpha = 1;
+  }
+
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const state = run;
     const distance = state?.distance ?? 0;
+    drawLights();
     drawSky();
+    drawScenery();
+    drawParticles();
+    // Sky only: obstacles stay crisp, so fog never makes a run harder.
+    drawFog();
     drawGround(distance);
 
     for (const obstacle of state?.obstacles ?? []) {
-      const sprite = OBSTACLE_SPRITES[obstacle.kind];
+      const sprite = RESKINS[weather.sky]?.[obstacle.kind] ?? OBSTACLE_SPRITES[obstacle.kind];
       drawCells(sprite.cells, Math.round(obstacle.x), WORLD.ground - sprite.h);
     }
 
@@ -209,12 +366,34 @@ export function createEngine(
     if (walkFrame !== null) rects = sprite.frames[walkFrame % sprite.frames.length] ?? sprite.idle;
     else if (state) {
       // Frozen in the air and on a crash; otherwise the riding loop plays.
-      const held = state.over || !grounded(state) ? Math.floor(frozenAt * sprite.fps * RUN) : null;
+      // A crash freezes the pose; so does a jump on foot. Rides (the kite
+      // above all) keep moving in the air.
+      const frozen = state.over || (costume === "walk" && !grounded(state));
+      const held = frozen ? Math.floor(frozenAt * sprite.fps * RUN) : null;
       const index = held ?? Math.floor(state.time * sprite.fps * RUN);
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
+    const accessory = accessoryFor(weather);
+    const face = accessory ? faceOf(rects) : null;
+    if (!accessory || !face) {
+      shelter = null;
+      return;
+    }
+    const cells = dress(face, accessory, costume, swayRow(sway), lift + face.top);
+    drawCells(cells, WORLD.mascotX, lift);
+    const middle = WORLD.mascotX + Math.floor((face.left + face.right) / 2);
+    shelter =
+      accessory === "umbrella" && cells.length
+        ? [middle - 8, middle + 8, lift + Math.min(...cells.map(([, y]) => y)) + 1]
+        : null;
+  }
+
+  /** Faces are found once per frame of art and kept. */
+  function faceOf(rects: Sprite["idle"]): Face | null {
+    if (!faces.has(rects)) faces.set(rects, findFace(rects));
+    return faces.get(rects) ?? null;
   }
 
   /** Between runs: hold the crash pose, then clear the desk and walk in place.
@@ -232,7 +411,9 @@ export function createEngine(
     if (!motion.matches && idleLast !== null)
       cloudShift += (Math.min(now - idleLast, 100) / 1000) * CLOUD_IDLE_SPEED;
     idleLast = now;
-    if (next !== walkFrame || Math.floor(cloudShift) !== before) {
+    tickWeather(now);
+    const falling = !motion.matches && particleSpeed(weather.sky) !== null;
+    if (falling || next !== walkFrame || Math.floor(cloudShift) !== before) {
       walkFrame = next;
       draw();
     }
@@ -250,8 +431,13 @@ export function createEngine(
       const before = state.jumps;
       const milestoneBefore = Math.floor(score(state) / MILESTONE);
       const wasGrounded = grounded(state);
+      const velocity = state.velocity;
       step(state, pressed, viewWidth);
-      if (!motion.matches) cloudShift += state.speed * STEP * CLOUD_PARALLAX;
+      if (!motion.matches) stepSway(sway, velocity, state.velocity, STEP, GRAVITY);
+      if (!motion.matches) {
+        cloudShift += state.speed * STEP * CLOUD_PARALLAX;
+        sceneryShift += state.speed * STEP * SCENERY_PARALLAX;
+      }
       if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.time;
       pressed = false;
       accumulator -= STEP;
@@ -259,6 +445,7 @@ export function createEngine(
       if (Math.floor(score(state) / MILESTONE) > milestoneBefore) callbacks.onMilestone();
     }
 
+    tickWeather(now);
     const points = score(state);
     if (points !== lastPoints) {
       lastPoints = points;
@@ -318,6 +505,8 @@ export function createEngine(
     start(seed, next) {
       costume = next;
       run = createRun(seed, SPRITES[next].hitbox);
+      sway.offset = 0;
+      sway.speed = 0;
       pressed = false;
       walkFrame = null;
       idleLast = null;
@@ -332,6 +521,10 @@ export function createEngine(
     setCostume(next) {
       costume = next;
       if (run) run.hitbox = SPRITES[next].hitbox;
+      draw();
+    },
+    setWeather(next) {
+      weather = next;
       draw();
     },
     destroy() {

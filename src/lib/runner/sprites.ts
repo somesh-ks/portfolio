@@ -4,7 +4,7 @@
  * mode follow the tokens. Claude itself lives in claude-sprites.ts.
  */
 
-/** Colour roles. `ink` stays dark in both modes (eyes, shades on the face);
+/** Colour roles. `ink` stays dark in both modes (eyes, wheels);
  * `line` follows the text colour so outlines stay visible on a dark page.
  * The rest are the claude.dev-style accent palette, the same in both modes. */
 export type Tone =
@@ -25,7 +25,12 @@ export type Tone =
 export type Cell = readonly [number, number, number, number, Tone];
 
 /** Turns ASCII rows into merged horizontal runs. '.' and ' ' are empty. */
-function art(rows: readonly string[], x0: number, y0: number, tones: Record<string, Tone>): Cell[] {
+export function art(
+  rows: readonly string[],
+  x0: number,
+  y0: number,
+  tones: Record<string, Tone>,
+): Cell[] {
   const out: Cell[] = [];
   rows.forEach((row, y) => {
     let x = 0;

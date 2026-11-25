@@ -315,6 +315,26 @@ claude-mascot:defined > * {
   font: inherit;
   letter-spacing: inherit;
 }
+/* A caption under the play prompt, placed absolutely so it lands without a shift. */
+.runner__weather {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(50% + 1.75em);
+  color: var(--text-secondary);
+  text-align: center;
+  pointer-events: none;
+  animation: runner-weather-in var(--duration-ceiling) var(--ease-out);
+}
+@keyframes runner-weather-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner__weather {
+    animation: none;
+  }
+}
 .runner__over {
   position: absolute;
   inset: 0;

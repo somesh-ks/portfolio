@@ -31,7 +31,7 @@ export const PHYSICS = {
 
 export const STEP = 1 / 60;
 
-const GRAVITY = (8 * PHYSICS.apex) / PHYSICS.airtime ** 2;
+export const GRAVITY = (8 * PHYSICS.apex) / PHYSICS.airtime ** 2;
 const LIFT = (4 * PHYSICS.apex) / PHYSICS.airtime;
 
 export interface Obstacle {
