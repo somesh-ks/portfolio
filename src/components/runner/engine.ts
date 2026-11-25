@@ -169,8 +169,8 @@ export function createEngine(
   const particles = makeParticles();
   const sway: Sway = { offset: 0, speed: 0 };
   const faces = new WeakMap<object, Face | null>();
-  /** Columns under the open umbrella, where no splash lands. */
-  let shelter: readonly [number, number] | null = null;
+  /** The open umbrella's columns and canopy row: no rain falls below it. */
+  let shelter: readonly [number, number, number] | null = null;
   /** Weather moves on its own clock, so rain falls between runs too. */
   let weatherLast: number | null = null;
 
@@ -279,7 +279,10 @@ export function createEngine(
         const left = Math.floor(copy);
         for (let cell = 0; cell < length; cell += 1) {
           const row = top - cell;
-          if (row >= 0 && row < WORLD.ground) fill(left + Math.ceil(cell / 2), row, 1, 1, color);
+          const column = left + Math.ceil(cell / 2);
+          const covered =
+            shelter && column >= shelter[0] && column <= shelter[1] && row >= shelter[2];
+          if (row >= 0 && row < WORLD.ground && !covered) fill(column, row, 1, 1, color);
         }
         const at = Math.floor(splashX + copy - x);
         const dry = shelter && at >= shelter[0] - 2 && at <= shelter[1] + 2;
@@ -374,15 +377,17 @@ export function createEngine(
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
     const accessory = accessoryFor(weather);
     const face = accessory ? faceOf(rects) : null;
-    const middle = face ? WORLD.mascotX + Math.floor((face.left + face.right) / 2) : 0;
+    if (!accessory || !face) {
+      shelter = null;
+      return;
+    }
+    const cells = dress(face, accessory, costume, swayRow(sway), lift + face.top);
+    drawCells(cells, WORLD.mascotX, lift);
+    const middle = WORLD.mascotX + Math.floor((face.left + face.right) / 2);
     shelter =
-      accessory === "umbrella" && face && costume !== "car" ? [middle - 8, middle + 8] : null;
-    if (accessory && face)
-      drawCells(
-        dress(face, accessory, costume, swayRow(sway), lift + face.top),
-        WORLD.mascotX,
-        lift,
-      );
+      accessory === "umbrella" && cells.length
+        ? [middle - 8, middle + 8, lift + Math.min(...cells.map(([, y]) => y)) + 1]
+        : null;
   }
 
   /** Faces are found once per frame of art and kept. */
