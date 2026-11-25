@@ -1,7 +1,8 @@
 /**
  * Request proxy (Next.js 16, Node runtime):
  * 1. Markdown for agents: /path.md, or Accept preferring text/markdown,
- *    rewrites to the static /api/md mirror.
+ *    rewrites to the static /api/md mirror. Spring's pages answer with
+ *    /spring/llms.txt, its agent contract.
  * 2. Magic links: /work/<slug>?token=... is verified, swapped for the
  *    HttpOnly session cookie, and redirected to the clean URL.
  * 3. Unlocked locked pages get no-store and noindex headers.
@@ -20,6 +21,7 @@ import {
 import { isLockedSlug } from "@/lib/site";
 
 const PAGE_PATH = /^\/(?:(?:work|experiments|projects)\/[a-z0-9-]+|resume)?\/?$/;
+const SPRING_PATH = /^\/spring(?:\/view)?\/?$/;
 
 function prefersMarkdown(accept: string | null): boolean {
   if (!accept) return false;
@@ -36,7 +38,9 @@ function prefersMarkdown(accept: string | null): boolean {
 
 function markdownRewrite(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone();
-  url.pathname = `/api/md${pathname === "/" ? "" : pathname}`;
+  url.pathname = SPRING_PATH.test(pathname)
+    ? "/spring/llms.txt"
+    : `/api/md${pathname === "/" ? "" : pathname}`;
   url.search = "";
   return NextResponse.rewrite(url);
 }
@@ -48,7 +52,8 @@ export function proxy(request: NextRequest) {
     const page = pathname.slice(0, -3);
     return markdownRewrite(request, page === "/index" ? "/" : page);
   }
-  if (PAGE_PATH.test(pathname) && prefersMarkdown(request.headers.get("accept"))) {
+  const isPage = PAGE_PATH.test(pathname) || SPRING_PATH.test(pathname);
+  if (isPage && prefersMarkdown(request.headers.get("accept"))) {
     return markdownRewrite(request, pathname.replace(/\/$/, "") || "/");
   }
 
@@ -82,7 +87,7 @@ export function proxy(request: NextRequest) {
   }
 
   const response = NextResponse.next();
-  if (PAGE_PATH.test(pathname)) response.headers.set("Vary", "Accept");
+  if (isPage) response.headers.set("Vary", "Accept");
   return response;
 }
 

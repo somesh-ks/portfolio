@@ -7,7 +7,7 @@ const description =
 export const metadata: Metadata = {
   title: { absolute: "Spring" },
   description,
-  alternates: { canonical: "/spring" },
+  alternates: { canonical: "/spring", types: { "text/markdown": "/spring/llms.txt" } },
   openGraph: { url: "/spring", title: "Spring", description },
 };
 

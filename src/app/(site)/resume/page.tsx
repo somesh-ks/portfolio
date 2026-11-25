@@ -15,7 +15,8 @@ import { absoluteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Resume",
-  description: RESUME_SUMMARY.slice(0, 155),
+  description: RESUME_SUMMARY,
+  openGraph: { url: "/resume", title: "Resume", description: RESUME_SUMMARY },
   alternates: {
     canonical: "/resume",
     types: { "text/markdown": "/resume.md" },
