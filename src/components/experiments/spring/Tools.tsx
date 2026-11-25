@@ -117,7 +117,13 @@ function ExportMenu({ system }: { system: System }) {
               <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
                 <span className="select__text">Copy share link</span>
               </Menu.Item>
-              <Menu.Item className="select__item" onClick={resetInput}>
+              <Menu.Item
+                className="select__item"
+                onClick={() => {
+                  if (confirm("Start over? This clears the system saved in this browser."))
+                    resetInput();
+                }}
+              >
                 <span className="select__text">Start over</span>
               </Menu.Item>
             </Menu.Popup>

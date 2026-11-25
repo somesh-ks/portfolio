@@ -120,7 +120,9 @@ export function ColorPicker({
     );
   };
   const apply = () => {
-    if (draft && parseColor(draft)) onHex(draft);
+    // Store hex whatever format was typed: links and saved state only keep #rrggbb.
+    const c = draft ? parseColor(draft) : null;
+    if (c) onHex(oklchToHex(clampChroma(c)));
     setDraft(null);
   };
   const second = space === "oklch" ? "chroma" : "saturation";

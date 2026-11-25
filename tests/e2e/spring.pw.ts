@@ -69,6 +69,7 @@ test("each browser keeps its own system until Start over", async ({ page }) => {
   await page.goto("/spring");
   await expect(names.nth(0)).toHaveValue(second);
   await page.getByRole("button", { name: "Export one area" }).click();
+  page.once("dialog", (d) => d.accept());
   await page.getByRole("menuitem", { name: "Start over" }).click();
   await expect(names.nth(0)).toHaveValue(first);
   await expect(page).not.toHaveURL(/\?s=/);

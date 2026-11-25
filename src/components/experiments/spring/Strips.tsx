@@ -585,7 +585,8 @@ function DataSection({
     setInput((i) => ({
       ...i,
       data: f(system.data.map(({ name, hex }) => ({ name, hex }))),
-      ramps: to ? remapRamps(i.ramps, to) : i.ramps,
+      // Unset ramps sit on the first strips, so pin those before positions move.
+      ramps: to ? remapRamps(i.ramps ?? { seq: 0, div: [0, 1] }, to) : i.ramps,
     }));
   const move = (k: number, by: -1 | 1) => {
     const j = k + by;
