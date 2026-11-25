@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const frame = (page: Page) => page.getByRole("slider", { name: "Frame" });
+/** Scrubs like a keyboard user: Home, then arrows. React ignores a programmatic value set. */
+async function scrubTo(page: Page, n: number) {
+  await frame(page).focus();
+  await page.keyboard.press("Home");
+  for (let i = 0; i < n; i++) await page.keyboard.press("ArrowRight");
+  await expect(frame(page)).toHaveValue(String(n));
+}
 const exportButton = (page: Page) => page.getByRole("button", { name: "Export" });
 const href = async (page: Page, name: string | RegExp) =>
   (await page.getByRole("link", { name }).getAttribute("href")) ?? "";
@@ -90,7 +97,7 @@ test("the playhead moves while playing and the scrubber pauses on a frame", asyn
   await page.waitForTimeout(400);
   expect(await frame(page).inputValue()).toBe(held);
 
-  await frame(page).fill("5");
+  await scrubTo(page, 5);
   await expect(count).toHaveText("6 / 24");
   await expect(page).toHaveURL(/fr=5/);
 
@@ -99,7 +106,7 @@ test("the playhead moves while playing and the scrubber pauses on a frame", asyn
   await expect(page).not.toHaveURL(/fr=/);
 
   // Scrubbing while playing pauses; Space on the slider plays again.
-  await frame(page).fill("9");
+  await scrubTo(page, 9);
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
   await frame(page).focus();
   await page.keyboard.press("Space");
@@ -147,7 +154,9 @@ test("the Export panel links to the right files, for the right frame, size and s
 
   // Scrubbed: the still is the frame on stage.
   await page.keyboard.press("Escape");
-  await frame(page).fill("7");
+  await expect(page.getByText("Animated", { exact: true })).toBeHidden();
+  await scrubTo(page, 7);
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
   await exportButton(page).click();
   await expect(page.getByText("Still · frame 8")).toBeVisible();
   expect((await query(page, /^Download PNG/)).get("fr")).toBe("7");
