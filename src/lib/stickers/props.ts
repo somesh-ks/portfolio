@@ -61,7 +61,11 @@ export const PROPS: readonly { id: PropId; name: string; slot: Slot }[] = [
 // Left arm (the hand slot) is x 0..3, rows 4..6. Props are drawn in front of the body.
 // Hand props are drawn so a body-coloured fist sits in front of the grip.
 
-const FIST: Layer = rectLayer(K.body, [[0, 4, 2, 3]]);
+const FIST: Layer[] = [
+  rectLayer(K.body, [[0, 4, 2, 3]]),
+  rectLayer(K.light, [[0, 4, 2, 1]]),
+  rectLayer(K.shade, [[0, 6, 2, 1]]),
+];
 
 const ART: Record<PropId, Layer[]> = {
   beanie: art(
@@ -112,19 +116,16 @@ const ART: Record<PropId, Layer[]> = {
   ],
   toque: art(
     [
-      "..IIII..IIII..",
-      ".IWWWWIIWWWWI.",
-      "IWWWWWWWWWWWWI",
-      "IWWSWWWWWWSWWI",
-      "IWWSWWWWWWSWWI",
-      ".IWWWWWWWWWWI.",
-      "..IWWWWWWWWI..",
-      "..IWSWWWWSWI..",
-      "..IWWWWWWWWI..",
-      "..IIIIIIIIII..",
+      ".IIII..IIII.",
+      "IWWWWIIWWWWI",
+      "IWWWWWWWWWWI",
+      ".IWWWWWWWWI.",
+      "..IWSWWSWI..",
+      "..IWWWWWWI..",
+      "..IIIIIIII..",
     ],
-    5,
-    -9,
+    6,
+    -6,
     { I: K.ink, W: K.cream, S: K.sand },
   ),
   crown: art(
@@ -159,50 +160,47 @@ const ART: Record<PropId, Layer[]> = {
     1,
     { I: K.ink, S: K.steel, L: K.sky },
   ),
-  mug: art(
-    ["LCCCCL..", "MMMMMMHH", "MMMMMM.H", "MMMMMM.H", "MMMMMMHH", "MMMMMM..", "DDDDDD.."],
-    -5,
-    0,
-    { L: K.skyLight, C: "#5A3A28", M: K.sky, D: K.skyDark, H: K.sky },
-  ),
+  // Hand props sit left of the body and are held: the fist is drawn last, over the grip.
+  mug: [
+    ...art(["LCCCL", "MMMMM", "MMMMM", "MMMMM", "DDDDD"], -4, 1, {
+      L: K.skyLight,
+      C: "#5A3A28",
+      M: K.sky,
+      D: K.skyDark,
+    }),
+    rectLayer(K.sky, [
+      [1, 2, 2, 1],
+      [2, 3, 1, 2],
+      [1, 5, 2, 1],
+    ]),
+    ...FIST,
+  ],
   flag: [
-    rectLayer(K.steel, [[0, -10, 1, 19]]),
-    rectLayer(K.blue, [
-      [-9, -9, 5, 3],
-      [-2, -9, 2, 3],
-      [-9, -4, 5, 3],
-      [-2, -4, 2, 3],
-    ]),
+    rectLayer(K.steel, [[0, -3, 1, 11]]),
+    rectLayer(K.blue, [[-7, -3, 7, 5]]),
     rectLayer(K.yellow, [
-      [-4, -9, 2, 8],
-      [-9, -6, 9, 2],
+      [-5, -3, 2, 5],
+      [-7, -1, 7, 1],
     ]),
-    FIST,
+    ...FIST,
   ],
   balloon: [
-    rectLayer(K.steel, [[0, -5, 1, 9]]),
-    ...art(
-      ["..RRR..", ".RRRRR.", "RRRRRRR", "RRRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...D..."],
-      -3,
-      -13,
-      { R: K.red, D: K.redDark },
-    ),
-    rectLayer(K.pink, [[-2, -11, 1, 2]]),
-    FIST,
+    rectLayer(K.steel, [[0, -1, 1, 6]]),
+    ...art([".RRR.", "RRRRR", "RRRRR", "RRRRR", ".RRR.", "..D.."], -2, -7, {
+      R: K.red,
+      D: K.redDark,
+    }),
+    rectLayer(K.pink, [[-1, -6, 1, 2]]),
+    ...FIST,
   ],
   heart: [
-    ...art([".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."], -5, 0, {
-      X: K.red,
-    }),
-    rectLayer(K.redDark, [
-      [0, 2, 2, 1],
-      [0, 3, 1, 1],
-    ]),
+    ...art(["XX.XX", "XXXXX", "XXXXX", ".XXX.", "..X.."], -2, 1, { X: K.red }),
+    rectLayer(K.redDark, [[1, 3, 1, 1]]),
     rectLayer(K.pink, [
-      [-4, 1, 1, 1],
-      [-5, 2, 1, 1],
+      [-2, 1, 1, 1],
+      [-2, 2, 1, 1],
     ]),
-    FIST,
+    ...FIST,
   ],
 };
 

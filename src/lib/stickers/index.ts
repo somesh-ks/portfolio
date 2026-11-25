@@ -4,6 +4,7 @@ export {
   DEFAULT_LOOK,
   FPS,
   frameCount,
+  hasMotion,
   type Look,
   MOVES,
   toggleProp,
@@ -12,4 +13,4 @@ export { lottieJson } from "./lottie";
 export type { MoveId } from "./moves";
 export { PROPS, type PropId, type Slot } from "./props";
 export { lookFromQuery, lookToQuery } from "./query";
-export { moveThumbSvg, propThumbSvg, stickerSvg } from "./svg";
+export { moveThumbSvg, outlineThumbSvg, propThumbSvg, stickerSvg } from "./svg";

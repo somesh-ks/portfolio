@@ -41,6 +41,15 @@ export function toggleProp(look: Look, prop: PropId): Look {
 
 export const stillFrame = (move: MoveId): number => def(move).still;
 
+/** True when the move shows more than one distinct picture, so a frame scrubber means something. */
+export function hasMotion(look: Look): boolean {
+  const clip = clipFor(look);
+  const first = JSON.stringify(frameRects(clip, 0));
+  for (let f = 1; f < clip.frames; f++)
+    if (JSON.stringify(frameRects(clip, f)) !== first) return true;
+  return false;
+}
+
 export function frameCount(look: Look): number {
   return clipFor(look).frames;
 }

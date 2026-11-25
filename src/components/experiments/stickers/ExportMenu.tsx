@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Download } from "lucide-react";
 import { allowed, type Look, lookToQuery, MOVES } from "@/lib/stickers";
@@ -29,15 +29,23 @@ async function bytes(url: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-function menuLink(label: string, hint: string, href: string, file: string) {
+function menuLink(label: string, aria: string, href: string, file: string) {
   return (
     <Menu.Item
       className="select__item"
-      render={<a href={href} download={file} aria-label={`${label} ${hint}`} />}
+      render={<a href={href} download={file} aria-label={aria} />}
     >
       <span className="select__text">{label}</span>
-      <span className="select__hint">{hint}</span>
     </Menu.Item>
+  );
+}
+
+function group(title: string, children: ReactNode) {
+  return (
+    <Menu.Group className="stickers-menu__group">
+      <Menu.GroupLabel className="stickers-menu__label">{title}</Menu.GroupLabel>
+      {children}
+    </Menu.Group>
   );
 }
 
@@ -138,42 +146,80 @@ export function ExportMenu({
             <Menu.Popup className="select__popup spring-menu">
               {animated ? (
                 <>
-                  {menuLink("GIF", ".gif", route(look, "f=gif"), `${name}.gif`)}
-                  {menuLink("Square GIF", ".gif", route(look, "f=gif&sq=1"), `${name}-square.gif`)}
-                  {menuLink("Animated SVG", ".svg", route(look, "f=svg"), `${name}.svg`)}
-                  {menuLink("Lottie JSON", ".json", route(look, "f=json"), `${name}.json`)}
+                  {group(
+                    "GIF",
+                    <>
+                      {menuLink("512", "Download GIF 512", route(look, "f=gif"), `${name}.gif`)}
+                      {menuLink(
+                        "Square",
+                        "Download square GIF",
+                        route(look, "f=gif&sq=1"),
+                        `${name}-square.gif`,
+                      )}
+                    </>,
+                  )}
+                  {menuLink(
+                    "Animated SVG",
+                    "Download animated SVG",
+                    route(look, "f=svg"),
+                    `${name}.svg`,
+                  )}
+                  {menuLink(
+                    "Lottie",
+                    "Download Lottie JSON",
+                    route(look, "f=json"),
+                    `${name}.json`,
+                  )}
                 </>
               ) : (
                 <>
-                  {menuLink("PNG 512", ".png", route(look, "f=png&s=512", frame), `${name}.png`)}
-                  {menuLink(
-                    "PNG 1024",
-                    ".png",
-                    route(look, "f=png&s=1024", frame),
-                    `${name}-1024.png`,
-                  )}
-                  {menuLink(
-                    "Square PNG (Slack)",
-                    ".png",
-                    route(look, "f=png&s=512&sq=1", frame),
-                    `${name}-square.png`,
+                  {group(
+                    "PNG",
+                    <>
+                      {menuLink(
+                        "512",
+                        "Download PNG 512",
+                        route(look, "f=png&s=512", frame),
+                        `${name}.png`,
+                      )}
+                      {menuLink(
+                        "1024",
+                        "Download PNG 1024",
+                        route(look, "f=png&s=1024", frame),
+                        `${name}-1024.png`,
+                      )}
+                      {menuLink(
+                        "Square",
+                        "Download square PNG",
+                        route(look, "f=png&s=512&sq=1", frame),
+                        `${name}-square.png`,
+                      )}
+                    </>,
                   )}
                   <Menu.Item
                     className="select__item"
+                    aria-label="Download SVG"
                     onClick={() => save(`${name}.svg`, new Blob([svg], { type: "image/svg+xml" }))}
                   >
                     <span className="select__text">SVG</span>
-                    <span className="select__hint">.svg</span>
                   </Menu.Item>
-                  <Menu.Item className="select__item" data-sound="none" onClick={copy}>
-                    <span className="select__text">Copy PNG</span>
+                  <Menu.Item
+                    className="select__item"
+                    data-sound="none"
+                    aria-label="Copy PNG"
+                    onClick={copy}
+                  >
+                    <span className="select__text">Copy</span>
                   </Menu.Item>
                 </>
               )}
               <Menu.Separator className="spring-menu__rule" />
-              <Menu.Item className="select__item" onClick={() => void all()}>
-                <span className="select__text">All moves</span>
-                <span className="select__hint">.zip</span>
+              <Menu.Item
+                className="select__item"
+                aria-label="Download all moves as zip"
+                onClick={() => void all()}
+              >
+                <span className="select__text">All moves (.zip)</span>
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>

@@ -52,7 +52,7 @@ const combos: Look[] = MOVES.flatMap((m) =>
 
 describe("stickers engine", () => {
   test("every move has props available, and every prop some move", () => {
-    expect(MOVES.length).toBeGreaterThanOrEqual(12);
+    expect(MOVES.length).toBe(12);
     for (const p of PROPS) expect(MOVES.some((m) => allowed(m.id, p.id))).toBe(true);
   });
 
@@ -140,6 +140,71 @@ describe("stickers engine", () => {
     expect(off.parts.some((p) => p.kind === "shadow")).toBe(true);
     expect(off.parts.some((p) => p.kind === "outline")).toBe(false);
     expect(on.parts.some((p) => p.layers.some((l) => l.color === "#FFFFFF"))).toBe(true);
+  });
+});
+
+describe("die-cut", () => {
+  test("every frame is one closed silhouette: no transparent cell inside the outer edge", () => {
+    const looks: Look[] = [
+      { move: "wave", props: ["flag", "crown"], outline: true },
+      { move: "wave", props: ["balloon"], outline: true },
+      { move: "walk", props: ["mug", "beanie"], outline: true },
+      { move: "dance", props: ["toque"], outline: true },
+      { move: "idea", props: ["heart"], outline: true },
+      { move: "code", props: [], outline: true },
+    ];
+    for (const look of looks) {
+      const clip = clipFor(look);
+      const b = bounds(look);
+      const [bx, by] = [Math.floor(b.x), Math.floor(b.y)];
+      const [w, h] = [Math.ceil(b.w) + 1, Math.ceil(b.h) + 1];
+      for (let f = 0; f < clip.frames; f++) {
+        // Cells painted by the art or the white border; the hairline lies outside both.
+        const solid = new Uint8Array(w * h);
+        for (const p of clip.parts) {
+          if (p.kind === "outline" && p.layers.every((l) => l.color !== "#FFFFFF")) continue;
+          for (const r of partRects(p, f)) {
+            for (let y = Math.floor(r.y); y < Math.ceil(r.y + r.h); y++)
+              for (let x = Math.floor(r.x); x < Math.ceil(r.x + r.w); x++)
+                solid[(y - by) * w + (x - bx)] = 1;
+          }
+        }
+        const seen = new Uint8Array(w * h);
+        const stack = [0];
+        seen[0] = 1;
+        while (stack.length) {
+          const i = stack.pop()!;
+          const x = i % w;
+          const y = (i - x) / w;
+          for (const [nx, ny] of [
+            [x - 1, y],
+            [x + 1, y],
+            [x, y - 1],
+            [x, y + 1],
+          ] as const) {
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            const j = ny * w + nx;
+            if (!solid[j] && !seen[j]) {
+              seen[j] = 1;
+              stack.push(j);
+            }
+          }
+        }
+        for (let i = 0; i < w * h; i++) expect(solid[i] || seen[i]).toBeTruthy();
+      }
+    }
+  });
+
+  test("white border is two cells wide, the hairline is a thin ring outside it", () => {
+    const clip = clipFor({ move: "wave", props: [], outline: true });
+    const edge = clip.parts.filter((p) => p.layers.some((l) => l.color === "#D8D6CE"));
+    expect(edge.length).toBeGreaterThan(0);
+    for (const p of edge) {
+      for (const l of p.layers)
+        for (const r of l.rects) expect(Math.min(r.w, r.h)).toBeLessThanOrEqual(0.25);
+    }
+    // Masks repeat across frames, so far fewer outline parts than frames x 2.
+    expect(clip.parts.filter((p) => p.kind === "outline").length).toBeLessThan(clip.frames * 2);
   });
 });
 

@@ -2,7 +2,6 @@ import { art, rectLayer } from "./model";
 import { type ClipSpec, type OwnProp, type Pose } from "./rig";
 import { COLORS as K, type Slot } from "./props";
 
-type V = [number, number];
 const R = Math.round;
 
 // ---------- the moves' own props ----------
@@ -174,21 +173,6 @@ const MINI_HEARTS: OwnProp[] = [0, 1].map((i) => ({
 // ---------- moves ----------
 
 const blink = (f: number, at: number[]) => at.includes(f);
-
-const idle: ClipSpec = {
-  frames: 24,
-  pose: (f) => {
-    const down = f >= 10 && f < 22;
-    const arm: V = f === 10 ? [0, -1] : f === 22 ? [0, 1] : [0, 0];
-    return {
-      body: [0, down ? 1 : 0],
-      armL: arm,
-      armR: arm,
-      eyes: blink(f, [15, 16]) ? "closed" : "open",
-      eye: f >= 4 && f <= 8 ? [1, 0] : f >= 19 && f <= 21 ? [-1, 0] : [0, 0],
-    };
-  },
-};
 
 const wave: ClipSpec = {
   frames: 24,
@@ -397,7 +381,6 @@ const love: ClipSpec = {
 
 export type MoveId =
   | "wave"
-  | "idle"
   | "walk"
   | "dance"
   | "celebrate"
@@ -425,7 +408,6 @@ const NO_HAND: Slot[] = ["head", "face"];
 
 export const MOVE_DEFS: readonly MoveDef[] = [
   { id: "wave", name: "Wave", free: ALL, still: 2, spec: wave },
-  { id: "idle", name: "Idle", free: ALL, still: 0, spec: idle },
   { id: "walk", name: "Walk", free: ALL, still: 2, spec: walk },
   { id: "dance", name: "Dance", free: NO_HAND, still: 4, spec: dance },
   { id: "celebrate", name: "Cheer", free: ALL, still: 7, spec: celebrate },

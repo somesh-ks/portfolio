@@ -23,9 +23,10 @@ test("the sticker studio picks a move, wears a prop and keeps the look in the UR
   await mugOn.click();
   await expect(mugOn).toHaveAttribute("aria-pressed", "false");
 
-  const outline = page.getByRole("switch", { name: "Outline" });
-  await expect(outline).toBeChecked();
-  await outline.uncheck();
+  const plain = page.getByRole("radio", { name: "Plain" });
+  await expect(page.getByRole("radio", { name: "Die-cut" })).toBeChecked();
+  await plain.check({ force: true });
+  await expect(plain).toBeChecked();
   await expect(page).toHaveURL(/o=0/);
 
   await page.getByRole("slider", { name: "Frame" }).fill("5");

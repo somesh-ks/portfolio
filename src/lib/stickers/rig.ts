@@ -4,6 +4,7 @@ import {
   type Layer,
   type Part,
   type PartKind,
+  type Rect,
   rectLayer,
   type Step,
 } from "./model";
@@ -96,7 +97,7 @@ export interface OwnProp {
   layers: Layer[];
 }
 
-/** Z-order bands. Outline rings sit below everything, ground shadow below the rings. */
+/** Z-order bands. The die-cut sits below everything, ground shadow below it. */
 const Z = {
   shadow: -10,
   ring: -5,
@@ -115,16 +116,192 @@ export interface ClipSpec {
   pose: (f: number) => Pose;
 }
 
-/** Soft ink ring, 2 cells out, then white, 1 cell out. Solid colours so every format agrees. */
-const RINGS: Array<{ grow: number; color: string; z: number }> = [
-  { grow: 2, color: K.ring, z: Z.ring - 1 },
-  { grow: 1, color: K.white, z: Z.ring },
-];
+type Grid = Uint8Array;
 
-const grow = (layers: Layer[], g: number) =>
-  layers.flatMap((l) =>
-    l.rects.map((r) => ({ x: r.x - g, y: r.y - g, w: r.w + 2 * g, h: r.h + 2 * g })),
-  );
+/** Square dilation by r cells. */
+function dilate(g: Grid, w: number, h: number, r: number): Grid {
+  let cur = g;
+  for (let k = 0; k < r; k++) {
+    const next = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let on = 0;
+        for (let dy = -1; dy <= 1 && !on; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx >= 0 && ny >= 0 && nx < w && ny < h && cur[ny * w + nx]) {
+              on = 1;
+              break;
+            }
+          }
+        }
+        next[y * w + x] = on;
+      }
+    }
+    cur = next;
+  }
+  return cur;
+}
+
+const invert = (g: Grid): Grid => g.map((v) => (v ? 0 : 1));
+
+/** Fills every empty cell the outside can't reach (4-neighbour flood from the border). */
+function fillHoles(g: Grid, w: number, h: number): Grid {
+  const seen = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const seed = (x: number, y: number) => {
+    const i = y * w + x;
+    if (!g[i] && !seen[i]) {
+      seen[i] = 1;
+      stack.push(i);
+    }
+  };
+  for (let x = 0; x < w; x++) {
+    seed(x, 0);
+    seed(x, h - 1);
+  }
+  for (let y = 0; y < h; y++) {
+    seed(0, y);
+    seed(w - 1, y);
+  }
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % w;
+    const y = (i - x) / w;
+    if (x > 0) seed(x - 1, y);
+    if (x < w - 1) seed(x + 1, y);
+    if (y > 0) seed(x, y - 1);
+    if (y < h - 1) seed(x, y + 1);
+  }
+  return g.map((v, i) => (v || !seen[i] ? 1 : 0));
+}
+
+/** Runs merged vertically into few rects, in cells (`unit` grid cells per cell). */
+function gridRects(g: Grid, w: number, h: number, ox: number, oy: number, unit = 1) {
+  const out: Rect[] = [];
+  let open: Rect[] = [];
+  for (let y = 0; y < h; y++) {
+    const next: Rect[] = [];
+    let x = 0;
+    while (x < w) {
+      if (!g[y * w + x]) {
+        x++;
+        continue;
+      }
+      let e = x;
+      while (e < w && g[y * w + e]) e++;
+      const prev = open.find((r) => r.x === x && r.w === e - x && r.y + r.h === y);
+      if (prev) {
+        prev.h++;
+        next.push(prev);
+      } else {
+        const r = { x, y, w: e - x, h: 1 };
+        out.push(r);
+        next.push(r);
+      }
+      x = e;
+    }
+    open = next;
+  }
+  return out.map((r) => ({
+    x: ox + r.x / unit,
+    y: oy + r.y / unit,
+    w: r.w / unit,
+    h: r.h / unit,
+  }));
+}
+
+const BORDER = 2; // cells of white around the art
+const HAIR = 4; // hairline thickness is 1/HAIR cell
+
+/**
+ * One closed die-cut silhouette per frame: the union of every visible cell, closed (dilate 3,
+ * erode 1) so gaps of up to four cells bridge, with enclosed holes filled. That mask is the
+ * white border, and a quarter-cell hairline is drawn just outside it. Frames with the same mask
+ * share one pair of parts that are visible only on those frames, so tracks, CSS keyframes,
+ * Lottie and raster all keep working.
+ */
+function outlineParts(parts: Part[], N: number): Part[] {
+  const per: Rect[][] = Array.from({ length: N }, () => []);
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const p of parts) {
+    for (let f = 0; f < N; f++) {
+      const s = p.track[f];
+      if (!s?.[2]) continue;
+      for (const l of p.layers) {
+        for (const r of l.rects) {
+          const q = { x: r.x + s[0], y: r.y + s[1], w: r.w, h: r.h };
+          per[f]!.push(q);
+          x0 = Math.min(x0, q.x);
+          y0 = Math.min(y0, q.y);
+          x1 = Math.max(x1, q.x + q.w);
+          y1 = Math.max(y1, q.y + q.h);
+        }
+      }
+    }
+  }
+  const m = BORDER + 3;
+  const ox = Math.floor(x0) - m;
+  const oy = Math.floor(y0) - m;
+  const w = Math.ceil(x1) - ox + m;
+  const h = Math.ceil(y1) - oy + m;
+
+  const groups = new Map<string, { frames: number[]; mask: Grid }>();
+  for (let f = 0; f < N; f++) {
+    const u = new Uint8Array(w * h);
+    for (const r of per[f]!) {
+      for (let y = Math.floor(r.y) - oy; y < Math.ceil(r.y + r.h) - oy; y++) {
+        for (let x = Math.floor(r.x) - ox; x < Math.ceil(r.x + r.w) - ox; x++) u[y * w + x] = 1;
+      }
+    }
+    const closed = invert(dilate(invert(dilate(u, w, h, 3)), w, h, 1));
+    const mask = fillHoles(closed, w, h);
+    const key = mask.join("");
+    const g = groups.get(key) ?? { frames: [], mask };
+    g.frames.push(f);
+    groups.set(key, g);
+  }
+
+  const out: Part[] = [];
+  let n = 0;
+  for (const { frames, mask } of groups.values()) {
+    const track: Step[] = Array.from({ length: N }, (_, f) =>
+      frames.includes(f) ? [0, 0, 1] : HIDDEN,
+    );
+    // Hairline: the mask on a finer grid, grown by one fine cell, minus the mask.
+    const fw = w * HAIR;
+    const fh = h * HAIR;
+    const fine = new Uint8Array(fw * fh);
+    for (let y = 0; y < fh; y++) {
+      for (let x = 0; x < fw; x++)
+        fine[y * fw + x] = mask[Math.floor(y / HAIR) * w + Math.floor(x / HAIR)]!;
+    }
+    const grown = dilate(fine, fw, fh, 1);
+    const edge = grown.map((v, i) => (v && !fine[i] ? 1 : 0));
+    out.push(
+      {
+        id: `edge${n}`,
+        kind: "outline",
+        z: Z.ring - 1,
+        layers: [{ color: K.ring, alpha: 1, rects: gridRects(edge, fw, fh, ox, oy, HAIR) }],
+        track,
+      },
+      {
+        id: `ring${n}`,
+        kind: "outline",
+        z: Z.ring,
+        layers: [{ color: K.white, alpha: 1, rects: gridRects(mask, w, h, ox, oy) }],
+        track,
+      },
+    );
+    n++;
+  }
+  return out;
+}
 
 /** Builds a clip from poses: the mascot, its props (head and face ride the body, hand rides the left arm). */
 export function buildClip(spec: ClipSpec, props: readonly PropId[], outline: boolean): Clip {
@@ -223,29 +400,7 @@ export function buildClip(spec: ClipSpec, props: readonly PropId[], outline: boo
     );
   }
 
-  if (outline) {
-    // One underlay per distinct track and ring, so parts that move together share it.
-    const groups = new Map<string, { track: Step[]; layers: Layer[] }>();
-    for (const p of parts) {
-      if (!p.track.some((s) => s[2] === 1)) continue;
-      const key = JSON.stringify(p.track);
-      const g = groups.get(key) ?? { track: p.track, layers: [] };
-      g.layers.push(...p.layers);
-      groups.set(key, g);
-    }
-    let n = 0;
-    for (const g of groups.values()) {
-      for (const ring of RINGS) {
-        add(
-          `ring${n++}`,
-          "outline",
-          ring.z,
-          [{ color: ring.color, alpha: 1, rects: grow(g.layers, ring.grow) }],
-          g.track,
-        );
-      }
-    }
-  }
+  if (outline) parts.push(...outlineParts(parts, N));
 
   parts.sort((a, b) => a.z - b.z);
   return { frames: N, parts };

@@ -38,10 +38,13 @@ export function rasterFrame(
   const px = new Uint32Array(data.buffer);
   for (const r of frameRects(clipFor(look), frame)) {
     const [cr, cg, cb] = hex(r.color);
-    const x0 = Math.max(0, r.x * scale + offX);
-    const x1 = Math.min(width, (r.x + r.w) * scale + offX);
-    const y0 = Math.max(0, r.y * scale + offY);
-    const y1 = Math.min(height, (r.y + r.h) * scale + offY);
+    // Hairlines are fractions of a cell: round to whole pixels, never thinner than one.
+    const px0 = Math.round(r.x * scale + offX);
+    const py0 = Math.round(r.y * scale + offY);
+    const x0 = Math.max(0, px0);
+    const x1 = Math.min(width, Math.max(px0 + 1, Math.round((r.x + r.w) * scale + offX)));
+    const y0 = Math.max(0, py0);
+    const y1 = Math.min(height, Math.max(py0 + 1, Math.round((r.y + r.h) * scale + offY)));
     if (r.alpha >= 1) {
       // Little-endian RGBA word; every target runtime is little-endian.
       const word = ((255 << 24) | (cb << 16) | (cg << 8) | cr) >>> 0;

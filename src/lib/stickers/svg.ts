@@ -137,15 +137,33 @@ export function stickerSvg(
   );
 }
 
+/** Thumbnails carry a one-cell white ring, like the die-cut, so dark ink survives on dark tiles. */
+function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>): string {
+  const ring: Layer = {
+    color: "#FFFFFF",
+    alpha: 1,
+    rects: items.flatMap(({ layer, dx, dy }) =>
+      layer.rects.map((r) => ({ x: r.x + dx - 1, y: r.y + dy - 1, w: r.w + 2, h: r.h + 2 })),
+    ),
+  };
+  const all = [{ layer: ring, dx: 0, dy: 0 }, ...items];
+  return `${open(boxOf(all), null)}${flatPaths(all)}</svg>`;
+}
+
 /** The mascot at the move's still frame, no props, outline off, cropped to what is drawn. */
 export function moveThumbSvg(move: MoveId): string {
   const look: Look = { move, props: [], outline: false };
-  const items = frameItems(clipFor(look), stillFrame(move), true);
-  return `${open(boxOf(items), null)}${flatPaths(items)}</svg>`;
+  return thumb(frameItems(clipFor(look), stillFrame(move), true));
 }
 
 /** The prop art alone, cropped. */
 export function propThumbSvg(prop: PropId): string {
-  const items = propLayers(prop).map((layer) => ({ layer, dx: 0, dy: 0 }));
+  return thumb(propLayers(prop).map((layer) => ({ layer, dx: 0, dy: 0 })));
+}
+
+/** The look's silhouette cue for the outline control: the mascot with or without the die-cut. */
+export function outlineThumbSvg(outline: boolean): string {
+  const look: Look = { move: "wave", props: [], outline };
+  const items = frameItems(clipFor(look), stillFrame("wave"), true);
   return `${open(boxOf(items), null)}${flatPaths(items)}</svg>`;
 }

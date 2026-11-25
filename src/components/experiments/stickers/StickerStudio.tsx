@@ -2,28 +2,22 @@
 
 import Link from "next/link";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { Contrast, Pause, Play, Shuffle } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, type PointerEvent, useRef, useState } from "react";
+import { Pause, Play, Shuffle } from "lucide-react";
 import {
   allowed,
   bounds,
   DEFAULT_LOOK,
   FPS,
   frameCount,
+  hasMotion,
   type Look,
   lookFromQuery,
   lookToQuery,
   MOVES,
   type MoveId,
   moveThumbSvg,
+  outlineThumbSvg,
   PROPS,
   type PropId,
   propThumbSvg,
@@ -39,15 +33,6 @@ import "./stickers.css";
 type Tab = "static" | "animated";
 const TABS: Tab[] = ["static", "animated"];
 const TAB_LABEL: Record<Tab, string> = { static: "Static", animated: "Animated" };
-
-/** The site theme as set on <html>, which is what the page is actually painted in. */
-const readTheme = (): "light" | "dark" =>
-  document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-const watchTheme = (cb: () => void) => {
-  const mo = new MutationObserver(cb);
-  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  return () => mo.disconnect();
-};
 
 const stillOf = (move: MoveId) => MOVES.find((m) => m.id === move)?.still ?? 0;
 
@@ -84,6 +69,51 @@ function runningFrame(root: HTMLElement | null, frames: number): number | null {
 // Whoever presses Play wants motion even under reduced motion, so the SVG's own opt-out goes.
 const MOTION_OFF = /@media \(prefers-reduced-motion:reduce\)\{[^{}]*\{[^{}]*\}\}/;
 
+/** Frame picker: one square cell per frame to drag or tap, over a visually hidden range for keyboards and assistive tech. */
+function Scrubber({
+  frames,
+  value,
+  onChange,
+}: {
+  frames: number;
+  value: number;
+  onChange: (f: number) => void;
+}) {
+  const at = (e: PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const f = Math.floor(((e.clientX - r.left) / r.width) * frames);
+    onChange(Math.min(frames - 1, Math.max(0, f)));
+  };
+  return (
+    <div
+      className="stickers-scrub"
+      style={{ gridTemplateColumns: `repeat(${frames}, minmax(0, 1fr))` }}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        at(e);
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e);
+      }}
+    >
+      <input
+        type="range"
+        className="sr-only"
+        aria-label="Frame"
+        aria-valuetext={`Frame ${value + 1} of ${frames}`}
+        min={0}
+        max={frames - 1}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      {Array.from({ length: frames }, (_, i) => (
+        <span key={i} aria-hidden="true" data-on={i === value || undefined} />
+      ))}
+    </div>
+  );
+}
+
 export function StickerStudio() {
   const { play } = useSound();
   const [look, setLook] = useState<Look>(DEFAULT_LOOK);
@@ -91,10 +121,6 @@ export function StickerStudio() {
   const [frame, setFrame] = useState<number | null>(null);
   const [playing, setPlaying] = useState(true);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
-  const siteTheme = useSyncExternalStore(watchTheme, readTheme, () => "light");
-  // Follows the site theme until the visitor picks a backdrop.
-  const [picked, setBackdrop] = useState<"light" | "dark" | null>(null);
-  const backdrop = picked ?? siteTheme;
   const [ready, setReady] = useState(false);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const stage = useRef<HTMLDivElement>(null);
@@ -134,7 +160,7 @@ export function StickerStudio() {
   }, []);
 
   const b = bounds(look);
-  const pad = 56;
+  const pad = 48;
   const scale = Math.max(
     1,
     Math.floor(Math.min((box.w - pad * 2) / b.w, (box.h - pad * 2) / b.h) || 1),
@@ -169,11 +195,11 @@ export function StickerStudio() {
     setPlaying(!playing);
   };
 
-  const pxW = Math.floor(512 / Math.max(b.w, b.h)) * b.w;
-  const pxH = Math.floor(512 / Math.max(b.w, b.h)) * b.h;
+  const scrubbable = useMemo(() => hasMotion(look), [look]);
 
   const moveThumbs = useMemo(() => MOVES.map((m) => moveThumbSvg(m.id)), []);
   const propThumbs = useMemo(() => PROPS.map((p) => propThumbSvg(p.id)), []);
+  const outlineThumbs = useMemo(() => [true, false].map((o) => outlineThumbSvg(o)), []);
 
   const go = (t: Tab) => {
     setTab(t);
@@ -210,22 +236,7 @@ export function StickerStudio() {
             </button>
           ))}
         </div>
-        <span className="spring-app__actions" data-group="stage">
-          {tab === "animated" ? (
-            <button
-              type="button"
-              className="button spring-square pressable"
-              aria-label={playing ? "Pause" : "Play"}
-              title={playing ? "Pause" : "Play"}
-              onClick={togglePlay}
-            >
-              {playing ? (
-                <Pause aria-hidden="true" size={16} strokeWidth={1.75} />
-              ) : (
-                <Play aria-hidden="true" size={16} strokeWidth={1.75} />
-              )}
-            </button>
-          ) : null}
+        <span className="spring-app__actions">
           <button
             type="button"
             className="button spring-square pressable"
@@ -238,18 +249,6 @@ export function StickerStudio() {
           >
             <Shuffle aria-hidden="true" size={16} strokeWidth={1.75} />
           </button>
-          <button
-            type="button"
-            className="button spring-square pressable"
-            aria-label="Dark backdrop"
-            title="Dark backdrop"
-            aria-pressed={backdrop === "dark"}
-            onClick={() => setBackdrop(backdrop === "dark" ? "light" : "dark")}
-          >
-            <Contrast aria-hidden="true" size={16} strokeWidth={1.75} />
-          </button>
-        </span>
-        <span className="spring-app__actions" data-group="export">
           <ExportMenu look={look} tab={tab} frame={shown} svg={staticSvg} />
           <ThemeToggle className="button spring-square pressable" />
         </span>
@@ -296,19 +295,29 @@ export function StickerStudio() {
           </div>
         </section>
         <section className="stickers-section">
-          <label className="stickers-switch">
-            Outline
-            <input
-              type="checkbox"
-              role="switch"
-              aria-checked={look.outline}
-              checked={look.outline}
-              onChange={(e) => {
-                play("tick");
-                change({ ...look, outline: e.target.checked });
-              }}
-            />
-          </label>
+          <h2 className="stickers-head">Outline</h2>
+          <div role="radiogroup" aria-label="Outline" className="stickers-grid">
+            {[true, false].map((o, i) => (
+              <label
+                key={String(o)}
+                className="stickers-tile pressable"
+                title={o ? "Die-cut" : "Plain"}
+              >
+                <input
+                  type="radio"
+                  name={`${tabsId}-outline`}
+                  className="sr-only"
+                  aria-label={o ? "Die-cut" : "Plain"}
+                  checked={look.outline === o}
+                  onChange={() => {
+                    play("tick");
+                    change({ ...look, outline: o });
+                  }}
+                />
+                <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: outlineThumbs[i]! }} />
+              </label>
+            ))}
+          </div>
         </section>
       </aside>
       <section
@@ -317,35 +326,38 @@ export function StickerStudio() {
         aria-labelledby={`${tabsId}-${tab}`}
         className="spring-app__canvas stickers-canvas"
       >
-        <div ref={stage} className="stickers-stage" data-backdrop={backdrop} data-ready={ready}>
+        <div ref={stage} className="stickers-stage" data-ready={ready}>
           <div
             ref={art}
             className="stickers-art"
+            data-outline={look.outline ? "on" : "off"}
             style={{ width: b.w * scale, height: b.h * scale }}
             aria-hidden="true"
             dangerouslySetInnerHTML={{ __html: still ? staticSvg : animatedSvg }}
           />
         </div>
         <span className="sr-only">{MOVES.find((m) => m.id === look.move)?.name} sticker</span>
-        {tab === "static" && frames > 1 ? (
-          <input
-            type="range"
-            className="stickers-scrub"
-            aria-label="Frame"
-            aria-valuetext={`Frame ${shown + 1} of ${frames}`}
-            min={0}
-            max={frames - 1}
-            step={1}
-            value={shown}
-            onChange={(e) => setFrame(Number(e.target.value))}
-          />
-        ) : (
-          <span />
-        )}
-        <p className="stickers-status">
-          {pxW}×{pxH}
-          {tab === "animated" ? ` · ${(frames / FPS).toFixed(1)}s` : ""}
-        </p>
+        {tab === "static" && frames > 1 && scrubbable ? (
+          <Scrubber frames={frames} value={shown} onChange={setFrame} />
+        ) : null}
+        {tab === "animated" ? (
+          <div className="stickers-play">
+            <span className="stickers-loop">{(frames / FPS).toFixed(1)}s</span>
+            <button
+              type="button"
+              className="button pressable stickers-play__btn"
+              aria-label={playing ? "Pause" : "Play"}
+              title={playing ? "Pause" : "Play"}
+              onClick={togglePlay}
+            >
+              {playing ? (
+                <Pause aria-hidden="true" size={16} strokeWidth={1.75} />
+              ) : (
+                <Play aria-hidden="true" size={16} strokeWidth={1.75} />
+              )}
+            </button>
+          </div>
+        ) : null}
       </section>
     </div>
   );

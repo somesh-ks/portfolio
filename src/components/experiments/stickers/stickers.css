@@ -1,5 +1,5 @@
-/* Sticker studio. The shell, bar, tabs and export split come from spring.css; this is only
-   what is specific: the move and prop grids, the switch, the stage and the phone layout. */
+/* Sticker studio. The shell, bar, tabs and export split come from spring.css (phone header
+   included); this is only what is specific: the move and prop grids, the stage and the scrubber. */
 
 .stickers .spring-app__name {
   white-space: nowrap;
@@ -9,6 +9,20 @@
 }
 .stickers-export-icon {
   display: none;
+}
+@media (max-width: 40rem) {
+  .stickers .spring-split__main > span {
+    display: none;
+  }
+  .stickers-export-icon {
+    display: block;
+  }
+}
+.stickers-menu__label {
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
 }
 
 /* ——— Panel ——— */
@@ -32,20 +46,25 @@
   gap: var(--space-2);
 }
 .stickers-tile {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 1;
   min-width: 0;
-  padding: var(--space-2);
-  /* The art is drawn for a light ground, so the tiles stay light in both themes. */
-  background: var(--color-gray-50);
+  background: var(--surface-sunken);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
   color: var(--text-primary);
+  cursor: pointer;
+}
+.stickers-tile > span {
+  display: contents;
 }
 .stickers-tile svg {
+  position: absolute;
+  inset: var(--space-2);
   display: block;
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 2 * var(--space-2));
+  height: calc(100% - 2 * var(--space-2));
   pointer-events: none;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -53,11 +72,13 @@
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
 }
-.stickers-tile[aria-checked="true"],
-.stickers-tile[aria-pressed="true"] {
-  background: var(--color-gray-100);
-  box-shadow: inset 0 0 0 1px var(--color-gray-950);
-  outline: 1px solid var(--text-primary);
+.stickers-tile[aria-pressed="true"],
+.stickers-tile:has(:checked) {
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+}
+.stickers-tile:focus-visible,
+.stickers-tile:has(:focus-visible) {
+  outline: 2px solid var(--text-primary);
   outline-offset: 2px;
 }
 .stickers-tile:disabled {
@@ -65,104 +86,103 @@
   cursor: not-allowed;
 }
 
-.stickers-switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 2.75rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  cursor: pointer;
-}
-.stickers-switch input {
-  appearance: none;
+/* ——— Canvas: the sunken surface runs edge to edge, like Spring's ——— */
+.stickers-canvas {
   position: relative;
-  flex: none;
-  width: 2.25rem;
-  height: 1.25rem;
-  margin: 0;
-  background: var(--input-bg);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  cursor: pointer;
+  align-content: stretch;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-sunken);
 }
-.stickers-switch input::before {
-  content: "";
-  position: absolute;
-  inset: 0.1875rem auto 0.1875rem 0.1875rem;
-  width: 0.875rem;
-  background: var(--text-secondary);
-  transition: transform var(--duration-tooltip) var(--ease-out);
-}
-.stickers-switch input:checked {
-  box-shadow: inset 0 0 0 1px var(--text-primary);
-}
-.stickers-switch input:checked::before {
-  background: var(--text-primary);
-  transform: translateX(1rem);
-}
-@media (prefers-reduced-motion: reduce) {
-  .stickers-switch input::before {
-    transition: none;
+@media (min-width: 60rem) {
+  .stickers-canvas {
+    padding: 0;
+    overflow: hidden;
   }
 }
-
-/* ——— Stage ——— */
-.stickers-canvas {
-  align-content: stretch;
-  grid-template-rows: minmax(0, 1fr) auto auto;
-  gap: var(--space-2);
+@media (max-width: 59.99rem) {
+  .stickers .spring-app__canvas.stickers-canvas {
+    padding: 0;
+  }
 }
 .stickers-stage {
   display: grid;
   place-items: center;
   min-height: 0;
   overflow: hidden;
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
   transition: opacity var(--duration-tooltip) var(--ease-out);
-}
-.stickers-stage[data-backdrop="light"] {
-  background: var(--color-gray-50);
-}
-.stickers-stage[data-backdrop="dark"] {
-  background: var(--color-gray-950);
 }
 .stickers-stage[data-ready="false"] {
   opacity: 0;
 }
 .stickers-art {
-  filter: drop-shadow(0 0.5rem 0.75rem color-mix(in oklch, var(--color-gray-950) 28%, transparent));
+  filter: drop-shadow(0 0.25rem 0.5rem oklch(0% 0 0 / 0.14));
+}
+:root[data-theme="dark"] .stickers-art,
+.stickers-art[data-outline="off"] {
+  filter: none;
 }
 .stickers-art svg {
   display: block;
   width: 100%;
   height: 100%;
 }
+
+/* ——— Scrubber: one square cell per frame ——— */
 .stickers-scrub {
-  width: 100%;
+  position: relative;
+  display: grid;
+  align-items: center;
+  gap: 1px;
   min-height: 2.75rem;
-  margin: 0;
-  accent-color: var(--text-primary);
+  margin: 0 var(--space-4) var(--space-2);
+  touch-action: pan-y;
+  cursor: pointer;
 }
-.stickers-status {
-  margin: 0;
+.stickers-scrub > span {
+  height: 0.5rem;
+  background: var(--border-subtle);
+}
+.stickers-scrub > span[data-on] {
+  background: var(--text-primary);
+}
+.stickers-scrub:has(:focus-visible) {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+/* ——— Play: pinned bottom right of the stage, loop length beside it ——— */
+.stickers-play {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.stickers-play__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+}
+.stickers-loop {
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   font-variant-numeric: tabular-nums;
-  text-align: center;
 }
 
-/* ——— Phone and tablet: bar on two rows, the stage pinned, the panel scrolls below ——— */
+/* ——— Phone and tablet: the stage is pinned, the panel scrolls below ——— */
 @media (max-width: 59.99rem) {
   .stickers.spring-app__shell {
     height: 100dvh;
     grid-template-rows: auto 45svh minmax(0, 1fr);
     grid-template-areas: "bar" "canvas" "side";
-  }
-  .stickers .spring-app__canvas {
-    padding: var(--space-3) var(--space-4) var(--space-2);
   }
   .stickers .spring-app__side {
     overflow-y: auto;
@@ -170,57 +190,4 @@
     border-top: 1px solid var(--border-subtle);
     border-bottom: 0;
   }
-}
-@media (max-width: 40rem) {
-  .stickers .spring-app__bar {
-    row-gap: 0;
-  }
-  .stickers .spring-app__name {
-    padding-top: 0;
-    margin-right: auto;
-  }
-  .stickers .spring-app__actions {
-    margin-left: 0;
-    padding-top: 0;
-  }
-  .stickers [data-group="export"] {
-    order: 1;
-  }
-  .stickers .spring-tabs {
-    order: 2;
-    flex: 1 1 10rem;
-    margin-inline: calc(-1 * var(--space-4));
-    padding-inline: var(--space-2);
-  }
-  .stickers [data-group="stage"] {
-    order: 3;
-  }
-  .stickers .spring-split__main > span {
-    display: none;
-  }
-  .stickers-export-icon {
-    display: block;
-  }
-}
-.stickers-tile {
-  cursor: pointer;
-}
-.stickers-tile:has(:checked) {
-  background: var(--color-gray-100);
-  box-shadow: inset 0 0 0 1px var(--color-gray-950);
-  outline: 1px solid var(--text-primary);
-  outline-offset: 2px;
-}
-.stickers-tile:has(:focus-visible) {
-  outline: 2px solid var(--text-primary);
-  outline-offset: 2px;
-}
-.stickers-tile {
-  position: relative;
-  overflow: hidden;
-}
-.stickers-tile > span {
-  position: absolute;
-  inset: var(--space-2);
-  display: grid;
 }
