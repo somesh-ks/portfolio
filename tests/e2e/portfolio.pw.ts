@@ -210,18 +210,25 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });
 
-test("tune button steps aside while the runner's controls are under it", async ({
-  page,
-}, testInfo) => {
+test("tune button stays visible and clear of the runner's controls", async ({ page }, testInfo) => {
   // Only a phone's full-width runner footer reaches the corner button.
   test.skip(testInfo.project.name !== "mobile");
-  // A shorter phone: the runner's footer lands right where the corner button sits.
+  const button = page.locator(".tune-button");
+  const last = page.locator(".runner__foot .runner__action").last();
+  const overlaps = async () => {
+    const [a, b] = [(await last.boundingBox())!, (await button.boundingBox())!];
+    return (
+      a.x + a.width > b.x && a.x < b.x + b.width && a.y + a.height > b.y && a.y < b.y + b.height
+    );
+  };
+  // A shorter phone puts the runner's footer right where the corner button sits.
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto("/");
-  const button = page.locator(".tune-button");
-  await expect(button).toBeHidden();
-  await page.evaluate(() => scrollBy(0, 200));
-  await expect(button).toBeVisible();
+  for (const y of [0, 60, 120]) {
+    await page.evaluate((top) => scrollTo(0, top), y);
+    await expect(button).toBeVisible();
+    expect(await overlaps()).toBe(false);
+  }
 });
 
 test("tune toy switches type without the text flip under reduced motion", async ({ page }) => {
