@@ -27,6 +27,9 @@ export const ContentMetaSchema = z
     canonicalUrl: z.url().optional(),
     repoUrl: z.url().optional(),
     liveUrl: z.url().optional(),
+    /** Where the entry lives instead of its own page: a site path or a URL. The
+     * old /<kind>/<slug> page 308s there (next.config.ts). */
+    href: z.union([z.url(), z.string().regex(/^\/[a-z0-9/-]*$/)]).optional(),
   })
   .strict()
   .refine((meta) => !meta.protected || meta.kind === "case-study", {
