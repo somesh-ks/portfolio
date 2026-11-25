@@ -5,6 +5,7 @@
  * How to add one: .agents/skills/thumbnails/SKILL.md.
  */
 import type { ReactNode } from "react";
+import { bounds, type Look, stickerSvg } from "@/lib/stickers";
 import { Box, Check, Display, Dither, H, Mono, Pixels, ridge, tint, W } from "./draw";
 
 export interface ThumbArt {
@@ -13,44 +14,57 @@ export interface ThumbArt {
   draw: () => ReactNode;
 }
 
-/** Claude as a die-cut sticker in a beanie: `o` the white cut, `l` its edge, `h` the hat, `b` its brim. */
-const STICKER = [
-  ".....llllll.....",
-  "...llloooolll...",
-  "..llooohhoooll..",
-  "..loohhhhhhool..",
-  "..lobbbbbbbbol..",
-  "lllo########olll",
-  "looo#e####e#oool",
-  "lo############ol",
-  "lo############ol",
-  "looo########oool",
-  "lllo########olll",
-  "..lo#o#oo#o#ol..",
-  "..lo#o#oo#o#ol..",
-  "..looooooooool..",
-  "..llllllllllll..",
+/**
+ * Stickers straight from the studio's renderer, as a scattered sheet: each is
+ * [look, centre x, centre y, height in viewBox units, rotation in degrees].
+ * Outline 2 is the studio's die-cut.
+ */
+const SHEET: [Look, number, number, number, number][] = [
+  [{ action: "cheer", items: ["party", "balloon"], outline: 2 }, 58, 58, 104, -12],
+  [{ action: "wave", items: ["beanie", "mug"], outline: 2 }, 166, 72, 100, 6],
+  [{ action: "zen", items: ["flowers", "sparkles"], outline: 2 }, 276, 54, 86, 14],
+  [{ action: "run", items: ["headphones", "skate"], outline: 2 }, 82, 158, 90, 8],
+  [{ action: "dance", items: ["crown", "notes"], outline: 2 }, 208, 160, 96, -8],
+  [{ action: "sleep", items: ["zzz"], outline: 2 }, 300, 156, 70, -16],
 ];
 
-/** A caped hero, hands on hips: `#` suit, `e` mask eyes, `s` chest mark, `c` cape. */
+/** One sticker's SVG, sized and turned into place. Its <title> is dropped: the thumb is decorative. */
+function placed([look, cx, cy, height, deg]: (typeof SHEET)[number]) {
+  const b = bounds(look);
+  const w = (b.w / b.h) * height;
+  const svg = stickerSvg(look, { animated: false })
+    .replace(/<title>.*?<\/title>/, "")
+    .replace(
+      / width="[^"]*" height="[^"]*"/,
+      ` x="${-w / 2}" y="${-height / 2}" width="${w}" height="${height}"`,
+    );
+  return `<g transform="translate(${cx} ${cy}) rotate(${deg})">${svg}</g>`;
+}
+
+/**
+ * An original masked hero leaping out of a book, fist first:
+ * `K` ink line, `S` suit, `C` cape, `Y` gold trim, `W` mask eyes, `G` gloves and boots.
+ */
 const HERO = [
-  ".....####.....",
-  "....######....",
-  "....#e##e#....",
-  "....######....",
-  ".....####.....",
-  "..cc######cc..",
-  ".cc########cc.",
-  "cc##.####.##cc",
-  "cc##.#ss#.##cc",
-  "cc#..####..#cc",
-  "cc#..####..#cc",
-  "c##..####..##c",
-  "c....####....c",
-  "c....##.##...c",
-  ".....##.##....",
-  ".....##.##....",
-  "....###.###...",
+  "...............KK..",
+  "..............KGGK.",
+  ".............KGGK..",
+  "............KSSK...",
+  "......KKKK.KSSK....",
+  ".....KSSSSKSSK.....",
+  "....KSWWSWWSK......",
+  "....KSSSSSSSK......",
+  "..CCKKSSSSSKK......",
+  ".CCCCKSSYSSSSK.....",
+  "CCCCCKSYYYSSGGK....",
+  ".CCCCKSSYSSSGGK....",
+  "..CCCKSSSSSSKK.....",
+  "...CCKYYYYYYK......",
+  "....CKSSSKSSSK.....",
+  ".....KSSSK.KSSK....",
+  "....KSSSK...KSSK...",
+  "...KGGGK.....KGGK..",
+  "...KKKK.......KKK..",
 ];
 
 /** A tick drawn as a path, since the mono font may not carry ✓. */
@@ -161,96 +175,155 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // The dithered hills Tide renders, back to front, under a dithered sun.
+  // Tide's look: an ordered-dither dusk. The sky thickens toward the horizon,
+  // a sun sinks behind four ridges, and each ridge fades into valley mist.
   tide: {
     accent: "--thumb-tide",
     draw: () => {
-      const hills: [base: number, amp: number, waves: number, phase: number, level: number][] = [
-        [88, 18, 2.2, 0.4, 3],
-        [116, 20, 1.6, 2, 6],
-        [144, 14, 2.6, 1, 10],
-        [170, 10, 3.4, 3, 16],
+      // base y, amplitude, waves, phase, densest level (at its top), colour
+      const hills: [number, number, number, number, number, string][] = [
+        [98, 14, 2.4, 0.3, 9, tint(45)],
+        [120, 16, 1.7, 2.1, 12, tint(65)],
+        [146, 12, 2.9, 1.2, 14, tint(85)],
+        [172, 9, 3.6, 3.4, 16, "var(--thumb-accent)"],
       ];
+      // Every pattern a scene needs: one per (level, colour) pair.
+      const pats = new Map<string, [number, string]>();
+      const pat = (level: number, colour: string) => {
+        const lv = Math.max(1, Math.min(16, Math.round(level)));
+        const id = `tide-${lv}-${[...colour].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7)}`;
+        pats.set(id, [lv, colour]);
+        return `url(#${id})`;
+      };
+      const BAND = 8;
+      // Sky bands from y 72 down to the horizon, thickening by one level each.
+      const sky = [1, 2, 3].map((lv, k) => {
+        const y = 80 + k * BAND;
+        return <rect key={y} x={0} y={y} width={W} height={BAND} fill={pat(lv, tint(40))} />;
+      });
+      const sun = (
+        <>
+          <circle cx={214} cy={84} r={36} fill={pat(3, tint(60))} />
+          <circle cx={214} cy={84} r={24} fill={pat(14, "var(--thumb-accent)")} />
+        </>
+      );
+      const ridges = hills.map(([base, amp, waves, phase, top, colour], k) => {
+        const d = ridge(base, amp, waves, phase);
+        const bands = Array.from({ length: 8 }, (_, b) => {
+          const y = base - amp + b * BAND;
+          return (
+            <rect
+              key={b}
+              x={0}
+              y={y}
+              width={W}
+              height={b === 7 ? H : BAND}
+              fill={pat(top - b * 2.5, colour)}
+            />
+          );
+        });
+        return (
+          <g key={base}>
+            <clipPath id={`tide-hill-${k}`}>
+              <path d={d} />
+            </clipPath>
+            <path d={d} className="thumb-bg" />
+            <g clipPath={`url(#tide-hill-${k})`}>
+              {bands}
+              {/* A solid crest: the outline's inner half, so each ridge reads against the one behind. */}
+              <path d={d} fill="none" style={{ stroke: colour }} strokeWidth={8} />
+            </g>
+          </g>
+        );
+      });
       return (
         <>
+          {sky}
+          {sun}
+          {ridges}
           <defs>
-            <Dither id="tide-sun" level={8} />
-            {hills.map(([, , , , level]) => (
-              <Dither key={level} id={`tide-${level}`} level={level} />
+            {[...pats].map(([id, [level, colour]]) => (
+              <Dither key={id} id={id} level={level} tone={colour} />
             ))}
           </defs>
-          <circle cx={232} cy={60} r={28} fill="url(#tide-sun)" />
-          {/* Each hill blanks the canvas first, so the one behind stops at its crest. */}
-          {hills.map(([base, amp, waves, phase, level]) => {
-            const d = ridge(base, amp, waves, phase);
-            return (
-              <g key={level}>
-                <path d={d} className="thumb-bg" />
-                <path
-                  d={d}
-                  fill={`url(#tide-${level})`}
-                  className="thumb-stroke-accent"
-                  strokeWidth={4}
-                />
-              </g>
-            );
-          })}
         </>
       );
     },
   },
 
-  // Two Claude stickers in different beanies: dress it up, cut it out.
   "claude-animated-svgs": {
     accent: "--thumb-studio",
     draw: () => (
       <>
-        {[24, 168].map((x, i) => (
-          <Pixels
-            key={x}
-            rows={STICKER}
-            x={x}
-            y={40}
-            cell={8}
-            palette={{
-              "#": "accent",
-              e: "var(--illustration-mascot-ink)",
-              h: i ? "muted" : "var(--illustration-mascot-ink)",
-              b: i ? "var(--illustration-mascot-ink)" : "muted",
-              o: "on",
-              l: "line",
-            }}
-          />
-        ))}
+        <Box x={0} y={0} w={W} h={H} tone={tint(14)} />
+        {/* The studio's own SVG, rendered on the server; nothing here is user input. */}
+        <g dangerouslySetInnerHTML={{ __html: SHEET.map(placed).join("") }} />
       </>
     ),
   },
 
-  // A comic panel: halftone ground, a caped hero, a POW.
+  // A comic panel: a hero bursting out of a novel's pages, with a WHAM.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
-      const burst = Array.from({ length: 16 }, (_, k) => {
-        const r = k % 2 ? 30 : 50;
-        const a = (k / 16) * Math.PI * 2 + 0.2;
-        return `${(222 + r * Math.cos(a)).toFixed(1)},${(96 + r * Math.sin(a)).toFixed(1)}`;
+      const burst = Array.from({ length: 18 }, (_, k) => {
+        const r = k % 2 ? 32 : 48;
+        const a = (k / 18) * Math.PI * 2 + 0.3;
+        return `${(236 + r * Math.cos(a)).toFixed(1)},${(84 + r * Math.sin(a)).toFixed(1)}`;
       }).join(" ");
+      // Speed lines fanning up from the book's spine.
+      const rays = [-70, -48, -28, 28, 48, 70].map((deg) => {
+        const a = ((deg - 90) * Math.PI) / 180;
+        return `M${160 + 40 * Math.cos(a)} ${150 + 40 * Math.sin(a)} L${160 + 150 * Math.cos(a)} ${150 + 150 * Math.sin(a)}`;
+      });
       return (
         <>
           <defs>
-            <Dither id="comics-tone" level={2} tone={tint(45)} />
+            <Dither id="comics-tone" level={2} tone={tint(55)} />
+            <clipPath id="comics-panel">
+              <rect x={24} y={24} width={272} height={152} />
+            </clipPath>
           </defs>
           <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
-          <Pixels
-            rows={HERO}
-            x={52}
-            y={44}
-            cell={7}
-            palette={{ "#": "accent", e: "ink", s: "bg", c: tint(60) }}
-          />
-          <polygon points={burst} className="thumb-bg thumb-stroke-ink" strokeWidth={3} />
-          <Display x={222} y={103} size={20} anchor="middle">
-            POW
+          <g clipPath="url(#comics-panel)">
+            {rays.map((d) => (
+              <path key={d} d={d} className="thumb-stroke-ink" strokeWidth={3} />
+            ))}
+            {/* The open book: two pages on a spine, lines of text. */}
+            <path
+              d="M160 150 L100 140 L92 176 L160 176 Z"
+              className="thumb-bg thumb-stroke-ink"
+              strokeWidth={3}
+            />
+            <path
+              d="M160 150 L220 140 L228 176 L160 176 Z"
+              className="thumb-bg thumb-stroke-ink"
+              strokeWidth={3}
+            />
+            {[0, 1, 2].map((k) => (
+              <g key={k}>
+                <Box x={108 - k * 2} y={150 + k * 7} w={40} h={2} tone="muted" />
+                <Box x={172} y={150 + k * 7} w={40 + k * 2} h={2} tone="muted" />
+              </g>
+            ))}
+            <Pixels
+              rows={HERO}
+              x={84}
+              y={30}
+              cell={6}
+              palette={{
+                K: "ink",
+                S: "var(--thumb-comics-suit)",
+                C: "accent",
+                Y: tint(55, "white"),
+                W: "bg",
+                G: "ink",
+              }}
+            />
+          </g>
+          <polygon points={burst} className="thumb-accent thumb-stroke-ink" strokeWidth={3} />
+          <Display x={236} y={91} size={18} anchor="middle">
+            WHAM
           </Display>
           <Box x={24} y={24} w={272} h={152} stroke={3} />
         </>

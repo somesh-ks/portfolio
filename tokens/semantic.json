@@ -685,6 +685,24 @@
         }
       }
     },
+    "comics-suit": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.511, 0.086, 186.4]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.511, 0.086, 186.4]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.6, 0.1, 186.4]
+          }
+        }
+      }
+    },
     "ramp-high": {
       "$value": "{color.white}",
       "$extensions": {
