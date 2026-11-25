@@ -1401,7 +1401,7 @@
 .spring-strip__tools {
   display: inline-flex;
   align-items: center;
-  justify-content: end;
+  justify-content: start;
   gap: 2px;
 }
 .spring-strip__tool {
@@ -1660,4 +1660,10 @@
 }
 .spring-row-strip[data-drop="after"] {
   box-shadow: 0 2px 0 var(--text-primary);
+}
+/* Phone: actions end at the right edge in both sections, so Add color lines up. */
+@media (max-width: 40rem) {
+  .spring-head > .spring-vision {
+    justify-content: flex-end;
+  }
 }
