@@ -63,8 +63,6 @@ function loadWeather(): Promise<Weather> {
   return weatherRequest;
 }
 
-const isPlainSky = (weather: Weather) => weather.sky === "cloudy" && !weather.night;
-
 type Phase = "idle" | "loading" | "running" | "over";
 interface Entry {
   name: string;
@@ -285,18 +283,19 @@ export function ClaudeRunner() {
     return loading.current;
   }, [loadBoard]);
 
-  // A different Claude on each visit. The classic one is in the server frame;
-  // any other loads the engine once the page is idle, not on the critical path.
+  // A different Claude on each visit. The server frame shows the classic one;
+  // the engine loads once the page is idle, not on the critical path.
   useEffect(() => {
     const pick = COSTUMES[Math.floor(Math.random() * COSTUMES.length)] ?? "walk";
     if (pick !== "walk") costumeRef.current = pick;
-    // The weather is asked once idle too; a plain sky with the classic Claude
-    // needs no engine until someone plays.
-    const load = () =>
-      void loadWeather().then((weather) => {
-        setWeatherCaption(weatherOverride() ? null : weatherLabel(weather));
-        if (pick !== "walk" || !isPlainSky(weather)) void ensureEngine();
-      });
+    // The engine draws the horizon and the weather, so it always loads once
+    // idle; the caption waits for the visitor's real weather.
+    const load = () => {
+      void ensureEngine();
+      void loadWeather().then((weather) =>
+        setWeatherCaption(weatherOverride() ? null : weatherLabel(weather)),
+      );
+    };
     // Safari has no requestIdleCallback; a short timeout stands in.
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(load, { timeout: 3000 });

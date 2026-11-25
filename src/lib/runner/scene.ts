@@ -307,3 +307,70 @@ export function dress(face: Face, accessory: Accessory, costume: string): Cell[]
     [left - 3, top - 4, 2, 2, "gold"],
   ];
 }
+
+/** Faint horizon scenery, one colour: palms, pines, a house, low hills. */
+const tree = (rows: string[]) => art(rows, 0, 0, { X: "line" });
+
+const PALM = tree([
+  "....XXX.XXX....",
+  "..XXXXXXXXXXX..",
+  ".XX...XXX...XX.",
+  "X....XXXXX....X",
+  "....X.XX.X.....",
+  "...X...XX..X...",
+  ".......XX......",
+  "......XX.......",
+  "......XX.......",
+  "......XX.......",
+  ".......XX......",
+  ".......XX......",
+  ".......XX......",
+  "......XXXX.....",
+]);
+const PINE = tree([
+  ".....X.....",
+  "....XXX....",
+  "...XXXXX...",
+  "....XXX....",
+  "...XXXXX...",
+  "..XXXXXXX..",
+  "....XXX....",
+  "..XXXXXXX..",
+  ".XXXXXXXXX.",
+  "...XXXXX...",
+  ".XXXXXXXXX.",
+  "XXXXXXXXXXX",
+  ".....X.....",
+  ".....X.....",
+]);
+const HUT = tree(["...X...", "..XXX..", ".XXXXX.", "XXXXXXX", ".X.X.X.", ".XXXXX."]);
+
+export const SCENERY_STRIP = 320;
+
+/** A hill's height at x along the strip: two soft humps, flat between. */
+export function hillHeight(x: number): number {
+  const at = (centre: number, width: number, height: number) => {
+    const d = Math.abs(x - centre) / width;
+    return d >= 1 ? 0 : Math.round(height * (1 - d * d));
+  };
+  return Math.max(at(75, 70, 6), at(260, 60, 5));
+}
+
+/** Items along the strip: [x, sprite], standing on the hills. Snow swaps
+ * palms for pines. */
+export function scenery(sky: Sky): (readonly [number, Cell[], number])[] {
+  // At rest the first ~45 cells (Claude's spot) stay clear of trees.
+  const plant = sky === "snow" ? PINE : PALM;
+  const items: (readonly [number, Cell[]])[] = [
+    [66, plant],
+    [90, plant],
+    [140, HUT],
+    [214, plant],
+    [262, plant],
+    [284, plant],
+  ];
+  return items.map(([x, cells]) => {
+    const height = Math.max(...cells.map(([, y]) => y)) + 1;
+    return [x, cells, height] as const;
+  });
+}

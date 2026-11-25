@@ -28,6 +28,9 @@ import {
 import {
   accessoryFor,
   cloudCount,
+  hillHeight,
+  scenery,
+  SCENERY_STRIP,
   dress,
   findFace,
   type Face,
@@ -76,6 +79,8 @@ const FOG_BANK: readonly (readonly [number, number, number])[] = [
   [0, 3, 40],
   [0, 4, 40],
 ];
+/** Fog and scenery stay right of this column: the widest ride (the car) plus a gap. */
+const CLEAR_OF_CLAUDE = WORLD.mascotX + 52;
 const FOG_SPOTS: readonly (readonly [number, number])[] = [
   [0, 47],
   [55, 49],
@@ -93,6 +98,8 @@ const STROLL = 0.6;
 const RUN = 1.5;
 /** Clouds drift a few cells a second at rest and at a sixth of the run speed. */
 const CLOUD_PARALLAX = 1 / 6;
+/** The horizon rolls by at a third of the run speed: nearer than clouds. */
+const SCENERY_PARALLAX = 1 / 3;
 
 export interface EngineCallbacks {
   onScore: (points: number) => void;
@@ -143,6 +150,7 @@ export function createEngine(
     ? 0
     : ((performance.now() / 1000) * CLOUD_IDLE_SPEED) % CLOUD_STRIP;
   let idleLast: number | null = null;
+  let sceneryShift = 0;
   let colors = {} as Record<Tone | "ground" | "dust" | "cloud", string>;
   let weather = initialWeather;
   const particles = makeParticles();
@@ -241,7 +249,7 @@ export function createEngine(
   function drawParticles() {
     if (!particleSpeed(weather.sky)) return;
     const snow = weather.sky === "snow";
-    const color = snow ? colors.muted : colors.sky;
+    const color = colors.sky;
     for (const { x, y } of particles)
       for (let copy = x; copy < viewWidth; copy += 200)
         fill(copy, Math.floor(y), 1, Math.min(snow ? 1 : 3, WORLD.ground - Math.floor(y)), color);
@@ -257,7 +265,13 @@ export function createEngine(
       for (const [spot, y] of FOG_SPOTS) {
         // Wrap a bank's width early so banks slide off the left edge.
         const x = ((((spot + copy - shift + 40) % span) + span) % span) - 40;
-        for (const [cx, cy, w] of FOG_BANK) fill(x + cx, y + cy, w, 1, colors.cloud);
+        // Banks thin out before they reach Claude, so fog never sits on him.
+        for (const [cx, cy, w] of FOG_BANK) {
+          const left = Math.max(x + cx, CLEAR_OF_CLAUDE);
+          const right = x + cx + w;
+          // A sliver cut off at the edge would float; skip it.
+          if (right - left >= Math.min(w, 16)) fill(left, y + cy, right - left, 1, colors.cloud);
+        }
       }
   }
 
@@ -268,12 +282,35 @@ export function createEngine(
     if (!motion.matches) stepParticles(particles, weather.sky, dt, WORLD.ground);
   }
 
+  /** Faint horizon: hills and trees in a light grey, behind everything that
+   * matters. They hold still at rest and roll by slowly during a run. */
+  function drawScenery() {
+    const shift = Math.floor(sceneryShift);
+    const strip = SCENERY_STRIP;
+    const offset = ((shift % strip) + strip) % strip;
+    ctx.globalAlpha = 0.5;
+    for (let x = 0; x < viewWidth; x += 1) {
+      const height = hillHeight((x + offset) % strip);
+      if (height) fill(x, WORLD.ground - height, 1, height, colors.cloud);
+    }
+    ctx.globalAlpha = 1;
+    for (let copy = -strip; copy < viewWidth + strip; copy += strip)
+      for (const [spot, cells, height] of scenery(weather.sky)) {
+        const x = spot + copy - offset;
+        if (x > viewWidth || x < -20) continue;
+        const base = WORLD.ground - hillHeight(spot) - height;
+        for (const [cx, cy, w, h] of cells) fill(x + cx, base + cy, w, h, colors.cloud);
+      }
+    ctx.globalAlpha = 1;
+  }
+
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const state = run;
     const distance = state?.distance ?? 0;
     drawLights();
     drawSky();
+    drawScenery();
     drawParticles();
     // Sky only: obstacles stay crisp, so fog never makes a run harder.
     drawFog();
@@ -342,7 +379,10 @@ export function createEngine(
       const milestoneBefore = Math.floor(score(state) / MILESTONE);
       const wasGrounded = grounded(state);
       step(state, pressed, viewWidth);
-      if (!motion.matches) cloudShift += state.speed * STEP * CLOUD_PARALLAX;
+      if (!motion.matches) {
+        cloudShift += state.speed * STEP * CLOUD_PARALLAX;
+        sceneryShift += state.speed * STEP * SCENERY_PARALLAX;
+      }
       if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.time;
       pressed = false;
       accumulator -= STEP;
