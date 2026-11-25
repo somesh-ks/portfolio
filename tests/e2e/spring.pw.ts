@@ -224,3 +224,17 @@ test("dark chroma with a gray brand never shows NaN", async ({ page }) => {
   expect(await page.locator("body").innerHTML()).not.toContain("NaN");
   expect(errors.map((e) => e.message)).toEqual([]);
 });
+
+test("the share link comes first and the Export button confirms it", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/spring");
+  await page.getByRole("button", { name: "Export one area" }).click();
+  await expect(page.getByRole("menuitem").first()).toHaveText("Copy share link");
+  await page.getByRole("menuitem", { name: "Copy share link" }).click();
+  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/spring?s=");
+  await expect(page.getByRole("link", { name: "Spring" })).toHaveAttribute(
+    "href",
+    "/projects/spring",
+  );
+});

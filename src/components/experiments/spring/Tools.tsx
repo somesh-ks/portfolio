@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
@@ -97,7 +98,8 @@ const AREAS: { area: Area; label: string }[] = [
  * downloads one area's CSS and DTCG JSON, or copies a share link.
  */
 function ExportMenu({ system }: { system: System }) {
-  const [, copy, said] = useCopy();
+  const [copied, copy, said] = useCopy();
+  const [saved, setSaved] = useState(false);
   const name = slug(system.input.name);
   const [importing, setImporting] = useState(false);
   const [dropped, setDropped] = useState<Dropped>(NOTHING);
@@ -122,7 +124,11 @@ function ExportMenu({ system }: { system: System }) {
       removeEventListener("drop", drop);
     };
   }, []);
-  const all = () => save(`${name}.zip`, zip(withJson(system, exportAll(system))));
+  const all = () => {
+    save(`${name}.zip`, zip(withJson(system, exportAll(system))));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
   const area = (a: Area) => {
     const { css, json } = exportArea(system, a);
     save(`${name}-${a}.zip`, zip([css, json].map((x) => ({ path: x.path, content: x.content }))));
@@ -130,7 +136,7 @@ function ExportMenu({ system }: { system: System }) {
   return (
     <span className="spring-split">
       <button type="button" className="button button--primary" onClick={all}>
-        Export
+        {copied === "link" ? "Link copied" : saved ? "Saved" : "Export"}
       </button>
       <Menu.Root>
         <Menu.Trigger
@@ -142,6 +148,9 @@ function ExportMenu({ system }: { system: System }) {
         <Menu.Portal>
           <Menu.Positioner sideOffset={4} align="end" collisionPadding={16} className="z-50">
             <Menu.Popup className="select__popup">
+              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
+                <span className="select__text">Copy share link</span>
+              </Menu.Item>
               <Menu.Item className="select__item" onClick={all}>
                 <span className="select__text">Everything</span>
                 <span className="select__hint">.zip</span>
@@ -152,9 +161,6 @@ function ExportMenu({ system }: { system: System }) {
                   <span className="select__hint">.css + .json</span>
                 </Menu.Item>
               ))}
-              <Menu.Item className="select__item" onClick={() => copy("link", shareUrl())}>
-                <span className="select__text">Copy share link</span>
-              </Menu.Item>
               <Menu.Item
                 className="select__item"
                 onClick={() =>
@@ -422,7 +428,9 @@ export function SpringApp() {
     <div className="spring spring-app__shell">
       <Fonts type={input.type} />
       <header className="spring-app__bar">
-        <h1 className="spring-app__name">Spring</h1>
+        <h1 className="spring-app__name">
+          <Link href="/projects/spring">Spring</Link>
+        </h1>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (
             <button
