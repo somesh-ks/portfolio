@@ -1,44 +1,75 @@
 /**
- * Contact sheet: every move at its still frame, with each prop it allows (first column bare).
- * Writes sheet.png (outline on), sheet-plain.png (outline off) and sheet-dark.png into the
- * folder given as the first argument (default /mnt/project-files/sticker-studio).
+ * Contact sheet: every action at its hero frame with no items, then every item on idle (rides and
+ * hand-held items on wave), outline thin. Writes engine-sheet.png (light) and engine-sheet-dark.png
+ * into the folder given as the first argument (default /mnt/project-files/sticker-studio/v3).
+ * Optional second argument: an outline width 0, 1 or 2.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
-import { allowed, MOVES, PROPS } from "../src/lib/stickers";
+import { ACTIONS, ITEMS, type Look, type Outline, stillFrame } from "../src/lib/stickers";
 import { rasterFrame } from "../src/lib/stickers/export";
 
-const out = process.argv[2] ?? "/mnt/project-files/sticker-studio";
+const out = process.argv[2] ?? "/mnt/project-files/sticker-studio/v3";
+const outline = (Number(process.argv[3] ?? 1) % 3) as Outline;
 mkdirSync(out, { recursive: true });
 
 const SCALE = 4;
-const CELL_W = 190;
-const CELL_H = 190;
-const cols = [null, ...PROPS];
+const W = 230;
+const H = 230;
+const COLS = 6;
 
-async function sheet(file: string, outline: boolean, bg: string) {
+interface Cell {
+  look: Look;
+  frame: number;
+  label: string;
+}
+const cells: Cell[] = [
+  ...ACTIONS.map((a) => ({
+    look: { action: a.id, items: [], outline },
+    frame: stillFrame(a.id),
+    label: a.name,
+  })),
+  ...ITEMS.map((i) => {
+    const action = i.slot === "ride" ? "wave" : "idle";
+    return {
+      look: { action, items: [i.id], outline } as Look,
+      frame: i.slot === "effect" ? 10 : stillFrame(action),
+      label: `${i.name} · ${i.anchor}`,
+    };
+  }),
+];
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+async function sheet(file: string, bg: string, fg: string) {
+  const rows = Math.ceil(cells.length / COLS);
   const overlays: OverlayOptions[] = [];
-  for (const [row, move] of MOVES.entries()) {
-    for (const [col, prop] of cols.entries()) {
-      if (prop && !allowed(move.id, prop.id)) continue;
-      const look = { move: move.id, props: prop ? [prop.id] : [], outline };
-      const { width, height, data } = rasterFrame(look, move.still, SCALE, false);
-      overlays.push({
-        input: Buffer.from(data),
-        raw: { width, height, channels: 4 },
-        left: col * CELL_W + Math.max(0, Math.floor((CELL_W - width) / 2)),
-        top: row * CELL_H + Math.max(0, Math.floor((CELL_H - height) / 2)),
-      });
-    }
+  for (const [i, c] of cells.entries()) {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const { width, height, data } = rasterFrame(c.look, c.frame, SCALE, false);
+    const sw = Math.min(width, W);
+    const sh = Math.min(height, H - 24);
+    const img = await sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
+      .resize(sw, sh, { fit: "inside", kernel: "nearest" })
+      .png()
+      .toBuffer();
+    overlays.push({
+      input: img,
+      left: col * W + Math.floor((W - sw) / 2),
+      top: row * H + Math.floor((H - 24 - sh) / 2),
+    });
+    overlays.push({
+      input: Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="22"><text x="${W / 2}" y="15" font-family="sans-serif" font-size="13" fill="${fg}" text-anchor="middle">${esc(c.label)}</text></svg>`,
+      ),
+      left: col * W,
+      top: row * H + H - 24,
+    });
   }
   await sharp({
-    create: {
-      width: cols.length * CELL_W,
-      height: MOVES.length * CELL_H,
-      channels: 4,
-      background: bg,
-    },
+    create: { width: COLS * W, height: rows * H, channels: 4, background: bg },
   })
     .composite(overlays)
     .png()
@@ -46,6 +77,5 @@ async function sheet(file: string, outline: boolean, bg: string) {
   console.warn(`wrote ${path.join(out, file)}`);
 }
 
-await sheet("sheet.png", true, "#F3F1EA");
-await sheet("sheet-plain.png", false, "#F3F1EA");
-await sheet("sheet-dark.png", true, "#1F1E1D");
+await sheet("engine-sheet.png", "#F3F1EA", "#141413");
+await sheet("engine-sheet-dark.png", "#1F1E1D", "#E8E6DC");

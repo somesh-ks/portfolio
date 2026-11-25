@@ -1,8 +1,8 @@
 import { bounds, clipFor, FPS, type Look, lookKey, stillFrame } from "./look";
 import type { Clip, Layer, Rect, Step } from "./model";
 import { trackIsStatic } from "./model";
-import type { MoveId } from "./moves";
-import { PROPS, type PropId, propLayers } from "./props";
+import type { ActionId } from "./actions";
+import { itemDef, partsOf } from "./items";
 
 const fmt = (n: number) => String(Math.round(n * 1000) / 1000);
 const esc = (s: string) =>
@@ -88,8 +88,8 @@ function keyframes(name: string, track: Step[]): string {
 }
 
 function defaultTitle(look: Look): string {
-  const names = look.props.map((id) => PROPS.find((p) => p.id === id)?.name.toLowerCase());
-  return `Claude sticker, ${look.move}${names.length ? ` with ${names.join(", ")}` : ""}`;
+  const names = look.items.map((id) => itemDef(id)?.name.toLowerCase());
+  return `Claude sticker, ${look.action}${names.length ? ` with ${names.join(", ")}` : ""}`;
 }
 
 /**
@@ -104,7 +104,7 @@ export function stickerSvg(
   const clip = clipFor(look);
   const box = bounds(look);
   const title = opts.title ?? defaultTitle(look);
-  const at = opts.frame ?? stillFrame(look.move);
+  const at = opts.frame ?? stillFrame(look.action);
   if (!opts.animated) return `${open(box, title)}${flatPaths(frameItems(clip, at))}</svg>`;
 
   const i = ((Math.trunc(at) % clip.frames) + clip.frames) % clip.frames;
@@ -150,20 +150,37 @@ function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>): string {
   return `${open(boxOf(all), null)}${flatPaths(all)}</svg>`;
 }
 
-/** The mascot at the move's still frame, no props, outline off, cropped to what is drawn. */
-export function moveThumbSvg(move: MoveId): string {
-  const look: Look = { move, props: [], outline: false };
-  return thumb(frameItems(clipFor(look), stillFrame(move), true));
+/** The mascot at the action's still frame, no items, outline off, cropped to what is drawn. */
+export function actionThumbSvg(action: ActionId): string {
+  const look: Look = { action, items: [], outline: 0 };
+  return thumb(frameItems(clipFor(look), stillFrame(action), true));
 }
 
-/** The prop art alone, cropped. */
-export function propThumbSvg(prop: PropId): string {
-  return thumb(propLayers(prop).map((layer) => ({ layer, dx: 0, dy: 0 })));
+/** The item art alone, cropped, on the frame where it shows the most. */
+export function itemThumbSvg(id: string): string {
+  const def = itemDef(id);
+  if (!def) return `${open({ x: 0, y: 0, w: 1, h: 1 }, null)}</svg>`;
+  const parts = partsOf(def);
+  const n = 24;
+  let best: Array<{ layer: Layer; dx: number; dy: number }> = [];
+  let bestCount = -1;
+  for (let f = 0; f < n; f++) {
+    const items = parts.flatMap((p) => {
+      const o = p.at ? p.at(f, n) : [0, 0];
+      return o ? p.layers.map((layer) => ({ layer, dx: o[0], dy: o[1] })) : [];
+    });
+    const count = items.reduce((c, i) => c + i.layer.rects.length, 0);
+    if (count > bestCount) {
+      best = items;
+      bestCount = count;
+    }
+  }
+  return thumb(best);
 }
 
-/** The look's silhouette cue for the outline control: the mascot with or without the die-cut. */
-export function outlineThumbSvg(outline: boolean): string {
-  const look: Look = { move: "wave", props: [], outline };
+/** The outline control's cue: the mascot at its still frame with that outline width. */
+export function outlineThumbSvg(outline: 0 | 1 | 2): string {
+  const look: Look = { action: "wave", items: [], outline };
   const items = frameItems(clipFor(look), stillFrame("wave"), true);
   return `${open(boxOf(items), null)}${flatPaths(items)}</svg>`;
 }

@@ -20,7 +20,7 @@ export interface Layer {
 /** [dx, dy, visible] */
 export type Step = readonly [number, number, 0 | 1];
 
-export type PartKind = "shadow" | "body" | "eyes" | "prop" | "own" | "outline";
+export type PartKind = "shadow" | "body" | "eyes" | "item" | "outline";
 
 export interface Part {
   id: string;

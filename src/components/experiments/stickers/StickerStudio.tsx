@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, type PointerEvent, useRef, useState } from "react";
 import { Pause, Play, Shuffle } from "lucide-react";
 import {
-  allowed,
+  ACTIONS,
+  type ActionId,
+  actionThumbSvg,
   bounds,
   DEFAULT_LOOK,
   FPS,
@@ -14,15 +16,12 @@ import {
   type Look,
   lookFromQuery,
   lookToQuery,
-  MOVES,
-  type MoveId,
-  moveThumbSvg,
+  ITEMS,
+  itemThumbSvg,
+  type Outline,
   outlineThumbSvg,
-  PROPS,
-  type PropId,
-  propThumbSvg,
+  setItem,
   stickerSvg,
-  toggleProp,
 } from "@/lib/stickers";
 import { useSound } from "@/components/providers/SoundProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -33,30 +32,22 @@ import "./stickers.css";
 type Tab = "static" | "animated";
 const TABS: Tab[] = ["static", "animated"];
 const TAB_LABEL: Record<Tab, string> = { static: "Static", animated: "Animated" };
+const OUTLINES: Array<[Outline, string]> = [
+  [0, "Plain"],
+  [1, "Thin"],
+  [2, "Thick"],
+];
 
-const stillOf = (move: MoveId) => MOVES.find((m) => m.id === move)?.still ?? 0;
+const stillOf = (action: ActionId) => ACTIONS.find((m) => m.id === action)?.still ?? 0;
 
-/** The look with some props cleared for a move that can't take them. */
-const withMove = (look: Look, move: MoveId): Look => ({
-  ...look,
-  move,
-  props: look.props.filter((p) => allowed(move, p)),
-});
-
-/** A random move with up to two allowed props, one per slot. */
+/** A random action with up to two items from different slots. */
 function shuffled(look: Look): Look {
-  const move = MOVES[Math.floor(Math.random() * MOVES.length)]!.id;
-  const pool = PROPS.filter((p) => allowed(move, p.id)).sort(() => Math.random() - 0.5);
+  const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)]!.id;
+  const pool = [...ITEMS].sort(() => Math.random() - 0.5);
   const count = Math.floor(Math.random() * 3);
-  const slots = new Set<string>();
-  const props: PropId[] = [];
-  for (const p of pool) {
-    if (props.length >= count) break;
-    if (slots.has(p.slot)) continue;
-    slots.add(p.slot);
-    props.push(p.id);
-  }
-  return { ...look, move, props };
+  let next: Look = { ...look, action, items: [] };
+  for (const item of pool.slice(0, count)) next = setItem(next, item.id);
+  return next;
 }
 
 /** The frame an animated SVG is showing right now, read from its running animation. */
@@ -132,21 +123,20 @@ export function StickerStudio() {
   useEffect(() => {
     /* oxlint-disable react/set-state-in-effect -- reads the URL, which the server can't know */
     const q = new URLSearchParams(location.search);
-    const { tab: t, frame: f, ...l } = lookFromQuery(q);
+    const { frame: f, ...l } = lookFromQuery(q);
     setLook(l);
-    setTab(t);
-    setFrame(q.has("fr") && f !== stillOf(l.move) ? f : null);
+    setFrame(q.has("fr") && f !== stillOf(l.action) ? f : null);
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
     setReady(true);
     /* oxlint-enable react/set-state-in-effect */
   }, []);
 
   const frames = frameCount(look);
-  const shown = Math.min(frame ?? stillOf(look.move), frames - 1);
+  const shown = Math.min(frame ?? stillOf(look.action), frames - 1);
 
   useEffect(() => {
     if (!ready) return;
-    const extra = { tab, frame: tab === "static" && frame !== null ? shown : undefined };
+    const extra = { frame: tab === "static" && frame !== null ? shown : undefined };
     history.replaceState(null, "", `?${lookToQuery(look, extra)}`);
   }, [ready, look, tab, frame, shown]);
 
@@ -185,7 +175,7 @@ export function StickerStudio() {
 
   const running = tab === "animated" && playing;
   const still = tab === "static" || !playing;
-  const stillFrame = tab === "static" ? shown : (pausedAt ?? stillOf(look.move));
+  const stillFrame = tab === "static" ? shown : (pausedAt ?? stillOf(look.action));
   const staticSvg = useMemo(
     () => stickerSvg(look, { animated: false, frame: stillFrame }),
     [look, stillFrame],
@@ -201,9 +191,9 @@ export function StickerStudio() {
     if (moved) setFrame(null);
   }, []);
 
-  const pick = (move: MoveId) => {
+  const pick = (action: ActionId) => {
     play("tick");
-    change(withMove(look, move), true);
+    change({ ...look, action }, true);
   };
   const togglePlay = () => {
     play("tick");
@@ -214,9 +204,9 @@ export function StickerStudio() {
 
   const scrubbable = useMemo(() => hasMotion(look), [look]);
 
-  const moveThumbs = useMemo(() => MOVES.map((m) => moveThumbSvg(m.id)), []);
-  const propThumbs = useMemo(() => PROPS.map((p) => propThumbSvg(p.id)), []);
-  const outlineThumbs = useMemo(() => [true, false].map((o) => outlineThumbSvg(o)), []);
+  const moveThumbs = useMemo(() => ACTIONS.map((m) => actionThumbSvg(m.id)), []);
+  const propThumbs = useMemo(() => ITEMS.map((p) => itemThumbSvg(p.id)), []);
+  const outlineThumbs = useMemo(() => OUTLINES.map(([o]) => outlineThumbSvg(o)), []);
 
   const go = (t: Tab) => {
     setTab(t);
@@ -274,14 +264,14 @@ export function StickerStudio() {
         <section className="stickers-section">
           <h2 className="stickers-head">Move</h2>
           <div role="radiogroup" aria-label="Move" className="stickers-grid">
-            {MOVES.map((m, i) => (
+            {ACTIONS.map((m, i) => (
               <label key={m.id} className="stickers-tile pressable" title={m.name}>
                 <input
                   type="radio"
                   name={`${tabsId}-move`}
                   className="sr-only"
                   aria-label={m.name}
-                  checked={m.id === look.move}
+                  checked={m.id === look.action}
                   onChange={() => pick(m.id)}
                 />
                 <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: moveThumbs[i]! }} />
@@ -292,19 +282,18 @@ export function StickerStudio() {
         <section className="stickers-section">
           <h2 className="stickers-head">Props</h2>
           <div className="stickers-grid">
-            {PROPS.map((p, i) => (
+            {ITEMS.map((p, i) => (
               <button
                 key={p.id}
                 type="button"
-                aria-pressed={look.props.includes(p.id)}
+                aria-pressed={look.items.includes(p.id)}
                 aria-label={p.name}
                 title={p.name}
-                disabled={!allowed(look.move, p.id)}
                 className="stickers-tile pressable"
                 data-sound="none"
                 onClick={() => {
                   play("tick");
-                  change(toggleProp(look, p.id));
+                  change(setItem(look, p.id));
                 }}
                 dangerouslySetInnerHTML={{ __html: propThumbs[i]! }}
               />
@@ -314,17 +303,13 @@ export function StickerStudio() {
         <section className="stickers-section">
           <h2 className="stickers-head">Outline</h2>
           <div role="radiogroup" aria-label="Outline" className="stickers-grid">
-            {[true, false].map((o, i) => (
-              <label
-                key={String(o)}
-                className="stickers-tile pressable"
-                title={o ? "Die-cut" : "Plain"}
-              >
+            {OUTLINES.map(([o, label], i) => (
+              <label key={o} className="stickers-tile pressable" title={label}>
                 <input
                   type="radio"
                   name={`${tabsId}-outline`}
                   className="sr-only"
-                  aria-label={o ? "Die-cut" : "Plain"}
+                  aria-label={label}
                   checked={look.outline === o}
                   onChange={() => {
                     play("tick");
@@ -358,7 +343,7 @@ export function StickerStudio() {
             dangerouslySetInnerHTML={{ __html: still ? staticSvg : animatedSvg }}
           />
         </div>
-        <span className="sr-only">{MOVES.find((m) => m.id === look.move)?.name} sticker</span>
+        <span className="sr-only">{ACTIONS.find((m) => m.id === look.action)?.name} sticker</span>
         {tab === "static" && frames > 1 && scrubbable ? (
           <Scrubber frames={frames} value={shown} onChange={setFrame} />
         ) : null}

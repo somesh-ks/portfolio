@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Download } from "lucide-react";
-import { allowed, type Look, lookToQuery, MOVES } from "@/lib/stickers";
+import { ACTIONS, type Look, lookToQuery } from "@/lib/stickers";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Chevron } from "@/components/ui/Select";
 import { zip } from "../spring/zip";
@@ -49,7 +49,7 @@ function group(title: string, children: ReactNode) {
   );
 }
 
-const fileName = (look: Look) => ["claude", look.move, ...look.props].join("-");
+const fileName = (look: Look) => ["claude", look.action, ...look.items].join("-");
 
 /**
  * A split button like Spring's: the main press downloads the headline format, the menu lists the
@@ -99,12 +99,14 @@ export function ExportMenu({
 
   const all = async () => {
     const ext = animated ? "gif" : "png";
-    const moves = MOVES.filter((m) => look.props.every((p) => allowed(m.id, p)));
+    const moves = ACTIONS;
     try {
       const files = await Promise.all(
         moves.map(async (m) => ({
-          path: `${["claude", m.id, ...look.props].join("-")}.${ext}`,
-          content: await bytes(route({ ...look, move: m.id }, animated ? "f=gif" : "f=png&s=512")),
+          path: `${["claude", m.id, ...look.items].join("-")}.${ext}`,
+          content: await bytes(
+            route({ ...look, action: m.id }, animated ? "f=gif" : "f=png&s=512"),
+          ),
         })),
       );
       save(`claude-stickers-${ext}.zip`, zip(files));

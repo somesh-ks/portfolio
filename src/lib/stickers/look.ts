@@ -1,47 +1,58 @@
+import { ACTION_DEFS, type ActionDef, type ActionId } from "./actions";
+import { ITEM_DEFS, type ItemDef, itemDef, isItemId, type Slot, slotOrder } from "./items";
 import { type Clip, frameRects } from "./model";
-import { buildClip } from "./rig";
-import { MOVE_DEFS, type MoveId } from "./moves";
-import { PROPS, type PropId, type Slot, slotOf } from "./props";
+import { buildClip, type Outline } from "./rig";
 
 export const FPS = 12;
 
-export const MOVES: readonly { id: MoveId; name: string; free: Slot[]; still: number }[] =
-  MOVE_DEFS.map(({ id, name, free, still }) => ({ id, name, free, still }));
+export type ItemId = string;
+export type { ActionId, Outline };
 
 export interface Look {
-  move: MoveId;
-  props: PropId[];
-  outline: boolean;
+  action: ActionId;
+  /** At most one per slot, in sidebar order. Ids are unique across slots. */
+  items: ItemId[];
+  /** 0 off (soft ground shadow), 1 thin (1 cell), 2 thick (2 cells). */
+  outline: Outline;
 }
 
-export const DEFAULT_LOOK: Look = { move: "wave", props: ["beanie"], outline: true };
+export const DEFAULT_LOOK: Look = { action: "wave", items: ["beanie"], outline: 1 };
 
-const def = (move: MoveId) => MOVE_DEFS.find((m) => m.id === move) ?? MOVE_DEFS[0]!;
+export const ACTIONS: readonly Pick<ActionDef, "id" | "name" | "frames" | "still">[] =
+  ACTION_DEFS.map(({ id, name, frames, still }) => ({ id, name, frames, still }));
 
-export function allowed(move: MoveId, prop: PropId): boolean {
-  return def(move).free.includes(slotOf(prop));
-}
+export const ITEMS: readonly Pick<ItemDef, "id" | "name" | "slot" | "anchor" | "claims">[] =
+  ITEM_DEFS.map(({ id, name, slot, anchor, claims }) => ({ id, name, slot, anchor, claims }));
 
-/** Allowed props only, one per slot (the last wins), in PROPS order. */
-export function cleanProps(move: MoveId, props: readonly PropId[]): PropId[] {
-  const bySlot = new Map<Slot, PropId>();
-  for (const p of props) if (allowed(move, p)) bySlot.set(slotOf(p), p);
-  const keep = new Set(bySlot.values());
-  return PROPS.filter((p) => keep.has(p.id)).map((p) => p.id);
-}
+const actionDef = (id: ActionId) => ACTION_DEFS.find((a) => a.id === id) ?? ACTION_DEFS[0]!;
+export const isActionId = (id: string): id is ActionId => ACTION_DEFS.some((a) => a.id === id);
 
-/** Adds the prop, or removes it when worn. A prop in an occupied slot replaces the old one. */
-export function toggleProp(look: Look, prop: PropId): Look {
-  if (!allowed(look.move, prop)) return look;
-  if (look.props.includes(prop)) {
-    return { ...look, props: look.props.filter((p) => p !== prop) };
+const slotOf = (id: ItemId): Slot | undefined => itemDef(id)?.slot;
+
+/** Known ids only, one per slot (the last wins), in sidebar order. */
+export function cleanItems(ids: readonly string[]): ItemId[] {
+  const bySlot = new Map<Slot, ItemId>();
+  for (const id of ids) {
+    const def = itemDef(id);
+    if (def) bySlot.set(def.slot, id);
   }
-  return { ...look, props: cleanProps(look.move, [...look.props, prop]) };
+  return [...bySlot].sort(([a], [b]) => slotOrder(a) - slotOrder(b)).map(([, id]) => id);
 }
 
-export const stillFrame = (move: MoveId): number => def(move).still;
+/** Wears the item, or takes it off when it is already worn. A new pick replaces its slot's item. */
+export function setItem(look: Look, id: ItemId): Look {
+  if (!isItemId(id)) return look;
+  if (look.items.includes(id)) return { ...look, items: look.items.filter((i) => i !== id) };
+  return { ...look, items: cleanItems([...look.items, id]) };
+}
 
-/** True when the move shows more than one distinct picture, so a frame scrubber means something. */
+export function clearSlot(look: Look, slot: Slot): Look {
+  return { ...look, items: look.items.filter((id) => slotOf(id) !== slot) };
+}
+
+export const stillFrame = (action: ActionId): number => actionDef(action).still;
+
+/** True when the clip shows more than one distinct picture, so a frame scrubber means something. */
 export function hasMotion(look: Look): boolean {
   const clip = clipFor(look);
   const first = JSON.stringify(frameRects(clip, 0));
@@ -51,12 +62,12 @@ export function hasMotion(look: Look): boolean {
 }
 
 export function frameCount(look: Look): number {
-  return clipFor(look).frames;
+  return actionDef(look.action).frames;
 }
 
 /** Stable identity of a look: cache key and the seed for hashed CSS names. */
 export const lookKey = (look: Look): string =>
-  `${look.move}|${cleanProps(look.move, look.props).join(",")}|${look.outline ? 1 : 0}`;
+  `${look.action}|${cleanItems(look.items).join(",")}|${look.outline}`;
 
 const CACHE_LIMIT = 48;
 const clips = new Map<string, Clip>();
@@ -73,7 +84,8 @@ export function clipFor(look: Look): Clip {
         boxes.delete(oldest);
       }
     }
-    clip = buildClip(def(look.move).spec, cleanProps(look.move, look.props), look.outline);
+    const defs = cleanItems(look.items).map((id) => itemDef(id)!);
+    clip = buildClip(actionDef(look.action), defs, look.outline);
     clips.set(key, clip);
   }
   return clip;

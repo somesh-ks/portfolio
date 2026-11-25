@@ -100,7 +100,7 @@ export function lottieJson(look: Look): object {
     op: N,
     w: Math.round(box.w * U),
     h: Math.round(box.h * U),
-    nm: `Claude sticker ${look.move}`,
+    nm: `Claude sticker ${look.action}`,
     ddd: 0,
     assets: [],
     layers: flat.layers,

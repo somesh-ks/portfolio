@@ -1,3 +1,6 @@
+import type { ActionDef, Pose } from "./actions";
+import type { ItemDef } from "./items";
+import { partsOf } from "./items";
 import {
   type Clip,
   HIDDEN,
@@ -8,15 +11,27 @@ import {
   rectLayer,
   type Step,
 } from "./model";
-import { COLORS as K, type PropId, propLayers, propZ, slotOf } from "./props";
+import { COLORS as K } from "./palette";
+
+export type Outline = 0 | 1 | 2;
 
 // Mascot-local geometry. 24 wide, 16 tall. Head 4..19, arms 0..3 / 20..23 on rows 4..7.
 const TORSO: Layer[] = [rectLayer(K.body, [[4, 0, 16, 11]]), rectLayer(K.shade, [[4, 11, 16, 1]])];
-const ARM_L: Layer[] = [rectLayer(K.body, [[0, 4, 4, 3]]), rectLayer(K.shade, [[0, 7, 4, 1]])];
-const ARM_R: Layer[] = [rectLayer(K.body, [[20, 4, 4, 3]]), rectLayer(K.shade, [[20, 7, 4, 1]])];
+const armLayers = (x: number): Layer[] => [
+  rectLayer(K.body, [[x, 4, 4, 3]]),
+  rectLayer(K.shade, [[x, 7, 4, 1]]),
+];
+// The arm roots sit under the torso on the arm's own track. They overlap the arm by two cells and
+// the torso by three, so an outward step of up to 3 cells still leaves the limb joined: no
+// antialiased crack where two abutting rects meet, and no white die-cut showing through it.
+const ARM_L: Layer[] = armLayers(0);
+const ARM_R: Layer[] = armLayers(20);
+const ROOT_L: Layer[] = [rectLayer(K.body, [[2, 4, 6, 3]]), rectLayer(K.shade, [[2, 7, 6, 1]])];
+const ROOT_R: Layer[] = [rectLayer(K.body, [[16, 4, 6, 3]]), rectLayer(K.shade, [[16, 7, 6, 1]])];
 const LEG_X = [4, 8, 14, 18];
+// Legs start one row up, under the torso, for the same reason.
 const legLayers = (x: number): Layer[] => [
-  rectLayer(K.body, [[x, 12, 2, 3]]),
+  rectLayer(K.body, [[x, 11, 2, 4]]),
   rectLayer(K.shade, [[x, 15, 2, 1]]),
 ];
 const EYES = {
@@ -76,45 +91,34 @@ const SHADOW: Layer[][] = [
   ],
 ];
 
-const body = (p: Pose): [number, number] => p.body ?? [0, 0];
-
-export interface Pose {
-  body?: [number, number];
-  armL?: [number, number];
-  armR?: [number, number];
-  /** Absolute leg offsets (dy), so airborne poses can tuck. */
-  legs?: [number, number, number, number];
-  eyes?: "open" | "closed" | "happy";
-  eye?: [number, number];
-  shadow?: 0 | 1 | 2;
-  /** The move's own prop visibility and offset by id. Absent = hidden. */
-  fx?: Record<string, [number, number]>;
-}
-
-export interface OwnProp {
-  id: string;
-  z: "front" | "mid" | "back";
-  layers: Layer[];
-}
-
 /** Z-order bands. The die-cut sits below everything, ground shadow below it. */
 const Z = {
   shadow: -10,
   ring: -5,
-  back: 5,
+  rideBack: 8,
   legs: 10,
+  ground: 12,
+  roots: 15,
   torso: 20,
-  mid: 25,
+  rideFront: 22,
+  front: 25,
   arms: 30,
+  face: 35,
   eyes: 40,
-  front: 60,
+  head: 50,
+  hand: 60,
+  lane: 70,
 };
 
-export interface ClipSpec {
-  frames: number;
-  props?: OwnProp[];
-  pose: (f: number) => Pose;
-}
+const Z_OF: Record<ItemDef["anchor"], number> = {
+  head: Z.head,
+  face: Z.face,
+  handL: Z.hand,
+  front: Z.front,
+  ground: Z.ground,
+  lane: Z.lane,
+  ride: Z.rideFront,
+};
 
 type Grid = Uint8Array;
 
@@ -212,17 +216,17 @@ function gridRects(g: Grid, w: number, h: number, ox: number, oy: number, unit =
   }));
 }
 
-const BORDER = 2; // cells of white around the art
 const HAIR = 4; // hairline thickness is 1/HAIR cell
+const BORDER = 2; // cells of white around the art (thick)
 
 /**
  * One closed die-cut silhouette per frame: the union of every visible cell, closed (dilate 3,
  * erode 1) so gaps of up to four cells bridge, with enclosed holes filled. That mask is the
- * white border, and a quarter-cell hairline is drawn just outside it. Frames with the same mask
+ * thick (2 cell) white border, one cell less for thin, and a quarter-cell hairline is drawn just outside it. Frames with the same mask
  * share one pair of parts that are visible only on those frames, so tracks, CSS keyframes,
  * Lottie and raster all keep working.
  */
-function outlineParts(parts: Part[], N: number): Part[] {
+function outlineParts(parts: Part[], N: number, width: 1 | 2): Part[] {
   const per: Rect[][] = Array.from({ length: N }, () => []);
   let x0 = Infinity;
   let y0 = Infinity;
@@ -259,7 +263,9 @@ function outlineParts(parts: Part[], N: number): Part[] {
       }
     }
     const closed = invert(dilate(invert(dilate(u, w, h, 3)), w, h, 1));
-    const mask = fillHoles(closed, w, h);
+    const filled = fillHoles(closed, w, h);
+    // Thin trims the closed silhouette by one cell; the closing above is the same for both.
+    const mask = width === 1 ? invert(dilate(invert(filled), w, h, 1)) : filled;
     const key = mask.join("");
     const g = groups.get(key) ?? { frames: [], mask };
     g.frames.push(f);
@@ -303,25 +309,43 @@ function outlineParts(parts: Part[], N: number): Part[] {
   return out;
 }
 
-/** Builds a clip from poses: the mascot, its props (head and face ride the body, hand rides the left arm). */
-export function buildClip(spec: ClipSpec, props: readonly PropId[], outline: boolean): Clip {
-  const N = spec.frames;
-  const poses = Array.from({ length: N }, (_, f) => spec.pose(f));
-  const track = (fn: (p: Pose) => Step): Step[] => poses.map(fn);
-  const shades = props.includes("shades");
+const clampTuck = (n: number) => Math.max(-2, Math.min(0, n));
+
+/**
+ * Builds a clip: the mascot, then each item on its anchor. Arms and legs are placed from the
+ * action unless an item claims them (front items claim the arms, rides the legs).
+ */
+export function buildClip(action: ActionDef, items: readonly ItemDef[], outline: Outline): Clip {
+  const N = action.frames;
+  const poses: Pose[] = Array.from({ length: N }, (_, f) => action.pose(f));
+  const armsItem = items.find((i) => i.claims === "arms");
+  const ride = items.find((i) => i.claims === "legs");
+  const tint = items.find((i) => i.eyeTint)?.eyeTint;
+
+  const body = (f: number): readonly [number, number] => poses[f]?.body ?? [0, 0];
+  const arm = (f: number, side: "armL" | "armR"): readonly [number, number] => {
+    const held = armsItem?.hold?.(f);
+    const rel = held ? held[side] : (poses[f]?.[side] ?? [0, 0]);
+    return [body(f)[0] + rel[0], body(f)[1] + rel[1]];
+  };
+  // Feet stay planted when the body dips and rise with it, so a leg never detaches.
+  const legDy = (f: number, i: number) =>
+    Math.min(0, body(f)[1]) + (ride ? 0 : clampTuck(poses[f]?.legs?.[i] ?? 0));
+  const track = (fn: (f: number) => Step): Step[] => Array.from({ length: N }, (_, f) => fn(f));
 
   const parts: Part[] = [];
   const add = (id: string, kind: PartKind, z: number, layers: Layer[], t: Step[]) =>
     parts.push({ id, kind, z, layers, track: t });
 
   if (!outline) {
+    const gy = (ride?.ground ?? 16) - 16;
     SHADOW.forEach((l, i) =>
       add(
         `shadow${i}`,
         "shadow",
         Z.shadow,
         l,
-        track((p) => ((p.shadow ?? 0) === i ? [body(p)[0], 0, 1] : HIDDEN)),
+        track((f) => ((poses[f]?.shadow ?? 0) === i ? [body(f)[0], gy, 1] : HIDDEN)),
       ),
     );
   }
@@ -331,7 +355,7 @@ export function buildClip(spec: ClipSpec, props: readonly PropId[], outline: boo
       "body",
       Z.legs,
       legLayers(x),
-      track((p) => [body(p)[0], p.legs?.[i] ?? 0, 1]),
+      track((f) => (ride?.seat === "hide" ? HIDDEN : [body(f)[0], legDy(f, i), 1])),
     ),
   );
   add(
@@ -339,69 +363,72 @@ export function buildClip(spec: ClipSpec, props: readonly PropId[], outline: boo
     "body",
     Z.torso,
     TORSO,
-    track((p) => [body(p)[0], body(p)[1], 1]),
+    track((f) => [body(f)[0], body(f)[1], 1]),
   );
-  add(
-    "armL",
-    "body",
-    Z.arms,
-    ARM_L,
-    track((p) => [body(p)[0] + (p.armL?.[0] ?? 0), body(p)[1] + (p.armL?.[1] ?? 0), 1]),
-  );
-  add(
-    "armR",
-    "body",
-    Z.arms,
-    ARM_R,
-    track((p) => [body(p)[0] + (p.armR?.[0] ?? 0), body(p)[1] + (p.armR?.[1] ?? 0), 1]),
-  );
-  // Under shades the eyes turn pale blue on dark lenses and hold still, so the glance offset is ignored.
+  for (const [side, layers, root] of [
+    ["armL", ARM_L, ROOT_L],
+    ["armR", ARM_R, ROOT_R],
+  ] as const) {
+    const t = track((f) => [arm(f, side)[0], arm(f, side)[1], 1]);
+    add(`${side}_root`, "body", Z.roots, root, t);
+    add(side, "body", Z.arms, layers, t);
+  }
+  // Under tinted lenses the eyes hold still, so the glance offset is ignored.
   (["open", "closed", "happy"] as const).forEach((k) =>
     add(
       `eyes_${k}`,
       "eyes",
       Z.eyes,
-      shades ? EYES[k].map((l) => ({ ...l, color: K.skyLight })) : EYES[k],
-      track((p) =>
-        (p.eyes ?? "open") === k
+      tint ? EYES[k].map((l) => ({ ...l, color: tint })) : EYES[k],
+      track((f) =>
+        (poses[f]?.eyes ?? "open") === k
           ? [
-              body(p)[0] + (shades ? 0 : (p.eye?.[0] ?? 0)),
-              body(p)[1] + (shades ? 0 : (p.eye?.[1] ?? 0)),
+              body(f)[0] + (tint ? 0 : (poses[f]?.eye?.[0] ?? 0)),
+              body(f)[1] + (tint ? 0 : (poses[f]?.eye?.[1] ?? 0)),
               1,
             ]
           : HIDDEN,
       ),
     ),
   );
-  for (const id of props) {
-    const hand = slotOf(id) === "hand";
-    add(
-      `prop:${id}`,
-      "prop",
-      propZ(id),
-      propLayers(id),
-      track((p) =>
-        hand
-          ? [body(p)[0] + (p.armL?.[0] ?? 0), body(p)[1] + (p.armL?.[1] ?? 0), 1]
-          : [body(p)[0], body(p)[1], 1],
-      ),
-    );
-  }
-  for (const prop of spec.props ?? []) {
-    add(
-      prop.id,
-      "own",
-      Z[prop.z],
-      prop.layers,
-      track((p) => {
-        const o = p.fx?.[prop.id];
-        return o ? [o[0], o[1], 1] : HIDDEN;
-      }),
-    );
+
+  for (const item of items) {
+    const base = (f: number): readonly [number, number] => {
+      switch (item.anchor) {
+        case "handL":
+          return arm(f, "armL");
+        case "ride":
+          return [body(f)[0], Math.min(0, body(f)[1])];
+        case "ground":
+        case "lane":
+          return [0, 0];
+        default:
+          return body(f);
+      }
+    };
+    partsOf(item).forEach((p, k) => {
+      const z =
+        item.z ??
+        (item.anchor === "ride" ? (p.z === "back" ? Z.rideBack : Z.rideFront) : Z_OF[item.anchor]);
+      add(
+        `item:${item.id}:${k}`,
+        "item",
+        z,
+        p.layers,
+        track((f) => {
+          const whole = item.pose ? item.pose(f, N) : [0, 0];
+          const own = p.at ? p.at(f, N) : [0, 0];
+          if (!whole || !own) return HIDDEN;
+          const b = base(f);
+          return [b[0] + whole[0] + own[0], b[1] + whole[1] + own[1], 1];
+        }),
+      );
+    });
   }
 
-  if (outline) parts.push(...outlineParts(parts, N));
+  if (outline) parts.push(...outlineParts(parts, N, outline));
 
+  // Stable sort: parts with equal z keep their insertion order.
   parts.sort((a, b) => a.z - b.z);
   return { frames: N, parts };
 }

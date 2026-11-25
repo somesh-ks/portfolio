@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   else if (format === "svg") body = stickerSvg(look, { animated: true, frame });
   else body = JSON.stringify(lottieJson(look));
 
-  const file = ["claude", look.move, ...look.props].join("-");
+  const file = ["claude", look.action, ...look.items].join("-");
   return new Response(body, {
     headers: {
       "Content-Type": FORMATS[format],

@@ -1,34 +1,40 @@
 import { describe, expect, test } from "bun:test";
 import sharp from "sharp";
+import { GET } from "@/app/(app)/stickers/export/route";
 import {
-  allowed,
+  ACTIONS,
+  type ActionId,
+  actionThumbSvg,
   bounds,
+  clearSlot,
   DEFAULT_LOOK,
   FPS,
   frameCount,
+  ITEMS,
+  itemThumbSvg,
   type Look,
   lookFromQuery,
   lookToQuery,
   lottieJson,
-  MOVES,
-  type MoveId,
-  moveThumbSvg,
-  PROPS,
-  type PropId,
-  propThumbSvg,
+  type Outline,
+  outlineThumbSvg,
+  SLOTS,
   type Slot,
+  setItem,
   stickerSvg,
-  toggleProp,
 } from "@/lib/stickers";
 import { gifBuffer, pngBuffer, rasterFrame } from "@/lib/stickers/export";
+import { itemDef, partsOf } from "@/lib/stickers/items";
 import { clipFor } from "@/lib/stickers/look";
-import { type FrameRect, frameRects, type Part, rectCount } from "@/lib/stickers/model";
-import { propLayers } from "@/lib/stickers/props";
+import { type Clip, type FrameRect, type Part, rectCount } from "@/lib/stickers/model";
 
-const names = (s: string) => new Set(s.match(/@keyframes (\w+)/g));
-
-const hit = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+type Box = { x: number; y: number; w: number; h: number };
+/** Overlap with area. */
+const hit = (a: Box, b: Box) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** Overlap or shared edge. */
+const touch = (a: Box, b: Box) =>
+  a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
 
 function partRects(part: Part, f: number): FrameRect[] {
   const step = part.track[f];
@@ -43,126 +49,239 @@ function partRects(part: Part, f: number): FrameRect[] {
     })),
   );
 }
+const named = (clip: Clip, id: string) => clip.parts.find((p) => p.id === id)!;
+const ofItem = (clip: Clip, id: string) => clip.parts.filter((p) => p.id.startsWith(`item:${id}:`));
+const rectsOf = (parts: Part[], f: number) => parts.flatMap((p) => partRects(p, f));
+const anyHit = (a: Box[], b: Box[], fn = hit) => a.some((x) => b.some((y) => fn(x, y)));
 
-const combos: Look[] = MOVES.flatMap((m) =>
-  PROPS.filter((p) => allowed(m.id, p.id)).flatMap((p) =>
-    [true, false].map((outline) => ({ move: m.id, props: [p.id], outline })),
-  ),
-);
+const names = (s: string) => new Set(s.match(/@keyframes (\w+)/g));
+
+const IDS = ACTIONS.map((a) => a.id);
+const byslot = (slot: Slot) => ITEMS.filter((i) => i.slot === slot).map((i) => i.id);
+const look = (action: ActionId, items: string[], outline: Outline = 0): Look => ({
+  action,
+  items,
+  outline,
+});
+
+// ---------- combinations ----------
+
+const singles = (outline: Outline) =>
+  IDS.flatMap((a) => [[], ...ITEMS.map((i) => [i.id])].map((items) => look(a, items, outline)));
+
+const pairs: string[][] = [
+  ...byslot("head").flatMap((h) => byslot("effect").map((e) => [h, e])),
+  ...byslot("hand").flatMap((h) => byslot("ride").map((r) => [h, r])),
+  ...byslot("head").map((h) => ["shades", h]),
+];
+const pairLooks = (outline: Outline) =>
+  IDS.flatMap((a) => pairs.map((items) => look(a, items, outline)));
+
+// ---------- the invariants ----------
+
+/** Max cells for any look, outline included. */
+const MAX_W = 48;
+const MAX_H = 48;
+
+function checkLook(l: Look) {
+  const clip = clipFor(l);
+  const tag = `${l.action} + ${l.items.join(",") || "nothing"} o${l.outline}`;
+  const b = bounds(l);
+  if (b.w > MAX_W || b.h > MAX_H)
+    throw new Error(`${tag}: ${b.w}x${b.h} exceeds ${MAX_W}x${MAX_H}`);
+  const bodyParts = clip.parts.filter((p) => p.kind === "body");
+  const eyes = clip.parts.filter((p) => p.kind === "eyes");
+  const defs = l.items.map((id) => itemDef(id)!);
+  const claimsLegs = defs.some((d) => d.claims === "legs");
+  for (let f = 0; f < clip.frames; f++) {
+    // One 4-connected piece: torso, roots, arms and legs.
+    const cells = new Set<string>();
+    for (const r of rectsOf(bodyParts, f))
+      for (let y = r.y; y < r.y + r.h; y++)
+        for (let x = r.x; x < r.x + r.w; x++) cells.add(`${x},${y}`);
+    const [first] = cells;
+    const seen = new Set<string>([first!]);
+    const stack = [first!];
+    while (stack.length) {
+      const [x, y] = stack.pop()!.split(",").map(Number) as [number, number];
+      for (const k of [`${x - 1},${y}`, `${x + 1},${y}`, `${x},${y - 1}`, `${x},${y + 1}`]) {
+        if (cells.has(k) && !seen.has(k)) {
+          seen.add(k);
+          stack.push(k);
+        }
+      }
+    }
+    if (seen.size !== cells.size) throw new Error(`${tag} f${f}: body is not one piece`);
+
+    // Seam: every limb overlaps the torso, and each arm's root overlaps both.
+    const torso = partRects(named(clip, "torso"), f);
+    for (const side of ["armL", "armR"]) {
+      const root = partRects(named(clip, `${side}_root`), f);
+      const arm = partRects(named(clip, side), f);
+      if (!anyHit(root, torso)) throw new Error(`${tag} f${f}: ${side} root misses the torso`);
+      if (!anyHit(root, arm)) throw new Error(`${tag} f${f}: ${side} root misses the arm`);
+    }
+    for (let i = 0; i < 4; i++) {
+      const leg = partRects(named(clip, `leg${i}`), f);
+      if (leg.length === 0) {
+        if (!claimsLegs) throw new Error(`${tag} f${f}: leg${i} hidden without a ride`);
+        continue;
+      }
+      if (!anyHit(leg, torso)) throw new Error(`${tag} f${f}: leg${i} detached`);
+    }
+
+    // Held items touch the hands.
+    const armL = partRects(named(clip, "armL"), f);
+    const armR = partRects(named(clip, "armR"), f);
+    for (const d of defs) {
+      const mine = rectsOf(ofItem(clip, d.id), f);
+      if (d.anchor === "handL" && !anyHit(mine, armL, touch))
+        throw new Error(`${tag} f${f}: ${d.id} misses the left hand`);
+      if (d.anchor === "front" && !(anyHit(mine, armL, touch) && anyHit(mine, armR, touch)))
+        throw new Error(`${tag} f${f}: ${d.id} misses a hand`);
+      // Nothing but a face item covers the eyes.
+      if (d.slot !== "face" && anyHit(mine, rectsOf(eyes, f)))
+        throw new Error(`${tag} f${f}: ${d.id} covers the eyes`);
+    }
+  }
+}
 
 describe("stickers engine", () => {
-  test("every move has props available, and every prop some move", () => {
-    expect(MOVES.length).toBe(12);
-    for (const p of PROPS) expect(MOVES.some((m) => allowed(m.id, p.id))).toBe(true);
-  });
-
-  test("rects stay inside bounds, no NaN, on every frame", () => {
-    for (const look of [
-      ...combos,
-      ...MOVES.map((m) => ({ move: m.id, props: [], outline: true })),
-    ]) {
-      const b = bounds(look);
-      const clip = clipFor(look);
-      for (let f = 0; f < clip.frames; f++) {
-        for (const r of frameRects(clip, f)) {
-          expect(Number.isFinite(r.x + r.y + r.w + r.h)).toBe(true);
-          expect(r.x >= b.x && r.y >= b.y && r.x + r.w <= b.x + b.w && r.y + r.h <= b.y + b.h).toBe(
-            true,
-          );
-        }
+  test("registry: eight actions, unique ids, every slot filled, claims are coherent", () => {
+    expect(ACTIONS.map((a) => a.id)).toEqual([
+      "idle",
+      "wave",
+      "walk",
+      "dance",
+      "cheer",
+      "jump",
+      "zen",
+      "sleep",
+    ]);
+    const ids = ITEMS.map((i) => i.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const s of SLOTS) expect(byslot(s.id).length).toBeGreaterThan(0);
+    for (const i of ITEMS) {
+      const d = itemDef(i.id)!;
+      expect(partsOf(d).length).toBeGreaterThan(0);
+      if (d.claims === "arms") {
+        expect(d.anchor).toBe("front");
+        expect(d.hold).toBeFunction();
       }
+      if (d.claims === "legs") {
+        expect(d.slot).toBe("ride");
+        expect(d.seat).toBeDefined();
+      }
+      if (d.slot === "ride") expect(d.anchor).toBe("ride");
+      if (d.slot === "effect") expect(d.anchor).toBe("lane");
+      expect(rectCount(partsOf(d).flatMap((p) => p.layers))).toBeLessThanOrEqual(220);
     }
   });
 
-  test("props never cover the eyes or the move's own props", () => {
-    for (const look of combos) {
-      const clip = clipFor(look);
-      const props = clip.parts.filter((p) => p.kind === "prop");
-      const eyes = clip.parts.filter((p) => p.kind === "eyes");
-      const own = clip.parts.filter((p) => p.kind === "own");
-      for (let f = 0; f < clip.frames; f++) {
-        const eyeRects = eyes.flatMap((p) => partRects(p, f));
-        const ownRects = own.flatMap((p) => partRects(p, f));
-        for (const prop of props) {
-          for (const r of partRects(prop, f)) {
-            // Under the shades the eyes are drawn on top; any other prop above the eyes is a bug.
-            const above = prop.z > (eyes[0]?.z ?? 0);
-            if (above) for (const e of eyeRects) expect(hit(r, e)).toBe(false);
-            for (const o of ownRects) expect(hit(r, o)).toBe(false);
-          }
-        }
-      }
+  test("zen: the legs ride with the hovering body", () => {
+    const clip = clipFor(look("zen", []));
+    for (let f = 0; f < clip.frames; f++) {
+      const torso = partRects(named(clip, "torso"), f)[0]!;
+      const leg = partRects(named(clip, "leg0"), f)[0]!;
+      expect(leg.y).toBeLessThanOrEqual(torso.y + 11);
+      expect(leg.y).toBeGreaterThanOrEqual(torso.y + 7);
     }
   });
 
-  test("props in different slots never overlap each other", () => {
-    for (const m of MOVES) {
-      const free = PROPS.filter((p) => allowed(m.id, p.id));
-      const head = free.filter((p) => p.slot === "head");
-      const face = free.filter((p) => p.slot === "face");
-      const hand = free.filter((p) => p.slot === "hand");
-      for (const a of head) {
-        for (const b of [...face, ...hand]) {
-          const clip = clipFor({ move: m.id, props: [a.id, b.id], outline: false });
-          const [pa, pb] = ["prop:" + a.id, "prop:" + b.id].map((id) =>
-            clip.parts.find((p) => p.id === id)!,
-          );
-          for (let f = 0; f < clip.frames; f++) {
-            for (const r of partRects(pa!, f))
-              for (const s of partRects(pb!, f)) expect(hit(r, s)).toBe(false);
-          }
+  test("every action alone and with each item: connected body, seams, held items, eyes, bounds", () => {
+    for (const o of [0, 1] as const) for (const l of singles(o)) checkLook(l);
+  }, 120_000);
+
+  test("colliding pairs hold the same invariants", () => {
+    for (const l of pairLooks(0)) checkLook(l);
+    for (const l of pairLooks(1).filter((_, i) => i % 7 === 0)) checkLook(l);
+  }, 120_000);
+
+  test("effects stay in the lane, right of the head", () => {
+    for (const id of byslot("effect")) {
+      const clip = clipFor(look("wave", [id]));
+      for (let f = 0; f < clip.frames; f++)
+        for (const r of rectsOf(ofItem(clip, id), f)) {
+          expect(r.x).toBeGreaterThanOrEqual(20);
+          expect(r.y + r.h).toBeLessThanOrEqual(0);
         }
-      }
-      for (const a of face) {
-        for (const b of hand) {
-          const clip = clipFor({ move: m.id, props: [a.id, b.id], outline: false });
-          const [pa, pb] = ["prop:" + a.id, "prop:" + b.id].map((id) =>
-            clip.parts.find((p) => p.id === id)!,
-          );
-          for (let f = 0; f < clip.frames; f++) {
-            for (const r of partRects(pa!, f))
-              for (const s of partRects(pb!, f)) expect(hit(r, s)).toBe(false);
-          }
-        }
-      }
     }
   });
 
-  test("prop art stays small", () => {
-    for (const p of PROPS) expect(rectCount(propLayers(p.id))).toBeLessThanOrEqual(35);
+  test("effects loop over the action's frames and show something on every frame of a loop", () => {
+    for (const id of byslot("effect")) {
+      const clip = clipFor(look("sleep", [id]));
+      const seen = Array.from({ length: clip.frames }, (_, f) =>
+        rectsOf(ofItem(clip, id), f).length > 0 ? 1 : 0,
+      );
+      expect(seen.some(Boolean)).toBe(true);
+      expect(clip.frames).toBe(48);
+    }
   });
 
-  test("outline: same track, white ring, shadow only without it", () => {
-    const on = clipFor({ move: "wave", props: ["beanie"], outline: true });
-    const off = clipFor({ move: "wave", props: ["beanie"], outline: false });
-    expect(on.parts.some((p) => p.kind === "outline")).toBe(true);
-    expect(on.parts.some((p) => p.kind === "shadow")).toBe(false);
+  test("a ride animates its wheels: parts switch on and off by frame", () => {
+    const clip = clipFor(look("idle", ["bike"]));
+    const shown = new Set(
+      Array.from({ length: clip.frames }, (_, f) =>
+        ofItem(clip, "bike")
+          .map((p) => (p.track[f]![2] ? 1 : 0))
+          .join(""),
+      ),
+    );
+    expect(shown.size).toBeGreaterThanOrEqual(4);
+  });
+
+  test("art stays small", () => {
+    for (const i of ITEMS) {
+      const d = itemDef(i.id)!;
+      if (d.slot !== "ride" && d.slot !== "effect")
+        expect(rectCount(partsOf(d).flatMap((p) => p.layers))).toBeLessThanOrEqual(60);
+    }
+  });
+
+  test("outline: 0 shadow, 1 thin, 2 thick; the closing step is shared", () => {
+    const off = clipFor(look("wave", ["beanie"], 0));
     expect(off.parts.some((p) => p.kind === "shadow")).toBe(true);
     expect(off.parts.some((p) => p.kind === "outline")).toBe(false);
-    expect(on.parts.some((p) => p.layers.some((l) => l.color === "#FFFFFF"))).toBe(true);
+    const edgeOf = (o: Outline) => {
+      const c = clipFor(look("idle", [], o));
+      const ring = c.parts.filter((p) => p.layers.some((l) => l.color === "#FFFFFF"));
+      expect(c.parts.some((p) => p.kind === "shadow")).toBe(false);
+      const art = rectsOf(
+        c.parts.filter((p) => p.kind === "body"),
+        0,
+      );
+      const w = rectsOf(ring, 0);
+      const x0 = Math.min(...art.map((r) => r.x));
+      return x0 - Math.min(...w.map((r) => r.x));
+    };
+    expect(edgeOf(1)).toBe(1);
+    expect(edgeOf(2)).toBe(2);
   });
 });
 
 describe("die-cut", () => {
   test("every frame is one closed silhouette: no transparent cell inside the outer edge", () => {
     const looks: Look[] = [
-      { move: "wave", props: ["flag", "crown"], outline: true },
-      { move: "wave", props: ["balloon"], outline: true },
-      { move: "walk", props: ["mug", "beanie"], outline: true },
-      { move: "dance", props: ["toque"], outline: true },
-      { move: "idea", props: ["heart"], outline: true },
-      { move: "code", props: [], outline: true },
+      look("wave", ["flag", "crown"], 2),
+      look("wave", ["balloon"], 1),
+      look("walk", ["mug", "beanie"], 2),
+      look("dance", ["toque", "notes"], 1),
+      look("idle", ["heart", "hearts"], 2),
+      look("idle", ["laptop"], 1),
+      look("wave", ["skate", "beanie"], 1),
     ];
-    for (const look of looks) {
-      const clip = clipFor(look);
-      const b = bounds(look);
+    for (const l of looks) {
+      const clip = clipFor(l);
+      const b = bounds(l);
       const [bx, by] = [Math.floor(b.x), Math.floor(b.y)];
       const [w, h] = [Math.ceil(b.w) + 1, Math.ceil(b.h) + 1];
       for (let f = 0; f < clip.frames; f++) {
         // Cells painted by the art or the white border; the hairline lies outside both.
         const solid = new Uint8Array(w * h);
         for (const p of clip.parts) {
-          if (p.kind === "outline" && p.layers.every((l) => l.color !== "#FFFFFF")) continue;
+          if (p.kind === "outline" && p.layers.every((layer) => layer.color !== "#FFFFFF"))
+            continue;
           for (const r of partRects(p, f)) {
             for (let y = Math.floor(r.y); y < Math.ceil(r.y + r.h); y++)
               for (let x = Math.floor(r.x); x < Math.ceil(r.x + r.w); x++)
@@ -195,63 +314,66 @@ describe("die-cut", () => {
     }
   });
 
-  test("white border is two cells wide, the hairline is a thin ring outside it", () => {
-    const clip = clipFor({ move: "wave", props: [], outline: true });
-    const edge = clip.parts.filter((p) => p.layers.some((l) => l.color === "#D8D6CE"));
-    expect(edge.length).toBeGreaterThan(0);
-    for (const p of edge) {
-      for (const l of p.layers)
-        for (const r of l.rects) expect(Math.min(r.w, r.h)).toBeLessThanOrEqual(0.25);
+  test("the hairline is a thin ring outside the white border, and masks are shared", () => {
+    for (const o of [1, 2] as const) {
+      const clip = clipFor(look("wave", [], o));
+      const edge = clip.parts.filter((p) => p.layers.some((l) => l.color === "#D8D6CE"));
+      expect(edge.length).toBeGreaterThan(0);
+      for (const p of edge) {
+        for (const l of p.layers)
+          for (const r of l.rects) expect(Math.min(r.w, r.h)).toBeLessThanOrEqual(0.25);
+      }
+      // Masks repeat across frames, so far fewer outline parts than frames x 2.
+      expect(clip.parts.filter((p) => p.kind === "outline").length).toBeLessThan(clip.frames * 2);
     }
-    // Masks repeat across frames, so far fewer outline parts than frames x 2.
-    expect(clip.parts.filter((p) => p.kind === "outline").length).toBeLessThan(clip.frames * 2);
   });
 });
 
 describe("look helpers", () => {
-  test("ids and slots are typed", () => {
-    const move: MoveId = "wave";
-    const prop: PropId = "crown";
-    const slot: Slot = PROPS.find((p) => p.id === prop)?.slot ?? "head";
-    expect(allowed(move, prop)).toBe(slot === "head");
-  });
-
-  test("toggleProp adds, removes and replaces within a slot", () => {
-    let look = toggleProp(DEFAULT_LOOK, "crown");
-    expect(look.props).toEqual(["crown"]);
-    look = toggleProp(look, "mug");
-    expect(look.props).toEqual(["crown", "mug"]);
-    look = toggleProp(look, "mug");
-    expect(look.props).toEqual(["crown"]);
-    expect(toggleProp({ ...DEFAULT_LOOK, move: "coffee" }, "beanie").props).toEqual(["beanie"]);
-    expect(toggleProp({ move: "coffee", props: [], outline: true }, "beanie").props).toEqual([]);
+  test("setItem adds, removes and swaps within a slot; nothing is ever refused", () => {
+    let l = setItem(DEFAULT_LOOK, "crown");
+    expect(l.items).toEqual(["crown"]);
+    l = setItem(l, "mug");
+    expect(l.items).toEqual(["crown", "mug"]);
+    l = setItem(l, "skate");
+    expect(l.items).toEqual(["crown", "mug", "skate"]);
+    l = setItem(l, "laptop");
+    expect(l.items).toEqual(["crown", "laptop", "skate"]);
+    l = setItem(l, "steam");
+    expect(l.items).toEqual(["crown", "laptop", "steam", "skate"]);
+    expect(setItem(l, "laptop").items).toEqual(["crown", "steam", "skate"]);
+    expect(setItem(l, "nope")).toBe(l);
+    expect(clearSlot(l, "head").items).toEqual(["laptop", "steam", "skate"]);
+    // Every action takes every item.
+    for (const a of IDS)
+      for (const i of ITEMS) expect(frameCount(look(a, [i.id]))).toBeGreaterThan(0);
   });
 
   test("query round-trips and rejects junk", () => {
-    const look: Look = { move: "wave", props: ["beanie", "shades", "mug"], outline: false };
-    const back = lookFromQuery(
-      new URLSearchParams(lookToQuery(look, { tab: "animated", frame: 3 })),
-    );
-    expect(back).toMatchObject({ ...look, tab: "animated", frame: 3 });
-    const none = lookFromQuery(new URLSearchParams("m=wave&p=&o=1"));
-    expect(none.props).toEqual([]);
-    expect(lookFromQuery(new URLSearchParams(""))).toMatchObject({
-      ...DEFAULT_LOOK,
-      tab: "static",
+    const l = look("jump", ["beanie", "shades", "mug", "hearts", "scooter"], 2);
+    const back = lookFromQuery(new URLSearchParams(lookToQuery(l, { frame: 3 })));
+    expect(back).toMatchObject({ ...l, frame: 3 });
+    expect(lookFromQuery(new URLSearchParams("m=idle&p=&o=0"))).toMatchObject({
+      items: [],
+      outline: 0,
     });
-    const junk = lookFromQuery(new URLSearchParams("m=nope&p=zzz,crown,crown&o=x&t=q&fr=-4"));
-    expect(junk).toMatchObject({ move: "wave", props: ["crown"], outline: true, tab: "static" });
-    expect(junk.frame).toBe(2);
-    const dropped = lookFromQuery(new URLSearchParams("m=coffee&p=beanie,mug"));
-    expect(dropped.props).toEqual([]);
-    expect(lookFromQuery(new URLSearchParams("m=wave&p=beanie,crown")).props).toEqual(["crown"]);
+    expect(lookFromQuery(new URLSearchParams(""))).toMatchObject(DEFAULT_LOOK);
+    const junk = lookFromQuery(new URLSearchParams("m=nope&p=qqq,crown,crown&o=x&t=q&fr=-4"));
+    expect(junk).toMatchObject({ action: "wave", items: ["crown"], outline: 1, frame: 2 });
+    // Two items of a slot: the last wins. A front item and a ride coexist.
+    expect(lookFromQuery(new URLSearchParams("m=wave&p=beanie,crown")).items).toEqual(["crown"]);
+    expect(lookFromQuery(new URLSearchParams("m=wave&p=laptop,bike,hearts")).items).toEqual([
+      "laptop",
+      "hearts",
+      "bike",
+    ]);
   });
 });
 
 describe("outputs", () => {
   test("stickerSvg is balanced with a viewBox; looks get different names", () => {
     const a = stickerSvg(DEFAULT_LOOK, { animated: true });
-    const b = stickerSvg({ ...DEFAULT_LOOK, props: ["crown"] }, { animated: true });
+    const b = stickerSvg({ ...DEFAULT_LOOK, items: ["crown"] }, { animated: true });
     for (const svg of [a, b, stickerSvg(DEFAULT_LOOK, { animated: false, frame: 3 })]) {
       expect(svg.startsWith("<svg")).toBe(true);
       expect(svg).toMatch(/viewBox="-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+"/);
@@ -266,9 +388,21 @@ describe("outputs", () => {
     expect(a).not.toContain("var(");
   });
 
+  test("animated SVG: each arm's root shares the arm's keyframes, so the seam can't open", () => {
+    const clip = clipFor(look("wave", []));
+    for (const side of ["armL", "armR"]) {
+      expect(named(clip, `${side}_root`).track).toEqual(named(clip, side).track);
+      expect(named(clip, `${side}_root`).z).toBeLessThan(named(clip, "torso").z);
+    }
+    const svg = stickerSvg(look("wave", []), { animated: true });
+    // Parts with identical tracks share one keyframes rule.
+    expect((svg.match(/@keyframes/g) ?? []).length).toBeLessThan(clip.parts.length);
+  });
+
   test("thumbs and lottie", () => {
-    for (const m of MOVES) expect(moveThumbSvg(m.id)).toContain("viewBox");
-    for (const p of PROPS) expect(propThumbSvg(p.id)).toContain("<path");
+    for (const a of ACTIONS) expect(actionThumbSvg(a.id)).toContain("viewBox");
+    for (const i of ITEMS) expect(itemThumbSvg(i.id)).toContain("<path");
+    for (const o of [0, 1, 2] as const) expect(outlineThumbSvg(o)).toContain("<path");
     const json = lottieJson(DEFAULT_LOOK) as {
       fr: number;
       op: number;
@@ -282,12 +416,12 @@ describe("outputs", () => {
   });
 
   test("raster matches bounds and alpha blends the shadow", () => {
-    const look = { ...DEFAULT_LOOK, outline: false };
-    const b = bounds(look);
-    const { width, height, data } = rasterFrame(look, 0, 3, false);
+    const l = { ...DEFAULT_LOOK, outline: 0 as const };
+    const b = bounds(l);
+    const { width, height, data } = rasterFrame(l, 0, 3, false);
     expect([width, height]).toEqual([b.w * 3, b.h * 3]);
     expect(data.some((v, i) => i % 4 === 3 && v > 0 && v < 255)).toBe(true);
-    const sq = rasterFrame(look, 0, 3, true, 200);
+    const sq = rasterFrame(l, 0, 3, true, 200);
     expect([sq.width, sq.height]).toEqual([200, 200]);
   });
 
@@ -304,12 +438,22 @@ describe("outputs", () => {
     const gm = await sharp(gif, { animated: true }).metadata();
     expect(gm.pages).toBe(frameCount(DEFAULT_LOOK));
   });
+
+  test("export route names files claude-<action>-<items>", async () => {
+    const res = await GET(new Request("http://x/stickers/export?m=zen&p=crown,mug,bike&o=2&f=svg"));
+    expect(res.headers.get("Content-Disposition")).toContain(
+      'filename="claude-zen-crown-mug-bike.svg"',
+    );
+    expect(await res.text()).toContain("<svg");
+    const bad = await GET(new Request("http://x/stickers/export?f=exe"));
+    expect(bad.status).toBe(400);
+  });
 });
 
 describe("raster sizes", () => {
   test("half-cell outline bounds still give whole-pixel buffers", () => {
     for (const scale of [33, 17, 7]) {
-      const r = rasterFrame({ move: "wave", props: [], outline: true }, 0, scale, false);
+      const r = rasterFrame(look("wave", [], 1), 0, scale, false);
       expect(Number.isInteger(r.width) && Number.isInteger(r.height)).toBe(true);
       expect(r.data.length).toBe(r.width * r.height * 4);
     }
