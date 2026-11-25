@@ -28,6 +28,7 @@ import {
   type TypeInput,
 } from "@/lib/spring/type";
 import { DEFAULT_CURVE, type Mode } from "@/lib/spring/color";
+import { VISION_LABEL, VISIONS, type Vision } from "@/lib/spring/charts";
 import { CHANNELS, channelsOf, fromChannels, type ColorFormat } from "@/lib/spring/colormath";
 import { Chevron, Select } from "@/components/ui/Select";
 import { Dial } from "@/components/ui/Dial";
@@ -455,6 +456,7 @@ export function SpringApp() {
   const [format, setFormat] = useState<ColorFormat>("oklch");
   // Ratio numbers on every step, or only the steps that carry meaning.
   const [allSteps, setAllSteps] = useState(false);
+  const [vision, setVision] = useState<Vision>("normal");
   // Only the Tokens tab shows every file; other tabs skip the work on each change.
   const files = useMemo(() => (tab === "tokens" ? exportAll(system) : []), [system, tab]);
   // Kept by label: a path can change with the system name (SKILL.md) or the stack (theme.css).
@@ -551,6 +553,8 @@ export function SpringApp() {
             setFormat={setFormat}
             allSteps={allSteps}
             setAllSteps={setAllSteps}
+            vision={vision}
+            setVision={setVision}
           />
         ) : null}
         {tab === "type" ? (
@@ -615,6 +619,7 @@ export function SpringApp() {
                 format={format}
                 setFormat={setFormat}
                 allSteps={allSteps}
+                vision={vision}
               />
             ) : null}
             {tab === "type" && browse ? (
@@ -667,6 +672,14 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+/** How common each color vision type is, shown beside it in the lens menu. */
+const VISION_HINT: Record<Vision, string> = {
+  normal: "",
+  protan: "1 in 100 men",
+  deutan: "1 in 20 men",
+  tritan: "1 in 10,000",
+};
+
 const GRAY_SNAP = { warm: 75, cool: 250 } as const;
 const deg = (v: number) => `${Math.round(v)}°`;
 
@@ -679,12 +692,16 @@ function ColorControls({
   setFormat,
   allSteps,
   setAllSteps,
+  vision,
+  setVision,
 }: Spring & {
   mode: Mode;
   format: ColorFormat;
   setFormat: (f: ColorFormat) => void;
   allSteps: boolean;
   setAllSteps: (v: boolean) => void;
+  vision: Vision;
+  setVision: (v: Vision) => void;
 }) {
   const primary = system.scales.primary;
   const brand = primary[mode][primary.anchor[mode] - 1]!;
@@ -870,7 +887,7 @@ function ColorControls({
           <DataRamps system={system} setInput={setInput} mode={mode} />
         </Group>
       ) : null}
-      <Group label="rules">
+      <Group label="accessibility">
         <Row label="contrast">
           <Segmented
             label="Contrast target"
@@ -878,6 +895,19 @@ function ColorControls({
             value={input.contrast ?? "aa"}
             onChange={(v) => setInput((i) => ({ ...i, contrast: v === "aa" ? undefined : v }))}
             render={(v) => v.toUpperCase()}
+          />
+        </Row>
+        <Row label="vision">
+          <Select
+            label="Color vision"
+            hideLabel
+            value={vision}
+            options={VISIONS.map((v) => ({
+              value: v,
+              label: VISION_LABEL[v],
+              hint: VISION_HINT[v] || undefined,
+            }))}
+            onChange={setVision}
           />
         </Row>
         <Row label="show ratios">
@@ -889,7 +919,9 @@ function ColorControls({
             render={(v) => (v === "key" ? "Key steps" : "Every step")}
           />
         </Row>
-        <Row label="button text">
+      </Group>
+      <Group label="buttons">
+        <Row label="label">
           <Segmented
             label="Text on primary buttons"
             options={["auto", "white", "ink"] as const}

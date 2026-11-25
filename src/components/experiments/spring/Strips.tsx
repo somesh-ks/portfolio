@@ -2,11 +2,10 @@
 
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
+import { Minus } from "lucide-react";
 import {
   CHART_MAX,
   CVD_FILTER,
-  VISION_LABEL,
-  VISIONS,
   type DataColor,
   type Vision,
   remapRamps,
@@ -15,20 +14,11 @@ import { clampChroma, formatColor, oklchToHex, type ColorFormat } from "@/lib/sp
 import { contrast, freshName, parseColor, type Mode, type Swatch } from "@/lib/spring/color";
 import { MAX_STRIPS, suggestData, type System, type SystemInput } from "@/lib/spring/system";
 import { apcaContrast } from "@/lib/spring/colormath";
-import { Select } from "@/components/ui/Select";
 import { ColorPicker } from "./ColorPicker";
 import { useCopy } from "./store";
 
 type SetInput = (f: (i: SystemInput) => SystemInput) => void;
 type Copy = { copied: string | null; copy: (key: string, text: string) => void };
-
-/** How common each color vision type is, shown beside it in the lens menu. */
-const VISION_HINT: Record<Vision, string> = {
-  normal: "",
-  protan: "1 in 100 men",
-  deutan: "1 in 20 men",
-  tritan: "1 in 10,000",
-};
 
 /** A typed color in the chosen format. Any CSS color works; empty clears it when `onClear` is given. */
 function ValueField({
@@ -156,6 +146,7 @@ function Grip({
       type="button"
       className="spring-grip"
       aria-label={`Reorder ${name}, ${index + 1} of ${count}`}
+      title="Drag to reorder"
       aria-keyshortcuts="ArrowUp ArrowDown"
       onKeyDown={(e) => {
         const to = e.key === "ArrowUp" ? index - 1 : e.key === "ArrowDown" ? index + 1 : -1;
@@ -239,6 +230,7 @@ function Steps({
   solid,
   mark,
   markFrom,
+  pairs = "role",
   copy,
 }: {
   id: string;
@@ -252,6 +244,12 @@ function Steps({
   mark?: number;
   /** Where the mark would sit before healing moved it. */
   markFrom?: number;
+  /**
+   * What each number measures. "role": the pair the step is used in (text on
+   * bg and fill steps, borders and text on the page, a label on solid).
+   * "page": the step itself on the page, as a chart mark is drawn.
+   */
+  pairs?: "role" | "page";
 } & { copy: Copy }) {
   // One tab stop per strip: arrows, Home and End move along it, like a toolbar.
   const [active, setActive] = useState(0);
@@ -283,7 +281,20 @@ function Steps({
       {scale.map((sw, i, all) => {
         const key = `${id}-${sw.step}`;
         const value = formatColor(sw.hex, format);
-        const wcag = contrast(sw.hex, page);
+        const cellInk = ink(sw.hex, all[0]!.hex, all[11]!.hex);
+        // [foreground, background, what the number means]. The button fill is
+        // measured with its label wherever it lands, even on a fill or border step.
+        const [fg, bg, what] =
+          pairs === "page"
+            ? [sw.hex, page, "on the page"]
+            : sw.step === solid || sw.step === 9 || sw.step === 10
+              ? [cellInk, sw.hex, "its label on this fill"]
+              : sw.step <= 5
+                ? [all[11]!.hex, sw.hex, "step 12 text on this step"]
+                : sw.step <= 8
+                  ? [sw.hex, page, "on the page"]
+                  : [sw.hex, page, "as text on the page"];
+        const num = apca ? lc(fg, bg) : contrast(fg, bg).toFixed(1);
         const keyStep = sw.step === brand || sw.step === solid || sw.step === mark || i >= 10;
         return (
           <button
@@ -292,14 +303,12 @@ function Steps({
             style={{
               backgroundColor: sw.hex,
               // The strip's own ends where they read; plain black or white on mid steps where neither does.
-              color: ink(sw.hex, all[0]!.hex, all[11]!.hex),
+              color: cellInk,
             }}
             title={
               sw.step === mark && markFrom && markFrom !== mark
                 ? `${value} · chart color, step ${mark} (was ${markFrom}, moved to stay distinct from the other series)`
-                : apca && Math.round(apcaContrast(sw.hex, page)) < 7
-                  ? `${value} · under Lc 7 on the page`
-                  : value
+                : `${value} · ${num === "·" ? "under Lc 7" : num} ${what}`
             }
             data-brand={sw.step === brand || undefined}
             data-solid={sw.step === solid || undefined}
@@ -316,7 +325,7 @@ function Steps({
               <span aria-hidden>✓</span>
             ) : (
               <span aria-hidden className="spring-step__ratio">
-                {apca ? lc(sw.hex, page) : wcag.toFixed(1)}
+                {num}
               </span>
             )}
           </button>
@@ -421,6 +430,7 @@ export function ColorOutput({
   format,
   setFormat,
   allSteps,
+  vision,
 }: {
   system: System;
   input: SystemInput;
@@ -430,10 +440,11 @@ export function ColorOutput({
   setFormat: (f: ColorFormat) => void;
   /** Ratio numbers on every step, set from the sidebar. */
   allSteps: boolean;
+  /** The color-vision lens over every strip, set from the sidebar. */
+  vision: Vision;
 }) {
   const [copied, copyText, said] = useCopy();
   const copy = { copied, copy: copyText };
-  const [vision, setVision] = useState<Vision>("normal");
   const apca = system.input.contrast === "apca";
   const page = system.scales.neutral[mode][0]!.hex;
   const filterId = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -514,17 +525,6 @@ export function ColorOutput({
       <div className="spring-head">
         <h2 className="spring-section">ui</h2>
         <div className="spring-vision">
-          <Select
-            label="Color vision"
-            hideLabel
-            value={vision}
-            options={VISIONS.map((v) => ({
-              value: v,
-              label: VISION_LABEL[v],
-              hint: VISION_HINT[v] || undefined,
-            }))}
-            onChange={setVision}
-          />
           {system.custom.length < MAX_STRIPS ? (
             <button
               type="button"
@@ -640,9 +640,10 @@ export function ColorOutput({
                   type="button"
                   className="spring-strip__tool"
                   aria-label={`Remove ${c.name}`}
+                  title="Remove"
                   onClick={() => setColors((cs) => cs.filter((_, j) => j !== k))}
                 >
-                  ×
+                  <Minus aria-hidden size={14} strokeWidth={1.75} />
                 </button>
               </>
             }
@@ -655,9 +656,8 @@ export function ColorOutput({
         ))}
       </div>
       <p className="spring-meta spring-legend">
-        <span className="spring-legend__brand">your color</span>
         <span className="spring-legend__solid">button fill</span>
-        <span>numbers: {apca ? "APCA Lc" : "contrast"} against the page background</span>
+        <span className="spring-legend__brand">your color</span>
       </p>
 
       <DataSection
@@ -668,7 +668,6 @@ export function ColorOutput({
         format={format}
         filter={filter}
         allSteps={allSteps}
-        apca={apca}
         steps={steps}
         pick={pick}
         newColor={newColor}
@@ -689,7 +688,6 @@ function DataSection({
   pick,
   newColor,
   allSteps,
-  apca,
 }: {
   system: System;
   input: SystemInput;
@@ -698,8 +696,11 @@ function DataSection({
   format: ColorFormat;
   filter?: { filter: string };
   allSteps: boolean;
-  apca: boolean;
-  steps: (key: string, name: string, extra?: { mark?: number; markFrom?: number }) => ReactNode;
+  steps: (
+    key: string,
+    name: string,
+    extra?: { mark?: number; markFrom?: number; pairs?: "role" | "page" },
+  ) => ReactNode;
   pick: (name: string, hex: string, onHex: (hex: string) => void) => ReactNode;
   newColor: (h: number) => DataColor;
 }) {
@@ -786,21 +787,25 @@ function DataSection({
                   type="button"
                   className="spring-strip__tool"
                   aria-label={`Remove ${d.name}`}
+                  title="Remove"
                   onClick={() => remove(k)}
                 >
-                  ×
+                  <Minus aria-hidden size={14} strokeWidth={1.75} />
                 </button>
               </>
             }
           >
-            {steps(d.key, d.name, { mark: c.markStep[mode][k], markFrom: c.markBase[mode][k] })}
+            {steps(d.key, d.name, {
+              mark: c.markStep[mode][k],
+              markFrom: c.markBase[mode][k],
+              pairs: "page",
+            })}
           </StripRow>
         ))}
       </div>
       {data.length ? (
         <p className="spring-meta spring-legend">
           <span className="spring-legend__solid">chart color</span>
-          <span>numbers: {apca ? "APCA Lc" : "contrast"} against the page background</span>
         </p>
       ) : (
         <p className="spring-meta">No data colors. Suggest some, or add your own.</p>

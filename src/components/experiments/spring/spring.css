@@ -542,6 +542,10 @@
   .spring-app__side .segmented__item {
     min-height: 1.75rem;
   }
+  /* A select in a sidebar row matches the segmented controls beside it (item + 2px track each side). */
+  .spring-app__side .spring-row .select__trigger {
+    min-height: 2rem;
+  }
   .spring-app__side .select__trigger,
   .spring-head .select__trigger,
   .spring-pop .select__trigger,
@@ -1396,6 +1400,8 @@
   gap: 2px;
 }
 .spring-strip__tool {
+  display: inline-grid;
+  place-items: center;
   min-width: 1.5rem;
   height: 1.5rem;
   color: var(--text-secondary);
@@ -1407,9 +1413,9 @@
 .spring-strip__tool:disabled {
   opacity: 0.3;
 }
-/* Tools stay out of the way until a row is hovered or focused; touch screens always show them. */
+/* Tools (grip and remove) stay out of the way until a row is hovered or focused; touch screens always show them. */
 @media (hover: hover) and (pointer: fine) {
-  .spring-row-strip .spring-strip__tools > :not(.spring-grip) {
+  .spring-row-strip .spring-strip__tools > * {
     opacity: 0;
     transition: opacity 120ms ease-out;
   }
