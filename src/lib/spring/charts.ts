@@ -73,6 +73,24 @@ export interface Ramps {
   div?: [number, number];
 }
 
+/**
+ * Keeps each ramp on the same strip after the list changes. `to` maps an old
+ * position to its new one, or undefined when that strip is gone; a ramp whose
+ * strip is gone falls back to the default.
+ */
+export function remapRamps(
+  ramps: Ramps | undefined,
+  to: (i: number) => number | undefined,
+): Ramps | undefined {
+  if (!ramps) return ramps;
+  const seq = ramps.seq === undefined ? undefined : to(ramps.seq);
+  const a = ramps.div && to(ramps.div[0]);
+  const b = ramps.div && to(ramps.div[1]);
+  const div: [number, number] | undefined =
+    a !== undefined && b !== undefined && a !== b ? [a, b] : undefined;
+  return { ...(seq === undefined ? {} : { seq }), ...(div ? { div } : {}) };
+}
+
 export interface ChartCheck {
   id: string;
   title: string;

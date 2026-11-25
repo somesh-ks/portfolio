@@ -10,6 +10,7 @@ import {
   type ChartCheck,
   type DataColor,
   type Vision,
+  remapRamps,
 } from "@/lib/spring/charts";
 import { clampChroma, formatColor, oklchToHex, type ColorFormat } from "@/lib/spring/colormath";
 import { contrast, freshName, parseColor, type Mode, type Swatch } from "@/lib/spring/color";
@@ -579,16 +580,30 @@ function DataSection({
   const c = system.charts;
   const data = system.data;
   // Editing any data color pins the list: from then on it is the visitor's, not the suggestion.
-  const setData = (f: (d: DataColor[]) => DataColor[]) =>
-    setInput((i) => ({ ...i, data: f(system.data.map(({ name, hex }) => ({ name, hex }))) }));
-  const move = (k: number, by: -1 | 1) =>
-    setData((d) => {
-      const j = k + by;
-      if (j < 0 || j >= d.length) return d;
-      const next = [...d];
-      [next[k], next[j]] = [next[j]!, next[k]!];
-      return next;
-    });
+  // `to` keeps the ramps on their strips when positions change.
+  const setData = (f: (d: DataColor[]) => DataColor[], to?: (i: number) => number | undefined) =>
+    setInput((i) => ({
+      ...i,
+      data: f(system.data.map(({ name, hex }) => ({ name, hex }))),
+      ramps: to ? remapRamps(i.ramps, to) : i.ramps,
+    }));
+  const move = (k: number, by: -1 | 1) => {
+    const j = k + by;
+    if (j < 0 || j >= data.length) return;
+    setData(
+      (d) => {
+        const next = [...d];
+        [next[k], next[j]] = [next[j]!, next[k]!];
+        return next;
+      },
+      (i) => (i === k ? j : i === j ? k : i),
+    );
+  };
+  const remove = (k: number) =>
+    setData(
+      (ds) => ds.filter((_, j) => j !== k),
+      (i) => (i === k ? undefined : i > k ? i - 1 : i),
+    );
   return (
     <>
       <h2 className="spring-section">data viz</h2>
@@ -600,7 +615,7 @@ function DataSection({
         <button
           type="button"
           className="button"
-          onClick={() => setInput((i) => ({ ...i, data: undefined }))}
+          onClick={() => setInput((i) => ({ ...i, data: undefined, ramps: undefined }))}
         >
           Suggest colors
         </button>
@@ -665,7 +680,7 @@ function DataSection({
                   type="button"
                   className="spring-strip__tool"
                   aria-label={`Remove ${d.name}`}
-                  onClick={() => setData((ds) => ds.filter((_, j) => j !== k))}
+                  onClick={() => remove(k)}
                 >
                   ×
                 </button>

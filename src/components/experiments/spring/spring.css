@@ -1173,6 +1173,8 @@
 }
 .spring-app__name {
   flex: none;
+  margin-block: 0;
+  line-height: inherit;
   margin-right: var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--step-sm);

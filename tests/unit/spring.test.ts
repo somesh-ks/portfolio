@@ -12,6 +12,7 @@ import {
   parseBezier,
   parseColor,
 } from "@/lib/spring/color";
+import { remapRamps } from "@/lib/spring/charts";
 import { apcaContrast, channelsOf, formatColor, fromChannels } from "@/lib/spring/colormath";
 import { exportAll, exportArea, toDesignMd } from "@/lib/spring/exports";
 import { withFont } from "@/lib/spring/type";
@@ -425,6 +426,17 @@ describe("audit reads real systems", () => {
 });
 
 describe("data colors", () => {
+  test("ramps stay on their strips when strips move or go", () => {
+    const ramps = { seq: 2, div: [0, 1] as [number, number] };
+    // Swap 1 and 2: amounts follows green to 1, the arms follow too.
+    expect(remapRamps(ramps, (i) => (i === 1 ? 2 : i === 2 ? 1 : i))).toEqual({
+      seq: 1,
+      div: [0, 2],
+    });
+    // Remove 0: amounts shifts down, the arm on 0 is gone so the default returns.
+    expect(remapRamps(ramps, (i) => (i === 0 ? undefined : i - 1))).toEqual({ seq: 1 });
+  });
+
   test.each(inputs.map((i, n) => [n, i] as const))(
     "every suggested mark reaches 3:1 on the page, in both themes (%i)",
     (_, input) => {

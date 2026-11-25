@@ -195,7 +195,7 @@ export function SpringApp() {
     <div className="spring spring-app__shell">
       <Fonts type={input.type} />
       <header className="spring-app__bar">
-        <span className="spring-app__name">Spring</span>
+        <h1 className="spring-app__name">Spring</h1>
         <div role="tablist" aria-label="Tools" className="spring-tabs">
           {TABS.map((t) => (
             <button
@@ -600,6 +600,9 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
   const setRamps = (r: Partial<NonNullable<Spring["input"]["ramps"]>>) =>
     setInput((i) => ({ ...i, ramps: { ...i.ramps, ...r } }));
   const div: [number, number] = [Number(at(c.div?.[0])), Number(at(c.div?.[1] ?? keys[1]))];
+  // The two arms must differ: picking the other arm's color swaps them.
+  const pair = (a: number, b: number, was: number): [number, number] =>
+    a !== b ? [a, b] : a === div[0] ? [was, b] : [a, was];
   return (
     <>
       <Row label="amounts">
@@ -619,7 +622,7 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
               hideLabel
               value={String(div[0])}
               options={options}
-              onChange={(v) => setRamps({ div: [Number(v), div[1]] })}
+              onChange={(v) => setRamps({ div: pair(Number(v), div[1], div[0]) })}
             />
           </Row>
           <Row label="above">
@@ -628,7 +631,7 @@ function DataRamps({ system, setInput }: Pick<Spring, "system" | "setInput">) {
               hideLabel
               value={String(div[1])}
               options={options}
-              onChange={(v) => setRamps({ div: [div[0], Number(v)] })}
+              onChange={(v) => setRamps({ div: pair(div[0], Number(v), div[1]) })}
             />
           </Row>
         </>
