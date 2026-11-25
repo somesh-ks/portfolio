@@ -438,6 +438,9 @@ claude-mascot:defined > * {
 }
 .runner__board {
   display: grid;
+  /* On the page colour, so clouds and snow don't run through the rows. */
+  padding-inline: 1ch;
+  background: var(--surface-canvas);
   grid-template-columns: auto minmax(0, 12ch) auto;
   gap: 0 var(--space-4);
   margin: 0;

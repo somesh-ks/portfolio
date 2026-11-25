@@ -250,7 +250,8 @@ function carSprite(): Sprite {
   const width = 36;
   const hit = Math.min(width, MAX_HIT_WIDTH);
   return {
-    fps: 12,
+    // Two rim frames: slow enough to read as turning, not strobing.
+    fps: 6,
     frames,
     idle: frames[0] ?? [],
     width,
