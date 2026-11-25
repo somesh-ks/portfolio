@@ -209,3 +209,52 @@ test("the top bar hides over the hero, then its jump button opens the palette", 
   await jump.click();
   await expect(page.getByRole("combobox", { name: "Jump to" })).toBeFocused();
 });
+
+test("tune toy retunes the page live and puts it back", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/");
+  const root = page.locator("html");
+  const bio = page.locator(".bio p").first();
+  const button = page.locator(".tune-button");
+
+  await button.click();
+  const panel = page.getByRole("dialog", { name: "$ tune" });
+  await expect(panel).toBeVisible();
+  await expect(button).toBeHidden();
+
+  await panel.getByRole("button", { name: "16" }).click();
+  await expect(bio).toHaveCSS("font-size", "16px");
+  await panel.getByRole("button", { name: "mono" }).click();
+  await expect(root).toHaveAttribute("data-tune-type", "mono");
+  const hue = panel.getByRole("slider", { name: "hue" });
+  await hue.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(root).toHaveAttribute("data-tune-hue", "");
+  // The panel stays the same size while the page around it changes.
+  await expect(panel.locator(".dial__label").first()).toHaveCSS("font-size", "12px");
+
+  // Extremes don't scroll sideways (WCAG 1.4.10).
+  const density = panel.getByRole("slider", { name: "density" });
+  await density.focus();
+  await page.keyboard.press("End");
+  const scale = panel.getByRole("slider", { name: "scale" });
+  await scale.focus();
+  await page.keyboard.press("End");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(button).toBeFocused();
+  await expect(bio).toHaveCSS("font-size", "16px");
+
+  await button.click();
+  await panel.getByRole("button", { name: "reset" }).click();
+  await expect(bio).toHaveCSS("font-size", "14px");
+  await expect(root).not.toHaveAttribute("data-tune-type");
+
+  await panel.getByRole("button", { name: "16" }).click();
+  await panel.getByRole("link", { name: /made with Spring/ }).click();
+  await expect(page).toHaveURL(/\/projects\/spring/);
+  await expect(root).not.toHaveAttribute("data-tune");
+  expect(errors).toEqual([]);
+});

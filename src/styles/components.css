@@ -3094,3 +3094,244 @@ claude-mascot:defined > * {
     transition: opacity var(--duration-dropdown) ease;
   }
 }
+
+/* Tune toy (components/tune): a corner button that grows into a panel of dials. */
+.tune-button {
+  position: fixed;
+  right: max(var(--space-6), env(safe-area-inset-right));
+  bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  transition:
+    opacity var(--duration-popover) var(--ease-out),
+    transform var(--duration-popover) var(--ease-out);
+}
+.tune-button:hover {
+  border-color: var(--border-strong);
+}
+.tune-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* The panel takes the button's place while it's open. */
+.tune-button[data-open] {
+  opacity: 0;
+  transform: scale(0.96);
+  visibility: hidden;
+}
+.tune-button__cursor {
+  display: none;
+}
+/* One spot of colour once a hue is picked; nothing before that. */
+.tune-swatch {
+  display: none;
+  width: 0.625rem;
+  height: 0.625rem;
+}
+.tune-swatch[data-on] {
+  display: block;
+  background: oklch(62% 0.13 var(--swatch-h));
+}
+.tune-panel {
+  position: fixed;
+  right: max(var(--space-6), env(safe-area-inset-right));
+  bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  z-index: 41;
+  width: 18rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  transform-origin: bottom right;
+  transition:
+    opacity var(--duration-popover) var(--ease-out),
+    transform var(--duration-popover) var(--ease-out);
+}
+.tune-panel[data-starting-style],
+.tune-panel[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.tune-panel__head,
+.tune-panel__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: var(--space-3);
+}
+.tune-panel__head {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tune-panel__actions {
+  display: flex;
+}
+.tune-panel__title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+.tune-panel__close,
+.tune-panel__reset {
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  color: var(--text-primary);
+}
+.tune-panel__close:hover,
+.tune-panel__reset:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tune-panel__reset:disabled {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+.tune-panel__foot {
+  min-height: 2.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+.tune-panel__credit {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.tune-panel__credit:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tune-panel__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+/* Named-option rows share the dial's frame and height, so all five rows read as one stack. */
+.tune-panel__row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 2.75rem;
+  padding-left: var(--space-2);
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+.tune-panel__label {
+  align-self: center;
+  color: var(--text-secondary);
+}
+.tune-panel .segmented {
+  gap: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.tune-panel .segmented__item {
+  min-height: 0;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--border-default);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 400;
+}
+.tune-panel .segmented__item[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--surface-raised);
+  box-shadow: none;
+}
+/* The hue dial looks like the others, with the hue wheel as a thin strip along its foot (painted on top). */
+.dial.tune-hue {
+  background:
+    linear-gradient(
+        to right,
+        oklch(70% 0.12 0),
+        oklch(70% 0.12 60),
+        oklch(70% 0.12 120),
+        oklch(70% 0.12 180),
+        oklch(70% 0.12 240),
+        oklch(70% 0.12 300),
+        oklch(70% 0.12 359)
+      )
+      0 100% / 100% 3px no-repeat,
+    linear-gradient(
+        to right,
+        var(--surface-hover) var(--p),
+        var(--text-primary) var(--p) calc(var(--p) + var(--dial-line, 1px)),
+        transparent calc(var(--p) + var(--dial-line, 1px))
+      )
+      0 0 / 100% 100% no-repeat,
+    var(--input-bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tune-panel__row {
+    min-height: 1.75rem;
+  }
+}
+/* Phones: a square "$_" button, and the panel as a short bottom sheet in two columns. */
+@media (max-width: 39.999rem) {
+  .tune-button {
+    right: max(var(--space-4), env(safe-area-inset-right));
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+  .tune-button__label {
+    display: none;
+  }
+  .tune-button__cursor {
+    display: inline;
+  }
+  .tune-swatch[data-on] {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+  .tune-panel {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: 50vh;
+    overflow-y: auto;
+    border-width: 1px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform-origin: bottom center;
+  }
+  .tune-panel[data-starting-style],
+  .tune-panel[data-ending-style] {
+    transform: translateY(1.5rem);
+  }
+  .tune-panel__body {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tune-panel__body > .tune-hue {
+    grid-column: 1 / -1;
+  }
+  /* Out of the way while a run is being played; back once the game loses focus. */
+  body:has(.runner__screen[data-active]:focus) .tune-button {
+    opacity: 0;
+    visibility: hidden;
+  }
+  /* Room at the end so the button never covers the footer. */
+  .page:has(.tune-button) {
+    padding-bottom: 4.5rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tune-button,
+  .tune-button[data-open],
+  .tune-panel[data-starting-style],
+  .tune-panel[data-ending-style] {
+    transform: none;
+  }
+}

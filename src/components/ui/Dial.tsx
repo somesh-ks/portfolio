@@ -23,6 +23,7 @@ export function Dial({
   reset,
   onCommit,
   flash,
+  className,
 }: {
   label: string;
   value: number;
@@ -40,6 +41,8 @@ export function Dial({
   onCommit?: () => void;
   /** Pulses the row once, for a value that changed without the visitor moving it. Change the key to replay. */
   flash?: boolean;
+  /** Extra class on the row, e.g. to paint a custom track. */
+  className?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const snap = (v: number) => {
@@ -72,7 +75,7 @@ export function Dial({
 
   return (
     <div
-      className="dial"
+      className={className ? `dial ${className}` : "dial"}
       data-flash={flash || undefined}
       style={{ "--p": `${p}%` } as CSSProperties}
     >
