@@ -3,6 +3,7 @@
 @import "./fluid.css";
 @import "./components.css";
 @import "./tune.css";
+@import "./entrance.css";
 
 /* Theme switches on [data-theme] (set by next-themes before paint). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

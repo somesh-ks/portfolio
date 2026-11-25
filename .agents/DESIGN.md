@@ -219,6 +219,10 @@ Decision order: entering/exiting → `ease-out` · on-screen movement → `ease-
 
 One documented exception: a full-height drawer using `--ease-drawer` may run to 500ms, because the curve spends most of that time near its endpoint. The theme switch's pixel dissolve (`--duration-theme`, 480ms) is the second, approved by Somesh: it plays once per explicit theme change and the page stays readable throughout. The third is the Spring landing's brand color morph (700ms on the hero canvas, longer on the closing horizon), which Somesh asked for as a calm glide in place of a dither dissolve: only colors change, nothing moves, and reduced motion skips it. Nothing else crosses 300ms.
 
+### First load
+
+Each page sets itself with one calm entrance per visit (`src/styles/entrance.css`), and later in-app navigations simply appear (`EntranceGate`). Only the page title rises, 4px; everything else fades in place, so the viewport never drifts (Somesh gets dizzy from heavy motion). `--duration-enter` (280ms) per element, delays in steps of `--duration-stagger-step` with shrinking gaps, the whole page settled by about 480ms. The largest text block starts with the first support beat, so LCP isn't held back. Tools (Spring app, sticker studio) get one quick fade, controls ready almost at once. Reduced motion: the same fade, no rise and no sequence. Nav bars and footers don't animate. Lists and article bodies fade as one block each, never row by row.
+
 ### Physicality & Origin
 
 - **Never `scale(0)`.** Start from `scale(0.95)` and `opacity: 0`. Nothing in the real world appears from nothing.

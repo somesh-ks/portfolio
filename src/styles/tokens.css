@@ -57,6 +57,8 @@
   --color-white: oklch(100% 0 0);
   --duration-ceiling: 300ms;
   --duration-dropdown: 200ms;
+  /* First-load entrance of a page, once per visit. */
+  --duration-enter: 280ms;
   --duration-modal: 260ms;
   --duration-popover: 200ms;
   --duration-press: 140ms;
