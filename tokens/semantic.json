@@ -589,17 +589,17 @@
     "tide": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.639, 0.118, 142.5]
+        "components": [0.6, 0.12, 212.0]
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.639, 0.118, 142.5]
+            "components": [0.6, 0.12, 212.0]
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.639, 0.118, 142.5]
+            "components": [0.6, 0.12, 212.0]
           }
         }
       }
@@ -682,6 +682,24 @@
         "mode": {
           "light": "{color.clay.500}",
           "dark": "{color.clay.500}"
+        }
+      }
+    },
+    "comics-skin": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.8, 0.07, 60.0]
+      },
+      "$extensions": {
+        "mode": {
+          "light": {
+            "colorSpace": "oklch",
+            "components": [0.8, 0.07, 60.0]
+          },
+          "dark": {
+            "colorSpace": "oklch",
+            "components": [0.8, 0.07, 60.0]
+          }
         }
       }
     },
