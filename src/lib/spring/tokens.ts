@@ -55,7 +55,7 @@ export interface SourceFile {
 
 export const MAX_TOKENS = 3000;
 const MAX_SCOPED = 40;
-export const MAX_MODES = 8;
+const MAX_MODES = 8;
 const RESOLVED_MAX = 2000;
 
 // ------------------------------------------------------------------ CSS

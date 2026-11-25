@@ -9,7 +9,7 @@ import { namedColor } from "./css-names";
 import { DEFAULT_INPUT, inputFromSeed, type SystemInput } from "./system";
 
 export const SCHEMA_URL = "https://someshks.com/spring/schema.json";
-export const SPRING_URL = "https://someshks.com/spring";
+const SPRING_URL = "https://someshks.com/spring";
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);

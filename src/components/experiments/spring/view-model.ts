@@ -5,7 +5,7 @@
 import { groupOf, kind, readView, resolve, type Kind, type View } from "@/lib/spring/tokens";
 
 /** Inflated payloads stop here, so a hostile link can't fill memory. */
-export const MAX_PAYLOAD = 2 * 1024 * 1024;
+const MAX_PAYLOAD = 2 * 1024 * 1024;
 
 const b64url = (bytes: Uint8Array) => {
   let s = "";
@@ -76,7 +76,7 @@ export async function encodePayload(view: View): Promise<string> {
 }
 
 /** Every custom property the page sets is prefixed, so a visitor's --space-2 never restyles the site. */
-export const prop = (name: string) => `--sv-${name}`;
+const prop = (name: string) => `--sv-${name}`;
 export const ref = (name: string) => `var(${prop(name)})`;
 const prefixed = (v: string) => v.replace(/var\(\s*--/g, "var(--sv-");
 
