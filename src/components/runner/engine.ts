@@ -169,6 +169,8 @@ export function createEngine(
   const particles = makeParticles();
   const sway: Sway = { offset: 0, speed: 0 };
   const faces = new WeakMap<object, Face | null>();
+  /** Columns under the open umbrella, where no splash lands. */
+  let shelter: readonly [number, number] | null = null;
   /** Weather moves on its own clock, so rain falls between runs too. */
   let weatherLast: number | null = null;
 
@@ -279,8 +281,9 @@ export function createEngine(
           const row = top - cell;
           if (row >= 0 && row < WORLD.ground) fill(left + Math.ceil(cell / 2), row, 1, 1, color);
         }
-        if (splash < SPLASH) {
-          const at = Math.floor(splashX + copy - x);
+        const at = Math.floor(splashX + copy - x);
+        const dry = shelter && at >= shelter[0] - 2 && at <= shelter[1] + 2;
+        if (splash < SPLASH && !dry) {
           const spread = splash < SPLASH / 2 ? 1 : 2;
           fill(at - spread, WORLD.ground - 1, 1, 1, color);
           fill(at + spread, WORLD.ground - 1, 1, 1, color);
@@ -371,6 +374,9 @@ export function createEngine(
     for (const [x, y, w, h, color] of rects) fill(WORLD.mascotX + x, lift + y, w, h, color);
     const accessory = accessoryFor(weather);
     const face = accessory ? faceOf(rects) : null;
+    const middle = face ? WORLD.mascotX + Math.floor((face.left + face.right) / 2) : 0;
+    shelter =
+      accessory === "umbrella" && face && costume !== "car" ? [middle - 8, middle + 8] : null;
     if (accessory && face)
       drawCells(
         dress(face, accessory, costume, swayRow(sway), lift + face.top),

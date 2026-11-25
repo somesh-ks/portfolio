@@ -149,10 +149,10 @@ export function makeParticles(): Particle[] {
 /** How long a splash shows, in seconds. */
 export const SPLASH = 0.12;
 
-/** Cells per second: [fall, drift left]. Rain slants about one across for
- * three down, the angle its drops are drawn at. */
+/** Cells per second: [fall, drift left]. Rain slants one across for two
+ * down, the angle its drops are drawn at. */
 export function particleSpeed(sky: Sky): readonly [number, number] | null {
-  if (sky === "rain") return [54, 18];
+  if (sky === "rain") return [54, 27];
   if (sky === "snow") return [10, 4];
   return null;
 }
