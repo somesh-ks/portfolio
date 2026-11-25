@@ -171,16 +171,20 @@
   gap: var(--space-2);
   min-height: 1.75rem;
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
-  font-weight: 400;
+  font-weight: 600;
 }
-.stickers-head > span {
+.stickers-head__t {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.stickers-head__cur {
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 .stickers-clear {
   position: relative;
@@ -211,17 +215,6 @@
   outline: 2px solid var(--text-primary);
   outline-offset: 0;
 }
-.stickers-cap {
-  min-height: 1rem;
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-  line-height: 1rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .stickers-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -229,19 +222,22 @@
 }
 .stickers-tile {
   position: relative;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
+  display: block;
   min-width: 0;
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  padding: 0;
+  background: none;
   color: var(--text-primary);
+  text-align: left;
   cursor: pointer;
 }
-.stickers-tile > span {
-  display: contents;
+.stickers-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
-.stickers-tile svg {
+.stickers-thumb svg {
   position: absolute;
   inset: var(--space-2);
   display: block;
@@ -249,13 +245,39 @@
   height: calc(100% - 2 * var(--space-2));
   pointer-events: none;
 }
+/* Names are tooltips with a fine pointer; touch has no hover, so they sit under the tiles. */
+.stickers-label {
+  display: none;
+}
+@media (hover: none), (pointer: coarse) {
+  .stickers-grid {
+    align-items: start;
+    column-gap: var(--space-2);
+    row-gap: var(--space-3);
+  }
+  .stickers-label {
+    display: -webkit-box;
+    margin-top: var(--space-1);
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    hyphens: none;
+    color: var(--text-secondary);
+    font: 400 0.6875rem/1.2 var(--font-mono);
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .stickers-tile[aria-pressed="true"] .stickers-label,
+  .stickers-tile:has(:checked) .stickers-label {
+    color: var(--text-primary);
+  }
+}
 @media (hover: hover) and (pointer: fine) {
-  .stickers-tile:hover {
+  .stickers-tile:hover .stickers-thumb {
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
 }
-.stickers-tile[aria-pressed="true"],
-.stickers-tile:has(:checked) {
+.stickers-tile[aria-pressed="true"] .stickers-thumb,
+.stickers-tile:has(:checked) .stickers-thumb {
   background: var(--surface-raised);
   box-shadow: inset 0 0 0 2px var(--text-primary);
 }
@@ -310,22 +332,20 @@
   animation-play-state: paused;
 }
 
-/* ——— Transport: play, a slider whose thumb is the playhead, the frame count, outline ——— */
+/* ——— Transport: play, a slider whose thumb is the playhead, the frame count; compact and centred ——— */
 .stickers-transport {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
+  justify-content: center;
   padding: var(--space-2) var(--space-4) var(--space-3);
   border-top: 1px solid var(--border-subtle);
 }
 .stickers-scrub {
   display: flex;
-  flex: 1 1 16rem;
   align-items: center;
   gap: var(--space-3);
+  width: min(100%, 24rem);
   min-width: 0;
+  min-height: 2.75rem;
 }
 .stickers-playbtn {
   flex: none;
@@ -401,27 +421,6 @@
 .stickers-range:focus-visible::-moz-range-thumb {
   outline: 2px solid var(--text-primary);
   outline-offset: 4px;
-}
-
-.stickers-outline {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-2);
-}
-.stickers-outline__label {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-xs);
-}
-@media (max-width: 40rem) {
-  .stickers-scrub {
-    flex-basis: 100%;
-  }
-  .stickers-outline {
-    flex: 1 1 100%;
-    justify-content: space-between;
-  }
 }
 
 /* ——— Phone and tablet: the stage is pinned, the panel scrolls below ——— */

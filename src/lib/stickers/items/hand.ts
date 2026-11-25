@@ -14,18 +14,13 @@
  * - Optional: `layers` (hand-built, for alpha), `parts` (several pieces with their own `at(f, n)`
  *   offset per frame, null hides), `pose(f, n)` (offset or hide for the whole item), `eyeTint`.
  *
- * handL items are held in the left fist: draw the grip at x 0..1, rows 4..6 and add FIST last
- * so the hand sits over it. They move with the left arm.
+ * handL items are the object only: draw the grip at x 0..1, rows 4..6. The rig draws the left hand
+ * (a fist) over that grip, and the item moves with the left arm. Never draw body-coloured pixels
+ * in an item (a test checks, VIP pass and laptop logo aside).
  */
-import { art, type Layer, rectLayer } from "../model";
+import { art, rectLayer } from "../model";
 import { COLORS as K } from "../palette";
 import type { ItemDef } from "./types";
-
-const FIST: Layer[] = [
-  rectLayer(K.body, [[0, 4, 2, 3]]),
-  rectLayer(K.light, [[0, 4, 2, 1]]),
-  rectLayer(K.shade, [[0, 6, 2, 1]]),
-];
 
 const tap = (f: number) => f % 4 < 2;
 
@@ -47,7 +42,6 @@ export const HAND: ItemDef[] = [
         [2, 3, 1, 2],
         [1, 5, 2, 1],
       ]),
-      ...FIST,
     ],
   },
   {
@@ -62,7 +56,6 @@ export const HAND: ItemDef[] = [
         [-5, -3, 2, 5],
         [-7, -1, 7, 1],
       ]),
-      ...FIST,
     ],
   },
   {
@@ -77,7 +70,6 @@ export const HAND: ItemDef[] = [
         D: K.redDark,
       }),
       rectLayer(K.pink, [[-1, -6, 1, 2]]),
-      ...FIST,
     ],
   },
   {
@@ -92,7 +84,6 @@ export const HAND: ItemDef[] = [
         [-2, 1, 1, 1],
         [-2, 2, 1, 1],
       ]),
-      ...FIST,
     ],
   },
   {
@@ -148,7 +139,7 @@ export const HAND: ItemDef[] = [
       rectLayer(K.steel, [[9, 6, 6, 6]]),
       rectLayer(K.moss, [[10, 7, 4, 3]]),
       rectLayer(K.coal, [[10, 11, 2, 1]]),
-      rectLayer(K.body, [
+      rectLayer(K.tomato, [
         [13, 11, 1, 1],
         [14, 10, 1, 1],
       ]),
@@ -175,7 +166,6 @@ export const HAND: ItemDef[] = [
         1,
         { D: K.dough, L: K.doughLight, S: K.swirl, W: K.cream },
       ),
-      ...FIST,
     ],
   },
   {
@@ -203,7 +193,6 @@ export const HAND: ItemDef[] = [
         -3,
         { B: K.blue, G: K.gold, D: K.skyDark, W: K.white, O: K.body, K: K.ink, Y: K.yellow },
       ),
-      ...FIST,
     ],
   },
   {
@@ -234,7 +223,6 @@ export const HAND: ItemDef[] = [
         -4,
         { W: K.woodLight, D: K.woodDark, H: K.wood },
       ),
-      ...FIST,
     ],
   },
   {
@@ -258,7 +246,6 @@ export const HAND: ItemDef[] = [
         1,
         { R: K.crayfish, D: K.crayDark, K: K.ink },
       ),
-      ...FIST,
     ],
   },
   {
@@ -291,7 +278,6 @@ export const HAND: ItemDef[] = [
         [-6, 4, 3, 1],
         [-3, 5, 3, 1],
       ]),
-      ...FIST,
     ],
   },
   {

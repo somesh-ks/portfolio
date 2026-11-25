@@ -150,17 +150,48 @@ function thumb(items: Array<{ layer: Layer; dx: number; dy: number }>): string {
   return `${open(boxOf(all), null)}${flatPaths(all)}</svg>`;
 }
 
+/**
+ * Comic motion marks for the picker's thumbnails only (never exports): the three actions whose
+ * pose alone still reads as idle get a cue in mascot cells. Two arcs beside the waving hand, a
+ * down chevron over a nodding head, speed ticks behind a walker and a runner.
+ */
+const MARKS: Partial<Record<ActionId, Rect[]>> = {
+  wave: [
+    { x: 25, y: -3, w: 1, h: 3 },
+    { x: 27, y: -4, w: 1, h: 5 },
+  ],
+  nod: [
+    { x: 10, y: -5, w: 1, h: 1 },
+    { x: 14, y: -5, w: 1, h: 1 },
+    { x: 11, y: -4, w: 1, h: 1 },
+    { x: 13, y: -4, w: 1, h: 1 },
+    { x: 12, y: -3, w: 1, h: 1 },
+  ],
+  walk: [
+    { x: -5, y: 6, w: 3, h: 1 },
+    { x: -5, y: 10, w: 3, h: 1 },
+  ],
+  run: [
+    { x: -7, y: 4, w: 4, h: 1 },
+    { x: -9, y: 8, w: 6, h: 1 },
+    { x: -7, y: 12, w: 4, h: 1 },
+  ],
+};
+
 /** The mascot at the action's still frame, no items, outline off, cropped to what is drawn. */
 export function actionThumbSvg(action: ActionId): string {
   const look: Look = { action, items: [], outline: 0 };
-  return thumb(frameItems(clipFor(look), stillFrame(action), true));
+  const marks = MARKS[action];
+  const items = frameItems(clipFor(look), stillFrame(action), true);
+  if (marks) items.push({ layer: { color: "#3D3D3A", alpha: 1, rects: marks }, dx: 0, dy: 0 });
+  return thumb(items);
 }
 
 /** The item art alone, cropped, on the frame where it shows the most. */
 export function itemThumbSvg(id: string): string {
   const def = itemDef(id);
   if (!def) return `${open({ x: 0, y: 0, w: 1, h: 1 }, null)}</svg>`;
-  const parts = partsOf(def);
+  const parts = partsOf(def).filter((p) => !p.body);
   const n = 24;
   let best: Array<{ layer: Layer; dx: number; dy: number }> = [];
   let bestCount = -1;
