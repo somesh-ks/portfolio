@@ -467,13 +467,8 @@ export function ColorOutput({
           name="primary"
           head={
             <>
+              {/* Its typed value lives once, in the brand color panel beside it. */}
               {pick("primary", primaryHex, setPrimary)}
-              <ValueField
-                label="Primary color"
-                hex={primaryHex}
-                format={format}
-                onHex={setPrimary}
-              />
             </>
           }
         >
