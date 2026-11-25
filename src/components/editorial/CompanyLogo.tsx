@@ -15,6 +15,9 @@ interface Mark {
   tile?: string;
   /** Gap between tile edge and mark, in 24ths of the icon. */
   inset?: number;
+  /** Empty space trimmed off each side of an untiled mark, in 24ths, so its
+   * side bearing doesn't push it away from the name. */
+  crop?: number;
 }
 
 const MARKS: Partial<Record<CompanyId, Mark>> = {
@@ -38,7 +41,8 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
     ],
     fill: "#191919",
     tile: "#FAFAF7",
-    inset: 4,
+    // The tile vanishes on the light page, so keep the mark large.
+    inset: 2,
   },
   // stripe.com favicon.svg (2025 mark)
   stripe: {
@@ -56,6 +60,7 @@ const MARKS: Partial<Record<CompanyId, Mark>> = {
         d: "M13.36 3.66h-3.4v6.87q-.61.3-1.34.5a8 8 0 0 1-.78.2V3.96s.06-1.04-.51-1.4v-.12h5.43q.38.45.6 1.21m.96 9.4A6.1 6.1 0 0 0 18 7.4c.02-1.62-.55-2.62-1.2-3.15l-.1-.09a7 7 0 0 0-.62-1.62l.32.06a5 5 0 0 1 3.9 3.47 6 6 0 0 1-.9 5.38 9 9 0 0 1-2.3 2.12 21 21 0 0 1 2.3 4.6 26 26 0 0 1 1.11 4.34c.15 1.23.52 1.32.6 1.35V24h-4.3v-.13c.14-.07 1.3-.55 1.3-2.37q0-1.98-.9-4.46a23 23 0 0 0-1.29-2.83l-.01-.02a8 8 0 0 1-.87.32q-.33-.75-.7-1.46m-4.36-.15v1.12a18 18 0 0 0 2.25-.28q.33.72.52 1.26l.01.05-1.23.16-1.55.13v7.21c0 .16.04 1.01.6 1.31V24h-3.3v-.13c.53-.28.58-1.15.58-1.3V13.3a19 19 0 0 0 2.12-.39zm.46-11.66H5.66v10.57c.43-.02 2.01-.15 3.05-.46 3.47-1.03 5.12-3.45 5.15-6.3.02-1.65-.57-2.67-1.22-3.2a3 3 0 0 0-1.34-.56 6 6 0 0 0-.88-.05zM3.5 20.55v-19S3.56.5 2.97.13V0h7.35c.61 0 1.41.06 1.9.17a5.1 5.1 0 0 1 3.99 3.54c.56 1.7.3 3.8-.92 5.5a10 10 0 0 1-1.93 1.87l-.42.28a22 22 0 0 1 2.34 4.7c.61 1.67 1.08 3.9 1.14 4.43.15 1.25.52 1.37.6 1.4v.13h-4.37v-.13c.13-.07 1.32-.58 1.32-2.44q0-2.04-.93-4.55a23 23 0 0 0-1.3-2.9l-.02-.01c-.58.26-1.81.62-2.6.77a24 24 0 0 1-3.46.41v7.39c0 .16.04 1.03.6 1.33v.13H2.9v-.13c.55-.3.6-1.17.6-1.33Z",
       },
     ],
+    crop: 2.5,
   },
   // flat three-pointed star, redrawn
   mercedes: {
@@ -102,8 +107,16 @@ export function CompanyLogo({ id }: { id: CompanyId }) {
   const mark = MARKS[id];
   if (!mark) return null;
   const inset = mark.tile ? (mark.inset ?? 4) : 0;
+  const crop = mark.crop ?? 0;
+  const width = 24 - 2 * crop;
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="company-pill__logo">
+    <svg
+      viewBox={`${crop} 0 ${width} 24`}
+      aria-hidden="true"
+      focusable="false"
+      className="company-pill__logo"
+      style={crop ? { width: `${(0.9 * width) / 24}em` } : undefined}
+    >
       {mark.tile ? <rect width="24" height="24" fill={mark.tile} /> : null}
       <svg
         x={inset}

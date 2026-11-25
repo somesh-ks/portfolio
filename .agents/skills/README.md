@@ -15,6 +15,7 @@ Paths inside these skills written as `~/.agents/DESIGN.md` or `~/.agents/CODE.md
 | better-ui | `jakubkrehel/skills@672ae44` (MIT) |
 | mobile-native | `emilkowalski/skills@64eb3de` (MIT) |
 | userinterface-wiki | `raphaelsalaja/userinterface-wiki@256a954` |
+| thumbnails | written in this repo for the homepage row thumbnails; edit it here |
 | ui-sdk | `vercel-labs/ui@8060d16` (`packages/core/skills/ui-sdk`, `@ui-sdk/core` 0.1.0-beta.14, Apache-2.0, LICENSE kept) |
 
 To update, re-copy from the source rather than editing here, so the plugin copy stays the single source of truth.

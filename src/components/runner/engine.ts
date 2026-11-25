@@ -47,7 +47,7 @@ import {
   makeParticles,
   MOON,
   particleSpeed,
-  RESKINS,
+  obstacleSkin,
   STARS,
   stepParticles,
   stepSway,
@@ -226,6 +226,10 @@ export function createEngine(
     // just above Claude instead of on top of it.
     const sky = (offsetY + (WORLD.ground - HEADROOM) * scale) / dpr;
     canvas.parentElement?.style.setProperty("--runner-sky", split ? `${Math.round(sky)}px` : "");
+    canvas.parentElement?.style.setProperty(
+      "--runner-ground",
+      `${Math.round((offsetY + WORLD.ground * scale) / dpr)}px`,
+    );
     draw();
   }
 
@@ -374,7 +378,7 @@ export function createEngine(
     drawGround(distance);
 
     for (const obstacle of state?.obstacles ?? []) {
-      const sprite = RESKINS[weather.sky]?.[obstacle.kind] ?? OBSTACLE_SPRITES[obstacle.kind];
+      const sprite = obstacleSkin(weather, obstacle.kind) ?? OBSTACLE_SPRITES[obstacle.kind];
       drawCells(sprite.cells, Math.round(obstacle.x), WORLD.ground - sprite.h);
     }
 
