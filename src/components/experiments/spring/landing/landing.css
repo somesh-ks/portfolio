@@ -1,6 +1,6 @@
-/* Spring's landing page (/spring): standalone and full bleed. Nav, hero with the live tool, the audit, a closing ask. */
+/* Spring's landing page (/spring): standalone, full bleed, pixel terminal. Hairlines, square corners, no shadows. */
 .spring-landing {
-  /* One container edge for nav, frames, sections and footer. */
+  /* One container edge for the bars, frames, sections and footer. */
   --spring-gutter: clamp(1rem, 3vw, 1.5rem);
   --spring-edge: max(var(--spring-gutter), calc((100% - 70rem) / 2));
   min-height: 100dvh;
@@ -11,59 +11,36 @@
 .spring-landing__main {
   outline: none;
 }
-
-/* ---------- Nav: Spring's own, no site chrome. ---------- */
-.spring-nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  height: 3.5rem;
-  padding: 0 var(--spring-edge);
-  background: var(--surface-canvas);
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-}
-.spring-nav__mark {
+.spring-mark {
   font-family: var(--font-mono);
   font-size: 1.0625rem;
   font-weight: 600;
   letter-spacing: -0.04em;
   text-decoration: none;
 }
-.spring-nav__links {
-  display: flex;
-  gap: var(--space-5);
-  font-size: var(--step-sm);
+.spring-h2 {
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
-.spring-nav__links a,
-.spring-foot__links a {
-  color: var(--text-secondary);
-  text-decoration: none;
-}
-.spring-nav__end {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
-}
-.spring-nav__cta,
-.spring-hero__primary {
+.spring-btn {
   display: inline-grid;
   place-items: center;
-  height: 2.25rem;
-  padding-inline: var(--space-4);
+  height: 2.75rem;
+  padding-inline: var(--space-6);
   background: var(--text-primary);
   color: var(--surface-canvas);
+  font-family: var(--font-mono);
   font-size: var(--step-sm);
   font-weight: 500;
   text-decoration: none;
 }
-.spring-hero__primary {
-  height: 2.75rem;
-  padding-inline: var(--space-6);
+.spring-btn--sm {
+  height: 2.25rem;
+  padding-inline: var(--space-4);
 }
 .spring-landing__pause {
   min-height: 2.25rem;
@@ -72,17 +49,49 @@
   font-family: var(--font-mono);
   font-size: var(--step-xs);
 }
+.spring-nav__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+.spring-nav__link,
+.spring-foot__links a {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  text-decoration: none;
+}
 @media (hover: hover) {
-  .spring-nav__links a:hover,
+  .spring-nav__link:hover,
   .spring-foot__links a:hover,
   .spring-landing__pause:hover {
     color: var(--text-primary);
   }
 }
-@media (max-width: 40rem) {
-  .spring-nav__links {
-    display: none;
-  }
+
+/* ---------- Scroll bar: hidden while an "Open Spring" button is on screen. ---------- */
+.spring-nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  height: 3.5rem;
+  padding: 0 var(--spring-edge);
+  background: var(--surface-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transform: translateY(-100%);
+  visibility: hidden;
+  transition:
+    transform 0.24s var(--ease-out),
+    visibility 0s 0.24s;
+}
+.spring-nav[data-shown="true"] {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.24s var(--ease-out);
 }
 
 /* ---------- Hero: full bleed, always dark. The tool hangs over its bottom edge. ---------- */
@@ -109,82 +118,50 @@
   /* Text never sits on the dither: it fades out well below the copy. */
   mask-image: linear-gradient(to top, #000 22%, transparent 50%);
 }
+.spring-hero__top {
+  display: flex;
+  align-items: center;
+  height: 3.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
 .spring-hero__copy {
   display: grid;
   justify-items: center;
-  padding-top: clamp(var(--space-12), 9vw, 6.5rem);
+  padding-top: clamp(var(--space-12), 8vw, 6rem);
 }
 .spring-hero__title {
-  max-width: 16ch;
-  font-family: var(--font-sans);
-  font-size: clamp(2.5rem, 5.4vw, 4.5rem);
+  max-width: 20ch;
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 4.6vw, 3.75rem);
   font-weight: 500;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
   text-wrap: balance;
 }
 .spring-hero__line {
   max-width: 34rem;
-  margin-top: var(--space-5);
+  margin: var(--space-5) 0 var(--space-8);
   color: var(--text-secondary);
   font-size: clamp(1rem, 1.3vw, 1.125rem);
   line-height: 1.55;
   text-wrap: pretty;
 }
-.spring-hero__cta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3) var(--space-6);
-  margin-top: var(--space-8);
-}
-.spring-hero__open {
-  padding-block: var(--space-2);
-  font-size: var(--step-sm);
-  font-weight: 500;
-  text-decoration: none;
+.spring-hero__note {
+  margin-top: var(--space-3);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
 }
 .spring-hero__proof {
   margin-top: clamp(var(--space-10), 5vw, var(--space-16));
   text-align: left;
 }
 
-/* ---------- Install command, copyable ---------- */
-.spring-install {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  min-height: 2.75rem;
-  padding-left: var(--space-4);
-  background: color-mix(in oklch, var(--text-primary) 4%, transparent);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-  text-align: left;
-}
-.spring-install code {
-  padding-block: var(--space-2);
-}
-.spring-install code::before {
-  content: "$ ";
-  color: var(--text-secondary);
-}
-.spring-install code span {
-  white-space: nowrap;
-}
-.spring-install .copy-button {
-  color: inherit;
-}
-
-/* ---------- A product frame: the playground and the before/after share it. Fixed heights, no reflow. ---------- */
+/* ---------- The playground frame: square, hairline, fixed heights so nothing reflows. ---------- */
 .spring-ba {
   overflow: hidden;
   background: var(--surface-canvas);
-  border-radius: 12px;
-  box-shadow:
-    0 0 0 1px var(--border-subtle),
-    0 30px 80px -24px rgb(0 0 0 / 0.5);
+  border: 1px solid var(--border-default);
   color: var(--text-primary);
 }
 .spring-ba__bar {
@@ -234,9 +211,6 @@
   flex: 1;
   transition: background-color 0.5s var(--ease-out);
 }
-.spring-ba__sw--loose {
-  gap: 3px;
-}
 @media (max-width: 52rem) {
   .spring-ba__body-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -251,13 +225,12 @@
   align-items: center;
   gap: var(--space-2);
 }
-.spring-play__swatch,
-.spring-play__custom {
+.spring-play__swatch {
   position: relative;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  width: 1.25rem;
+  height: 1.25rem;
+  outline: 1px solid rgb(255 255 255 / 0.16);
+  outline-offset: -1px;
 }
 .spring-play__swatch::after {
   content: "";
@@ -265,22 +238,7 @@
   inset: -0.625rem;
 }
 .spring-play__swatch[aria-pressed="true"] {
-  outline: 2px solid var(--text-primary);
-  outline-offset: 2px;
-}
-.spring-play__custom {
-  overflow: hidden;
-  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
-  cursor: pointer;
-}
-.spring-play__custom input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.spring-play__custom:has(:focus-visible) {
-  outline: 2px solid var(--text-accent);
+  outline: 1px solid var(--text-primary);
   outline-offset: 2px;
 }
 .spring-play__swatches code {
@@ -348,110 +306,13 @@
   text-decoration: none;
 }
 @media (hover: hover) {
-  .spring-play__open:hover,
-  .spring-hero__open:hover {
+  .spring-play__open:hover {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
 }
 @media (max-width: 52rem) {
   .spring-play__panel {
-    border-left: 0;
-    border-top: 1px solid var(--border-subtle);
-  }
-}
-
-/* Proof: Documenso's drift, then what changed */
-.spring-ba__bar a {
-  color: inherit;
-  text-decoration: none;
-}
-.spring-proof__drift {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-}
-.spring-proof__drift > div {
-  display: grid;
-  align-content: start;
-  gap: var(--space-3);
-  padding: var(--space-6);
-}
-.spring-proof__drift > div + div {
-  border-left: 1px solid var(--border-subtle);
-}
-.spring-proof__drift b,
-.spring-proof__fact b {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.spring-proof__sw {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 6px;
-}
-.spring-proof__sw--loose {
-  grid-template-columns: repeat(auto-fill, minmax(1.625rem, 1fr));
-  gap: 4px;
-}
-.spring-proof__sw i {
-  aspect-ratio: 1;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text-primary) 10%, transparent);
-}
-.spring-proof__facts {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
-  border-top: 1px solid var(--border-subtle);
-}
-.spring-proof__fact {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
-  padding: var(--space-5) var(--space-6);
-  color: var(--text-secondary);
-  font-size: var(--step-sm);
-  font-variant-numeric: tabular-nums;
-}
-.spring-proof__fact + .spring-proof__fact {
-  border-left: 1px solid var(--border-subtle);
-}
-.spring-proof__fact > b {
-  font-family: var(--font-sans);
-  font-size: 2rem;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-}
-.spring-proof__fact--img {
-  grid-template-columns: 9rem 1fr;
-  align-items: center;
-  gap: var(--space-5);
-}
-.spring-proof__fact--img > div {
-  display: grid;
-  gap: var(--space-1);
-}
-.spring-proof__fact img {
-  width: 100%;
-  height: auto;
-  border-radius: 6px;
-  box-shadow: 0 0 0 1px var(--border-subtle);
-}
-.spring-proof__fact s {
-  color: var(--text-danger);
-}
-.spring-proof__cap {
-  padding: var(--space-4) var(--space-6);
-  border-top: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: var(--step-sm);
-}
-@media (max-width: 52rem) {
-  .spring-proof__drift,
-  .spring-proof__facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .spring-proof__drift > div + div,
-  .spring-proof__fact + .spring-proof__fact {
     border-left: 0;
     border-top: 1px solid var(--border-subtle);
   }
@@ -542,7 +403,8 @@
 .spring-ba__btn--ghost {
   background: transparent;
   color: var(--ba-text);
-  box-shadow: inset 0 0 0 1px var(--ba-border);
+  outline: 1px solid var(--ba-border);
+  outline-offset: -1px;
 }
 .spring-ba__link {
   margin-left: auto;
@@ -553,27 +415,184 @@
   text-underline-offset: 3px;
 }
 
-/* ---------- Audit: for a system that already exists. ---------- */
-.spring-audit {
+/* ---------- Features: a hairline grid, each cell with a live readout of the brand on the clock. ---------- */
+.spring-feat {
   padding: clamp(var(--space-16), 9vw, 8rem) var(--spring-edge);
 }
-.spring-audit__head {
+.spring-feat__grid {
   display: grid;
-  justify-items: start;
-  gap: var(--space-4);
-  margin-bottom: var(--space-10);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: var(--space-10);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
+  list-style: none;
 }
-.spring-audit__head h2,
-.spring-close h2 {
-  font-family: var(--font-sans);
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+.spring-feat__grid > li {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  background: var(--surface-canvas);
 }
-.spring-audit__head p {
-  max-width: 36rem;
+.spring-feat__k {
+  margin-bottom: var(--space-2);
   color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-feat h3 {
+  font-size: var(--step-base);
+  font-weight: 500;
+}
+.spring-feat__grid > li > p:not([class]) {
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+  text-wrap: pretty;
+}
+/* Every readout is the same height, so a brand change never moves the page. */
+.spring-feat__viz {
+  height: 7.5rem;
+  margin-top: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+}
+.spring-feat__ramps {
+  display: grid;
+  align-content: end;
+  gap: 4px;
+}
+.spring-feat__ramps span {
+  display: flex;
+  height: 0.875rem;
+  opacity: 0.35;
+  transition: opacity 0.3s var(--ease-out);
+}
+.spring-feat__ramps span[data-on] {
+  opacity: 1;
+}
+.spring-feat__ramps i,
+.spring-feat__roles i {
+  flex: 1;
+  transition: background-color 0.5s var(--ease-out);
+}
+.spring-feat__roles {
+  display: grid;
+  align-content: end;
+  gap: var(--space-2);
+}
+.spring-feat__roles div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.spring-feat__roles dd {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-secondary);
+}
+.spring-feat__roles i {
+  width: 0.875rem;
+  height: 0.875rem;
+  outline: 1px solid var(--border-subtle);
+  outline-offset: -1px;
+}
+.spring-feat__roles dd span {
+  min-width: 5.5rem;
+  margin-left: var(--space-2);
+  text-align: right;
+}
+.spring-feat__pairs {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+.spring-feat__pairs th,
+.spring-feat__pairs td {
+  padding: var(--space-1) 0;
+  font-weight: 400;
+  text-align: right;
+}
+.spring-feat__pairs th[scope="row"],
+.spring-feat__pairs thead th:first-child {
+  text-align: left;
+}
+.spring-feat__pairs thead th {
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.spring-feat__pairs th[scope="row"] span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.25rem;
+  margin-right: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  transition:
+    background-color 0.5s var(--ease-out),
+    color 0.5s var(--ease-out);
+}
+.spring-feat__ladder {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  list-style: none;
+}
+.spring-feat__ladder li {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+.spring-feat__ladder span {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1;
+}
+.spring-feat__ladder code {
+  color: var(--text-secondary);
+}
+.spring-feat__code {
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  line-height: 1.7;
+  white-space: pre;
+}
+.spring-feat__code span {
+  color: var(--text-secondary);
+}
+.spring-feat__link {
+  display: flex;
+  align-items: flex-end;
+  overflow-wrap: anywhere;
+}
+.spring-feat__link code {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.spring-feat__link b {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+@media (max-width: 60rem) {
+  .spring-feat__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 40rem) {
+  .spring-feat__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ---------- Closing: the ask again, over a strip of the horizon. ---------- */
@@ -608,10 +627,11 @@
   justify-content: space-between;
   gap: var(--space-4) var(--space-8);
   padding: var(--space-8) var(--spring-edge);
+  border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   font-size: var(--step-xs);
 }
-.spring-foot .spring-nav__mark {
+.spring-foot .spring-mark {
   margin-right: var(--space-2);
   color: var(--text-primary);
   font-size: var(--step-sm);
@@ -624,8 +644,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .spring-nav,
+  .spring-nav[data-shown="true"],
   .spring-ba__sw i,
-  .spring-ba__card {
+  .spring-ba__card,
+  .spring-feat__ramps span,
+  .spring-feat__ramps i,
+  .spring-feat__roles i,
+  .spring-feat__pairs span {
     transition: none !important;
   }
 }

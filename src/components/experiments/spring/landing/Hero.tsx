@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useRef } from "react";
-import { CopyButton } from "@/components/code/CopyButton";
+import { useEffect, useRef } from "react";
 import type { BrandData } from "./data";
 import { Playground } from "./Playground";
-import { useLandingMotion } from "./Motion";
+import { PauseToggle, useLandingMotion } from "./Motion";
+import { GITHUB } from "./Nav";
 
 /** The brand's 12 dark steps for the horizon, computed on the server. */
 export const horizonFor = (brands: BrandData[], seed: string) =>
@@ -156,7 +156,7 @@ export function Horizon({ steps, still }: { steps: string[]; still: boolean }) {
   return <canvas ref={ref} className="spring-hero__horizon" aria-hidden="true" />;
 }
 
-/** Full-bleed dark hero: the claim, the way in, and Spring itself rising out of the horizon. */
+/** Full-bleed dark hero: the claim, the one way in, and Spring itself rising out of the horizon. */
 export function Hero({ brands }: { brands: BrandData[] }) {
   const { seed, paused } = useLandingMotion();
   const steps = horizonFor(brands, seed);
@@ -164,6 +164,15 @@ export function Hero({ brands }: { brands: BrandData[] }) {
     <section className="spring-hero" data-theme="dark" aria-labelledby="spring-hero-title">
       <div className="spring-hero__sky">
         <Horizon steps={steps} still={paused} />
+      </div>
+      <div className="spring-hero__top">
+        <span className="spring-mark">spring</span>
+        <span className="spring-nav__end">
+          <a href={GITHUB} className="spring-nav__link">
+            GitHub
+          </a>
+          <PauseToggle />
+        </span>
       </div>
       <div className="spring-hero__copy">
         <h1 id="spring-hero-title" className="spring-hero__title">
@@ -173,35 +182,14 @@ export function Hero({ brands }: { brands: BrandData[] }) {
           Pick a color. Spring builds the scales, roles and type for light and dark, checks every
           text pair, and exports CSS, Tailwind and DTCG.
         </p>
-        <div className="spring-hero__cta">
-          <Link href="/spring/app" className="spring-hero__primary pressable">
-            Open Spring
-          </Link>
-          <a href="#existing" className="spring-hero__open">
-            Audit an existing system <span aria-hidden="true">↓</span>
-          </a>
-        </div>
+        <Link href="/spring/app" className="spring-btn pressable" data-spring-cta>
+          Open Spring
+        </Link>
+        <p className="spring-hero__note">free · no account · runs in your browser</p>
       </div>
       <div className="spring-hero__proof">
         <Playground brands={brands} />
       </div>
     </section>
-  );
-}
-
-/** An install command, copyable. */
-export function Install({ command }: { command: string }) {
-  return (
-    <div className="spring-install" data-copy-root>
-      <code>
-        {/* Wrap between words, never inside a flag or the repo name. */}
-        {command.split(" ").map((w) => (
-          <Fragment key={w}>
-            <span>{w}</span>{" "}
-          </Fragment>
-        ))}
-      </code>
-      <CopyButton text={command} label="install command" />
-    </div>
   );
 }

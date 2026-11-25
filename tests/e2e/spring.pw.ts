@@ -25,19 +25,21 @@ test("the landing page is its own site, tries a color, and opens the app", async
     "href",
     "/spring/app?primary=%23dc3545",
   );
-  // The audit section shows a real app's drift and what changed.
-  await expect(page.getByText("npx skills add somesh-ks/skills", { exact: true })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Documenso's avatar initials/ })).toBeVisible();
+  // One ask at a time: the scroll bar stays hidden while the hero's button shows.
+  const bar = page.locator(".spring-nav");
+  await expect(bar).toBeHidden();
+  await page
+    .getByRole("heading", { name: "One color in. A whole system out." })
+    .scrollIntoViewIfNeeded();
+  await expect(bar).toBeVisible();
+  await expect(page.getByRole("row", { name: /primary-text/ })).toBeVisible();
   // Pause stops everything that moves (WCAG 2.2.2).
-  const pause = page.getByRole("button", { name: "Pause" });
+  const pause = bar.getByRole("button", { name: "Pause" });
   if (await pause.isVisible()) {
     await pause.click();
-    await expect(page.getByRole("button", { name: "Play" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(bar.getByRole("button", { name: "Play" })).toHaveAttribute("aria-pressed", "true");
   }
-  await page.getByRole("link", { name: "Open Spring" }).first().click();
+  await bar.getByRole("link", { name: "Open Spring" }).click();
   await page.waitForURL(/\/spring\/app$/);
 });
 

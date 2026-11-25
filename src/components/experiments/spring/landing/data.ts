@@ -1,4 +1,5 @@
 import { buildScale, parseColor } from "@/lib/spring/color";
+import { exportAll } from "@/lib/spring/exports";
 import { buildSystem, inputFromSeed } from "@/lib/spring/system";
 import { BRANDS } from "./brands";
 import type { Look } from "./Sample";
@@ -45,6 +46,17 @@ function springLook(brand: string) {
     radius: [sys.shape.radius.lg, sys.shape.radius.md],
   };
   const checks = [...sys.checks.light, ...sys.checks.dark].filter((c) => !c.advisory);
+  const dark = Object.fromEntries(sys.roles.dark.map((x) => [x.name, x]));
+  const light = Object.fromEntries(sys.roles.light.map((x) => [x.name, x]));
+  const ratio = (mode: "light" | "dark", fg: string, bg: string) =>
+    sys.checks[mode].find((c) => c.fg === fg && c.bg === bg)!.ratio;
+  // A few real lines of tokens.css: a step, the role that points at it, and a type size.
+  const css = exportAll(sys)
+    .find((f) => f.path === "tokens.css")!
+    .content.split("\n");
+  const line = (re: RegExp) => css.find((l) => re.test(l))!.trim();
+  const roleLine = line(/^\s*--color-primary:/);
+  const step = /var\(--(primary-\d+)\)/.exec(roleLine)![1]!;
   return {
     look,
     ramp: sys.scales.primary.light.map((x) => x.hex),
@@ -55,6 +67,36 @@ function springLook(brand: string) {
       lh: byRole[n]!.lineHeightPx,
       weight: byRole[n]!.weight,
     })),
+    roles: ["primary", "primary-text", "text-muted", "border-subtle"].map((n) => ({
+      name: n,
+      from: light[n]!.from,
+      light: light[n]!.hex,
+      dark: dark[n]!.hex,
+    })),
+    pairs: (
+      [
+        ["text-muted", "bg"],
+        ["primary-fg", "primary"],
+        ["primary-text", "bg"],
+      ] as const
+    ).map(([fg, bg]) => ({
+      fg,
+      bg,
+      fgHex: light[fg]!.hex,
+      bgHex: light[bg]!.hex,
+      light: ratio("light", fg, bg),
+      dark: ratio("dark", fg, bg),
+    })),
+    ladder: ["caption", "label", "body", "h3", "h2", "h1", "display"].map((n) => ({
+      role: n,
+      size: byRole[n]!.min,
+    })),
+    css: [
+      line(new RegExp(`^\\s*--${step}:`)),
+      roleLine,
+      line(/^\s*--text-body:/),
+      line(/^\s*--radius-md:/),
+    ],
     pass: checks.filter((c) => c.pass).length,
     total: checks.length,
   };
