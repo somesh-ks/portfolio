@@ -10,14 +10,26 @@ test("Spring runs as its own app, without the site frame", async ({ page }) => {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/spring\/app$/);
 });
 
-test("the landing page leads with the skill and opens the app", async ({ page }) => {
+test("the landing page is its own site, tries a color, and opens the app", async ({ page }) => {
   await page.goto("/spring");
-  await expect(page).toHaveTitle("Spring");
-  await expect(page.getByText("npx skills add somesh-ks/skills --skill spring")).toBeVisible();
-  for (const name of ["Show what you have", "Make the one you want", "Rebuild without the drift"])
-    await expect(page.getByRole("heading", { name })).toBeVisible();
-  // Make runs on the real engine: a brand color through primitive and role to a button.
-  await expect(page.getByText("--color-primary")).toBeVisible();
+  await expect(page).toHaveTitle("Spring: color and type tokens");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Color and type tokens from one brand color.",
+  );
+  // No portfolio chrome: no link back to the site's home.
+  await expect(page.getByRole("link", { name: /Home/ })).toHaveCount(0);
+  // The playground rebuilds from a picked color, and hands it to the app.
+  await page.getByRole("button", { name: "Red" }).click();
+  await expect(page.getByRole("button", { name: "Red" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: /Open this system in Spring/ })).toHaveAttribute(
+    "href",
+    "/spring/app?primary=%23dc3545",
+  );
+  // The audit section compares before and after with a slider.
+  await expect(
+    page.getByText("npx skills add somesh-ks/skills --skill sk-design-sys"),
+  ).toBeVisible();
+  await page.getByRole("slider", { name: /Before and after/ }).fill("20");
   // Pause stops everything that moves (WCAG 2.2.2).
   const pause = page.getByRole("button", { name: "Pause" });
   if (await pause.isVisible()) {
@@ -27,7 +39,7 @@ test("the landing page leads with the skill and opens the app", async ({ page })
       "true",
     );
   }
-  await page.getByRole("link", { name: "Open app" }).first().click();
+  await page.getByRole("link", { name: "Open Spring" }).first().click();
   await page.waitForURL(/\/spring\/app$/);
 });
 

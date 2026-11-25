@@ -1,134 +1,104 @@
-/* Spring's landing page (/spring): skill first, then three demos on the real engine. */
+/* Spring's landing page (/spring): standalone and full bleed. Nav, hero with the live tool, the audit, a closing ask. */
 .spring-landing {
-  --spring-label: 6.5rem;
+  /* One container edge for nav, frames, sections and footer. */
+  --spring-gutter: clamp(1rem, 3vw, 1.5rem);
+  --spring-edge: max(var(--spring-gutter), calc((100% - 70rem) / 2));
   min-height: 100dvh;
   background: var(--surface-canvas);
-}
-.spring-landing__bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  padding-top: max(var(--space-2), env(safe-area-inset-top));
-  background: var(--surface-canvas);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.spring-landing__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.spring-landing__main {
-  width: 100%;
-  max-width: var(--measure-wide);
-  margin-inline: auto;
-  padding: var(--space-12) var(--space-4) var(--space-16);
-  outline: none;
-}
-.spring-landing {
+  color: var(--text-primary);
   overflow-x: clip;
 }
+.spring-landing__main {
+  outline: none;
+}
+
+/* ---------- Nav: Spring's own, no site chrome. ---------- */
+.spring-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 3.5rem;
+  padding: 0 var(--spring-edge);
+  background: var(--surface-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.spring-nav__mark {
+  font-family: var(--font-mono);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+.spring-nav__links {
+  display: flex;
+  gap: var(--space-5);
+  font-size: var(--step-sm);
+}
+.spring-nav__links a,
+.spring-foot__links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.spring-nav__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.spring-nav__cta,
+.spring-hero__primary {
+  display: inline-grid;
+  place-items: center;
+  height: 2.25rem;
+  padding-inline: var(--space-4);
+  background: var(--text-primary);
+  color: var(--surface-canvas);
+  font-size: var(--step-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+.spring-hero__primary {
+  height: 2.75rem;
+  padding-inline: var(--space-6);
+}
 .spring-landing__pause {
-  min-height: 2.75rem;
+  min-height: 2.25rem;
   padding-inline: var(--space-2);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
 }
 @media (hover: hover) {
+  .spring-nav__links a:hover,
+  .spring-foot__links a:hover,
   .spring-landing__pause:hover {
     color: var(--text-primary);
   }
 }
+@media (max-width: 40rem) {
+  .spring-nav__links {
+    display: none;
+  }
+}
 
-/* ---------- Hero: one centred box. Name, pitch, the two ways in, then the horizon (always dark). ---------- */
+/* ---------- Hero: full bleed, always dark. The tool hangs over its bottom edge. ---------- */
 .spring-hero {
   position: relative;
-  margin-top: clamp(var(--space-4), 4vw, var(--space-10));
-  background: var(--surface-canvas);
+  isolation: isolate;
+  padding: 0 var(--spring-edge);
   color: var(--text-primary);
   text-align: center;
-  overflow: hidden;
 }
-/* The frame is drawn over the canvas so its hairline is never covered. */
-.spring-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-  pointer-events: none;
-}
-.spring-hero__copy {
-  display: grid;
-  justify-items: center;
-  padding: clamp(var(--space-8), 6vw, var(--space-16)) var(--space-4) 0;
-}
-.spring-hero__name {
-  font-family: var(--font-mono);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 500;
-  line-height: 0.95;
-  letter-spacing: -0.06em;
-}
-.spring-hero__line {
-  max-width: 36ch;
-  margin-top: var(--space-4);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: clamp(1rem, 1.6vw, 1.1875rem);
-  line-height: 1.4;
-  text-wrap: balance;
-}
-.spring-hero__cta {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  margin-top: var(--space-6);
-}
-/* The install command is the main action: filled, with its copy button. */
-.spring-hero__install {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 29rem;
-  min-height: 2.75rem;
-  padding-left: var(--space-3);
-  background: var(--text-primary);
-  color: var(--surface-canvas);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-  text-align: left;
-}
-.spring-hero__install code {
-  flex: 1;
-  min-width: 0;
-  padding-block: var(--space-2);
-}
-.spring-hero__install code span {
-  white-space: nowrap;
-}
-.spring-hero__install code::before {
-  content: "$ ";
-  opacity: 0.6;
-}
-.spring-hero__install .copy-button {
-  color: inherit;
-}
-.spring-hero__open {
-  padding-block: var(--space-2);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-}
+/* The dark ground stops partway down the frame, so it straddles dark and light. */
 .spring-hero__sky {
-  height: clamp(9.5rem, 22vw, 16.25rem);
-  margin-top: var(--space-10);
-  border-top: 1px solid var(--border-subtle);
+  position: absolute;
+  inset: 0 0 clamp(7rem, 14vw, 13rem);
+  z-index: -1;
+  background: var(--surface-canvas);
 }
 .spring-hero__horizon {
   display: block;
@@ -136,264 +106,546 @@
   height: 100%;
   image-rendering: pixelated;
   touch-action: pan-y;
+  /* Text never sits on the dither: it fades out well below the copy. */
+  mask-image: linear-gradient(to top, #000 22%, transparent 50%);
 }
-
-/* ---------- Three flows: heading, then one wide box, command left, result right. Fixed heights. ---------- */
-.spring-flow {
+.spring-hero__copy {
   display: grid;
-  gap: var(--space-5);
-  margin-top: clamp(var(--space-16), 9vw, 7rem);
+  justify-items: center;
+  padding-top: clamp(var(--space-12), 9vw, 6.5rem);
 }
-.spring-flow + .spring-flow {
-  margin-top: clamp(var(--space-12), 7vw, var(--space-20));
-}
-.spring-flow__head {
-  display: grid;
-  gap: var(--space-1);
-}
-.spring-flow__head h2 {
+.spring-hero__title {
+  max-width: 16ch;
   font-family: var(--font-sans);
-  font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+  font-size: clamp(2.5rem, 5.4vw, 4.5rem);
   font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
 }
-.spring-flow__head p {
+.spring-hero__line {
+  max-width: 34rem;
+  margin-top: var(--space-5);
   color: var(--text-secondary);
-  font-size: var(--step-sm);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.55;
+  text-wrap: pretty;
 }
-.spring-flow__box {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  height: clamp(15rem, 21vw, 16.5rem);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-}
-.spring-flow__box > .spring-term {
-  padding: var(--space-6);
-  border-right: 1px solid var(--border-subtle);
-}
-.spring-flow__vis {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  margin: var(--space-6);
-  overflow: hidden;
-  container-type: size;
-}
-@media (max-width: 47.49rem) {
-  .spring-flow__box {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 14rem;
-    height: auto;
-  }
-  .spring-flow__box > .spring-term {
-    padding: var(--space-5);
-    border-right: 0;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  .spring-flow__vis {
-    margin: var(--space-5);
-  }
-}
-
-/* Terminal output: scan and build */
-.spring-term {
-  display: grid;
-  align-content: center;
-  gap: 0.375rem;
-  width: 100%;
-  height: 100%;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--step-sm);
-}
-.spring-term p {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.spring-term__cmd {
-  color: var(--text-primary);
-}
-.spring-term__cmd::before {
-  content: "$ ";
-  color: var(--text-accent);
-}
-.spring-term__hi {
-  color: var(--text-primary);
-}
-.spring-term__dim {
-  color: var(--text-secondary);
-}
-
-/* See: unused tokens dim */
-.spring-unused {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: var(--space-4);
-  width: 100%;
-  height: 100%;
-}
-.spring-unused__cells {
-  display: grid;
-  grid-template-columns: repeat(14, 1fr);
-  gap: 3px;
-  width: min(52cqw, 70cqh);
-}
-.spring-unused__cells i {
-  aspect-ratio: 1;
-  background: var(--text-primary);
-  transition: opacity 0.6s var(--ease-out);
-}
-.spring-unused[data-show] .spring-unused__cells i[data-dead] {
-  opacity: 0.16;
-}
-.spring-unused__stat {
-  display: grid;
-  gap: var(--space-1);
-}
-.spring-unused__num {
-  font-family: var(--font-sans);
-  font-size: clamp(2rem, 9cqw, 3rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.spring-unused__lbl {
-  color: var(--text-secondary);
-  font-size: var(--step-xs);
-}
-.spring-unused__pin {
-  position: absolute;
-  inset: auto 0 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--step-xs);
-  white-space: nowrap;
-}
-.spring-unused__pin b {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  box-shadow:
-    0 0 0 2px var(--surface-canvas),
-    0 0 0 3px var(--text-danger);
-}
-
-/* Make: one color through the tiers */
-.spring-tiers {
-  display: grid;
-  gap: var(--space-4);
-  width: 100%;
-  font-size: var(--step-sm);
-}
-.spring-tiers__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-}
-.spring-tiers__row + .spring-tiers__row {
-  padding-top: var(--space-4);
-  border-top: 1px dashed var(--border-subtle);
-}
-.spring-tiers__chip {
-  flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
-  transition: background-color 0.9s var(--ease-out);
-}
-.spring-tiers__kind {
-  margin-left: auto;
-  color: var(--text-secondary);
-  font-size: var(--step-xs);
-}
-.spring-tiers__button {
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-  min-width: 5.5rem;
-  height: 2.5rem;
-  padding-inline: var(--space-4);
-  font-family: var(--font-sans);
-  font-weight: 600;
-  transition:
-    background-color 0.9s var(--ease-out),
-    color 0.9s var(--ease-out);
-}
-.spring-tiers__pass {
-  margin-left: auto;
-  color: var(--text-secondary);
-  font-size: var(--step-xs);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.spring-tiers__pass b {
-  font-weight: 500;
-}
-.spring-tiers__pass b[data-v="fail"] {
-  color: var(--text-danger);
-}
-.spring-tiers__pass b[data-v="pass"] {
-  color: var(--text-success);
-}
-
-/* Rebuild: the View's findings card */
-.spring-audit-card {
-  display: grid;
-  gap: var(--space-4);
-  width: 100%;
-  font-size: var(--step-sm);
-}
-.spring-audit-card ul {
-  display: grid;
-  gap: var(--space-2);
-}
-.spring-audit-card li > span[aria-label] {
-  color: var(--text-secondary);
-}
-.spring-audit-card__fixes {
-  padding-left: var(--space-3);
-  border-left: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  font-size: var(--step-xs);
-}
-.spring-audit-card__btn {
-  justify-self: start;
-  padding: var(--space-2) var(--space-4);
-  background: var(--text-primary);
-  color: var(--surface-canvas);
-  font-size: var(--step-xs);
-}
-
-/* ---------- Footer: static. ---------- */
-.spring-landing__end {
+.spring-hero__cta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 var(--space-5);
-  margin-top: var(--space-16);
-  padding-top: var(--space-5);
+  justify-content: center;
+  gap: var(--space-3) var(--space-6);
+  margin-top: var(--space-8);
+}
+.spring-hero__open {
+  padding-block: var(--space-2);
+  font-size: var(--step-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+.spring-hero__proof {
+  margin-top: clamp(var(--space-10), 5vw, var(--space-16));
+  text-align: left;
+}
+
+/* ---------- Install command, copyable ---------- */
+.spring-install {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding-left: var(--space-4);
+  background: color-mix(in oklch, var(--text-primary) 4%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  text-align: left;
+}
+.spring-install code {
+  padding-block: var(--space-2);
+}
+.spring-install code::before {
+  content: "$ ";
+  color: var(--text-secondary);
+}
+.spring-install code span {
+  white-space: nowrap;
+}
+.spring-install .copy-button {
+  color: inherit;
+}
+
+/* ---------- A product frame: the playground and the before/after share it. Fixed heights, no reflow. ---------- */
+.spring-ba {
+  overflow: hidden;
+  background: var(--surface-canvas);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px var(--border-subtle),
+    0 30px 80px -24px rgb(0 0 0 / 0.5);
+  color: var(--text-primary);
+}
+.spring-ba__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-height: 3rem;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-ba__bar b {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.spring-ba__body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  height: 25rem;
+}
+.spring-ba__stage {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+.spring-ba__stage > * {
+  grid-area: 1 / 1;
+}
+.spring-ba__stage > .spring-ba__card {
+  place-self: center;
+}
+/* Both looks share one frame: same width, height and top edge, so the split reads as one screen. */
+.spring-ba__stage--compare .spring-ba__card {
+  height: 19rem;
+  align-content: space-between;
+}
+.spring-ba__stage--compare > .spring-ba__card {
+  place-self: start center;
+  margin-top: 3rem;
+}
+.spring-ba__k {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-ba__sw {
+  display: flex;
+  height: 1.25rem;
+}
+.spring-ba__sw i {
+  flex: 1;
+  transition: background-color 0.5s var(--ease-out);
+}
+.spring-ba__sw--loose {
+  gap: 3px;
+}
+@media (max-width: 52rem) {
+  .spring-ba__body-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 24rem auto;
+    height: auto;
+  }
+}
+
+/* Playground */
+.spring-play__swatches {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spring-play__swatch,
+.spring-play__custom {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+.spring-play__swatch::after {
+  content: "";
+  position: absolute;
+  inset: -0.625rem;
+}
+.spring-play__swatch[aria-pressed="true"] {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+.spring-play__custom {
+  overflow: hidden;
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+  cursor: pointer;
+}
+.spring-play__custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.spring-play__custom:has(:focus-visible) {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+.spring-play__swatches code {
+  min-width: 4.5rem;
+  margin-left: var(--space-2);
+  color: var(--text-primary);
+}
+.spring-play__panel {
+  display: grid;
+  align-content: center;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border-left: 1px solid var(--border-subtle);
+}
+.spring-play__panel .spring-ba__k {
+  margin-bottom: var(--space-2);
+}
+.spring-play__type {
+  display: grid;
+  list-style: none;
+}
+.spring-play__type li {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+}
+.spring-play__type li > span:first-child {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+.spring-play__type code {
+  color: var(--text-primary);
+}
+.spring-play__pass {
+  color: var(--text-secondary);
+  font-size: var(--step-sm);
+}
+.spring-play__pass b {
+  color: var(--text-success);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.spring-play__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+.spring-play__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border-subtle);
 }
-.spring-landing__end p {
-  flex-basis: 100%;
+.spring-play__open {
+  font-size: var(--step-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+@media (hover: hover) {
+  .spring-play__open:hover,
+  .spring-hero__open:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+@media (max-width: 52rem) {
+  .spring-play__panel {
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+
+/* Before / after */
+.spring-ba__stage--compare::before,
+.spring-ba__stage--compare::after {
+  position: absolute;
+  top: var(--space-3);
+  z-index: 2;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+}
+.spring-ba__stage--compare::before {
+  content: "before";
+  left: var(--space-4);
+}
+.spring-ba__stage--compare::after {
+  content: "after";
+  right: var(--space-4);
+}
+.spring-ba__after {
+  display: grid;
+  place-items: start center;
+  padding-top: 3rem;
+  background: var(--surface-sunken);
+  clip-path: inset(0 0 0 var(--split, 50%));
+}
+.spring-ba__handle {
+  position: absolute;
+  inset: 0 auto 0 var(--split, 50%);
+  z-index: 3;
+  width: 1px;
+  background: var(--text-primary);
+  pointer-events: none;
+}
+.spring-ba__handle::after {
+  content: "‹ ›";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  translate: -50% -50%;
+  background: var(--text-primary);
+  color: var(--surface-canvas);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  border-radius: 50%;
+}
+.spring-ba__stage:has(.spring-ba__range:focus-visible) .spring-ba__handle::after {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+.spring-ba__range {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  touch-action: pan-y;
+}
+.spring-ba__notes {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border-left: 1px solid var(--border-subtle);
+  font-size: var(--step-sm);
+  list-style: none;
+}
+.spring-ba__notes li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+.spring-ba__notes s {
+  color: var(--text-danger);
+  text-decoration-thickness: 1px;
+}
+.spring-ba__notes b {
+  color: var(--text-success);
+  font-weight: 500;
+}
+.spring-ba__strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+@media (max-width: 52rem) {
+  .spring-ba__notes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+    padding: var(--space-5) var(--space-4);
+  }
+  .spring-ba__strip {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+/* The billing card. Every value comes from --ba-*, set per look. */
+.spring-ba__card {
+  display: grid;
+  gap: 1rem;
+  width: min(21rem, calc(100% - 2.5rem));
+  padding: 1.25rem;
+  background: var(--ba-bg);
+  border: 1px solid var(--ba-border);
+  border-radius: var(--ba-r-card);
+  color: var(--ba-text);
+  font-family: var(--font-sans);
+  font-size: var(--ba-body);
+  line-height: var(--ba-body-lh);
+  letter-spacing: normal;
+  transition:
+    background-color 0.5s var(--ease-out),
+    color 0.5s var(--ease-out);
+}
+.spring-ba__card p {
+  margin: 0;
+}
+.spring-ba__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.spring-ba__title {
+  font-size: var(--ba-title);
+  font-weight: 600;
+  line-height: var(--ba-title-lh);
+}
+.spring-ba__badge {
+  padding: 0.125rem 0.5rem;
+  background: var(--ba-badge);
+  color: var(--ba-badge-fg);
+  border-radius: 999px;
+  font-size: var(--ba-meta);
+  font-weight: 500;
+  line-height: var(--ba-meta-lh);
+}
+.spring-ba__plan,
+.spring-ba__usage {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.75rem;
+  background: var(--ba-panel);
+  border-radius: var(--ba-r-ctl);
+}
+.spring-ba__meta {
+  color: var(--ba-muted);
+  font-size: var(--ba-meta);
+  line-height: var(--ba-meta-lh);
+}
+.spring-ba__track {
+  display: block;
+  height: 6px;
+  background: var(--ba-track);
+  border-radius: 999px;
+}
+.spring-ba__track span {
+  display: block;
+  width: 84%;
+  height: 100%;
+  background: var(--ba-meter);
+  border-radius: inherit;
+}
+.spring-ba__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.spring-ba__btn {
+  padding: 0.5rem 0.875rem;
+  background: var(--ba-primary);
+  color: var(--ba-primary-fg);
+  border-radius: var(--ba-r-ctl);
+  font-size: var(--ba-button);
+  font-weight: 500;
+  line-height: var(--ba-button-lh);
+}
+.spring-ba__btn--ghost {
+  background: transparent;
+  color: var(--ba-text);
+  box-shadow: inset 0 0 0 1px var(--ba-border);
+}
+.spring-ba__link {
+  margin-left: auto;
+  color: var(--ba-link);
+  font-size: var(--ba-button);
+  line-height: var(--ba-button-lh);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Audit: for a system that already exists. ---------- */
+.spring-audit {
+  padding: clamp(var(--space-16), 9vw, 8rem) var(--spring-edge);
+}
+.spring-audit__head {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-10);
+}
+.spring-audit__head h2,
+.spring-close h2 {
+  font-family: var(--font-sans);
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.spring-audit__head p {
+  max-width: 36rem;
+  color: var(--text-secondary);
+}
+
+/* ---------- Closing: the ask again, over a strip of the horizon. ---------- */
+.spring-close {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: clamp(24rem, 36vw, 30rem);
+  padding: clamp(var(--space-16), 8vw, 7rem) var(--space-4) 0;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  text-align: center;
+}
+.spring-close__sky {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: 70%;
+}
+.spring-close__copy {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-6);
+}
+
+/* ---------- Footer ---------- */
+.spring-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
+  padding: var(--space-8) var(--spring-edge);
   color: var(--text-secondary);
   font-size: var(--step-xs);
 }
-.spring-landing__end a {
-  display: inline-block;
-  padding-block: var(--space-2);
+.spring-foot .spring-nav__mark {
+  margin-right: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--step-sm);
+}
+.spring-foot__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spring-unused__cells i,
-  .spring-tiers__chip,
-  .spring-tiers__button {
+  .spring-ba__sw i,
+  .spring-ba__card {
     transition: none !important;
   }
 }
