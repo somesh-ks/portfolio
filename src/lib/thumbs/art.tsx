@@ -20,12 +20,12 @@ export interface ThumbArt {
  * Outline 2 is the studio's die-cut.
  */
 const SHEET: [Look, number, number, number, number][] = [
-  [{ action: "cheer", items: ["party", "balloon"], outline: 2 }, 58, 58, 104, -12],
-  [{ action: "wave", items: ["beanie", "mug"], outline: 2 }, 166, 72, 100, 6],
-  [{ action: "zen", items: ["flowers", "sparkles"], outline: 2 }, 276, 54, 86, 14],
-  [{ action: "run", items: ["headphones", "skate"], outline: 2 }, 82, 158, 90, 8],
-  [{ action: "dance", items: ["crown", "notes"], outline: 2 }, 208, 160, 96, -8],
-  [{ action: "sleep", items: ["zzz"], outline: 2 }, 300, 156, 70, -16],
+  [{ action: "cheer", items: ["party", "balloon"], outline: 2 }, 54, 60, 112, -18],
+  [{ action: "wave", items: ["beanie", "mug"], outline: 2 }, 172, 66, 88, 12],
+  [{ action: "zen", items: ["flowers", "sparkles"], outline: 2 }, 286, 38, 74, 26],
+  [{ action: "run", items: ["headphones", "skate"], outline: 2 }, 66, 166, 82, 18],
+  [{ action: "dance", items: ["crown", "notes"], outline: 2 }, 196, 150, 116, -14],
+  [{ action: "sleep", items: ["zzz"], outline: 2 }, 290, 160, 62, -24],
 ];
 
 /** One sticker's SVG, sized and turned into place. Its <title> is dropped: the thumb is decorative. */
@@ -43,28 +43,30 @@ function placed([look, cx, cy, height, deg]: (typeof SHEET)[number]) {
 
 /**
  * An original masked hero leaping out of a book, fist first:
- * `K` ink line, `S` suit, `C` cape, `Y` gold trim, `W` mask eyes, `G` gloves and boots.
+ * `K` ink line, `M` mask band and `W` eyes (fixed black and white, so the mask reads in both themes),
+ * `S` suit, `C` cape, `Y` chevron and belt, `G` gloves and boots.
  */
 const HERO = [
-  "...............KK..",
+  "................KK.",
+  "...............KGGK",
   "..............KGGK.",
-  ".............KGGK..",
-  "............KSSK...",
-  "......KKKK.KSSK....",
-  ".....KSSSSKSSK.....",
-  "....KSWWSWWSK......",
-  "....KSSSSSSSK......",
-  "..CCKKSSSSSKK......",
-  ".CCCCKSSYSSSSK.....",
-  "CCCCCKSYYYSSGGK....",
-  ".CCCCKSSYSSSGGK....",
-  "..CCCKSSSSSSKK.....",
-  "...CCKYYYYYYK......",
-  "....CKSSSKSSSK.....",
-  ".....KSSSK.KSSK....",
-  "....KSSSK...KSSK...",
-  "...KGGGK.....KGGK..",
-  "...KKKK.......KKK..",
+  ".............KSSK..",
+  ".....KKKKKK.KSSK...",
+  "....KSSSSSSKSSK....",
+  "....KMMMMMMKSK.....",
+  "....KWWMMWWKK......",
+  "....KSSSSSSK.......",
+  "..CCKKSSSSKKK......",
+  ".CCCKSYSSSYSSK.....",
+  "CCCCKSSYSYSSGGK....",
+  "CCCCKSSSYSSSGGK....",
+  ".CCCKSSSSSSSKK.....",
+  "..CCKYYYYYYYK......",
+  "...CKSSSKSSSK......",
+  "....KSSSK.KSSK.....",
+  "...KSSSK...KSSK....",
+  "..KGGGK.....KGGK...",
+  "..KKKK.......KKK...",
 ];
 
 /** A tick drawn as a path, since the mono font may not carry ✓. */
@@ -175,16 +177,16 @@ export const THUMBS: Record<string, ThumbArt> = {
     ),
   },
 
-  // Tide's look: an ordered-dither dusk. The sky thickens toward the horizon,
-  // a sun sinks behind four ridges, and each ridge fades into valley mist.
+  // Tide's look: an ordered-dither dusk. A sun sinks behind four ridges,
+  // and each ridge fades into valley mist.
   tide: {
     accent: "--thumb-tide",
     draw: () => {
       // base y, amplitude, waves, phase, densest level (at its top), colour
       const hills: [number, number, number, number, number, string][] = [
-        [98, 14, 2.4, 0.3, 9, tint(45)],
-        [120, 16, 1.7, 2.1, 12, tint(65)],
-        [146, 12, 2.9, 1.2, 14, tint(85)],
+        [98, 14, 2.4, 0.3, 9, tint(50)],
+        [120, 16, 1.7, 2.1, 12, tint(70)],
+        [146, 12, 2.9, 1.2, 14, tint(88)],
         [172, 9, 3.6, 3.4, 16, "var(--thumb-accent)"],
       ];
       // Every pattern a scene needs: one per (level, colour) pair.
@@ -196,15 +198,9 @@ export const THUMBS: Record<string, ThumbArt> = {
         return `url(#${id})`;
       };
       const BAND = 8;
-      // Sky bands from y 72 down to the horizon, thickening by one level each.
-      const sky = [1, 2, 3].map((lv, k) => {
-        const y = 80 + k * BAND;
-        return <rect key={y} x={0} y={y} width={W} height={BAND} fill={pat(lv, tint(40))} />;
-      });
       const sun = (
         <>
-          <circle cx={214} cy={84} r={36} fill={pat(3, tint(60))} />
-          <circle cx={214} cy={84} r={24} fill={pat(14, "var(--thumb-accent)")} />
+          <circle cx={214} cy={68} r={24} fill={pat(14, "var(--thumb-accent)")} />
         </>
       );
       const ridges = hills.map(([base, amp, waves, phase, top, colour], k) => {
@@ -227,7 +223,8 @@ export const THUMBS: Record<string, ThumbArt> = {
             <clipPath id={`tide-hill-${k}`}>
               <path d={d} />
             </clipPath>
-            <path d={d} className="thumb-bg" />
+            {/* A canvas gap above each crest keeps the ridges apart in both themes. */}
+            <path d={d} className="thumb-bg thumb-stroke-bg" strokeWidth={8} />
             <g clipPath={`url(#tide-hill-${k})`}>
               {bands}
               {/* A solid crest: the outline's inner half, so each ridge reads against the one behind. */}
@@ -238,7 +235,6 @@ export const THUMBS: Record<string, ThumbArt> = {
       });
       return (
         <>
-          {sky}
           {sun}
           {ridges}
           <defs>
@@ -251,31 +247,27 @@ export const THUMBS: Record<string, ThumbArt> = {
     },
   },
 
+  // A sheet of real die-cut stickers from the studio's own renderer, scattered.
   "claude-animated-svgs": {
     accent: "--thumb-studio",
     draw: () => (
       <>
-        <Box x={0} y={0} w={W} h={H} tone={tint(14)} />
+        <Box x={0} y={0} w={W} h={H} tone={tint(25)} />
         {/* The studio's own SVG, rendered on the server; nothing here is user input. */}
         <g dangerouslySetInnerHTML={{ __html: SHEET.map(placed).join("") }} />
       </>
     ),
   },
 
-  // A comic panel: a hero bursting out of a novel's pages, with a WHAM.
+  // A comic panel: an original masked hero bursting out of a novel's pages, with a POW.
   "graphic-comic-making-from-novels": {
     accent: "--thumb-comics",
     draw: () => {
-      const burst = Array.from({ length: 18 }, (_, k) => {
-        const r = k % 2 ? 32 : 48;
-        const a = (k / 18) * Math.PI * 2 + 0.3;
-        return `${(236 + r * Math.cos(a)).toFixed(1)},${(84 + r * Math.sin(a)).toFixed(1)}`;
+      const burst = Array.from({ length: 16 }, (_, k) => {
+        const r = k % 2 ? 30 : 44;
+        const a = (k / 16) * Math.PI * 2 + 0.3;
+        return `${(248 + r * Math.cos(a)).toFixed(1)},${(76 + r * Math.sin(a)).toFixed(1)}`;
       }).join(" ");
-      // Speed lines fanning up from the book's spine.
-      const rays = [-70, -48, -28, 28, 48, 70].map((deg) => {
-        const a = ((deg - 90) * Math.PI) / 180;
-        return `M${160 + 40 * Math.cos(a)} ${150 + 40 * Math.sin(a)} L${160 + 150 * Math.cos(a)} ${150 + 150 * Math.sin(a)}`;
-      });
       return (
         <>
           <defs>
@@ -286,44 +278,42 @@ export const THUMBS: Record<string, ThumbArt> = {
           </defs>
           <rect x={24} y={24} width={272} height={152} fill="url(#comics-tone)" />
           <g clipPath="url(#comics-panel)">
-            {rays.map((d) => (
-              <path key={d} d={d} className="thumb-stroke-ink" strokeWidth={3} />
-            ))}
-            {/* The open book: two pages on a spine, lines of text. */}
-            <path
-              d="M160 150 L100 140 L92 176 L160 176 Z"
-              className="thumb-bg thumb-stroke-ink"
-              strokeWidth={3}
-            />
-            <path
-              d="M160 150 L220 140 L228 176 L160 176 Z"
-              className="thumb-bg thumb-stroke-ink"
-              strokeWidth={3}
-            />
-            {[0, 1, 2].map((k) => (
-              <g key={k}>
-                <Box x={108 - k * 2} y={150 + k * 7} w={40} h={2} tone="muted" />
-                <Box x={172} y={150 + k * 7} w={40 + k * 2} h={2} tone="muted" />
-              </g>
-            ))}
             <Pixels
               rows={HERO}
-              x={84}
+              x={70}
               y={30}
-              cell={6}
+              cell={7}
               palette={{
                 K: "ink",
+                M: "var(--thumb-ramp-low)",
+                W: "var(--thumb-ramp-high)",
                 S: "var(--thumb-comics-suit)",
-                C: "accent",
-                Y: tint(55, "white"),
-                W: "bg",
-                G: "ink",
+                C: tint(45),
+                Y: "accent",
+                G: "accent",
               }}
             />
+            {/* The open book: drawn over the hero's boots, so the hero leaps out of it. */}
+            <path
+              d="M160 164 L104 156 L98 176 L160 176 Z"
+              className="thumb-bg thumb-stroke-ink"
+              strokeWidth={3}
+            />
+            <path
+              d="M160 164 L216 156 L222 176 L160 176 Z"
+              className="thumb-bg thumb-stroke-ink"
+              strokeWidth={3}
+            />
+            {[0, 1].map((k) => (
+              <g key={k}>
+                <Box x={112 - k * 2} y={164 + k * 6} w={36} h={2} tone="muted" />
+                <Box x={172} y={164 + k * 6} w={36 + k * 2} h={2} tone="muted" />
+              </g>
+            ))}
           </g>
           <polygon points={burst} className="thumb-accent thumb-stroke-ink" strokeWidth={3} />
-          <Display x={236} y={91} size={18} anchor="middle">
-            WHAM
+          <Display x={248} y={84} size={22} anchor="middle">
+            POW
           </Display>
           <Box x={24} y={24} w={272} h={152} stroke={3} />
         </>

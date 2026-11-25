@@ -589,17 +589,17 @@
     "tide": {
       "$value": {
         "colorSpace": "oklch",
-        "components": [0.639, 0.118, 142.5]
+        "components": [0.6, 0.12, 212.0]
       },
       "$extensions": {
         "mode": {
           "light": {
             "colorSpace": "oklch",
-            "components": [0.639, 0.118, 142.5]
+            "components": [0.6, 0.12, 212.0]
           },
           "dark": {
             "colorSpace": "oklch",
-            "components": [0.639, 0.118, 142.5]
+            "components": [0.6, 0.12, 212.0]
           }
         }
       }

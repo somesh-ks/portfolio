@@ -148,7 +148,19 @@
   --thumb-skills: oklch(68.5% 0.148 237.3);
   --thumb-spring: oklch(59.1% 0.257 322.9);
   --thumb-studio: var(--color-clay-500);
-  --thumb-tide: oklch(63.9% 0.118 142.5);
+  --thumb-tide: oklch(60.7% 0.1069 214.4);
+}
+
+@media (color-gamut: p3) {
+  :root {
+    --thumb-tide: oklch(60% 0.12 212);
+  }
+}
+
+@media (color-gamut: rec2020) {
+  :root {
+    --thumb-tide: oklch(60% 0.12 212);
+  }
 }
 
 [data-theme="dark"] {
@@ -206,5 +218,17 @@
   --thumb-skills: oklch(68.5% 0.148 237.3);
   --thumb-spring: oklch(59.1% 0.257 322.9);
   --thumb-studio: var(--color-clay-500);
-  --thumb-tide: oklch(63.9% 0.118 142.5);
+  --thumb-tide: oklch(60.7% 0.1069 214.4);
+}
+
+@media (color-gamut: p3) {
+  [data-theme="dark"] {
+    --thumb-tide: oklch(60% 0.12 212);
+  }
+}
+
+@media (color-gamut: rec2020) {
+  [data-theme="dark"] {
+    --thumb-tide: oklch(60% 0.12 212);
+  }
 }
