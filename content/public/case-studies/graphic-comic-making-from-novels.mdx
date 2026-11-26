@@ -1,48 +1,70 @@
 ---
-title: Making graphic comics
+title: A comic press for classic novels
 slug: graphic-comic-making-from-novels
 kind: case-study
 order: 1
-summary: Novels turned into printable comics.
-publishedAt: 2026-09-20
+summary: Turning classic literature into inked, lettered graphic novels.
+publishedAt: 2026-11-26
 role: Designer and engineer, solo
-timeline: Ongoing side project
-problem: Adapting prose to panels loses characters, places and pacing.
+timeline: Two months, 17 editions
+problem: Dense classics are slow to enter, and raw image prompts fall apart across a 60-page book.
 metrics:
-  - Three stages, prose to spread
-  - A continuity sheet per character
-  - Print-ready PDF output
-stack: [TypeScript, Image generation, PDF]
-tags: [storytelling, pipelines, illustration]
+  - 860+ bound comic pages
+  - 9 min per 60-page run
+  - 25 failure modes gated
+stack: [Flora MCP, TypeScript, Python, TypeSafe Jev, PyMuPDF]
+tags: [comics, illustration, agents, pipelines]
 ---
 
-I wanted to read a few favourite novels as comics, and none existed. So I built a pipeline for the boring parts of adaptation and kept the judgement for myself.
+I wanted to read dense classics from _Paradise Lost_ to _Frankenstein_ as comics, without wading through walls of archaic prose. A stalled single-book experiment grew into `sk-comics`, a reusable press where one prompt draws an entire lettered page.
 
-## Why novels resist panels
+<ComicEditionReader />
 
-- Prose has no panels. A paragraph can hold three actions or none.
-- Characters drift. A jacket changes colour, a scar moves sides.
-- Generated images look great alone and fall apart in sequence.
+## Why sixty pages drift
 
-<BeforeAfterScrubber variant="comic" />
+- Characters shed continuity across pages: coats change color, scars switch cheeks, and faces age ten years between scenes.
+- Unconstrained covers default to glossy movie posters, wiping out book trade dress and period serif typography.
+- Proper nouns and 15-plus-word speech balloons garble into spellings like `"DALLIWEY"` and scramble panel pacing.
 
-## Structure before pictures
+## Locking ink and face
 
-Each chapter becomes a blueprint first: beats, panels per page, shot type, who is in frame. Nothing is drawn until the page reads well.
+Before a panel renders, the press synthesizes a period medium and a five-pigment hex gamut for the book. A master style anchor locks line weight, paper tooth, deep focus without lens blur, and a balloon lettering key. Recurring cast members get turnaround sheets so faces and coats hold across chapters.
 
-## Continuity as data
+<ComicConditioningPair caption="Frankenstein's style anchor (with its balloon lettering key) and the Creature's four-angle turnaround sheet." />
 
-Every character and place gets a sheet of what never changes. Panel prompts are built from the sheet, so the jacket stays blue.
+## Blueprint before ink
 
-## Reading in spreads
-
-Comics are read a page at a time, so I review spreads, not single images.
+On disk, `pages_manifest.json` plans the whole book before the image model draws a line. It maps panel transitions, sets panel weights, clears top-third sky bands for balloons, and caps dialogue at 12 words per balloon.
 
 <ComicStageScrubber />
 
+## Waves and gates
+
+Batching 20-page concurrent waves on Flora MCP with disk-compiled manifests shrank 58-minute end-to-end runs by more than 6x. Text-only Jev has no eyes, so QA splits honestly: a vision pass transcribes rendered balloons for Jev to proofread against the script, single-second Jev batches check beat coverage, fidelity, and pacing monotony, and 12-up contact sheets catch visual drift by eye.
+
+<Figure
+  src="/case-studies/graphic-comic-making-from-novels/frankenstein-sheet-02.webp"
+  alt="Twelve-page contact sheet from Frankenstein showing laboratory creation pages, chapter dividers, and Act I takeaways."
+  width={1800}
+  height={792}
+  caption="One 12-up contact sheet from Frankenstein: story pages, chapter dividers, and study takeaways share one ink lock."
+/>
+
+## Wrong format
+
+Adapting Percy Shelley's 14-line _Ozymandias_ into a 35-page narrative comic stretched the sonnet thin and flattened its irony. Scrapping story panels for a 14-plate steel-engraved visual essay taught the press when a book wants diagrams more than balloons.
+
+<Figure
+  src="/case-studies/graphic-comic-making-from-novels/ozymandias-ruin.webp"
+  alt="Steel-engraved conceptual plate titled Ozymandias: The Anatomy of Ruin contrasting temporal power with immortal artistic expression."
+  width={1280}
+  height={720}
+  caption="Plate 1 of the Ozymandias visual essay, contrasting broken temporal power on the left with enduring craft on the right."
+/>
+
 ## Looking back
 
-- Blueprints are slow to review, but that's where adaptation happens.
-- Strict sheets make images consistent and a little less surprising.
+- Strict five-pigment locks and 12-word balloons trade happy accidents for whole-book coherence, and the pages read better for it.
+- Baking lettering into the artwork on GPT Image 2.5 Flare avoids pasted-on PDF text overlays, though faster engines with high typo rates still need a separate text layer.
 
-Hardest panel so far: a character thinking.
+Full circle: I ended up running OCR on Scott McCloud's _Understanding Comics_ to critique sequential art with the same rules that built the press.

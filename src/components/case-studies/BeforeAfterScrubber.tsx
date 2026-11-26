@@ -15,11 +15,10 @@ import {
 } from "react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { AgenticCard } from "./AgenticCard";
-import { ComicBlueprint, ComicProse } from "./ComicScenes";
 import { GatedImage } from "./Figure";
 import { StickerSheetDraft } from "./StickerScenes";
 
-type Variant = "stickers" | "agentic-ds" | "comic";
+type Variant = "stickers" | "agentic-ds";
 
 const SCENES: Record<
   Variant,
@@ -38,13 +37,6 @@ const SCENES: Record<
     beforeLabel: "From a screenshot",
     afterLabel: "Through the gate",
     label: "The same card built by a naive agent and by a gated agent",
-  },
-  comic: {
-    before: <ComicProse />,
-    after: <ComicBlueprint />,
-    beforeLabel: "Prose",
-    afterLabel: "Panel blueprint",
-    label: "A passage of prose and the panel blueprint made from it",
   },
 };
 

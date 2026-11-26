@@ -24,6 +24,10 @@ export const ComicStageScrubber = dynamic(() =>
   import("../case-studies/ComicStageScrubber").then((m) => m.ComicStageScrubber),
 );
 /** @public used by MDX through the namespace import */
+export const ComicEditionReader = dynamic(() =>
+  import("../case-studies/ComicEditionReader").then((m) => m.ComicEditionReader),
+);
+/** @public used by MDX through the namespace import */
 export const RoycWhiteLabelSwitcher = dynamic(() =>
   import("../case-studies/RoycWhiteLabelSwitcher").then((m) => m.RoycWhiteLabelSwitcher),
 );

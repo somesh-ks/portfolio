@@ -64,7 +64,7 @@
       "$extensions": {
         "mode": {
           "light": "{color.gray.600}",
-          "dark": "{color.gray.400}"
+          "dark": "{color.gray.300}"
         }
       }
     },

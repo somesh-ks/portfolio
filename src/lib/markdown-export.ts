@@ -5,13 +5,17 @@
  */
 
 /** What each interactive component shows, in words. */
-const COMPONENT_DESCRIPTIONS: Record<string, string> = {
+export const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   BeforeAfterScrubber: "Drag-to-compare view of the interface before and after the redesign.",
   ClaudeStickerSheet: "Clickable sheet of animated pixel stickers with their export formats.",
   AgenticTokenDiff:
     "Toggle between a naive agent's output (raw hex and spacing) and the same screen built by an agent gated on design-system tokens.",
+  ComicEditionReader:
+    "Interactive edition reader across five classic adaptations (Frankenstein, Jane Eyre, Paradise Lost, Mrs. Dalloway, Heart of Darkness) with page flipping, period medium notes, and five-pigment gamut swatches.",
+  ComicConditioningPair:
+    "Side-by-side conditioning plates: the gothic woodcut style anchor and the Creature's four-angle character turnaround sheet.",
   ComicStageScrubber:
-    "Three-stage scrubber: raw novel prose, a panel layout blueprint, then the illustrated spread.",
+    "Three-stage scrubber: Mary Shelley's 1818 Frankenstein prose, the two-tier panel blueprint JSON, and the inked gothic woodcut page.",
   RoycWhiteLabelSwitcher:
     "Live re-theming of an investor card across four white-label bank themes.",
   LuminovoExpressionBuilder: "Builder for machine-time cost formulas with live evaluation.",
@@ -32,6 +36,7 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   AuditDemo:
     "Before and after: the same audit prompt run without the skill (unscored prose notes) and with it (graded path:line findings or a scored 18-domain card).",
   Figure: "Figure.",
+  Video: "Video.",
 };
 
 const JSX_OPEN = /^<([A-Z][A-Za-z0-9]*)\b/;
@@ -45,10 +50,11 @@ function describe(name: string, block: string): string {
     const skill = /name="([^"]*)"/.exec(block)?.[1];
     if (skill) return `## ${skill}`;
   }
-  if (name === "Figure") {
+  if (name === "Figure" || name === "Video") {
     const alt = /alt="([^"]*)"/.exec(block)?.[1];
     const caption = /caption="([^"]*)"/.exec(block)?.[1];
-    return `*Figure: ${caption ?? alt ?? "image"}*`;
+    const fallback = name === "Video" ? "video" : "image";
+    return `*${name}: ${caption ?? alt ?? fallback}*`;
   }
   const description = COMPONENT_DESCRIPTIONS[name] ?? "Interactive component.";
   return `> Interactive on the web: ${description}`;
