@@ -1,20 +1,34 @@
-/** Static scenes for the comic pipeline: prose, blueprint and spread. Original sample text. */
+/** Static scenes for the comic pipeline: Mary Shelley's Frankenstein Ch. 5 prose, page 18 blueprint, and rendered page. */
 
 const PROSE =
-  'The ferry was late again. Mira stood at the rail with her collar up, counting the lights on the far shore, and did not turn when the man in the grey coat stopped beside her. "You kept it," he said. She opened her hand. The key was still warm.';
+  "It was on a dreary night of November that I beheld the accomplishment of my toils. With an anxiety that almost amounted to agony, I collected the instruments of life around me, that I might infuse a spark of being into the lifeless thing that lay at my feet.";
+
+const SOURCE = "Mary Shelley, Frankenstein (1818), Ch. 5";
 
 const PANELS = [
-  { beat: "Establish", shot: "Wide", note: "Ferry, night, far-shore lights", span: "wide" },
-  { beat: "Character", shot: "Medium", note: "Mira at the rail, collar up", span: "half" },
-  { beat: "Arrival", shot: "Over shoulder", note: "Grey coat enters frame", span: "half" },
-  { beat: "Line", shot: "Two-shot", note: '"You kept it."', span: "half" },
-  { beat: "Reveal", shot: "Insert", note: "Open hand, the key", span: "half" },
+  {
+    id: "18.1",
+    meta: "18.1 · MS · Tier 1",
+    note: "Dreary November night, rain on gothic panes, candle nearly burnt out",
+    speechLabel: "Caption",
+    speech: '"IT WAS ON A DREARY NIGHT OF NOVEMBER..."',
+  },
+  {
+    id: "18.2",
+    meta: "18.2 · LS · Weight 4",
+    note: "Victor applies galvanic probe to eight-foot frame on table",
+    speechLabel: "Balloon · upper-left · 9 words",
+    speech: '"WITH AN AGONY OF DESIRE, I INFUSE THE SPARK!"',
+  },
 ] as const;
 
 export function ComicProse() {
   return (
     <div className="comic-scene comic-scene--prose">
-      <p className="comic-prose">{PROSE}</p>
+      <div className="comic-prose__wrap">
+        <p className="comic-prose">{PROSE}</p>
+        <p className="comic-prose__source">{SOURCE}</p>
+      </div>
     </div>
   );
 }
@@ -23,12 +37,13 @@ export function ComicBlueprint() {
   return (
     <div className="comic-scene">
       <ol className="comic-grid comic-grid--blueprint">
-        {PANELS.map((panel, index) => (
-          <li key={panel.beat} className={`comic-panel comic-panel--${panel.span}`}>
-            <span className="comic-panel__number tabular">{index + 1}</span>
-            <span className="comic-panel__beat">{panel.beat}</span>
-            <span className="comic-panel__shot">{panel.shot}</span>
+        {PANELS.map((panel) => (
+          <li key={panel.id} className="comic-panel">
+            <span className="comic-panel__meta">{panel.meta}</span>
             <span className="comic-panel__note">{panel.note}</span>
+            <span className="comic-panel__speech">
+              <span className="comic-panel__tag">{panel.speechLabel}:</span> {panel.speech}
+            </span>
           </li>
         ))}
       </ol>
@@ -36,34 +51,18 @@ export function ComicBlueprint() {
   );
 }
 
-/** Rendered spread: flat geometric panels, the composition each blueprint panel asks for. */
+/** Rendered page: Frankenstein page 18 matching the two-tier blueprint. */
 export function ComicSpread() {
   return (
-    <div className="comic-scene">
-      <ol className="comic-grid comic-grid--spread" aria-label="Rendered spread">
-        <li className="comic-art comic-panel--wide comic-art--night">
-          <span className="comic-art__shore" />
-          <span className="comic-art__lights" />
-          <span className="comic-art__ferry" />
-        </li>
-        <li className="comic-art comic-art--dusk">
-          <span className="comic-art__figure" />
-          <span className="comic-art__rail" />
-        </li>
-        <li className="comic-art comic-art--dusk">
-          <span className="comic-art__figure comic-art__figure--back" />
-          <span className="comic-art__figure comic-art__figure--coat" />
-        </li>
-        <li className="comic-art comic-art--dusk">
-          <span className="comic-art__balloon">You kept it.</span>
-          <span className="comic-art__figure comic-art__figure--small" />
-          <span className="comic-art__figure comic-art__figure--coat comic-art__figure--small-right" />
-        </li>
-        <li className="comic-art comic-art--warm">
-          <span className="comic-art__hand" />
-          <span className="comic-art__key" />
-        </li>
-      </ol>
-    </div>
+    // oxlint-disable-next-line nextjs/no-img-element
+    <img
+      src="/case-studies/graphic-comic-making-from-novels/frankenstein-p018.webp"
+      alt="Rendered Frankenstein page 18 matching the two-tier blueprint."
+      width={1600}
+      height={900}
+      loading="lazy"
+      decoding="async"
+      className="comic-stages__spread"
+    />
   );
 }

@@ -4,6 +4,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import * as runtime from "react/jsx-runtime";
 import remarkGfm from "remark-gfm";
+import { ComicConditioningPair } from "@/components/case-studies/ComicConditioningPair";
 import { Figure, Video } from "@/components/case-studies/Figure";
 import { CodeBlock } from "@/components/code/CodeBlock";
 import { Command } from "@/components/code/Command";
@@ -24,6 +25,7 @@ function componentsFor(mediaBase?: string): MDXComponents {
     pre: CodeBlock,
     Command,
     SkillHeading,
+    ComicConditioningPair,
     TargetSizeDemo,
     AuditDemo,
     DarkSurfaceDemo,

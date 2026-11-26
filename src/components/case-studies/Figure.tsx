@@ -8,19 +8,45 @@ export function GatedImage({
   src,
   alt,
   className,
+  width,
+  height,
 }: {
   src: string;
   alt: string;
   className: string;
+  width?: number;
+  height?: number;
 }) {
-  // oxlint-disable-next-line nextjs/no-img-element
-  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} />;
+  return (
+    // oxlint-disable-next-line nextjs/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      loading="lazy"
+      decoding="async"
+      className={className}
+    />
+  );
 }
 
-export function Figure({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
+export function Figure({
+  src,
+  alt,
+  caption,
+  width,
+  height,
+}: {
+  src: string;
+  alt: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+}) {
   return (
     <figure className="figure">
-      <GatedImage src={src} alt={alt} className="figure__media" />
+      <GatedImage src={src} alt={alt} width={width} height={height} className="figure__media" />
       {caption ? <figcaption className="toy__caption">{caption}</figcaption> : null}
     </figure>
   );

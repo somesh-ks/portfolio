@@ -10,12 +10,12 @@ type Stage = (typeof STAGES)[number];
 const LABELS: Record<Stage, string> = {
   prose: "1. Prose",
   blueprint: "2. Blueprint",
-  spread: "3. Spread",
+  spread: "3. Page",
 };
 const NOTES: Record<Stage, string> = {
-  prose: "The source: one paragraph, four beats hiding in it.",
-  blueprint: "Beats become panels with a shot type each. Nothing is drawn yet.",
-  spread: "Each panel is rendered against the continuity sheet, then read as a page.",
+  prose: "The source: Mary Shelley's Chapter 5 passage fixes the rain, candle, and table.",
+  blueprint: "Page 18 locks two tiers: gothic window rain above, the galvanic spark below.",
+  spread: "Rendered against the character sheets and five-pigment gothic lock as a 16:9 page.",
 };
 
 export function ComicStageScrubber() {

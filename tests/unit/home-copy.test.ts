@@ -20,7 +20,7 @@ const FINAL: Record<Kind, [title: string, summary?: string][]> = {
     ["Claude sticker studio", "Customize your claude"],
   ],
   "case-study": [
-    ["Making graphic comics"],
+    ["A comic press for classic novels"],
     ["Building an agentic design system"],
     ["Growing a bank investing platform 4x"],
     ["Making electronics quoting 57% faster"],

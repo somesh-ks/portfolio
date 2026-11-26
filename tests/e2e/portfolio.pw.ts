@@ -325,3 +325,39 @@ test("the first-load entrance plays once and never hides content", async ({ brow
   await expect(page.locator("html")).toHaveAttribute("data-entered", "");
   expect(await animation(page)).toBe("none");
 });
+
+test("comic press reader and three-stage scrubber work without errors", async ({ page }) => {
+  const errors = watchConsole(page);
+  await page.goto("/work/graphic-comic-making-from-novels");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "A comic press for classic novels",
+  );
+
+  const reader = page.locator(".comic-reader");
+  await reader.getByRole("button", { name: "Jane Eyre" }).click();
+  await expect(reader.locator(".toy__caption")).toContainText("Jane Eyre");
+  await expect(reader.locator(".comic-reader__count")).toHaveText("1 / 4");
+  await reader.getByRole("button", { name: "Next page" }).click();
+  await expect(reader.locator(".comic-reader__count")).toHaveText("2 / 4");
+  await reader.getByRole("button", { name: "Next page" }).press("ArrowRight");
+  await expect(reader.locator(".comic-reader__count")).toHaveText("3 / 4");
+  await reader.getByRole("button", { name: "Paradise Lost" }).click();
+  await expect(reader).toHaveAttribute("data-aspect", "portrait");
+
+  const scrubber = page.locator(".comic-stages");
+  await scrubber.getByRole("button", { name: "2. Blueprint" }).click();
+  await expect(scrubber.locator(".comic-stages__layer").nth(1)).toHaveAttribute(
+    "data-active",
+    "true",
+  );
+  await expect(scrubber.locator(".toy__caption")).toContainText("Page 18 locks two tiers");
+
+  await scrubber.getByRole("button", { name: "3. Page" }).click();
+  await expect(scrubber.locator(".comic-stages__layer").nth(2)).toHaveAttribute(
+    "data-active",
+    "true",
+  );
+  await expect(scrubber.locator(".toy__caption")).toContainText("16:9 page");
+
+  expect(errors).toEqual([]);
+});
