@@ -195,6 +195,55 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
   });
 }
 
+/** Rides whose turned face puts the far eye on the face's edge (walk,
+ * scooter) or a row low and half hidden (bike). */
+const LEVEL_EYES = new Set<Costume>(["walk", "scooter", "bike"]);
+/** Left eye to right eye, in pixels, as on the skateboard's face. */
+const EYE_SPACING = 8;
+
+/**
+ * Sets the far eye level with the near one, two pixels wide, `EYE_SPACING`
+ * along and at least one pixel in from the face's edge, as the skateboard
+ * draws it. The near eye is the leftmost dark pixel with body colour on its
+ * left and a dark pixel below; the far eye is any dark pixel just right of it, painted over with
+ * body colour first.
+ */
+export function levelEyes(raw: RawSprite, pixels: Uint8Array): Uint8Array {
+  const out = pixels.slice();
+  const { w, h } = raw;
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 255 : out[y * w + x]!);
+  const counts = new Map<number, number>();
+  for (const value of out) if (value !== 255) counts.set(value, (counts.get(value) ?? 0) + 1);
+  const body = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const luma = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  };
+  const dark = (value: number) => value !== 255 && luma(raw.palette[value] ?? "#fff") < 64;
+  if (body === undefined) return out;
+  // The near eye is the leftmost such pixel: the far one can sit a row higher.
+  let near: [number, number] | null = null;
+  for (let y = 0; y < h - 1; y += 1)
+    for (let x = 1; x < w; x += 1)
+      if (dark(at(x, y)) && at(x - 1, y) === body && dark(at(x, y + 1)) && (!near || x < near[0]))
+        near = [x, y];
+  if (!near) return out;
+  const [x, y] = near;
+  for (let fy = y - 1; fy <= y + 2; fy += 1)
+    for (let fx = x + 3; fx < x + 14; fx += 1) if (dark(at(fx, fy))) out[fy * w + fx] = body;
+  let edge = x + 2;
+  while (at(edge + 1, y) === body) edge += 1;
+  const far = Math.min(edge - 2, x + EYE_SPACING);
+  for (const [dx, dy] of [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1],
+  ] as const)
+    out[(y + dy) * w + far + dx] = at(x, y);
+  return out;
+}
+
 export function buildSprite(source: RawSprite, costume: Costume): Sprite {
   return build(source, decodePixels(source), costume, CELL[costume] ?? 1, SMOOTHED.has(costume));
 }
@@ -207,7 +256,8 @@ function build(
   smooth: boolean,
 ): Sprite {
   const [start, end] = LOOPS[costume];
-  const flown = all.slice(start, end);
+  const riding = all.slice(start, end);
+  const flown = LEVEL_EYES.has(costume) ? riding.map((pixels) => levelEyes(raw, pixels)) : riding;
   const loop = costume === "kite" ? walkingLegs(raw, flown) : flown;
   const box = bounds(raw, [...loop, all[0] ?? new Uint8Array()], loop);
   const width = box.right - box.left + 1;
