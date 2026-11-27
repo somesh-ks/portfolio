@@ -1,5 +1,5 @@
 ---
-title: A comic press for classic novels
+title: Reviving classic literature as comics
 slug: graphic-comic-making-from-novels
 kind: case-study
 order: 1
@@ -16,31 +16,39 @@ stack: [Flora MCP, TypeScript, Python, TypeSafe Jev, PyMuPDF]
 tags: [comics, illustration, agents, pipelines]
 ---
 
-I wanted to read dense classics from _Paradise Lost_ to _Frankenstein_ as comics, without wading through walls of archaic prose. A stalled single-book experiment grew into `sk-comics`, a reusable press where one prompt draws an entire lettered page.
+Mary Shelley wrote Chapter IV of _Frankenstein_ as one dense grey block of 1818 prose, yet every sentence is staged like cinema. I built `sk-comics` to revive public-domain classics into coherent graphic editions without losing the ink, type, or pulse of the original book.
 
-<ComicEditionReader />
+<FrankensteinRevivalHero />
 
-## Why sixty pages drift
+## Ink, tooth, and five pigments
 
-- Characters shed continuity across pages: coats change color, scars switch cheeks, and faces age ten years between scenes.
-- Unconstrained covers default to glossy movie posters, wiping out book trade dress and period serif typography.
-- Proper nouns and 15-plus-word speech balloons garble into spellings like `"DALLIWEY"` and scramble panel pacing.
+Every classic carries its own physical press signature before a single panel is drawn. For _Frankenstein_, the direction locks dip-pen gothic crosshatching on heavy paper tooth, deep focus with zero camera blur, and five exact hex pigments so night never drifts into glossy neon.
 
-## Locking ink and face
+Each title gets a period-specific medium instead of one generic filter. _Paradise Lost_ takes 17th-century copperplate engraving with sulfurous spot lighting, while _Mrs. Dalloway_ switches to Bloomsbury gouache wash over cotton rag.
 
-Before a panel renders, the press synthesizes a period medium and a five-pigment hex gamut for the book. A master style anchor locks line weight, paper tooth, deep focus without lens blur, and a balloon lettering key. Recurring cast members get turnaround sheets so faces and coats hold across chapters.
+## Type inside the drawing
+
+Unconstrained image models render trade covers like cinema posters and pack balloons with modern sans-serif fonts that break the period illusion. I locked book covers to period serif title proportioning and capped dialogue balloons at 12 words in a single Caslon serif hand so lettering belongs inside the ink linework.
+
+Proper names and long speeches still trip pixel-level rendering when models guess letterforms. Setting a clear top-third sky or ceiling band in the layout keeps captions readable without painting speech tails across faces.
+
+## Faces across sixty pages
+
+One style anchor locks the book's line weight, grain, and balloon key, yet characters still drift between chapters if described only in prose. Every recurring figure receives a four-angle turnaround sheet and a 35-word physical lock covering coat cut, age, and scars before page generation begins.
 
 <ComicConditioningPair caption="Frankenstein's style anchor (with its balloon lettering key) and the Creature's four-angle turnaround sheet." />
 
-## Blueprint before ink
+## Cutting sentences into panels
 
-On disk, `pages_manifest.json` plans the whole book before the image model draws a line. It maps panel transitions, sets panel weights, clears top-third sky bands for balloons, and caps dialogue at 12 words per balloon.
+Turning a chapter into sequential art means cutting summary prose into physical actions and choosing where time slows down. The press assigns every beat a panel weight so quiet atmosphere plays across wide tiers while turning points like the galvanic spark take a dominant Weight 4 frame.
 
 <ComicStageScrubber />
 
-## Waves and gates
+## Inside the live press
 
-Batching 20-page concurrent waves on Flora MCP with disk-compiled manifests shrank 58-minute end-to-end runs by more than 6x. Text-only Jev has no eyes, so QA splits honestly: a vision pass transcribes rendered balloons for Jev to proofread against the script, single-second Jev batches check beat coverage, fidelity, and pacing monotony, and 12-up contact sheets catch visual drift by eye.
+On disk, `pages_manifest.json` plans every spread before Flora MCP renders twenty pages in parallel waves against the style and cast locks. Text-only TypeSafe Jev gates check beat coverage and source fidelity in one-second batches, while a vision pass transcribes rendered speech balloons for typo checks and final 12-up contact sheets get reviewed by eye.
+
+<ComicPressFlow />
 
 <Figure
   src="/case-studies/graphic-comic-making-from-novels/frankenstein-sheet-02.webp"
@@ -50,21 +58,15 @@ Batching 20-page concurrent waves on Flora MCP with disk-compiled manifests shra
   caption="One 12-up contact sheet from Frankenstein: story pages, chapter dividers, and study takeaways share one ink lock."
 />
 
-## Wrong format
+## Five centuries on one shelf
 
-Adapting Percy Shelley's 14-line _Ozymandias_ into a 35-page narrative comic stretched the sonnet thin and flattened its irony. Scrapping story panels for a 14-plate steel-engraved visual essay taught the press when a book wants diagrams more than balloons.
+Running one shared press across five centuries tests how far period art direction bends without losing clarity. When Percy Shelley's 14-line _Ozymandias_ stretched awkwardly into a 35-page narrative comic, scrapping sequential panels for a 14-plate steel-engraved visual essay taught the system when a text wants diagrams over speech balloons.
 
-<Figure
-  src="/case-studies/graphic-comic-making-from-novels/ozymandias-ruin.webp"
-  alt="Steel-engraved conceptual plate titled Ozymandias: The Anatomy of Ruin contrasting temporal power with immortal artistic expression."
-  width={1280}
-  height={720}
-  caption="Plate 1 of the Ozymandias visual essay, contrasting broken temporal power on the left with enduring craft on the right."
-/>
+<ClassicBookshelf />
 
 ## Looking back
 
 - Strict five-pigment locks and 12-word balloons trade happy accidents for whole-book coherence, and the pages read better for it.
-- Baking lettering into the artwork on GPT Image 2.5 Flare avoids pasted-on PDF text overlays, though faster engines with high typo rates still need a separate text layer.
+- Baking lettering directly into artwork avoids pasted-on PDF text boxes, though faster image engines with higher typo rates still need a separate vector text pass.
 
-Full circle: I ended up running OCR on Scott McCloud's _Understanding Comics_ to critique sequential art with the same rules that built the press.
+Full circle: I ended up running OCR on Scott McCloud's _Understanding Comics_ to critique sequential pacing with the same rules that built the press.

@@ -326,23 +326,19 @@ test("the first-load entrance plays once and never hides content", async ({ brow
   expect(await animation(page)).toBe("none");
 });
 
-test("comic press reader and three-stage scrubber work without errors", async ({ page }) => {
+test("comic art-direction hero, pipeline bus, stage scrubber, and 3D bookshelf work without errors", async ({
+  page,
+}, testInfo) => {
   const errors = watchConsole(page);
   await page.goto("/work/graphic-comic-making-from-novels");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "A comic press for classic novels",
+    "Reviving classic literature as comics",
   );
 
-  const reader = page.locator(".comic-reader");
-  await reader.getByRole("button", { name: "Jane Eyre" }).click();
-  await expect(reader.locator(".toy__caption")).toContainText("Jane Eyre");
-  await expect(reader.locator(".comic-reader__count")).toHaveText("1 / 4");
-  await reader.getByRole("button", { name: "Next page" }).click();
-  await expect(reader.locator(".comic-reader__count")).toHaveText("2 / 4");
-  await reader.getByRole("button", { name: "Next page" }).press("ArrowRight");
-  await expect(reader.locator(".comic-reader__count")).toHaveText("3 / 4");
-  await reader.getByRole("button", { name: "Paradise Lost" }).click();
-  await expect(reader).toHaveAttribute("data-aspect", "portrait");
+  const revival = page.locator(".comic-revival");
+  await expect(revival.locator(".comic-pager__count")).toHaveText("1 / 3");
+  await revival.getByRole("button", { name: "Next revival plate" }).click();
+  await expect(revival.locator(".comic-pager__count")).toHaveText("2 / 3");
 
   const scrubber = page.locator(".comic-stages");
   await scrubber.getByRole("button", { name: "2. Blueprint" }).click();
@@ -358,6 +354,39 @@ test("comic press reader and three-stage scrubber work without errors", async ({
     "true",
   );
   await expect(scrubber.locator(".toy__caption")).toContainText("16:9 page");
+
+  const flow = page.locator(".comic-flow");
+  await flow.getByRole("button", { name: /TypeSafe Jev/ }).click();
+  await expect(flow.locator(".comic-flow__readout")).toContainText("Verify beat coverage");
+
+  // Every book opens on its closed front cover. Spread-format books (Jane Eyre, Ozymandias)
+  // show a whole spread per view everywhere, so phones count the same 12 spreads.
+  const shelf = page.locator(".comic-shelf");
+  const count = shelf.locator(".comic-pager__count");
+  const unit = "Spread";
+  const total = 13;
+  await shelf.getByRole("button", { name: /Jane Eyre/ }).click();
+  await expect(shelf.locator(".comic-shelf__meta")).toContainText("Jane Eyre (1847)");
+  await expect(shelf.locator(".comic-book")).toHaveAttribute("data-closed", "true");
+  await expect(count).toContainText(`1 / ${total}`);
+  await expect(count).toContainText(`Front cover, 1 of ${total}`);
+  await shelf.getByRole("button", { name: "Next page" }).click();
+  await expect(count).toContainText(`${unit} 2 of ${total}`);
+  await expect(shelf.locator(".comic-book")).not.toHaveAttribute("data-closed");
+
+  // The source text is one page, so the pager hides instead of sitting there disabled.
+  await shelf.getByRole("button", { name: "Original text" }).click();
+  await expect(shelf.locator(".comic-pager")).toBeHidden();
+  await shelf.getByRole("button", { name: /Ozymandias/ }).click();
+  await expect(shelf.locator(".comic-pager")).toBeVisible();
+  await expect(count).toContainText(`1 / ${total}`);
+
+  // Page-format books still turn one page at a time on phones.
+  await shelf.getByRole("button", { name: /Heart of Darkness/ }).click();
+  await shelf.getByRole("button", { name: "Next page" }).click();
+  await expect(count).toContainText(
+    testInfo.project.name === "mobile" ? "Page 2 of" : "Spread 2 of",
+  );
 
   expect(errors).toEqual([]);
 });

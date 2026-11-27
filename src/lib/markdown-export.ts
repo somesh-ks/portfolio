@@ -12,6 +12,12 @@ export const COMPONENT_DESCRIPTIONS: Record<string, string> = {
     "Toggle between a naive agent's output (raw hex and spacing) and the same screen built by an agent gated on design-system tokens.",
   ComicEditionReader:
     "Interactive edition reader across five classic adaptations (Frankenstein, Jane Eyre, Paradise Lost, Mrs. Dalloway, Heart of Darkness) with page flipping, period medium notes, and five-pigment gamut swatches.",
+  FrankensteinRevivalHero:
+    "Side-by-side comparison pairing Mary Shelley's 1818 Chapter IV Frankenstein prose with the gothic dip-pen ink comic pages.",
+  ComicPressFlow:
+    "Interactive 5-stage pipeline bus tracing Source PDF, Claude sk-comics manifests, TypeSafe Jev verification gates, Flora MCP 20-page waves, and the bound PDF.",
+  ClassicBookshelf:
+    "Standing 3D spine bookshelf across six classic editions (Frankenstein, Paradise Lost, Jane Eyre, Mrs. Dalloway, Heart of Darkness, and Ozymandias) comparing original text beside revived art direction, typography, paneling, and five-pigment swatches.",
   ComicConditioningPair:
     "Side-by-side conditioning plates: the gothic woodcut style anchor and the Creature's four-angle character turnaround sheet.",
   ComicStageScrubber:
