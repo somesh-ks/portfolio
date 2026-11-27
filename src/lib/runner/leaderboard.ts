@@ -12,6 +12,7 @@
  * the leaderboard reports itself disabled and the game keeps a local best.
  */
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { BOARD_KEEP, type Entry, type Place } from "./board";
 import { maxScoreFor } from "./sim";
 
 type Env = Record<string, string | undefined>;
@@ -19,7 +20,8 @@ type Env = Record<string, string | undefined>;
 const BOARD_KEY = "runner:board";
 /** nonce -> name. The board's members are nonces, so one token is one entry. */
 const NAMES_KEY = "runner:names";
-const KEEP = 100;
+/** Every run can save, so the board keeps far more than it shows. */
+const KEEP = BOARD_KEEP;
 const TOP = 10;
 const TOKEN_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const SUBMISSIONS_PER_HOUR = 20;
@@ -45,10 +47,7 @@ const BLOCKED = [
   "porn",
 ];
 
-export interface Entry {
-  name: string;
-  score: number;
-}
+export type { Entry, Place };
 
 /** A first name: 1 to 12 letters, single spaces, hyphens or apostrophes. */
 export function normalizeName(raw: unknown): string | null {
@@ -141,6 +140,24 @@ export async function topScores(env: Env = process.env): Promise<Entry[]> {
   return withNames(env, flat);
 }
 
+/** A score from the query string: one a run could reach before its token expires. */
+export function parseScore(raw: string | null): number | null {
+  if (!raw || !/^\d{1,7}$/.test(raw)) return null;
+  const points = Number(raw);
+  return points >= 1 && points <= maxScoreFor(TOKEN_MAX_AGE_MS / 1000) ? points : null;
+}
+
+/** A score's place, saved or not: one past every higher score (ties share a
+ * rank), and the lowest score above it. */
+export async function placeFor(points: number, env: Env = process.env): Promise<Place> {
+  const [higher, next] = await redis(env, [
+    ["ZCOUNT", BOARD_KEY, `(${points}`, "+inf"],
+    ["ZRANGEBYSCORE", BOARD_KEY, `(${points}`, "+inf", "WITHSCORES", "LIMIT", 0, 1],
+  ]);
+  const above = await withNames(env, next);
+  return { rank: Number(higher) + 1, above: above[0] ?? null };
+}
+
 function ipKey(ip: string, env: Env): string {
   const key = secretKey(env) ?? Buffer.alloc(32);
   const hour = Math.floor(Date.now() / 3_600_000);
@@ -148,7 +165,7 @@ function ipKey(ip: string, env: Env): string {
 }
 
 export type SubmitResult =
-  | { ok: true; top: Entry[] }
+  | { ok: true; top: Entry[]; place: Place }
   | { ok: false; reason: "invalid" | "limited" };
 
 export async function submitScore(
@@ -174,8 +191,16 @@ export async function submitScore(
     // The first name sent with a token sticks; later sends can only raise its score.
     ["HSETNX", NAMES_KEY, run.nonce, name],
     ["ZADD", BOARD_KEY, "GT", points, run.nonce],
+    // Entries past the kept rows, read before trimming so their names go too.
+    ["ZRANGE", BOARD_KEY, 0, -(KEEP + 1)],
     ["ZREMRANGEBYRANK", BOARD_KEY, 0, -(KEEP + 1)],
     ["ZREVRANGE", BOARD_KEY, 0, TOP - 1, "WITHSCORES"],
+    ["ZCOUNT", BOARD_KEY, `(${points}`, "+inf"],
+    ["ZRANGEBYSCORE", BOARD_KEY, `(${points}`, "+inf", "WITHSCORES", "LIMIT", 0, 1],
   ]);
-  return { ok: true, top: await withNames(env, results[3]) };
+  const evicted = Array.isArray(results[2]) ? results[2].map(String) : [];
+  if (evicted.length > 0) await redis(env, [["HDEL", NAMES_KEY, ...evicted]]);
+  const [top, above] = await Promise.all([withNames(env, results[4]), withNames(env, results[6])]);
+  const place = { rank: Number(results[5]) + 1, above: above[0] ?? null };
+  return { ok: true, top, place };
 }

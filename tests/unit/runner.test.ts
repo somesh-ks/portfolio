@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createRunToken, isPlausible, normalizeName, readRunToken } from "@/lib/runner/leaderboard";
+import {
+  createRunToken,
+  isPlausible,
+  normalizeName,
+  parseScore,
+  readRunToken,
+} from "@/lib/runner/leaderboard";
 import {
   createRun,
   maxScoreFor,
@@ -8,6 +14,8 @@ import {
   score,
   step,
   STEP,
+  STRIDE_GAIN,
+  strideRate,
   WORLD,
   type RunState,
 } from "@/lib/runner/sim";
@@ -154,5 +162,33 @@ describe("runner leaderboard", () => {
     expect(isPlausible(maxScoreFor(10) * 3, 10_000)).toBe(false);
     expect(isPlausible(0, 10_000)).toBe(false);
     expect(isPlausible(1.5, 10_000)).toBe(false);
+  });
+});
+
+describe("stride", () => {
+  test("legs speed up with the run, a little, and stop at top speed", () => {
+    expect(strideRate(PHYSICS.startSpeed)).toBe(1);
+    expect(strideRate(PHYSICS.maxSpeed)).toBeCloseTo(1 + STRIDE_GAIN);
+    expect(strideRate(PHYSICS.maxSpeed * 2)).toBeCloseTo(1 + STRIDE_GAIN);
+    expect(strideRate(110)).toBeGreaterThan(1);
+    expect(strideRate(110)).toBeLessThan(1 + STRIDE_GAIN);
+  });
+
+  test("the animation clock runs ahead of real time as speed builds", () => {
+    const state = createRun(1);
+    for (let i = 0; i < 600; i++) step(state, false, 10_000);
+    expect(state.stride).toBeGreaterThan(state.time);
+    expect(state.stride).toBeLessThan(state.time * (1 + STRIDE_GAIN));
+  });
+});
+
+describe("score lookup", () => {
+  test("only scores a run could reach place on the board", () => {
+    expect(parseScore("42")).toBe(42);
+    expect(parseScore("0")).toBeNull();
+    expect(parseScore("-3")).toBeNull();
+    expect(parseScore("4.5")).toBeNull();
+    expect(parseScore("9999999")).toBeNull();
+    expect(parseScore(null)).toBeNull();
   });
 });

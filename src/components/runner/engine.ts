@@ -405,7 +405,7 @@ export function createEngine(
       // above all) keep moving in the air.
       const frozen = state.over || (costume === "walk" && !grounded(state));
       const held = frozen ? Math.floor(frozenAt * sprite.fps * RUN) : null;
-      const index = held ?? Math.floor(state.time * sprite.fps * RUN);
+      const index = held ?? Math.floor(state.stride * sprite.fps * RUN);
       rects = sprite.frames[index % sprite.frames.length] ?? sprite.idle;
     }
     const lift = WORLD.ground - Math.round(state?.height ?? 0);
@@ -504,7 +504,7 @@ export function createEngine(
         cloudShift += state.speed * STEP * CLOUD_PARALLAX;
         sceneryShift += state.speed * STEP * SCENERY_PARALLAX;
       }
-      if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.time;
+      if (wasGrounded && (!grounded(state) || state.over)) frozenAt = state.stride;
       pressed = false;
       accumulator -= STEP;
       if (state.jumps > before) callbacks.onJump();

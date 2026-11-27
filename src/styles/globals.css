@@ -214,7 +214,7 @@
     font-weight: 600;
   }
   .prose code,
-  .prose kbd {
+  .prose kbd:not(.kbd) {
     font-family: var(--font-mono);
     font-size: 0.875em;
     padding: 0.1em 0.35em;
@@ -222,8 +222,9 @@
     background: var(--surface-sunken);
     box-shadow: inset 0 0 0 1px var(--border-subtle);
   }
-  /* Keys sit on a slightly deeper bottom edge so they read as keys, not code. */
-  .prose kbd {
+  /* Keys sit on a slightly deeper bottom edge so they read as keys, not code.
+     The shared Kbd keeps its own look, so a game inside prose isn't repainted. */
+  .prose kbd:not(.kbd) {
     box-shadow:
       inset 0 0 0 1px var(--border-default),
       inset 0 -1px 0 var(--border-default);

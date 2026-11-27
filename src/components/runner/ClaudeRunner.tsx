@@ -22,7 +22,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { ArrowUpRight, Maximize2, Minimize2, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { useSound } from "@/components/providers/SoundProvider";
 import { Kbd } from "@/components/ui/Kbd";
 import {
@@ -37,7 +37,7 @@ import { CLOUD, CLOUD_IDLE_SPEED, CLOUD_SPOTS, CLOUD_STRIP } from "@/lib/runner/
 import { isSky, localNight, type Weather } from "@/lib/runner/weather";
 import type { Engine } from "./engine";
 import { beatUrl, parseBeat, shareText } from "@/lib/runner/share";
-import { boardWindow } from "@/lib/runner/board";
+import { BOARD_KEEP, boardRows, type Entry, type Place } from "@/lib/runner/board";
 
 /** `?weather=snow` or `?weather=rain-night` shows any sky, for QA and the curious. */
 function weatherOverride(): Weather | null {
@@ -66,10 +66,6 @@ function loadWeather(): Promise<Weather> {
 }
 
 type Phase = "idle" | "loading" | "running" | "over";
-interface Entry {
-  name: string;
-  score: number;
-}
 interface Board {
   enabled: boolean;
   top: Entry[];
@@ -174,10 +170,74 @@ function Key({ keyName, touch, click }: { keyName?: string; touch?: string; clic
   );
 }
 
-function qualifies(board: Board, points: number): boolean {
-  if (!board.enabled || points < 1) return false;
-  if (board.top.length < 10) return true;
-  return points > (board.top.at(-1)?.score ?? 0);
+/** Pixel glyphs on a 9-cell grid, 2px a cell: crisp like the game's art. */
+function Glyph({ cells }: { cells: readonly string[] }) {
+  return (
+    <svg
+      className="runner__glyph"
+      viewBox="0 0 9 9"
+      width="18"
+      height="18"
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d={cells
+          .flatMap((row, y) =>
+            [...row].map((cell, x) => (cell === "#" ? `M${x} ${y}h1v1h-1z` : "")),
+          )
+          .join("")}
+      />
+    </svg>
+  );
+}
+const RETRY_GLYPH = [
+  "#..####..",
+  "#.#....#.",
+  "##......#",
+  "####....#",
+  "........#",
+  "#.......#",
+  ".#.....#.",
+  "..#####..",
+  ".........",
+];
+const SHARE_GLYPH = [
+  "...######",
+  "........#",
+  "......#.#",
+  ".....#..#",
+  "....#...#",
+  "...#.....",
+  "..#......",
+  ".#.......",
+  "#........",
+];
+
+/** A rank as the board shows it: unknown while it loads, capped past the kept rows. */
+function rankLabel(rank: number | null): string {
+  if (rank === null) return "–";
+  return rank > BOARD_KEEP ? `${BOARD_KEEP}+` : String(rank);
+}
+
+/** Top rows the score plate has room for, 2 to 4: the sky above the ground,
+ * less the plate's padding, the gap line, and the controls when they stack
+ * under the board. Sizes are read from the rendered plate. */
+function fitHead(over: HTMLElement): number {
+  const panel = over.querySelector<HTMLElement>(".runner__panel");
+  const row = over.querySelector<HTMLElement>(".runner__board li:not(.runner__gap)");
+  const side = over.querySelector<HTMLElement>(".runner__side");
+  if (!panel || !row || !side) return 3;
+  const style = getComputedStyle(over);
+  const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const chrome =
+    panel.offsetHeight - panel.clientHeight + 2 * parseFloat(getComputedStyle(panel).paddingTop);
+  const stacked = getComputedStyle(panel).flexDirection === "column";
+  const gap = parseFloat(getComputedStyle(panel).rowGap) || 0;
+  // 9px: the dashed gap line and its margins.
+  const room = over.clientHeight - padding - chrome - 9 - (stacked ? side.offsetHeight + gap : 0);
+  return Math.max(2, Math.min(4, Math.floor(room / row.offsetHeight) - 2));
 }
 
 export function ClaudeRunner() {
@@ -206,6 +266,10 @@ export function ClaudeRunner() {
   const [submitted, setSubmitted] = useState<"no" | "sending" | "yes" | "failed">("no");
   /** The name and score just saved, so its row stays highlighted. */
   const [savedAs, setSavedAs] = useState<Entry | null>(null);
+  /** The run's place on the whole board, from the server; null until it lands. */
+  const [place, setPlace] = useState<Place | null>(null);
+  /** Top rows shown above the gap, fitted to the room the plate has. */
+  const [head, setHead] = useState(3);
   const [hasToken, setHasToken] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
   /** Set once the visitor's real weather arrives; overrides and misses get none. */
@@ -214,18 +278,39 @@ export function ClaudeRunner() {
   const [input, setInput] = useState<"touch" | "keys" | undefined>(undefined);
   const [ready, setReady] = useState(false);
   /** A score is waiting for a name: the crash scene holds until it's saved. */
-  const canSubmit = phase === "over" && hasToken && submitted !== "yes" && qualifies(board, points);
-  const rows = board.enabled
-    ? boardWindow(
-        board.top,
-        3,
-        canSubmit ? { pending: points } : savedAs ? { saved: savedAs } : null,
-      )
-    : [];
+  const canSubmit =
+    phase === "over" &&
+    hasToken &&
+    submitted !== "yes" &&
+    board.enabled &&
+    points >= 1 &&
+    // Saving waits for the run's place, so a score the board can't keep
+    // never shows a form (or loses it mid-typing).
+    place !== null &&
+    place.rank <= BOARD_KEEP;
+  // A run without points has no place: the plate shows the bare score.
+  const rows =
+    board.enabled && points >= 1
+      ? boardRows(board.top, head, { points, saved: savedAs?.name }, place)
+      : [];
   const [announcement, setAnnouncement] = useState("");
   /** A score to beat from a shared link (?beat=), and whether a share just copied. */
   const [shared, setShared] = useState(false);
   const nameId = useId();
+  /** Fit the board's rows to the sky above the ground, in the hero, on
+   * phones and fullscreen alike. */
+  const overRef = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return;
+    const fit = () => setHead(fitHead(element));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    // Refit when the board gains its gap line or the controls change height
+    // (NOT SAVED, a saved name).
+    for (const part of element.querySelectorAll(".runner__board, .runner__side"))
+      observer.observe(part);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => () => engine.current?.destroy(), []);
   // The stored high score shows before the engine loads; server renders 0.
@@ -241,13 +326,20 @@ export function ClaudeRunner() {
     () => null,
   );
 
-  const loadBoard = useCallback(async () => {
+  /** The top rows; with a final score, also where that score places. */
+  /** Counts runs, so a late answer for an old run is dropped. */
+  const runId = useRef(0);
+  const loadBoard = useCallback(async (final?: number) => {
+    const run = runId.current;
     try {
-      const response = await fetch("/api/runner", { cache: "no-store" });
+      const query = final ? `?score=${final}` : "";
+      const response = await fetch(`/api/runner${query}`, { cache: "no-store" });
       if (!response.ok) return;
-      const next = (await response.json()) as Board;
+      const next = (await response.json()) as Board & { place?: Place };
+      if (run !== runId.current) return;
       leaderboardOn.current = next.enabled;
-      setBoard(next);
+      setBoard({ enabled: next.enabled, top: next.top });
+      if (next.place) setPlace(next.place);
     } catch {
       // Offline or blocked: keep the local best only.
     }
@@ -282,7 +374,7 @@ export function ClaudeRunner() {
         onOver: (final) => {
           playRef.current("crash");
           setPhase("over");
-          if (leaderboardOn.current) void loadBoard();
+          if (leaderboardOn.current) void loadBoard(final);
           setBest((previous) => {
             if (final <= previous) return previous;
             writeStorage(BEST_KEY, String(final));
@@ -351,6 +443,8 @@ export function ClaudeRunner() {
     setPoints(0);
     setSubmitted("no");
     setSavedAs(null);
+    setPlace(null);
+    runId.current += 1;
     setReady(false);
     setAnnouncement("");
     token.current = null;
@@ -523,9 +617,10 @@ export function ClaudeRunner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "score", token: token.current, name: clean, score: points }),
       });
-      const body = (await response.json()) as { ok: boolean; top?: Entry[] };
+      const body = (await response.json()) as { ok: boolean; top?: Entry[]; place?: Place };
       if (!body.ok || !body.top) throw new Error("rejected");
       setBoard({ enabled: true, top: body.top });
+      if (body.place) setPlace(body.place);
       setSubmitted("yes");
       setSavedAs({ name: clean, score: points });
       setAnnouncement(`Saved as ${clean}.`);
@@ -642,88 +737,98 @@ export function ClaudeRunner() {
         ) : null}
 
         {phase === "over" ? (
-          <div className="runner__over">
-            {/* Arcade order: the score, your place on the board (typed in
-                place when it qualifies), then the two actions. */}
-            <div className="runner__panel">
-              <p className="runner__final">{pad(points)}</p>
+          <div ref={overRef} className="runner__over">
+            {/* The board on the left, the run's own controls on the right
+                (stacked on narrow screens): name and SAVE, then RETRY, SHARE. */}
+            <div className="runner__panel" data-board={rows.length > 0 || undefined}>
               {rows.length > 0 ? (
-                <ol className="runner__board" aria-label="Top scores">
-                  {rows.map((row) =>
-                    row.entry ? (
+                <ol className="runner__board" aria-label="Leaderboard">
+                  {rows.map((row, index) =>
+                    "gap" in row ? (
+                      <li key="gap" className="runner__gap" aria-hidden="true" />
+                    ) : (
                       <li
-                        key={row.rank}
+                        // oxlint-disable-next-line react/no-array-index-key
+                        key={`${row.rank}-${index}`}
                         className={row.you ? "runner__you" : undefined}
+                        data-pending={(row.you && !savedAs) || undefined}
                         aria-current={row.you || undefined}
                       >
-                        <span>{row.rank}</span>
-                        <span className="runner__name">{row.entry.name}</span>
-                        <span>{pad(row.entry.score)}</span>
-                      </li>
-                    ) : (
-                      <li key={row.rank} className="runner__entry">
-                        <form className="runner__row" onSubmit={submit}>
-                          <span>{row.rank}</span>
-                          <label className="sr-only" htmlFor={nameId}>
-                            Name
-                          </label>
-                          <input
-                            id={nameId}
-                            className="runner__input"
-                            value={name}
-                            onChange={(event) => setName(event.target.value.slice(0, 12))}
-                            placeholder="NAME"
-                            maxLength={12}
-                            autoComplete="off"
-                            spellCheck={false}
-                            required
-                          />
-                          <span>{pad(points)}</span>
-                          <button
-                            type="submit"
-                            className="runner__save"
-                            disabled={submitted === "sending"}
-                          >
-                            SAVE <Key keyName="↵" />
-                          </button>
-                        </form>
+                        <span>{rankLabel(row.rank)}</span>
+                        <span className="runner__name">
+                          {row.you
+                            ? savedAs?.name || name.trim() || "YOU"
+                            : (row.entry?.name ?? "–")}
+                        </span>
+                        <span>{pad(row.you ? points : (row.entry?.score ?? 0))}</span>
                       </li>
                     ),
                   )}
                 </ol>
-              ) : null}
-              {submitted === "failed" ? <output className="runner__error">NOT SAVED</output> : null}
-              <div className="runner__actions">
-                <button
-                  type="button"
-                  className="runner__button runner__retry"
-                  aria-keyshortcuts="Space"
-                  onClick={() => ready && void startRun()}
-                >
-                  <RotateCcw aria-hidden="true" size={14} strokeWidth={2.5} absoluteStrokeWidth />
-                  RETRY <Key keyName="SPACE" />
-                </button>
-                {points > 0 ? (
+              ) : (
+                <p className="runner__final">{pad(points)}</p>
+              )}
+              <div className="runner__side">
+                {canSubmit ? (
+                  <form className="runner__entry" onSubmit={submit}>
+                    <label className="sr-only" htmlFor={nameId}>
+                      Name
+                    </label>
+                    <input
+                      id={nameId}
+                      className="runner__input"
+                      value={name}
+                      onChange={(event) => setName(event.target.value.slice(0, 12))}
+                      placeholder="NAME"
+                      maxLength={12}
+                      autoComplete="off"
+                      spellCheck={false}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="runner__save"
+                      disabled={submitted === "sending"}
+                    >
+                      SAVE <Key keyName="↵" />
+                    </button>
+                  </form>
+                ) : null}
+                {submitted === "failed" ? (
+                  <output className="runner__error">NOT SAVED</output>
+                ) : null}
+                <div className="runner__actions">
                   <button
                     type="button"
-                    className="runner__button runner__share"
-                    aria-keyshortcuts="S"
-                    onClick={(event) => {
-                      void share();
-                      // A pointer click hands focus back so Space and Enter retry.
-                      if (event.detail > 0) screen.current?.focus({ preventScroll: true });
-                    }}
+                    className="runner__button runner__retry"
+                    data-primary={!canSubmit || undefined}
+                    aria-keyshortcuts="Space"
+                    onClick={() => ready && void startRun()}
                   >
-                    <ArrowUpRight
-                      aria-hidden="true"
-                      size={14}
-                      strokeWidth={2.5}
-                      absoluteStrokeWidth
-                    />
-                    {shared ? "COPIED" : beat !== null && points > beat ? "SHARE WIN" : "SHARE"}{" "}
-                    <Key keyName="S" />
+                    <Glyph cells={RETRY_GLYPH} />
+                    RETRY <Key keyName="SPACE" />
                   </button>
-                ) : null}
+                  {points > 0 ? (
+                    <button
+                      type="button"
+                      className="runner__button runner__share"
+                      aria-keyshortcuts="S"
+                      onClick={(event) => {
+                        void share();
+                        // A pointer click hands focus back so Space and Enter retry.
+                        if (event.detail > 0) screen.current?.focus({ preventScroll: true });
+                      }}
+                    >
+                      <Glyph cells={SHARE_GLYPH} />
+                      {shared
+                        ? "COPIED"
+                        : beat !== null && points > beat
+                          ? "SHARE WIN"
+                          : "SHARE"}{" "}
+                      <Key keyName="S" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
