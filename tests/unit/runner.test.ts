@@ -19,7 +19,13 @@ import {
   WORLD,
   type RunState,
 } from "@/lib/runner/sim";
-import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
+import {
+  buildSprite,
+  COSTUMES,
+  isDark,
+  walkSprite,
+  type RawSprite,
+} from "@/lib/runner/claude-sprites";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES } from "@/lib/runner/sprites";
 
@@ -194,15 +200,11 @@ describe("score lookup", () => {
 });
 
 describe("eyes", () => {
-  const dark = (hex: string) => {
-    const n = parseInt(hex.slice(1), 16);
-    return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) < 64;
-  };
   test.each(["walk", "scooter", "bike"] as const)(
     "%s: both eyes level, two pixels wide, one in from the face's edge",
     (costume) => {
       for (const frame of sprite(costume).frames) {
-        const eyes = frame.filter(([, , , , colour]) => dark(colour));
+        const eyes = frame.filter(([, , , , colour]) => isDark(colour));
         const top = Math.min(...eyes.map(([, y]) => y));
         for (const row of [top, top + 1]) {
           const cells = eyes.filter(([, y]) => y === row);

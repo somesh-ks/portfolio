@@ -198,6 +198,12 @@ function walkingLegs(raw: RawSprite, frames: Uint8Array[]): Uint8Array[] {
 /** Rides whose turned face puts the far eye on the face's edge (walk,
  * scooter) or a row low and half hidden (bike). */
 const LEVEL_EYES = new Set<Costume>(["walk", "scooter", "bike"]);
+/** Eye black: any colour this dark (eyes, tyres), by relative luminance. */
+export function isDark(hex: string): boolean {
+  const n = parseInt(hex.slice(1), 16);
+  return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) < 64;
+}
+
 /** Left eye to right eye, in pixels, as on the skateboard's face. */
 const EYE_SPACING = 8;
 
@@ -208,18 +214,14 @@ const EYE_SPACING = 8;
  * left and a dark pixel below; the far eye is any dark pixel just right of it, painted over with
  * body colour first.
  */
-export function levelEyes(raw: RawSprite, pixels: Uint8Array): Uint8Array {
+function levelEyes(raw: RawSprite, pixels: Uint8Array): Uint8Array {
   const out = pixels.slice();
   const { w, h } = raw;
   const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 255 : out[y * w + x]!);
   const counts = new Map<number, number>();
   for (const value of out) if (value !== 255) counts.set(value, (counts.get(value) ?? 0) + 1);
   const body = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
-  const luma = (hex: string) => {
-    const n = parseInt(hex.slice(1), 16);
-    return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
-  };
-  const dark = (value: number) => value !== 255 && luma(raw.palette[value] ?? "#fff") < 64;
+  const dark = (value: number) => value !== 255 && isDark(raw.palette[value] ?? "#fff");
   if (body === undefined) return out;
   // The near eye is the leftmost such pixel: the far one can sit a row higher.
   let near: [number, number] | null = null;
