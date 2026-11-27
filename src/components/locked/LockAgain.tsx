@@ -12,7 +12,7 @@ export function LockAgain({ slug }: { slug: string }) {
     <form method="post" action="/api/lock" className="lock-again">
       <input type="hidden" name="slug" value={slug} />
       <span>Unlocked</span>
-      <button type="submit" className="lock-again__button">
+      <button type="submit" className="lock-again__button pressable">
         Lock again
       </button>
       <BfcacheReload />
