@@ -84,22 +84,22 @@ const config: NextConfig = {
       ...entryRedirects(),
       {
         source: "/projects/fun-experiments.md",
-        destination: "/experiments/tide.md",
+        destination: "https://tide.someshks.com",
         permanent: true,
       },
       {
         source: "/projects/fun-experiments",
-        destination: "/experiments/tide",
+        destination: "https://tide.someshks.com",
         permanent: true,
       },
       {
         source: "/experiments/fun-experiments.md",
-        destination: "/experiments/tide.md",
+        destination: "https://tide.someshks.com",
         permanent: true,
       },
       {
         source: "/experiments/fun-experiments",
-        destination: "/experiments/tide",
+        destination: "https://tide.someshks.com",
         permanent: true,
       },
       {
