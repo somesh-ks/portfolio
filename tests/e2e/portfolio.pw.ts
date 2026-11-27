@@ -123,6 +123,25 @@ test("locked case study: wrong password, right password, survives reload", async
   expect(media.status()).toBe(200);
 });
 
+test("Lock signs this browser out of the locked studies", async ({ page }) => {
+  const body = page.locator("body");
+  await page.goto("/work/royc");
+  await expect(page.getByRole("button", { name: "Lock again" })).toHaveCount(0);
+  await page.getByLabel("Password").fill(E2E_PASSWORD);
+  await page.getByRole("button", { name: "Unlock" }).click();
+  await expect(body).toContainText("NDA_SENTINEL_ROYC_7f3a9c");
+
+  await page.getByRole("button", { name: "Lock again" }).click();
+  await expect(page.getByLabel("Password")).toBeVisible();
+  for (const sentinel of NDA_SENTINELS) await expect(body).not.toContainText(sentinel);
+  expect((await page.request.get("/api/media/royc/hero.webp")).status()).toBe(401);
+
+  // Back returns to the history entry that showed the unlocked page; it must not come back.
+  await page.goBack();
+  await expect(page.getByLabel("Password")).toBeVisible();
+  for (const sentinel of NDA_SENTINELS) await expect(body).not.toContainText(sentinel);
+});
+
 test("the NDA boundary holds without a session", async ({ request }) => {
   expect((await request.get("/api/media/royc/hero.webp")).status()).toBe(401);
   expect((await request.get("/api/media/luminovo/anything.webp")).status()).toBe(401);

@@ -58,6 +58,10 @@ A private GitHub repo works too: set the source to `https://raw.githubuserconten
 
 `bun run auth:link royc [days]` prints a URL that unlocks ROYC (default 7 days). The session it starts lasts 7 days. The expiry is inside the HMAC signature, so it can't be extended by editing the link. The proxy swaps the link for a session cookie and redirects to the clean URL.
 
+## Signing out
+
+An unlocked study shows "Unlocked" and a "Lock again" button next to "← Home". It posts to `/api/lock`, which deletes the session cookie (every study at once) and returns to the password box. Without it, a browser stays unlocked for 7 days, which looks like the gate is broken. To sign out everyone, rotate `PORTFOLIO_COOKIE_SECRET`.
+
 ## Local development
 
 Put the bodies in `content/protected/` (gitignored) and set the hash and secret in `.env.local`. Tests and e2e use `tests/fixtures/protected`, whose bodies contain only sentinel strings.
