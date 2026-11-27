@@ -21,9 +21,9 @@
   :root:not([data-entered]) {
     /* Site pages: home and every entry (case studies, projects, experiments, resume). */
     :is(.intro__name, .entry__title),
-    :is(.intro__role, .bio, .runner, #main > .list-section, .entry > .back-link),
+    :is(.intro__role, .bio, .runner, #main > .list-section, .entry > .back-link, .entry__top),
     .entry__header > :not(.entry__title, .entry__links),
-    .entry > :not(.entry__header, .back-link, script),
+    .entry > :not(.entry__header, .back-link, .entry__top, script),
     /* Spring landing hero copy. The stage resolves through its own dither, so it gets no fade. */
     .spring-hero__title,
     :is(.spring-hero__line, .spring-hero__keys),
@@ -65,7 +65,7 @@
       --enter-at: calc(var(--duration-stagger-step) * 2);
     }
     #main > .list-section,
-    .entry > :not(.entry__header, .back-link, script) {
+    .entry > :not(.entry__header, .back-link, .entry__top, script) {
       --enter-at: calc(var(--duration-stagger-step) * 3);
     }
     #main > .list-section ~ .list-section {

@@ -5099,3 +5099,42 @@ html[data-theme="dark"] .comic-source-img {
     animation-duration: var(--duration-press);
   }
 }
+
+/* Lock again: signs an unlocked browser out of the NDA studies */
+.entry__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.lock-again {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.lock-again__button {
+  min-height: 2.75rem;
+  margin-right: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  color: var(--text-primary);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border-link);
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color var(--duration-press) ease;
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .lock-again__button:hover {
+    text-decoration-color: var(--text-primary);
+  }
+}

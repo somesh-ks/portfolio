@@ -15,6 +15,7 @@ import { findEntry, pagesOf } from "@/lib/content";
 import { entryMetadata } from "@/lib/metadata";
 import { loadProtectedBody } from "@/lib/protected-source";
 import type { LockedSlug } from "@/lib/site";
+import { LockAgain } from "./LockAgain";
 import { PasswordGate } from "./PasswordGate";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -47,7 +48,7 @@ export async function LockedCaseStudy({
   if (await isUnlocked(slug)) {
     const body = await loadProtectedBody(slug);
     return (
-      <EntryArticle entry={entry} next={next}>
+      <EntryArticle entry={entry} next={next} aside={<LockAgain slug={slug} />}>
         {body ? (
           <Mdx source={body} mediaBase={`/api/media/${slug}`} />
         ) : (

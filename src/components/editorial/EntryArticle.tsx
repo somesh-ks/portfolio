@@ -14,13 +14,15 @@ interface EntryArticleProps {
   entry: Entry;
   next?: Entry;
   children: ReactNode;
+  /** Sits right of the back link (the unlocked studies' Lock control). */
+  aside?: ReactNode;
 }
 
 /** "https://github.com/owner/repo" -> "owner/repo", the label people recognise. */
 const repoName = (url: string) =>
   url.replace(/^https?:\/\/(www\.)?github\.com\//, "").replace(/\/$/, "");
 
-export function EntryArticle({ entry, next, children }: EntryArticleProps) {
+export function EntryArticle({ entry, next, children, aside }: EntryArticleProps) {
   const { meta } = entry;
   // Tools are used, not read: back link, title, one line, then the tool at full width.
   const tool = (meta.layout ?? (meta.kind === "experiment" ? "tool" : "article")) === "tool";
@@ -30,7 +32,14 @@ export function EntryArticle({ entry, next, children }: EntryArticleProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(entryGraph(entry)) }}
       />
-      <BackLink />
+      {aside ? (
+        <div className="entry__top">
+          <BackLink />
+          {aside}
+        </div>
+      ) : (
+        <BackLink />
+      )}
       <header className="entry__header">
         <h1 className="entry__title">{meta.title}</h1>
         <p className="entry__summary">{meta.summary}</p>
