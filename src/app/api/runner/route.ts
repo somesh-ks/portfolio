@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   createRunToken,
   isLeaderboardEnabled,
+  parseScore,
+  placeFor,
   submitScore,
   topScores,
 } from "@/lib/runner/leaderboard";
@@ -10,12 +12,18 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-/** Top scores. `enabled: false` tells the game to keep only a local best. */
-export async function GET() {
+/** Top scores, and with `?score=` where that score would place.
+ * `enabled: false` tells the game to keep only a local best. */
+export async function GET(request: NextRequest) {
   if (!isLeaderboardEnabled()) return NextResponse.json({ enabled: false, top: [] });
+  const points = parseScore(request.nextUrl.searchParams.get("score"));
   try {
+    const [top, place] = await Promise.all([
+      topScores(),
+      points === null ? null : placeFor(points),
+    ]);
     return NextResponse.json(
-      { enabled: true, top: await topScores() },
+      { enabled: true, top, ...(place ? { place } : {}) },
       { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60" } },
     );
   } catch {

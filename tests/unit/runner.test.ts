@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createRunToken, isPlausible, normalizeName, readRunToken } from "@/lib/runner/leaderboard";
+import {
+  createRunToken,
+  isPlausible,
+  normalizeName,
+  parseScore,
+  readRunToken,
+} from "@/lib/runner/leaderboard";
 import {
   createRun,
   maxScoreFor,
@@ -8,10 +14,18 @@ import {
   score,
   step,
   STEP,
+  STRIDE_GAIN,
+  strideRate,
   WORLD,
   type RunState,
 } from "@/lib/runner/sim";
-import { buildSprite, COSTUMES, walkSprite, type RawSprite } from "@/lib/runner/claude-sprites";
+import {
+  buildSprite,
+  COSTUMES,
+  isDark,
+  walkSprite,
+  type RawSprite,
+} from "@/lib/runner/claude-sprites";
 import rides from "../../public/runner/rides.json";
 import { OBSTACLE_SPRITES } from "@/lib/runner/sprites";
 
@@ -155,4 +169,53 @@ describe("runner leaderboard", () => {
     expect(isPlausible(0, 10_000)).toBe(false);
     expect(isPlausible(1.5, 10_000)).toBe(false);
   });
+});
+
+describe("stride", () => {
+  test("legs speed up with the run, a little, and stop at top speed", () => {
+    expect(strideRate(PHYSICS.startSpeed)).toBe(1);
+    expect(strideRate(PHYSICS.maxSpeed)).toBeCloseTo(1 + STRIDE_GAIN);
+    expect(strideRate(PHYSICS.maxSpeed * 2)).toBeCloseTo(1 + STRIDE_GAIN);
+    expect(strideRate(110)).toBeGreaterThan(1);
+    expect(strideRate(110)).toBeLessThan(1 + STRIDE_GAIN);
+  });
+
+  test("the animation clock runs ahead of real time as speed builds", () => {
+    const state = createRun(1);
+    for (let i = 0; i < 600; i++) step(state, false, 10_000);
+    expect(state.stride).toBeGreaterThan(state.time);
+    expect(state.stride).toBeLessThan(state.time * (1 + STRIDE_GAIN));
+  });
+});
+
+describe("score lookup", () => {
+  test("only scores a run could reach place on the board", () => {
+    expect(parseScore("42")).toBe(42);
+    expect(parseScore("0")).toBeNull();
+    expect(parseScore("-3")).toBeNull();
+    expect(parseScore("4.5")).toBeNull();
+    expect(parseScore("9999999")).toBeNull();
+    expect(parseScore(null)).toBeNull();
+  });
+});
+
+describe("eyes", () => {
+  test.each(["walk", "scooter", "bike"] as const)(
+    "%s: both eyes level, two pixels wide, one in from the face's edge",
+    (costume) => {
+      for (const frame of sprite(costume).frames) {
+        const eyes = frame.filter(([, , , , colour]) => isDark(colour));
+        const top = Math.min(...eyes.map(([, y]) => y));
+        for (const row of [top, top + 1]) {
+          const cells = eyes.filter(([, y]) => y === row);
+          expect(cells.map(([, , w]) => w)).toEqual([2, 2]);
+          const [, right] = cells.sort((a, b) => a[0] - b[0]);
+          const after = frame.some(
+            ([x, y, w]) => y === row && x <= right![0] + 2 && x + w > right![0] + 2,
+          );
+          expect(after).toBe(true);
+        }
+      }
+    },
+  );
 });

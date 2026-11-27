@@ -506,14 +506,59 @@ claude-mascot:defined > * {
     0 0 6px var(--surface-canvas);
 }
 /* The game-over plate: opaque, so stars, rain and sprites never run
-   through it; a hairline edge, no shadow. */
+   through it; a hairline edge, no shadow. With a board: the board left, the
+   run's controls right; stacked on narrow screens. */
 .runner__panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--border-strong);
   background: var(--surface-canvas);
+}
+.runner__panel[data-board] {
+  width: min(100%, 22rem);
+  padding: var(--space-2);
+}
+/* Inline, the board's plate stands on the ground line, so nothing peeks out
+   under it. Fullscreen keeps it centred in the sky. */
+.runner:not(:fullscreen, [data-immersive]) .runner__over:has(.runner__panel[data-board]) {
+  justify-content: flex-end;
+  padding-bottom: 0;
+}
+/* Side by side, the plate keeps right inline, clear of Claude on the left
+   (fullscreen has room to centre it), and a
+   hairline splits the board from the controls. */
+@media (min-width: 40rem) {
+  .runner:not(:fullscreen, [data-immersive]) .runner__over:has(.runner__panel[data-board]) {
+    align-items: flex-end;
+  }
+  .runner__panel[data-board] {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0;
+    width: auto;
+    padding: var(--space-3);
+  }
+  .runner__panel[data-board] .runner__board {
+    width: 13.5rem;
+    padding-right: var(--space-3);
+  }
+  .runner__panel[data-board] .runner__side {
+    width: 17.5rem;
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--border-strong);
+    align-self: stretch;
+  }
+  /* Name and SAVE on top, the actions level with your row at the bottom. */
+  .runner__panel[data-board] .runner__actions {
+    margin-top: auto;
+  }
+}
+.runner__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .runner__final {
   margin: 0;
@@ -524,53 +569,64 @@ claude-mascot:defined > * {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-/* Rows share one set of columns (subgrid), so the typed row lines up with
-   the rest: rank, name, score, and SAVE while a name is due. */
+/* Rank, name, score, on a 24px row pitch. Ranks sit right in a column
+   that fits "1000+". */
 .runner__board {
   display: grid;
-  grid-template-columns: 3ch minmax(0, 12ch) minmax(5ch, 1fr) auto;
-  column-gap: var(--space-4);
+  grid-template-columns: 5ch minmax(0, 1fr) auto;
   margin: 0;
   padding: 0;
   list-style: none;
+  line-height: 20px;
   font-variant-numeric: tabular-nums;
 }
-.runner__board li,
-.runner__row {
+.runner__board li > :first-child {
+  text-align: right;
+}
+.runner__board li {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
+  column-gap: var(--space-2);
   align-items: center;
-}
-/* No name due: no SAVE column, so scores sit flush right. */
-.runner__board:not(:has(.runner__entry)) {
-  grid-template-columns: 3ch minmax(0, 12ch) minmax(5ch, 1fr);
-}
-.runner__board li {
   padding: 2px 1ch;
 }
-/* Spare width (the action row is wider) goes to the score column, so
-   scores sit flush right and SAVE stays its own size. */
-.runner__board li > :nth-child(3),
-.runner__row > span:last-of-type {
+.runner__board li > :last-child {
   text-align: right;
 }
 .runner__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: uppercase;
 }
 .runner__you {
   background: var(--text-primary);
   color: var(--surface-canvas);
 }
-/* Your row, waiting for a name: outlined, typed in place, SAVE joined on. */
-.runner__board .runner__entry {
-  padding-block: 0;
-  padding-right: 0;
+/* Waiting for a name: outlined, so SAVE is the only fill; saving fills it. */
+.runner__you[data-pending] {
+  background: none;
   color: var(--text-primary);
   outline: 1px solid var(--text-primary);
   outline-offset: -1px;
+}
+/* The ranks skipped between the top and your neighbour: a dashed hairline. */
+.runner__board .runner__gap {
+  height: 0;
+  margin: var(--space-1) 1ch;
+  padding: 0;
+  border-top: 1px dashed var(--border-strong);
+}
+/* Name and SAVE joined, one height. */
+.runner__entry {
+  display: flex;
+  height: 2.25rem;
+  border: 1px solid var(--text-primary);
+}
+.runner__entry:has(.runner__input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .runner__error {
   display: block;
@@ -597,10 +653,11 @@ claude-mascot:defined > * {
   opacity: 0.6;
 }
 .runner__input {
+  flex: 1;
   width: 100%;
   min-width: 0;
-  height: 1.75rem;
-  padding: 0;
+  height: 100%;
+  padding: 0 1ch;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -613,15 +670,13 @@ claude-mascot:defined > * {
 .runner__input::placeholder {
   color: var(--text-secondary);
 }
-/* Focus thickens the row's outline instead of ringing the bare field. */
+/* Focus rings the joined field and SAVE, not the bare input. */
 .runner__input:focus-visible {
   outline: none;
 }
-.runner__board .runner__entry:has(.runner__input:focus-visible) {
-  outline-width: 2px;
-}
 .runner__save {
   display: inline-flex;
+  flex: none;
   align-self: stretch;
   align-items: center;
   gap: 1ch;
@@ -637,7 +692,8 @@ claude-mascot:defined > * {
 .runner__save:disabled {
   opacity: 0.6;
 }
-/* Retry and Share: one row, equal width; Retry is the filled one. */
+/* Retry and Share: one row, equal width. Retry fills once no name is due,
+   so only one filled button shows at a time. */
 .runner__actions {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
@@ -660,27 +716,28 @@ claude-mascot:defined > * {
   text-transform: inherit;
   white-space: nowrap;
 }
-.runner__retry {
+.runner__retry[data-primary] {
   background: var(--text-primary);
   color: var(--surface-canvas);
 }
-.runner__button svg {
+.runner__glyph {
   flex: none;
 }
 /* Keycaps on a filled button take its ink. */
-.runner__retry .runner__key,
+.runner__retry[data-primary] .runner__key,
 .runner__save .runner__key {
   color: inherit;
 }
-.runner__retry .kbd,
+.runner__retry[data-primary] .kbd,
 .runner__save .kbd {
   border-color: currentColor;
 }
 @media (hover: hover) {
-  .runner__share:hover {
+  .runner__share:hover,
+  .runner__retry:not([data-primary]):hover {
     background: var(--surface-hover);
   }
-  .runner__retry:hover,
+  .runner__retry[data-primary]:hover,
   .runner__save:hover:not(:disabled) {
     opacity: 0.85;
   }
@@ -693,7 +750,7 @@ claude-mascot:defined > * {
 /* A finger gets the full 44px target; iOS zooms into inputs under 16px. */
 @media (pointer: coarse) {
   .runner__button,
-  .runner__input {
+  .runner__entry {
     height: 2.75rem;
   }
   .runner__input {

@@ -50,6 +50,8 @@ const DEFAULT_HITBOX: Hitbox = { x: 4, w: 16 };
 export interface RunState {
   hitbox: Hitbox;
   time: number;
+  /** Animation clock: runs up to STRIDE_GAIN faster as the run speeds up. */
+  stride: number;
   speed: number;
   distance: number;
   /** Height of the mascot's feet above the ground. */
@@ -78,6 +80,7 @@ export function createRun(seed: number, hitbox: Hitbox = DEFAULT_HITBOX): RunSta
   return {
     hitbox,
     time: 0,
+    stride: 0,
     speed: PHYSICS.startSpeed,
     distance: 0,
     height: 0,
@@ -126,12 +129,24 @@ export function overlaps(state: RunState, obstacle: Obstacle): boolean {
   return inX && state.height < sprite.h - 1;
 }
 
+/** At top speed the legs move this much faster than at the start: enough to
+ * feel the pace, well short of the ground's 2x, which would look frantic. */
+export const STRIDE_GAIN = 0.3;
+
+/** How fast the ride animation plays, relative to the start of a run. */
+export function strideRate(speed: number): number {
+  const { startSpeed, maxSpeed } = PHYSICS;
+  const t = Math.min(1, Math.max(0, (speed - startSpeed) / (maxSpeed - startSpeed)));
+  return 1 + STRIDE_GAIN * t;
+}
+
 /** Advance one fixed step. `jump` is true on the step a press arrives. */
 export function step(state: RunState, jump: boolean, viewWidth: number): void {
   if (state.over) return;
   const dt = STEP;
   state.time += dt;
   state.speed = Math.min(PHYSICS.maxSpeed, state.speed + PHYSICS.acceleration * dt);
+  state.stride += dt * strideRate(state.speed);
   const travel = state.speed * dt;
   state.distance += travel;
 
