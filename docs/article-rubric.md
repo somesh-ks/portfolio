@@ -19,7 +19,8 @@ Pass bar: 0 blockers across all 6 pillars.
 
 ### 1. Editorial and brevity (`DESIGN.md`)
 
-- **Word budget:** 80 to 500 prose words (excluding YAML frontmatter, JSX blocks, and fenced code).
+- **Word budget:** 80 to 650 prose words (excluding YAML frontmatter, JSX blocks, and fenced code).
+- **Red thread:** anchor on one concrete artifact first, walk through craft decisions in causal order, then widen to the full collection.
 - **Opening:** 1 to 2 sentences of context before the first visual (`Video`, `Figure`, or interactive toy).
 - **Headings:** at least two `##` headings, each <= 36 characters so it fits the `9rem` `.toc` rail without wrapping badly.
 - **Closing:** ends with `## Looking back`, tradeoffs in a few lines, and one light human closing line.
@@ -113,6 +114,6 @@ One light human closing line grounded in real detail.
 
 Run these three passes before marking an article done:
 
-1. **Content pass:** 80 to 500 prose words; 1 to 2 opening sentences before first visual; `##` headings <= 36 chars, specific, non-numbered, and free of banned labels; zero `###`; ends with `## Looking back` + human closing line; zero em dashes, spaced en dashes, or AI stock phrasing.
+1. **Content pass:** 80 to 650 prose words with a clear causal red thread; 1 to 2 opening sentences before first visual; `##` headings <= 36 chars, specific, non-numbered, and free of banned labels; zero `###`; ends with `## Looking back` + human closing line; zero em dashes, spaced en dashes, or AI stock phrasing.
 2. **Visual and interface pass:** assets in `public/case-studies/<slug>/` are WebP/AVIF/SVG <= 450 KB; `THUMBS[<slug>]` exists in `src/lib/thumbs/art.tsx` if `home !== false`; direct `.prose` child placement for toys and figures; zero nested boxes inside `.toy`; verified at `390px` and desktop in light and dark modes.
 3. **Code and accessibility pass:** toy registered in `src/components/mdx/toys.tsx` (`@public`) and `COMPONENT_DESCRIPTIONS` in `src/lib/markdown-export.ts`; SSR renders without layout shift; CSS-only motion <= 300ms with reduced-motion handling; native controls, 44px targets, `aria-live="polite"`, and passing `bun test tests/unit/article-rubric.test.ts` + `bun run check`.

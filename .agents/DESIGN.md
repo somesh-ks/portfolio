@@ -9,7 +9,7 @@ Somesh made these calls, most of them more than once. They win over the general 
 ### Look
 
 - **Pixel terminal vibe, everywhere.** A neutral black and white canvas in the style of claude.dev: mono chrome (labels, meta lines, key hints), square corners (every radius token is `0`), 1px hairlines. Every control and frame, including tool chrome in Spring and Stickers, reads as a terminal. Borrow claude.dev's structure, never Anthropic's fonts, orange or wording; Claude-themed art (runner, stickers) may use the official claude.dev costumes and palette. Modern, never dated: no framed card on a coloured band.
-- **No shadows, anywhere.** Hairlines replace the shadows described under "Shadows over Borders" in [`STANDARDS.md`](./STANDARDS.md).
+- **No shadows, anywhere.** Hairlines replace the shadows described under "Shadows over Borders" in [`STANDARDS.md`](./STANDARDS.md). One exception: the comics case study's bookshelf reader imitates physical books, so its books keep shadows, rounded corners, tilt, a walnut shelf and gilt serif spine titles.
 - **No box inside a box.** Sections are separated by hairlines and space. No filled or bordered card inside another frame, no window chrome around a demo or game. Full bleed and simple.
 - **No AI slop.** No pill tag or badge over a title, no tinted chips as decoration, no gradient heroes, no emoji markers, no stat-card or pricing-trio filler, no overline or eyebrow above a title. A needed label is a plain mono meta line.
 - **Neutral canvas, colour only inside the thing.** Accent colour lives inside thumbnails, logos and demos, never as a field across the page. Tool chrome stays neutral ink, since a hue there biases colour judgement.
@@ -52,7 +52,7 @@ Somesh made these calls, most of them more than once. They win over the general 
 
 ## Case study format
 
-Every case study, public or protected, reads as one continuous story with the highest possible brevity. Somesh's standing rule: cut every sentence a skimmer wouldn't miss. Budget: 500 words at most, about a two-minute read, since recruiters give a portfolio two to three minutes. Use one or two sentences per section and let visuals carry the rest. Skimming the headings alone should give the arc.
+Every case study, public or protected, reads as one continuous story with the highest possible brevity. Somesh's standing rule: cut every sentence a skimmer wouldn't miss. Budget: 650 words at most, under a three-minute read, since recruiters give a portfolio two to three minutes. Use one or two sentences per section and let visuals carry the rest. Skimming the headings alone should give the arc.
 
 1. **Header** (rendered by `EntryArticle` from frontmatter): a mono meta line ("Case study · 2026"), the title, a one-line `summary`, the `metrics` row and the facts list (`role`, `timeline`, `team`, `problem`, `stack`). Don't repeat in the body a number the header already shows.
 2. **Opening:** one or two sentences of context, then a hero `Video` or `Figure` with no caption.

@@ -28,6 +28,18 @@ export const ComicEditionReader = dynamic(() =>
   import("../case-studies/ComicEditionReader").then((m) => m.ComicEditionReader),
 );
 /** @public used by MDX through the namespace import */
+export const FrankensteinRevivalHero = dynamic(() =>
+  import("../case-studies/FrankensteinRevivalHero").then((m) => m.FrankensteinRevivalHero),
+);
+/** @public used by MDX through the namespace import */
+export const ComicPressFlow = dynamic(() =>
+  import("../case-studies/ComicPressFlow").then((m) => m.ComicPressFlow),
+);
+/** @public used by MDX through the namespace import */
+export const ClassicBookshelf = dynamic(() =>
+  import("../case-studies/ClassicBookshelf").then((m) => m.ClassicBookshelf),
+);
+/** @public used by MDX through the namespace import */
 export const RoycWhiteLabelSwitcher = dynamic(() =>
   import("../case-studies/RoycWhiteLabelSwitcher").then((m) => m.RoycWhiteLabelSwitcher),
 );

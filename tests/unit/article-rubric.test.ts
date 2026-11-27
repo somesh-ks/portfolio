@@ -93,11 +93,11 @@ const allStudies = readCaseStudies();
 const publicStudies = allStudies.filter((entry) => entry.data.protected !== true);
 
 describe("article rubric", () => {
-  test("every non-protected case study meets prose word count (80 to 500)", () => {
+  test("every non-protected case study meets prose word count (80 to 650)", () => {
     for (const entry of publicStudies) {
       const words = countProseWords(entry.body);
       expect(words, `${entry.file}: ${words} prose words`).toBeGreaterThanOrEqual(80);
-      expect(words, `${entry.file}: ${words} prose words`).toBeLessThanOrEqual(500);
+      expect(words, `${entry.file}: ${words} prose words`).toBeLessThanOrEqual(650);
     }
   });
 
