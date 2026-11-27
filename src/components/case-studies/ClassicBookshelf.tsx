@@ -328,9 +328,22 @@ export function ClassicBookshelf() {
 
   const finishTurn = () => {
     if (!turn) return;
-    setPos(views[turn.from + turn.dir]!.first);
+    const landed = views[turn.from + turn.dir];
+    if (landed) setPos(landed.first);
     setTurn(null);
   };
+
+  // animationend never fires when the animated node unmounts (mode switch) or motion is
+  // turned off mid-flight, so release the pager after the longest animation regardless.
+  useEffect(() => {
+    if (!turn && !cover) return;
+    const id = window.setTimeout(() => {
+      if (cover === "closing") setPos(-1);
+      setTurn(null);
+      setCover(null);
+    }, 1500);
+    return () => window.clearTimeout(id);
+  }, [turn, cover]);
 
   const finishCover = () => {
     if (cover === "closing") setPos(-1);
@@ -359,7 +372,7 @@ export function ClassicBookshelf() {
   };
 
   const current = views[index]!.sides;
-  const target = turn ? views[turn.from + turn.dir]!.sides : current;
+  const target = (turn && views[turn.from + turn.dir]?.sides) || current;
   const left = turn?.dir === -1 ? target[0] : current[0];
   const right = turn?.dir === 1 ? target[1] : current[1];
   const busy = Boolean(turn) || Boolean(cover);
